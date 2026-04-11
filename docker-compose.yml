@@ -1,0 +1,14 @@
+services:
+  web:
+    build: .
+    ports: 
+      - "3000:3000"
+    env_file: .env.local
+    depends_on: 
+      - ingestion
+
+  ingestion:
+    build: ./services/ingestion
+    ports: 
+      - "8000:8000"
+    restart: unless-stopped

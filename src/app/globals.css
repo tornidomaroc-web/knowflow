@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-color: #070d0a;
+  --accent-color: #2eff8c;
+  --border-color: #1a2e1e;
+  --muted-color: #6b7d6e;
+  --input-bg: #0c1510;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background-color: var(--bg-color); color: white; }
