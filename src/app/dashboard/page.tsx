@@ -54,9 +54,7 @@ export default async function DashboardPage() {
           { num: '01', title: 'NEW KNOWLEDGE BASE', desc: 'Upload documents and create an agent', href: '/dashboard/knowledge/new' },
           { num: '02', title: 'TALK TO AGENT', desc: 'Ask questions about your knowledge bases', href: '/dashboard/agent' },
         ].map(({ num, title, desc, href }) => (
-          <Link key={num} href={href} className="group" style={{ display: 'block', background: '#0c1510', border: '1px solid #1a2e1e', padding: '1.5rem', textDecoration: 'none', transition: 'border-color 0.2s' }}
-            onMouseOver={e => (e.currentTarget.style.borderColor = '#2eff8c')}
-            onMouseOut={e => (e.currentTarget.style.borderColor = '#1a2e1e')}>
+          <Link key={num} href={href} className="group block border transition-colors duration-200 hover:border-[#2eff8c]" style={{ background: '#0c1510', borderColor: '#1a2e1e', padding: '1.5rem', textDecoration: 'none' }}>
             <div className="flex items-start justify-between">
               <div>
                 <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: '#2eff8c', marginBottom: '0.5rem' }}>{num}</p>
