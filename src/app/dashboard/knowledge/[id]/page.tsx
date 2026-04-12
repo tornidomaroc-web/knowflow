@@ -1,4 +1,5 @@
 'use client'
+import React from 'react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { DropZone } from '@/components/upload/DropZone'
@@ -19,7 +20,8 @@ interface KB {
   language: string
 }
 
-export default function KBDetailPage({ params }: { params: { id: string } }) {
+export default function KBDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params)
   const [kb, setKb] = useState<KB | null>(null)
   const [docs, setDocs] = useState<Document[]>([])
   const supabase = createClient()
@@ -29,19 +31,19 @@ export default function KBDetailPage({ params }: { params: { id: string } }) {
       const { data: kbData } = await supabase
         .from('knowledge_bases')
         .select('*')
-        .eq('id', params.id)
+        .eq('id', id)
         .single()
       setKb(kbData)
 
       const { data: docsData } = await supabase
         .from('documents')
         .select('*')
-        .eq('kb_id', params.id)
+        .eq('kb_id', id)
         .order('created_at', { ascending: false })
       setDocs(docsData || [])
     }
     load()
-  }, [params.id])
+  }, [id])
 
   const statusColor = (s: string) => {
     if (s === 'ready') return '#2eff8c'
@@ -61,7 +63,7 @@ export default function KBDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       <div className="mb-8">
-        <DropZone kbId={params.id} onSuccess={(doc) => setDocs(prev => [doc, ...prev])} />
+        <DropZone kbId={id} onSuccess={(doc) => setDocs(prev => [doc, ...prev])} />
       </div>
 
       <div>
