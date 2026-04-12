@@ -13,6 +13,12 @@ export default async function DashboardPage() {
     supabase.from('conversations').select('*', { count: 'exact', head: true }),
   ])
 
+  const { data: recentActivity } = await supabase
+    .from('conversations')
+    .select('id, created_at, platform, knowledge_bases(name)')
+    .order('created_at', { ascending: false })
+    .limit(5)
+
   return (
     <div className="text-white space-y-10 max-w-5xl">
 
@@ -72,11 +78,31 @@ export default async function DashboardPage() {
         <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: '#6b7d6e', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>
           Recent Activity
         </p>
-        <div style={{ border: '1px dashed #1a2e1e', padding: '3rem', textAlign: 'center' }}>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#6b7d6e' }}>
+        {!recentActivity || recentActivity.length === 0 ? (
+          <div className="border border-dashed border-[#1a2e1e] p-8 text-center text-[#6b7d6e] text-sm"
+               style={{fontFamily:'var(--font-mono)'}}>
             No activity yet
-          </p>
-        </div>
+          </div>
+        ) : (
+          <div className="border border-[#1a2e1e]">
+            {recentActivity.map((conv: any, i: number) => (
+              <div key={conv.id}
+                   className={`flex items-center justify-between p-4 ${i !== recentActivity.length-1 ? 'border-b border-[#1a2e1e]' : ''}`}>
+                <div>
+                  <p className="text-sm text-white">
+                    {(conv.knowledge_bases as any)?.name || 'Unknown KB'}
+                  </p>
+                  <p className="text-xs text-[#6b7d6e] mt-1" style={{fontFamily:'var(--font-mono)'}}>
+                    {conv.platform?.toUpperCase()} · {new Date(conv.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <span className="text-xs text-[#2eff8c]" style={{fontFamily:'var(--font-mono)'}}>
+                  CONVERSATION
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
     </div>
