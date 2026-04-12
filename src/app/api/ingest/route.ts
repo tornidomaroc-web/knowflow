@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { checkDocumentLimit } from '@/lib/limits';
+import { checkDocumentLimit } from '@/lib/limits-server';
 
 export async function POST(request: Request) {
   try {

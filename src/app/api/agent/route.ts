@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { checkConversationLimit } from '@/lib/limits';
+import { checkConversationLimit } from '@/lib/limits-server';
 
 export async function POST(request: Request) {
   try {

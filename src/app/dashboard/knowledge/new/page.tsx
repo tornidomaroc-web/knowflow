@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { checkKBLimit } from '@/lib/limits';
 
 export default function NewKnowledgeBasePage() {
   const router = useRouter();
@@ -26,7 +25,8 @@ export default function NewKnowledgeBasePage() {
       return;
     }
 
-    const canCreate = await checkKBLimit(user.id);
+    const res = await fetch('/api/check-limit');
+    const { canCreate } = await res.json();
     if (!canCreate) {
       setError('Free plan allows 1 Knowledge Base only. Upgrade to Pro for more.');
       setLoading(false);
