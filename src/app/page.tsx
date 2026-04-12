@@ -43,7 +43,7 @@ export default function LandingPage() {
               <Link href="/signup" className="w-full sm:w-auto bg-[var(--accent-color)] text-black px-8 py-4 hover:opacity-90 transition-opacity whitespace-nowrap">
                 Start Free
               </Link>
-              <Link href="/docs" className="w-full sm:w-auto border border-[var(--border-color)] bg-[var(--input-bg)] text-white px-8 py-4 hover:border-[var(--accent-color)] transition-colors whitespace-nowrap">
+              <Link href="/about" className="w-full sm:w-auto border border-[var(--border-color)] bg-[var(--input-bg)] text-white px-8 py-4 hover:border-[var(--accent-color)] transition-colors whitespace-nowrap">
                 View Docs
               </Link>
             </div>
