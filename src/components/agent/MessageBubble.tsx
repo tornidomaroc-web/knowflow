@@ -1,3 +1,5 @@
+import ReactMarkdown from 'react-markdown';
+
 interface MessageBubbleProps {
   role: 'user' | 'assistant';
   content: string;
@@ -17,8 +19,10 @@ export function MessageBubble({ role, content, isStreaming }: MessageBubbleProps
         }`}
         style={!isUser ? { borderLeftColor: 'var(--muted-color)' } : {}}
       >
-        {content}
-        {isStreaming && <span className="animate-pulse">▋</span>}
+        <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-[#070d0a] prose-pre:border prose-pre:border-[var(--border-color)]">
+          <ReactMarkdown>{content}</ReactMarkdown>
+        </div>
+        {isStreaming && <span className="animate-pulse inline-block mt-2 font-bold text-[var(--accent-color)]">▋</span>}
       </div>
     </div>
   );

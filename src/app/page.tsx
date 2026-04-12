@@ -11,8 +11,8 @@ export default function LandingPage() {
           </div>
           <div className="hidden md:flex items-center space-x-8 font-[family-name:var(--font-mono)] text-sm uppercase tracking-widest text-[var(--muted-color)]">
             <Link href="#how-it-works" className="hover:text-[var(--accent-color)] transition-colors">How it works</Link>
-            <Link href="#pricing" className="hover:text-[var(--accent-color)] transition-colors">Pricing</Link>
-            <Link href="/docs" className="hover:text-[var(--accent-color)] transition-colors">Docs</Link>
+            <Link href="/pricing" className="hover:text-[var(--accent-color)] transition-colors">Pricing</Link>
+            <Link href="/about" className="hover:text-[var(--accent-color)] transition-colors">Docs</Link>
           </div>
           <Link href="/signup" className="hidden border border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-color)] hover:text-black md:inline-flex items-center justify-center px-6 py-2 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest transition-colors">
             Get Started
@@ -165,9 +165,9 @@ export default function LandingPage() {
             Know<span className="text-[var(--accent-color)]">Flow</span>
           </div>
           <div className="flex space-x-6 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest text-[var(--muted-color)]">
-            <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="#" className="hover:text-white transition-colors">Terms</Link>
-            <Link href="https://github.com/knowflow" className="hover:text-[var(--accent-color)] transition-colors">GitHub</Link>
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+            <Link href="/privacy" className="hover:text-white transition-colors">Terms</Link>
+            <Link href="https://github.com/tornidomaroc-web/knowflow" className="hover:text-[var(--accent-color)] transition-colors">GitHub</Link>
           </div>
           <div className="mt-6 md:mt-0 font-[family-name:var(--font-mono)] text-xs text-[var(--muted-color)]">
             &copy; {new Date().getFullYear()} KnowFlow. All rights reserved.
