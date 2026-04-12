@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { checkConversationLimit } from '@/lib/limits';
 
 export async function POST(request: Request) {
   try {
@@ -14,6 +15,18 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     console.log('User:', user?.id);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const canChat = await checkConversationLimit(user.id);
+    if (!canChat) {
+      const encoder = new TextEncoder();
+      const readable = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode("You've reached your monthly conversation limit. Upgrade to Pro to continue."));
+          controller.close();
+        }
+      });
+      return new Response(readable, { headers: { 'Content-Type': 'text/plain' } });
+    }
 
     const { data: docs } = await supabase
       .from('documents')
