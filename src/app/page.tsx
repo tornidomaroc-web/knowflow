@@ -166,7 +166,7 @@ export default function LandingPage() {
           </div>
           <div className="flex space-x-6 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest text-[var(--muted-color)]">
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="/privacy" className="hover:text-white transition-colors">Terms</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
             <Link href="https://github.com/tornidomaroc-web/knowflow" className="hover:text-[var(--accent-color)] transition-colors">GitHub</Link>
           </div>
           <div className="mt-6 md:mt-0 font-[family-name:var(--font-mono)] text-xs text-[var(--muted-color)]">
