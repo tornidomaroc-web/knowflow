@@ -32,20 +32,26 @@ export default function LandingPage() {
               Open Source · MIT License
             </div>
             <h1 className="text-5xl lg:text-7xl font-[family-name:var(--font-playfair)] font-bold tracking-tight mb-8 leading-tight">
-              Your documents.<br />
-              <span className="text-[var(--muted-color)] italic">Your agent.</span><br />
-              <span className="text-[var(--accent-color)]">Your language.</span>
+              Your documents. Any question. In seconds.
             </h1>
-            <p className="text-lg text-[var(--muted-color)] mb-10 max-w-2xl mx-auto lg:mx-0">
-              Upload any file. Define your goal. Get an agent that responds, learns, and executes — in Arabic and English.
+            <p className="text-lg text-[var(--muted-color)] mb-4 max-w-2xl mx-auto lg:mx-0">
+              Upload your contracts, catalogs, or HR policies — and get instant answers in Arabic or English. No search. No digging. Just ask.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 font-[family-name:var(--font-mono)] uppercase text-sm tracking-widest">
-              <Link href="/signup" className="w-full sm:w-auto bg-[var(--accent-color)] text-black px-8 py-4 hover:opacity-90 transition-opacity whitespace-nowrap">
-                Start Free
-              </Link>
-              <Link href="/about" className="w-full sm:w-auto border border-[var(--border-color)] bg-[var(--input-bg)] text-white px-8 py-4 hover:border-[var(--accent-color)] transition-colors whitespace-nowrap">
-                View Docs
-              </Link>
+            <p className="text-base text-[var(--muted-color)] mb-10 max-w-2xl mx-auto lg:mx-0">
+              Built for teams who work with real documents every day.
+            </p>
+            <div className="flex flex-col items-center lg:items-start">
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 font-[family-name:var(--font-mono)] uppercase text-sm tracking-widest w-full">
+                <Link href="/signup" className="w-full sm:w-auto bg-[var(--accent-color)] text-black px-8 py-4 hover:opacity-90 transition-opacity whitespace-nowrap text-center">
+                  Upload Your First Document
+                </Link>
+                <Link href="#how-it-works" className="w-full sm:w-auto border border-[var(--border-color)] bg-[var(--input-bg)] text-white px-8 py-4 hover:border-[var(--accent-color)] transition-colors whitespace-nowrap text-center">
+                  See how it works
+                </Link>
+              </div>
+              <p className="mt-4 text-xs tracking-widest text-[var(--muted-color)] text-center lg:text-left">
+                No credit card required · Free plan available · Works in seconds
+              </p>
             </div>
           </div>
           <div className="flex-1 w-full max-w-lg lg:max-w-none mx-auto">
@@ -67,43 +73,46 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 3. STATS BAR */}
-      <section className="border-b border-[var(--border-color)] bg-[var(--input-bg)]">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border-color)]">
-          <div className="py-10 lg:py-12 px-6 text-center">
-            <h3 className="text-2xl font-[family-name:var(--font-playfair)] font-bold text-[var(--accent-color)] mb-2">Any Format</h3>
-            <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest text-[var(--muted-color)]">PDF · DOCX · XLSX · MP3</p>
+      {/* 3. WHY KNOWFLOW */}
+      <section className="py-16 border-b border-[var(--border-color)] bg-[var(--input-bg)]">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl lg:text-5xl font-[family-name:var(--font-playfair)] font-bold text-white">Why KnowFlow</h2>
           </div>
-          <div className="py-10 lg:py-12 px-6 text-center">
-            <h3 className="text-2xl font-[family-name:var(--font-playfair)] font-bold text-[var(--accent-color)] mb-2">Arabic First</h3>
-            <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest text-[var(--muted-color)]">RTL Native</p>
-          </div>
-          <div className="py-10 lg:py-12 px-6 text-center">
-            <h3 className="text-2xl font-[family-name:var(--font-playfair)] font-bold text-[var(--accent-color)] mb-2">0 Lines of Code</h3>
-            <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest text-[var(--muted-color)]">No technical skills needed</p>
-          </div>
-          <div className="py-10 lg:py-12 px-6 text-center">
-            <h3 className="text-2xl font-[family-name:var(--font-playfair)] font-bold text-[var(--accent-color)] mb-2">Learns</h3>
-            <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest text-[var(--muted-color)]">Improves with every question</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border-color)] border border-[var(--border-color)] bg-[var(--bg-color)]">
+            <div className="py-10 px-6 text-center">
+              <h3 className="text-xl font-[family-name:var(--font-playfair)] font-bold text-[var(--accent-color)] mb-4">Works in Arabic and English</h3>
+              <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest text-[var(--muted-color)]">natively, not translated</p>
+            </div>
+            <div className="py-10 px-6 text-center">
+              <h3 className="text-xl font-[family-name:var(--font-playfair)] font-bold text-[var(--accent-color)] mb-4">Trained on your documents</h3>
+              <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest text-[var(--muted-color)]">not the internet</p>
+            </div>
+            <div className="py-10 px-6 text-center">
+              <h3 className="text-xl font-[family-name:var(--font-playfair)] font-bold text-[var(--accent-color)] mb-4">No setup. No coding.</h3>
+              <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest text-[var(--muted-color)]">Upload and start.</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 4. FEATURES */}
+      {/* 4. USE CASES */}
       <section className="py-24 border-b border-[var(--border-color)] relative">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-[var(--border-color)] border border-[var(--border-color)]">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-[family-name:var(--font-playfair)] font-bold text-white mb-4">What your team can do with KnowFlow</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--border-color)] border border-[var(--border-color)]">
             {[
-              { id: '01', title: 'Ingest anything' },
-              { id: '02', title: 'Persistent memory' },
-              { id: '03', title: 'Telegram · Slack · API' },
-              { id: '04', title: 'Deterministic workflows' },
-              { id: '05', title: 'Multi-tenant ready' },
-              { id: '06', title: 'Arabic first' },
+              { id: '01', title: 'Answer HR questions instantly', body: 'Employee asks about leave policy at 9pm. KnowFlow answers from your actual HR documents — no waiting.' },
+              { id: '02', title: 'Search contracts in seconds', body: 'Stop reading 40-page contracts to find one clause. Ask KnowFlow and get the exact answer.' },
+              { id: '03', title: 'Turn your catalog into a sales assistant', body: 'Your team asks product questions all day. Upload the catalog once — KnowFlow answers forever.' },
+              { id: '04', title: 'Onboard new employees faster', body: 'New hire has 50 questions. KnowFlow knows every policy, process, and procedure in your documents.' },
             ].map((feature) => (
               <div key={feature.id} className="bg-[var(--bg-color)] p-12 hover:bg-[var(--input-bg)] transition-colors">
-                <span className="block font-[family-name:var(--font-mono)] text-[var(--muted-color)] text-sm mb-4">{feature.id}</span>
-                <h3 className="font-[family-name:var(--font-playfair)] text-2xl font-bold">{feature.title}</h3>
+                <span className="block font-[family-name:var(--font-mono)] text-[var(--accent-color)] text-sm mb-4">{feature.id}</span>
+                <h3 className="font-[family-name:var(--font-playfair)] text-2xl font-bold mb-4">{feature.title}</h3>
+                <p className="text-[var(--muted-color)]">{feature.body}</p>
               </div>
             ))}
           </div>
@@ -115,23 +124,22 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-[family-name:var(--font-playfair)] font-bold mb-4">How it works</h2>
-            <p className="font-[family-name:var(--font-mono)] text-sm uppercase tracking-widest text-[var(--muted-color)]">Three steps to your agent</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="border border-[var(--border-color)] bg-[var(--bg-color)] p-8">
               <span className="text-[var(--accent-color)] font-[family-name:var(--font-mono)] text-sm mb-4 block">Step 1</span>
-              <h3 className="text-2xl font-[family-name:var(--font-playfair)] font-bold mb-4">Upload your content</h3>
-              <p className="text-[var(--muted-color)] text-sm font-[family-name:var(--font-mono)] uppercase tracking-widest">→ powered by MarkItDown</p>
+              <h3 className="text-2xl font-[family-name:var(--font-playfair)] font-bold mb-4">Upload your documents</h3>
+              <p className="text-[var(--muted-color)] font-[family-name:var(--font-sans)]">PDF, Word, Excel — any format your team already uses.</p>
             </div>
             <div className="border border-[var(--border-color)] bg-[var(--bg-color)] p-8">
               <span className="text-[var(--accent-color)] font-[family-name:var(--font-mono)] text-sm mb-4 block">Step 2</span>
-              <h3 className="text-2xl font-[family-name:var(--font-playfair)] font-bold mb-4">Agent learns</h3>
-              <p className="text-[var(--muted-color)] text-sm font-[family-name:var(--font-mono)] uppercase tracking-widest">→ powered by Hermes Agent</p>
+              <h3 className="text-2xl font-[family-name:var(--font-playfair)] font-bold mb-4">Ask in Arabic or English</h3>
+              <p className="text-[var(--muted-color)] font-[family-name:var(--font-sans)]">Type your question naturally. No keywords. No search terms.</p>
             </div>
             <div className="border border-[var(--border-color)] bg-[var(--bg-color)] p-8">
               <span className="text-[var(--accent-color)] font-[family-name:var(--font-mono)] text-sm mb-4 block">Step 3</span>
-              <h3 className="text-2xl font-[family-name:var(--font-playfair)] font-bold mb-4">Executes precisely</h3>
-              <p className="text-[var(--muted-color)] text-sm font-[family-name:var(--font-mono)] uppercase tracking-widest">→ powered by Archon Workflows</p>
+              <h3 className="text-2xl font-[family-name:var(--font-playfair)] font-bold mb-4">Get the exact answer</h3>
+              <p className="text-[var(--muted-color)] font-[family-name:var(--font-sans)]">KnowFlow reads your documents and responds with the right information instantly.</p>
             </div>
           </div>
         </div>
