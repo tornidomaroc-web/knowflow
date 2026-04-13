@@ -18,6 +18,12 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
+    if (file.size > 52428800) {
+      setErrorMsg('File too large. Maximum size is 50MB.');
+      setState('error');
+      return;
+    }
+
     setState('uploading');
     setErrorMsg(null);
 

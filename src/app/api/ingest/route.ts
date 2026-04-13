@@ -12,6 +12,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Missing file or kb_id' }, { status: 400 });
     }
 
+    if (file.size > 52428800) {
+      return NextResponse.json({ error: 'File too large. Maximum size is 50MB.' }, { status: 413 });
+    }
+
     const canUpload = await checkDocumentLimit(kbId);
     if (!canUpload) {
       return NextResponse.json({ error: 'Document limit reached. Free plan allows 10 documents per knowledge base.' }, { status: 403 });
