@@ -72,7 +72,7 @@ export function ChatBox({ kbId, kbName }: ChatBoxProps) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] border border-[var(--border-color)] bg-[#070d0a]">
+    <div className="flex flex-col h-[calc(100dvh-100px)] border border-[var(--border-color)] bg-[#070d0a]">
       <div className="p-4 border-b border-[var(--border-color)] bg-[#0c1510]">
         <h2 className="font-[family-name:var(--font-mono)] text-[var(--muted-color)] uppercase tracking-widest text-xs">
           Chatting with: {kbName}
@@ -88,7 +88,7 @@ export function ChatBox({ kbId, kbName }: ChatBoxProps) {
         )}
       </div>
 
-      <div className="p-4 bg-[#0c1510] border-t border-[var(--border-color)] flex gap-4">
+      <div className="p-4 pb-8 md:pb-4 bg-[#0c1510] border-t border-[var(--border-color)] flex gap-4">
         <textarea
           value={input}
           onChange={e => setInput(e.target.value)}
