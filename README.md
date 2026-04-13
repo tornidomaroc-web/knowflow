@@ -1,11 +1,20 @@
-# KnowFlow
+<div align="center">
 
-> Turn any file into a bilingual AI agent — Arabic & English, instantly.
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f0c29,50:302b63,100:24243e&height=160&section=header&text=KnowFlow&fontSize=56&fontColor=ffffff&fontAlignY=40&desc=Turn%20any%20file%20into%20a%20bilingual%20AI%20agent&descAlignY=62&descColor=a78bfa&animation=fadeIn" width="100%"/>
 
-[![Live](https://img.shields.io/badge/●_Live-1D9E75?style=flat-square)](https://tryknowflow.com)
-[![Try it](https://img.shields.io/badge/tryknowflow.com-0f0f0f?style=flat-square&logo=vercel&logoColor=white)](https://tryknowflow.com)
-[![Built with Claude](https://img.shields.io/badge/Claude_API-D97757?style=flat-square)](https://anthropic.com)
-[![Next.js](https://img.shields.io/badge/Next.js_15-0f0f0f?style=flat-square&logo=next.js)](https://nextjs.org)
+<br/>
+
+[![Live](https://img.shields.io/badge/●_LIVE-1D9E75?style=for-the-badge)](https://tryknowflow.com)
+[![Launch App](https://img.shields.io/badge/tryknowflow.com-Launch%20Now-7c3aed?style=for-the-badge&logo=vercel&logoColor=white)](https://tryknowflow.com)
+[![Claude API](https://img.shields.io/badge/Powered%20by%20Claude-D97757?style=for-the-badge&logo=anthropic&logoColor=white)](https://anthropic.com)
+[![Next.js 15](https://img.shields.io/badge/Next.js%2015-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![Arabic First](https://img.shields.io/badge/Arabic%20First-🇸🇦-1a1a2e?style=for-the-badge)](https://tryknowflow.com)
+
+<br/>
+
+> **Turn any file into a bilingual AI agent — Arabic & English, instantly.**
+
+</div>
 
 ---
 
@@ -77,6 +86,12 @@ The Arabic-speaking market — 400M+ people, $1.5T in Gulf GDP — gets scraps.
 KnowFlow is built for that market, by a builder from that market.
 
 ---
+
+---
+
+<div align="center">
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:24243e,50:302b63,100:0f0c29&height=100&section=footer&animation=fadeIn" width="100%"/>
+</div>
 
 ## License
 
