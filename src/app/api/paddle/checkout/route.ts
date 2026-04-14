@@ -16,7 +16,7 @@ export async function POST() {
       customData: { user_id: user.id }
     });
 
-    return NextResponse.json({ checkoutUrl: transaction.checkout?.url });
+    return NextResponse.json({ transactionId: transaction.id });
   } catch (error) {
     console.error('Checkout error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

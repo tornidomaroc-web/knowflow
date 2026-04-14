@@ -1,14 +1,23 @@
 'use client'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { initializePaddle, Paddle } from '@paddle/paddle-js';
 
 export default function PricingPage() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [paddle, setPaddle] = useState<Paddle | undefined>();
 
   const supabase = createClient();
+
+  useEffect(() => {
+    initializePaddle({
+      environment: 'production',
+      token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN!
+    }).then(setPaddle);
+  }, []);
 
   const handleWaitlist = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,8 +90,9 @@ export default function PricingPage() {
                 try {
                   const res = await fetch('/api/paddle/checkout', { method: 'POST' });
                   const data = await res.json();
-                  if (data.checkoutUrl) {
-                    window.location.href = data.checkoutUrl;
+                  if (data.transactionId) {
+                    paddle?.Checkout.open({ transactionId: data.transactionId });
+                    setStatus('idle');
                   } else {
                     throw new Error(data.error || 'Failed to start checkout');
                   }
