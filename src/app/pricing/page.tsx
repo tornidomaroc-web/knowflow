@@ -58,9 +58,7 @@ export default function PricingPage() {
 
         {/* PRO PLAN */}
         <div className="border-2 border-[var(--accent-color)] bg-[var(--input-bg)] p-8 flex flex-col relative">
-          <div className="absolute top-0 right-0 bg-[var(--accent-color)] text-black px-3 py-1 font-[family-name:var(--font-mono)] text-xs font-bold uppercase tracking-widest">
-            Coming Soon
-          </div>
+
           <h2 className="text-2xl font-[family-name:var(--font-playfair)] font-bold mb-2">Pro</h2>
           <div className="text-3xl font-bold mb-6">$49<span className="text-sm font-normal text-[var(--muted-color)]">/month</span></div>
           <ul className="space-y-4 mb-8 flex-1 font-[family-name:var(--font-mono)] text-sm text-[var(--muted-color)]">
@@ -72,31 +70,42 @@ export default function PricingPage() {
           </ul>
           
           <div className="mt-auto">
-            {status === 'success' ? (
-              <div className="text-[var(--accent-color)] font-[family-name:var(--font-mono)] text-xs p-3 text-center border border-[var(--accent-color)]">
-                You're on the list! We'll notify you.
-              </div>
-            ) : (
-              <form onSubmit={handleWaitlist} className="flex flex-col gap-2">
-                <input 
-                  type="email" 
-                  required
-                  placeholder="your@email.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] px-4 py-3 font-[family-name:var(--font-mono)] text-sm focus:outline-none focus:border-[var(--accent-color)] placeholder-[var(--muted-color)]"
-                />
-                <button 
-                  type="submit" 
-                  disabled={status === 'loading'}
-                  className="w-full bg-[var(--accent-color)] text-black py-3 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  {status === 'loading' ? 'Joining...' : 'Join Waitlist'}
-                </button>
-                {status === 'error' && (
-                  <p className="text-red-400 font-[family-name:var(--font-mono)] text-xs text-center">{errorMsg}</p>
-                )}
-              </form>
+            <button 
+              onClick={async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                  window.location.href = '/login';
+                  return;
+                }
+                setStatus('loading');
+                try {
+                  const res = await fetch('/api/paddle/checkout', { method: 'POST' });
+                  const data = await res.json();
+                  if (data.checkoutUrl) {
+                    window.location.href = data.checkoutUrl;
+                  } else {
+                    throw new Error(data.error || 'Failed to start checkout');
+                  }
+                } catch (err: any) {
+                  setErrorMsg(err.message);
+                  setStatus('error');
+                }
+              }}
+              disabled={status === 'loading'}
+              className="w-full bg-[var(--accent-color)] text-black py-3 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {status === 'loading' ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : 'Upgrade to Pro'}
+            </button>
+            {status === 'error' && (
+              <p className="text-red-400 font-[family-name:var(--font-mono)] text-xs text-center mt-2">{errorMsg}</p>
             )}
           </div>
         </div>
