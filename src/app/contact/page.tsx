@@ -9,11 +9,11 @@ export default function ContactPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 font-[family-name:var(--font-mono)] text-sm">
           <div className="border border-[var(--border-color)] p-6 bg-[var(--input-bg)] text-center">
             <h2 className="text-[var(--muted-color)] uppercase tracking-widest mb-2 text-xs">General</h2>
-            <a href="mailto:hello@knowflow.ai" className="text-[var(--accent-color)] hover:underline">hello@knowflow.ai</a>
+            <a href="mailto:hello@tryknowflow.com" className="text-[var(--accent-color)] hover:underline">hello@tryknowflow.com</a>
           </div>
           <div className="border border-[var(--border-color)] p-6 bg-[var(--input-bg)] text-center">
             <h2 className="text-[var(--muted-color)] uppercase tracking-widest mb-2 text-xs">Enterprise</h2>
-            <a href="mailto:enterprise@knowflow.ai" className="text-[var(--accent-color)] hover:underline">enterprise@knowflow.ai</a>
+            <a href="mailto:enterprise@tryknowflow.com" className="text-[var(--accent-color)] hover:underline">enterprise@tryknowflow.com</a>
           </div>
         </div>
 
