@@ -28,7 +28,7 @@ export function KBSelector({ kbs }: { kbs: KnowledgeBase[] }) {
       .from('conversations')
       .select('id, kb_id, created_at, knowledge_bases(name)')
       .order('created_at', { ascending: false });
-    if (data) setConversations(data as Conversation[]);
+    if (data) setConversations(data as unknown as Conversation[]);
   }, []);
 
   useEffect(() => { fetchConversations(); }, [fetchConversations]);
