@@ -11,6 +11,13 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     redirect('/login');
   }
 
+  const { data: subscription } = await supabase
+    .from('subscriptions')
+    .select('status')
+    .eq('user_id', user.id)
+    .single();
+  const isPro = subscription?.status === 'pro';
+
   return (
     <div className="flex min-h-screen text-white bg-black">
       <input type="checkbox" id="mobile-sidebar" className="peer hidden" />
@@ -22,7 +29,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       <label htmlFor="mobile-sidebar" className="fixed inset-0 bg-black/50 hidden peer-checked:block md:hidden z-40 cursor-pointer"></label>
 
       <div className="fixed inset-y-0 left-0 bg-gray-900 w-[240px] transform -translate-x-full peer-checked:translate-x-0 md:translate-x-0 transition-transform z-50 md:z-0">
-        <Sidebar userEmail={user.email || ''} />
+        <Sidebar userEmail={user.email || ''} isPro={isPro} />
       </div>
       <div className="flex-1 md:ml-[240px] p-8 pt-16 md:pt-8 w-full">
         {children}

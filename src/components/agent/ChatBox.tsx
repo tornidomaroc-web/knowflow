@@ -12,13 +12,18 @@ interface Message {
 interface ChatBoxProps {
   kbId: string;
   kbName: string;
+  initialConversationId?: string | null;
+  initialMessages?: { role: string; content: string }[] | null;
+  onConversationCreated?: (id: string) => void;
 }
 
-export function ChatBox({ kbId, kbName }: ChatBoxProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, onConversationCreated }: ChatBoxProps) {
+  const [messages, setMessages] = useState<Message[]>(
+    initialMessages?.map((m, i) => ({ id: String(i), role: m.role as 'user' | 'assistant', content: m.content })) ?? []
+  );
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(initialConversationId ?? null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,7 +47,10 @@ export function ChatBox({ kbId, kbName }: ChatBoxProps) {
       if (!res.ok) throw new Error('API Error');
       
       const newConvoId = res.headers.get('X-Conversation-Id');
-      if (newConvoId && !conversationId) setConversationId(newConvoId);
+      if (newConvoId && !conversationId) {
+        setConversationId(newConvoId);
+        onConversationCreated?.(newConvoId);
+      }
 
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();

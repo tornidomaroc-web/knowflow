@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
-export function Sidebar({ userEmail }: { userEmail: string }) {
+export function Sidebar({ userEmail, isPro }: { userEmail: string; isPro?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -49,8 +49,15 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
       </nav>
 
       <div className="mt-auto border-t border-[var(--border-color)] pt-6">
-        <div className="text-[var(--muted-color)] text-[0.72rem] truncate mb-4" title={userEmail}>
-          {userEmail}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="text-[var(--muted-color)] text-[0.72rem] truncate" title={userEmail}>
+            {userEmail}
+          </div>
+          {isPro && (
+            <span className="shrink-0 text-[#070d0a] bg-[#2eff8c] font-[family-name:var(--font-mono)] text-[0.6rem] uppercase tracking-widest px-1.5 py-0.5">
+              PRO
+            </span>
+          )}
         </div>
         <button
           onClick={handleSignOut}

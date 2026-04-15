@@ -12,6 +12,7 @@ export function MessageBubble({ role, content, isStreaming }: MessageBubbleProps
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
+        dir="auto"
         className={`max-w-[75%] p-4 font-[family-name:var(--font-sans)] text-sm whitespace-pre-wrap rounded-none ${
           isUser 
             ? 'bg-[#1a2e1e] text-white border-l-2 border-[var(--accent-color)]' 
