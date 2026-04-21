@@ -96,7 +96,7 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
           </button>
           
           <div className="text-center mt-6">
-            <Link href="/login" className="text-[var(--muted-color)] font-[family-name:var(--font-sans)] text-sm hover:text-[var(--accent-color)] transition-colors">
+            <Link href={`/${locale}/login`} className="text-[var(--muted-color)] font-[family-name:var(--font-sans)] text-sm hover:text-[var(--accent-color)] transition-colors">
               {t.auth.hasAccount}
             </Link>
           </div>

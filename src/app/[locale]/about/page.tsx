@@ -33,7 +33,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
 
         <section className="text-center pt-12 border-t border-[var(--border-color)]">
           <h2 className="text-3xl font-[family-name:var(--font-playfair)] font-bold mb-8">{t.about.ctaTitle}</h2>
-          <Link href="/signup" className="inline-block bg-[var(--accent-color)] text-black px-8 py-4 font-[family-name:var(--font-mono)] text-sm uppercase tracking-widest font-bold hover:opacity-90 transition-opacity">
+          <Link href={`/${locale}/signup`} className="inline-block bg-[var(--accent-color)] text-black px-8 py-4 font-[family-name:var(--font-mono)] text-sm uppercase tracking-widest font-bold hover:opacity-90 transition-opacity">
             {t.about.cta}
           </Link>
         </section>

@@ -82,7 +82,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
           </button>
           
           <div className="text-center mt-6">
-            <Link href="/signup" className="text-[var(--muted-color)] font-[family-name:var(--font-sans)] text-sm hover:text-[var(--accent-color)] transition-colors">
+            <Link href={`/${locale}/signup`} className="text-[var(--muted-color)] font-[family-name:var(--font-sans)] text-sm hover:text-[var(--accent-color)] transition-colors">
               {t.auth.noAccount}
             </Link>
           </div>

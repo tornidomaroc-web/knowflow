@@ -64,7 +64,7 @@ export default function PricingPage({ params }: { params: Promise<{ locale: Loca
               <li key={idx}>• {feature}</li>
             ))}
           </ul>
-          <Link href="/signup" className="block text-center border border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-color)] hover:text-black py-3 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest transition-colors font-bold bg-transparent mx-0">
+          <Link href={`/${locale}/signup`} className="block text-center border border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-color)] hover:text-black py-3 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest transition-colors font-bold bg-transparent mx-0">
             {t.pricing.free.button}
           </Link>
         </div>
@@ -124,7 +124,7 @@ export default function PricingPage({ params }: { params: Promise<{ locale: Loca
               <li key={idx}>• {feature}</li>
             ))}
           </ul>
-          <Link href="/contact" className="block text-center border border-[var(--muted-color)] text-[var(--muted-color)] hover:border-white hover:text-white py-3 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest transition-colors bg-transparent mx-0">
+          <Link href={`/${locale}/contact`} className="block text-center border border-[var(--muted-color)] text-[var(--muted-color)] hover:border-white hover:text-white py-3 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest transition-colors bg-transparent mx-0">
             {t.pricing.enterprise.button}
           </Link>
         </div>

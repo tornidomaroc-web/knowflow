@@ -16,10 +16,10 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           </div>
           <div className="hidden md:flex items-center space-x-8 font-[family-name:var(--font-mono)] text-sm uppercase tracking-widest text-[var(--muted-color)]">
             <Link href="#how-it-works" className="hover:text-[var(--accent-color)] transition-colors">{t.nav.howItWorks}</Link>
-            <Link href="/pricing" className="hover:text-[var(--accent-color)] transition-colors">{t.nav.pricing}</Link>
-            <Link href="/about" className="hover:text-[var(--accent-color)] transition-colors">{t.nav.docs}</Link>
+            <Link href={`/${locale}/pricing`} className="hover:text-[var(--accent-color)] transition-colors">{t.nav.pricing}</Link>
+            <Link href={`/${locale}/about`} className="hover:text-[var(--accent-color)] transition-colors">{t.nav.docs}</Link>
           </div>
-          <Link href="/signup" className="hidden border border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-color)] hover:text-black md:inline-flex items-center justify-center px-6 py-2 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest transition-colors">
+          <Link href={`/${locale}/signup`} className="hidden border border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-color)] hover:text-black md:inline-flex items-center justify-center px-6 py-2 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest transition-colors">
             {t.nav.getStarted}
           </Link>
         </div>
@@ -47,7 +47,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
             </p>
             <div className={`flex flex-col items-center ${isRtl ? 'lg:items-end' : 'lg:items-start'}`}>
               <div className={`flex flex-col sm:flex-row items-center justify-center ${isRtl ? 'lg:justify-end' : 'lg:justify-start'} gap-4 font-[family-name:var(--font-mono)] uppercase text-sm tracking-widest w-full`}>
-                <Link href="/signup" className="w-full sm:w-auto bg-[var(--accent-color)] text-black px-8 py-4 hover:opacity-90 transition-opacity whitespace-nowrap text-center">
+                <Link href={`/${locale}/signup`} className="w-full sm:w-auto bg-[var(--accent-color)] text-black px-8 py-4 hover:opacity-90 transition-opacity whitespace-nowrap text-center">
                   {t.hero.cta1}
                 </Link>
                 <Link href="#how-it-works" className="w-full sm:w-auto border border-[var(--border-color)] bg-[var(--input-bg)] text-white px-8 py-4 hover:border-[var(--accent-color)] transition-colors whitespace-nowrap text-center">
@@ -159,9 +159,9 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
             {t.nav.home.replace('Flow', '')}<span className="text-[var(--accent-color)]">Flow</span>
           </div>
           <div className="flex space-x-6 font-[family-name:var(--font-mono)] text-xs flex-wrap justify-center uppercase tracking-widest text-[var(--muted-color)] gap-4 space-x-0 sm:space-x-6 sm:gap-0">
-            <Link href="/privacy" className="hover:text-white transition-colors">{t.footer.privacy}</Link>
-            <Link href="/terms" className="hover:text-white transition-colors">{t.footer.terms}</Link>
-            <Link href="/refund" className="hover:text-white transition-colors">{t.footer.refund}</Link>
+            <Link href={`/${locale}/privacy`} className="hover:text-white transition-colors">{t.footer.privacy}</Link>
+            <Link href={`/${locale}/terms`} className="hover:text-white transition-colors">{t.footer.terms}</Link>
+            <Link href={`/${locale}/refund`} className="hover:text-white transition-colors">{t.footer.refund}</Link>
             <Link href="https://github.com/tornidomaroc-web/knowflow" className="hover:text-[var(--accent-color)] transition-colors">{t.footer.github}</Link>
           </div>
           <div className="mt-6 md:mt-0 font-[family-name:var(--font-mono)] text-xs text-[var(--muted-color)]">

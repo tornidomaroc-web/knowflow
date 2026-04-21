@@ -8,7 +8,7 @@ const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-sans' });
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ar" dir="ltr" className={`${playfair.variable} ${dmMono.variable} ${dmSans.variable}`}>
+    <html lang="en" dir="ltr" className={`${playfair.variable} ${dmMono.variable} ${dmSans.variable}`}>
       <head>
         <style dangerouslySetInnerHTML={{ __html: `
           :root {
