@@ -56,12 +56,20 @@ export async function POST(request: Request) {
 
     // Call Python service
     const pythonServiceUrl = process.env.INGESTION_SERVICE_URL || 'http://localhost:8000';
+    const ingestionToken = process.env.INGESTION_TOKEN;
+    if (!ingestionToken) {
+      console.error('INGESTION_TOKEN env var is not set');
+      await supabase.from('documents').update({ status: 'error' }).eq('id', docRecord.id);
+      return NextResponse.json({ success: false, error: 'Server misconfigured' }, { status: 500 });
+    }
+
     const pyFormData = new FormData();
     pyFormData.append('file', file);
 
     const pyResponse = await fetch(`${pythonServiceUrl}/convert`, {
       method: 'POST',
-      body: pyFormData
+      headers: { Authorization: `Bearer ${ingestionToken}` },
+      body: pyFormData,
     });
 
     if (!pyResponse.ok) {
@@ -84,7 +92,8 @@ export async function POST(request: Request) {
       .eq('id', docRecord.id);
 
     return NextResponse.json({ success: true, document_id: docRecord.id, chunk_count: chunkCount });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error('Ingest API error:', error);
+    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }

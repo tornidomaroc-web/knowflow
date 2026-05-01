@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { useTranslation, Locale } from '@/lib/i18n';
+import { WaitlistForm } from '@/components/landing/WaitlistForm';
 
 export default async function LandingPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
@@ -136,19 +137,15 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
         <div className="absolute inset-0 bg-[var(--accent-color)] opacity-[0.03]"></div>
         <div className="max-w-3xl mx-auto px-6 text-center relative z-10">
           <h2 className="text-5xl font-[family-name:var(--font-playfair)] font-bold mb-10">{t.cta.title}</h2>
-          <form className="flex flex-col sm:flex-row max-w-lg mx-auto font-[family-name:var(--font-mono)] text-sm" dir={isRtl ? "rtl" : "ltr"}>
-            <input 
-              type="email" 
-              placeholder={t.cta.placeholder} 
-              className="flex-1 bg-[var(--input-bg)] border border-[var(--border-color)] px-6 py-4 focus:outline-none focus:border-[var(--accent-color)]"
-            />
-            <button type="button" className="bg-[var(--accent-color)] text-black px-8 py-4 uppercase tracking-widest font-bold hover:opacity-90 transition-opacity mt-4 sm:mt-0">
-              {t.cta.button}
-            </button>
-          </form>
-          <p className="mt-8 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest text-[var(--muted-color)]">
-            {t.cta.badge}
-          </p>
+          <WaitlistForm
+            placeholder={t.cta.placeholder}
+            button={t.cta.button}
+            badge={t.cta.badge}
+            isRtl={isRtl}
+            successText={t.cta.success}
+            errorDuplicate={t.cta.errorDuplicate}
+            errorGeneric={t.cta.errorGeneric}
+          />
         </div>
       </section>
 

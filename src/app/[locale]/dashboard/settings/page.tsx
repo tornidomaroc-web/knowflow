@@ -1,10 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { Locale, locales } from '@/lib/i18n'
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  params,
+}: {
+  params: Promise<{ locale: Locale }>
+}) {
+  const { locale } = await params
+  const safeLocale: Locale = locales.includes(locale) ? locale : 'en'
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) redirect(`/${safeLocale}/login`)
 
   const { data: subscription } = await supabase
     .from('subscriptions')
@@ -43,7 +51,7 @@ export default async function SettingsPage() {
             )}
           </div>
           {!isPro && (
-            <a href="/pricing" className="text-[#2eff8c] border border-[#2eff8c] px-3 py-1.5 text-xs text-center w-max hover:bg-[#2eff8c] hover:text-black transition-colors uppercase tracking-widest font-[family-name:var(--font-mono)]">
+            <a href={`/${safeLocale}/pricing`} className="text-[#2eff8c] border border-[#2eff8c] px-3 py-1.5 text-xs text-center w-max hover:bg-[#2eff8c] hover:text-black transition-colors uppercase tracking-widest font-[family-name:var(--font-mono)]">
               Upgrade to Pro
             </a>
           )}

@@ -1,10 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { Locale } from '@/lib/i18n';
 
-export default function NewKnowledgeBasePage() {
+export default function NewKnowledgeBasePage({
+  params,
+}: {
+  params: Promise<{ locale: Locale }>;
+}) {
+  const { locale } = use(params);
   const router = useRouter();
   const supabase = createClient();
   const [name, setName] = useState('');
@@ -46,7 +52,7 @@ export default function NewKnowledgeBasePage() {
       setError(insertError.message);
       setLoading(false);
     } else {
-      router.push('/dashboard/knowledge');
+      router.push(`/${locale}/dashboard/knowledge`);
     }
   };
 
@@ -55,10 +61,10 @@ export default function NewKnowledgeBasePage() {
       <h1 className="text-3xl font-[family-name:var(--font-playfair)] font-bold tracking-wider mb-8">
         Create Knowledge Base
       </h1>
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && <div className="text-red-500 font-[family-name:var(--font-mono)] text-sm">{error}</div>}
-        
+
         <div className="flex flex-col space-y-2">
           <label className="text-[var(--muted-color)] font-[family-name:var(--font-mono)] text-sm">Name</label>
           <input

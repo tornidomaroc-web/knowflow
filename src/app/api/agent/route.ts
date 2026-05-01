@@ -5,15 +5,11 @@ import { checkConversationLimit } from '@/lib/limits-server';
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    console.log('API Key exists:', !!apiKey);
-
     const { message, kb_id, conversation_id } = await request.json();
     if (!message || !kb_id) return NextResponse.json({ error: 'Missing message or kb_id' }, { status: 400 });
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    console.log('User:', user?.id);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const canChat = await checkConversationLimit(user.id);
@@ -34,10 +30,8 @@ export async function POST(request: Request) {
       .eq('kb_id', kb_id)
       .eq('status', 'ready');
 
-    console.log('Docs count:', docs?.length);
     let context = docs?.map(d => `--- ${d.filename} ---\n${d.markdown_content}`).join('\n\n') || '';
     if (context.length > 80000) context = context.substring(0, 80000);
-    console.log('Context length:', context.length);
 
     let convoId = conversation_id;
     let history: { role: string; content: string }[] = [];
@@ -59,7 +53,6 @@ export async function POST(request: Request) {
 KNOWLEDGE BASE CONTENT:
 ${context}`;
 
-    console.log('Calling Anthropic...');
     const stream = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
@@ -94,6 +87,6 @@ ${context}`;
     });
   } catch (error) {
     console.error('Agent API error:', error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

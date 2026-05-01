@@ -48,7 +48,7 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
       }
     }
 
-    router.push('/dashboard');
+    router.push(`/${locale}/dashboard`);
   };
 
   return (

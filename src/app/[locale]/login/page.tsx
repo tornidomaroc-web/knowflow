@@ -28,7 +28,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
       setError(error.message);
       setLoading(false);
     } else {
-      router.push('/dashboard');
+      router.push(`/${locale}/dashboard`);
     }
   };
 
