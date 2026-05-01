@@ -133,5 +133,42 @@ export const en = {
     message: "Message",
     send: "Send Message",
     githubText: "View on GitHub"
+  },
+  legal: {
+    privacy: {
+      title: "Privacy Policy",
+      lastUpdated: "Last updated: January 2026",
+      intro: "At KnowFlow, we take your privacy seriously. This policy explains how we collect, use, and protect your information.",
+      sections: [
+        { heading: "Information We Collect", body: "We collect information you provide directly when creating an account, uploading documents, or contacting us. This includes your name, email address, and document content." },
+        { heading: "How We Use Your Information", body: "We use your information to operate the service, improve our product, and send important updates. We never sell your data to third parties." },
+        { heading: "Data Security", body: "We use TLS encryption for all data in transit and store your data on secure servers. You can delete your account and data at any time." },
+        { heading: "Cookies", body: "We only use essential session cookies to operate the service. We do not use advertising tracking cookies." },
+        { heading: "Contact Us", body: "For any privacy inquiries, contact us at: privacy@tryknowflow.com" }
+      ]
+    },
+    terms: {
+      title: "Terms of Service",
+      lastUpdated: "Last updated: January 2026",
+      intro: "By using KnowFlow, you agree to these terms. Please read them carefully.",
+      sections: [
+        { heading: "Acceptance of Terms", body: "By using our services, you agree to be bound by these terms and our Privacy Policy. If you disagree, please do not use the service." },
+        { heading: "Use of Service", body: "KnowFlow may be used for lawful personal and commercial purposes. Using it to publish illegal or misleading content is prohibited." },
+        { heading: "Intellectual Property", body: "Your documents remain entirely yours. We claim no rights over any content you upload." },
+        { heading: "Termination", body: "You may cancel your subscription at any time. We reserve the right to terminate accounts that violate these terms." },
+        { heading: "Limitation of Liability", body: "We provide the service as-is. We are not liable for losses resulting from use of the service beyond reasonable control." }
+      ]
+    },
+    refund: {
+      title: "Refund Policy",
+      lastUpdated: "Last updated: January 2026",
+      intro: "We want you to be completely satisfied with KnowFlow. Here is our refund policy.",
+      sections: [
+        { heading: "Money-Back Guarantee", body: "We offer a full refund within 14 days of subscription if you are not satisfied with the service for any reason." },
+        { heading: "How to Request a Refund", body: "Send your request to refund@tryknowflow.com with your reason. We will process your request within 3-5 business days." },
+        { heading: "Annual Subscriptions", body: "For annual plans, full refunds are available within 30 days. After that, refunds are prorated for remaining months." },
+        { heading: "Exceptions", body: "Refunds do not apply to documented abuse cases or accounts suspended for terms violations." }
+      ]
+    }
   }
 };

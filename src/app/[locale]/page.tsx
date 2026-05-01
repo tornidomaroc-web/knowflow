@@ -31,8 +31,8 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           className="absolute inset-0 z-0 opacity-10" 
           style={{ backgroundImage: 'linear-gradient(to right, var(--border-color) 1px, transparent 1px), linear-gradient(to bottom, var(--border-color) 1px, transparent 1px)', backgroundSize: '4rem 4rem' }} 
         />
-        <div className="max-w-7xl mx-auto px-6 relative z-10 flex flex-col lg:flex-row items-center gap-16">
-          <div className={`flex-1 text-center ${isRtl ? 'lg:text-right' : 'lg:text-left'}`} dir={isRtl ? "rtl" : "ltr"}>
+        <div className="max-w-7xl mx-auto px-6 relative z-10 flex flex-col lg:flex-row rtl:lg:flex-row-reverse items-center gap-16">
+          <div className={`flex-1 text-center ${isRtl ? 'lg:text-right' : 'lg:text-left'} rtl:lg:text-right`} dir={isRtl ? "rtl" : "ltr"}>
             <div className="inline-block border border-[var(--border-color)] bg-[var(--input-bg)] px-3 py-1 mb-6 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest text-[var(--muted-color)]">
               {t.hero.badge}
             </div>
