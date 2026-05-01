@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
 const locales = ['en', 'ar'] as const;
-const defaultLocale = 'en';
+const defaultLocale = 'ar';
 
 function getLocale(request: NextRequest): string {
   const acceptLang = request.headers.get('accept-language') ?? '';
@@ -21,7 +21,7 @@ export async function middleware(request: NextRequest) {
   if (!hasLocale) {
     const locale = getLocale(request);
     const url = request.nextUrl.clone();
-    url.pathname = `/${locale}${pathname}`;
+    url.pathname = pathname === '/' ? `/${locale}` : `/${locale}${pathname}`;
     return NextResponse.redirect(url, 307);
   }
 
@@ -30,5 +30,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)'],
+  matcher: [
+    '/',
+    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)',
+  ],
 };
