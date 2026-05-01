@@ -2,11 +2,41 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkConversationLimit } from '@/lib/limits-server';
+import { embedQuery } from '@/lib/ingestion';
+
+interface MatchedChunk {
+  id: string;
+  document_id: string;
+  chunk_index: number;
+  content: string;
+  filename: string;
+  similarity: number;
+}
+
+interface Citation {
+  index: number;
+  document_id: string;
+  chunk_id: string;
+  filename: string;
+  similarity: number;
+}
+
+const SYSTEM_INSTRUCTIONS = `You are KnowFlow, an intelligent assistant that answers questions strictly from the retrieved knowledge-base passages provided in the user message.
+
+Rules:
+- Always answer in the same language the user used (Arabic or English).
+- Cite the passages you use with bracketed numbers like [1], [2] that match the numbered passages in the context.
+- If the answer is not present in the passages, say so clearly. Do not fabricate.
+- Be concise. Prefer short, direct answers over long ones.`;
+
+const MATCH_COUNT = 8;
 
 export async function POST(request: Request) {
   try {
     const { message, kb_id, conversation_id } = await request.json();
-    if (!message || !kb_id) return NextResponse.json({ error: 'Missing message or kb_id' }, { status: 400 });
+    if (!message || !kb_id) {
+      return NextResponse.json({ error: 'Missing message or kb_id' }, { status: 400 });
+    }
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -19,49 +49,98 @@ export async function POST(request: Request) {
         start(controller) {
           controller.enqueue(encoder.encode("You've reached your monthly conversation limit. Upgrade to Pro to continue."));
           controller.close();
-        }
+        },
       });
       return new Response(readable, { headers: { 'Content-Type': 'text/plain' } });
     }
 
-    const { data: docs } = await supabase
-      .from('documents')
-      .select('markdown_content, filename')
-      .eq('kb_id', kb_id)
-      .eq('status', 'ready');
+    // 1. Embed the query and retrieve relevant chunks (RLS still applies because
+    //    the RPC is SECURITY INVOKER).
+    let chunks: MatchedChunk[] = [];
+    try {
+      const queryEmbedding = await embedQuery(message);
+      const { data, error } = await supabase.rpc('match_chunks', {
+        query_embedding: queryEmbedding,
+        match_kb_id: kb_id,
+        match_count: MATCH_COUNT,
+        match_threshold: 0.3,
+      });
+      if (error) {
+        console.error('match_chunks error:', error.message);
+      } else {
+        chunks = (data ?? []) as MatchedChunk[];
+      }
+    } catch (e) {
+      console.error('Embedding/retrieval failed:', e);
+      // Fall through with empty chunks; the model will say it can't find an answer.
+    }
 
-    let context = docs?.map(d => `--- ${d.filename} ---\n${d.markdown_content}`).join('\n\n') || '';
-    if (context.length > 80000) context = context.substring(0, 80000);
+    const citations: Citation[] = chunks.map((c, i) => ({
+      index: i + 1,
+      document_id: c.document_id,
+      chunk_id: c.id,
+      filename: c.filename,
+      similarity: c.similarity,
+    }));
 
+    const contextBlock = chunks.length
+      ? chunks
+          .map((c, i) => `[${i + 1}] (${c.filename})\n${c.content}`)
+          .join('\n\n---\n\n')
+      : '(no relevant passages found)';
+
+    // 2. Conversation bookkeeping.
     let convoId = conversation_id;
-    let history: { role: string; content: string }[] = [];
+    let history: { role: 'user' | 'assistant'; content: string }[] = [];
 
     if (convoId) {
-      const { data: msgs } = await supabase.from('messages').select('*').eq('conversation_id', convoId).order('created_at', { ascending: false }).limit(10);
-      if (msgs) history = msgs.reverse().map(m => ({ role: m.role, content: m.content }));
+      const { data: msgs } = await supabase
+        .from('messages')
+        .select('role, content, created_at')
+        .eq('conversation_id', convoId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (msgs) {
+        history = msgs
+          .reverse()
+          .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+      }
     } else {
-      const { data: newConvo } = await supabase.from('conversations').insert({ kb_id, user_id: user.id, platform: 'web' }).select().single();
+      const { data: newConvo } = await supabase
+        .from('conversations')
+        .insert({ kb_id, user_id: user.id, platform: 'web' })
+        .select()
+        .single();
       if (newConvo) convoId = newConvo.id;
     }
 
     if (!convoId) return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 });
+
     await supabase.from('messages').insert({ conversation_id: convoId, role: 'user', content: message });
 
+    // 3. Compose the user turn so retrieved context is fresh per query.
+    //    Prompt caching applies to the static system instructions only.
+    const userTurn = `Retrieved passages:\n\n${contextBlock}\n\n---\n\nQuestion: ${message}`;
+
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
-    const systemPrompt = `You are KnowFlow, an intelligent assistant that answers questions based strictly on the provided knowledge base content. Answer in the same language the user uses (Arabic or English). If the answer is not in the knowledge base, say so clearly. Be concise and accurate.
-    
-KNOWLEDGE BASE CONTENT:
-${context}`;
 
     const stream = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: [...history, { role: 'user', content: message }] as any,
+      max_tokens: 2048,
+      system: [
+        {
+          type: 'text',
+          text: SYSTEM_INSTRUCTIONS,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
+      messages: [...history, { role: 'user', content: userTurn }],
       stream: true,
     });
 
     const encoder = new TextEncoder();
+    const citationsHeader = Buffer.from(JSON.stringify(citations)).toString('base64');
+
     const readable = new ReadableStream({
       async start(controller) {
         let assistantMessage = '';
@@ -73,17 +152,25 @@ ${context}`;
               controller.enqueue(encoder.encode(text));
             }
           }
-          await supabase.from('messages').insert({ conversation_id: convoId, role: 'assistant', content: assistantMessage });
+          await supabase.from('messages').insert({
+            conversation_id: convoId,
+            role: 'assistant',
+            content: assistantMessage,
+          });
         } catch (error) {
           console.error('Stream error:', error);
         } finally {
           controller.close();
         }
-      }
+      },
     });
 
     return new Response(readable, {
-      headers: { 'Content-Type': 'text/plain', 'X-Conversation-Id': convoId }
+      headers: {
+        'Content-Type': 'text/plain',
+        'X-Conversation-Id': convoId,
+        'X-Citations': citationsHeader,
+      },
     });
   } catch (error) {
     console.error('Agent API error:', error);

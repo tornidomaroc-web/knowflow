@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { MessageBubble } from './MessageBubble';
+import { MessageBubble, Citation } from './MessageBubble';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  citations?: Citation[];
 }
 
 interface ChatBoxProps {
@@ -15,6 +16,17 @@ interface ChatBoxProps {
   initialConversationId?: string | null;
   initialMessages?: { role: string; content: string }[] | null;
   onConversationCreated?: (id: string) => void;
+}
+
+function decodeCitations(header: string | null): Citation[] | undefined {
+  if (!header) return undefined;
+  try {
+    const json = typeof atob === 'function' ? atob(header) : Buffer.from(header, 'base64').toString();
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, onConversationCreated }: ChatBoxProps) {
@@ -45,19 +57,21 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
       });
 
       if (!res.ok) throw new Error('API Error');
-      
+
       const newConvoId = res.headers.get('X-Conversation-Id');
       if (newConvoId && !conversationId) {
         setConversationId(newConvoId);
         onConversationCreated?.(newConvoId);
       }
 
+      const citations = decodeCitations(res.headers.get('X-Citations'));
+
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
       if (!reader) throw new Error('No reader');
 
       const assistantMsgId = (Date.now() + 1).toString();
-      setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', content: '' }]);
+      setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', content: '', citations }]);
 
       let done = false;
       while (!done) {
@@ -86,10 +100,16 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
           Chatting with: {kbName}
         </h2>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto p-6 space-y-6" ref={scrollRef}>
         {messages.map((m, i) => (
-          <MessageBubble key={m.id} role={m.role} content={m.content} isStreaming={isLoading && m.role === 'assistant' && i === messages.length - 1} />
+          <MessageBubble
+            key={m.id}
+            role={m.role}
+            content={m.content}
+            citations={m.citations}
+            isStreaming={isLoading && m.role === 'assistant' && i === messages.length - 1}
+          />
         ))}
         {messages.length === 0 && (
           <div className="text-[var(--muted-color)] font-[family-name:var(--font-sans)] text-center mt-10">Start typing to ask questions.</div>
