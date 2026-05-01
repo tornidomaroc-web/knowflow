@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkDocumentLimit } from '@/lib/limits-server';
 
+interface IngestionChunk {
+  chunk_index: number;
+  content: string;
+  token_count: number;
+  embedding: number[];
+}
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -28,7 +35,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Upload file to Supabase Storage
     const filePath = `${user.id}/${kbId}/${file.name}`;
     const { error: storageError } = await supabase.storage
       .from('documents')
@@ -38,14 +44,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: storageError.message }, { status: 500 });
     }
 
-    // Insert document record
     const { data: docRecord, error: docError } = await supabase
       .from('documents')
       .insert({
         kb_id: kbId,
         filename: file.name,
         file_type: file.name.split('.').pop() || 'unknown',
-        status: 'processing'
+        status: 'processing',
+        embedding_status: 'processing',
       })
       .select()
       .single();
@@ -54,12 +60,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: docError?.message }, { status: 500 });
     }
 
-    // Call Python service
     const pythonServiceUrl = process.env.INGESTION_SERVICE_URL || 'http://localhost:8000';
     const ingestionToken = process.env.INGESTION_TOKEN;
     if (!ingestionToken) {
       console.error('INGESTION_TOKEN env var is not set');
-      await supabase.from('documents').update({ status: 'error' }).eq('id', docRecord.id);
+      await supabase.from('documents').update({ status: 'error', embedding_status: 'error' }).eq('id', docRecord.id);
       return NextResponse.json({ success: false, error: 'Server misconfigured' }, { status: 500 });
     }
 
@@ -73,25 +78,51 @@ export async function POST(request: Request) {
     });
 
     if (!pyResponse.ok) {
-      await supabase.from('documents').update({ status: 'error' }).eq('id', docRecord.id);
+      await supabase.from('documents').update({ status: 'error', embedding_status: 'error' }).eq('id', docRecord.id);
       return NextResponse.json({ success: false, error: 'Ingestion failed' }, { status: 500 });
     }
 
-    const result = await pyResponse.json();
-    const wordCount = result.markdown ? result.markdown.split(/\s+/).length : 0;
-    const chunkCount = Math.floor(wordCount / 100);
+    const result: { markdown?: string; chunks?: IngestionChunk[] } = await pyResponse.json();
+    const chunks = result.chunks ?? [];
 
-    // On success
+    if (chunks.length > 0) {
+      const rows = chunks.map((c) => ({
+        document_id: docRecord.id,
+        kb_id: kbId,
+        chunk_index: c.chunk_index,
+        content: c.content,
+        token_count: c.token_count,
+        embedding: c.embedding,
+      }));
+
+      // Insert in batches to avoid Supabase request-size limits.
+      const BATCH = 50;
+      for (let i = 0; i < rows.length; i += BATCH) {
+        const { error: chunkErr } = await supabase.from('chunks').insert(rows.slice(i, i + BATCH));
+        if (chunkErr) {
+          console.error('Chunk insert error:', chunkErr);
+          await supabase
+            .from('documents')
+            .update({ status: 'error', embedding_status: 'error', error_message: chunkErr.message })
+            .eq('id', docRecord.id);
+          return NextResponse.json({ success: false, error: 'Failed to store chunks' }, { status: 500 });
+        }
+      }
+    }
+
+    // We still keep the raw markdown for debugging / re-chunking, but it's no
+    // longer used at query time.
     await supabase
       .from('documents')
       .update({
-        markdown_content: result.markdown,
+        markdown_content: result.markdown ?? null,
         status: 'ready',
-        chunk_count: chunkCount
+        embedding_status: 'ready',
+        chunk_count: chunks.length,
       })
       .eq('id', docRecord.id);
 
-    return NextResponse.json({ success: true, document_id: docRecord.id, chunk_count: chunkCount });
+    return NextResponse.json({ success: true, document_id: docRecord.id, chunk_count: chunks.length });
   } catch (error) {
     console.error('Ingest API error:', error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
