@@ -23,9 +23,12 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const { pathname } = request.nextUrl;
 
-  if (!user && pathname.startsWith('/dashboard')) {
+  // Match /<locale>/dashboard[/...]
+  const dashboardMatch = pathname.match(/^\/([a-z]{2})\/dashboard(\/|$)/);
+  if (!user && dashboardMatch) {
+    const locale = dashboardMatch[1];
     const url = request.nextUrl.clone();
-    url.pathname = '/login';
+    url.pathname = `/${locale}/login`;
     return NextResponse.redirect(url);
   }
 

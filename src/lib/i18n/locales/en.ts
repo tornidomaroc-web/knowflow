@@ -44,7 +44,10 @@ export const en = {
     title: "Ready to start?",
     placeholder: "name@company.com",
     button: "Start Now",
-    badge: "Open Source · MIT License"
+    badge: "Open Source · MIT License",
+    success: "You're on the list. We'll be in touch.",
+    errorDuplicate: "This email is already on the list.",
+    errorGeneric: "Something went wrong. Please try again."
   },
   footer: {
     privacy: "Privacy",
@@ -133,5 +136,33 @@ export const en = {
     message: "Message",
     send: "Send Message",
     githubText: "View on GitHub"
+  },
+  dashboard: {
+    nav: {
+      dashboard: "Dashboard",
+      knowledge: "Knowledge Bases",
+      agent: "Agent",
+      settings: "Settings",
+      signOut: "Sign Out"
+    },
+    home: {
+      welcome: "Welcome back.",
+      knowledgeBases: "Knowledge Bases",
+      knowledgeBasesDesc: "Active knowledge bases",
+      documents: "Documents",
+      documentsDesc: "Files processed",
+      conversations: "Conversations",
+      conversationsDesc: "Agent interactions",
+      newKbTitle: "NEW KNOWLEDGE BASE",
+      newKbDesc: "Upload documents and create an agent",
+      talkAgentTitle: "TALK TO AGENT",
+      talkAgentDesc: "Ask questions about your knowledge bases",
+      recentActivity: "Recent Activity",
+      noActivity: "No activity yet",
+      conversation: "CONVERSATION",
+      showLess: "Show less",
+      viewAll: "View all",
+      unknownKb: "Unknown KB"
+    }
   }
 };

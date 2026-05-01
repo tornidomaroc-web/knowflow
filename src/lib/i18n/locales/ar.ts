@@ -48,7 +48,10 @@ export const ar: Translation = {
     title: "جاهز للبدء؟",
     placeholder: "name@company.com",
     button: "ابدأ الآن",
-    badge: "مفتوح المصدر · رخصة MIT"
+    badge: "مفتوح المصدر · رخصة MIT",
+    success: "تم تسجيلك في القائمة. سنتواصل معك قريباً.",
+    errorDuplicate: "هذا البريد مسجّل مسبقاً في القائمة.",
+    errorGeneric: "حدث خطأ ما. حاول مرة أخرى."
   },
   footer: {
     privacy: "الخصوصية",
@@ -137,5 +140,33 @@ export const ar: Translation = {
     message: "الرسالة",
     send: "إرسال الرسالة",
     githubText: "عرض على جيت هب"
+  },
+  dashboard: {
+    nav: {
+      dashboard: "اللوحة",
+      knowledge: "قواعد المعرفة",
+      agent: "الوكيل",
+      settings: "الإعدادات",
+      signOut: "تسجيل الخروج"
+    },
+    home: {
+      welcome: "مرحباً بعودتك.",
+      knowledgeBases: "قواعد المعرفة",
+      knowledgeBasesDesc: "قواعد المعرفة النشطة",
+      documents: "المستندات",
+      documentsDesc: "ملفات تمت معالجتها",
+      conversations: "المحادثات",
+      conversationsDesc: "تفاعلات الوكيل",
+      newKbTitle: "قاعدة معرفة جديدة",
+      newKbDesc: "ارفع مستندات وأنشئ وكيلاً",
+      talkAgentTitle: "تحدث مع الوكيل",
+      talkAgentDesc: "اطرح أسئلة حول قواعد معرفتك",
+      recentActivity: "النشاط الأخير",
+      noActivity: "لا يوجد نشاط بعد",
+      conversation: "محادثة",
+      showLess: "عرض أقل",
+      viewAll: "عرض الكل",
+      unknownKb: "قاعدة معرفة غير معروفة"
+    }
   }
 };
