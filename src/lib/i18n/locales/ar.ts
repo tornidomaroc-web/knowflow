@@ -167,6 +167,54 @@ export const ar: Translation = {
       showLess: "عرض أقل",
       viewAll: "عرض الكل",
       unknownKb: "قاعدة معرفة غير معروفة"
+    },
+    newKb: {
+      title: "إنشاء قاعدة معرفة",
+      name: "الاسم",
+      description: "الوصف (اختياري)",
+      language: "اللغة",
+      languageAr: "العربية",
+      languageEn: "الإنجليزية",
+      languageBoth: "كلاهما",
+      create: "إنشاء قاعدة معرفة",
+      creating: "جارٍ الإنشاء...",
+      errorAuth: "غير مصادق عليه",
+      errorLimit: "تسمح الباقة المجانية بقاعدة معرفة واحدة فقط. قم بالترقية إلى الاحترافي للمزيد."
+    },
+    kbDetail: {
+      documents: "المستندات",
+      noDocuments: "لا توجد مستندات بعد. ارفع أول ملف لك أعلاه.",
+      chunks: "مقاطع"
+    },
+    settings: {
+      title: "الإعدادات",
+      account: "الحساب",
+      email: "البريد الإلكتروني",
+      plan: "الباقة",
+      free: "مجاني",
+      pro: "احترافي",
+      renews: "تتجدد في",
+      upgrade: "الترقية إلى الاحترافي",
+      activeSubscription: "اشتراك نشط"
+    },
+    agent: {
+      chatWith: "محادثة مع",
+      startTyping: "ابدأ بالكتابة لطرح أسئلتك.",
+      askPlaceholder: "اطرح سؤالاً (Cmd+Enter للإرسال)...",
+      send: "إرسال",
+      connectionError: "خطأ في الاتصال.",
+      newConversation: "+ محادثة جديدة",
+      noHistory: "لا يوجد سجل بعد."
+    },
+    upload: {
+      fileTooBig: "الملف كبير جدًا. الحد الأقصى للحجم 50 ميجابايت.",
+      uploadFailed: "فشل الرفع",
+      dropHere: "أسقط الملفات هنا أو انقر للرفع",
+      supported: "المدعوم: PDF, DOCX, XLSX, MP3, MP4 (الحد الأقصى: 50 ميجابايت)",
+      uploading: "جارٍ الرفع...",
+      processing: "جارٍ المعالجة...",
+      ready: "جاهز ✓",
+      error: "خطأ"
     }
   }
 };

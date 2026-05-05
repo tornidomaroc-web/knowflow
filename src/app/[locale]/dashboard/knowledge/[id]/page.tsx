@@ -3,6 +3,7 @@ import React from 'react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { DropZone } from '@/components/upload/DropZone'
+import { Locale, locales, useTranslation } from '@/lib/i18n'
 
 interface Document {
   id: string
@@ -20,8 +21,10 @@ interface KB {
   language: string
 }
 
-export default function KBDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = React.use(params)
+export default function KBDetailPage({ params }: { params: Promise<{ id: string; locale: Locale }> }) {
+  const { id, locale } = React.use(params)
+  const safeLocale: Locale = locales.includes(locale) ? locale : 'en'
+  const t = useTranslation(safeLocale)
   const [kb, setKb] = useState<KB | null>(null)
   const [docs, setDocs] = useState<Document[]>([])
   const supabase = createClient()
@@ -69,11 +72,11 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string 
       <div>
         <h2 style={{fontFamily:'var(--font-mono)'}}
             className="text-xs uppercase tracking-widest text-[#6b7d6e] mb-4">
-          Documents
+          {t.dashboard.kbDetail.documents}
         </h2>
         {docs.length === 0 ? (
           <div className="border border-dashed border-[#1a2e1e] p-8 text-center text-[#6b7d6e] text-sm">
-            No documents yet. Upload your first file above.
+            {t.dashboard.kbDetail.noDocuments}
           </div>
         ) : (
           <div className="border border-[#1a2e1e]">
@@ -82,7 +85,7 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string 
                    className={`flex items-center justify-between p-4 ${i !== docs.length-1 ? 'border-b border-[#1a2e1e]' : ''}`}>
                 <div>
                   <p className="text-sm text-white">{doc.filename}</p>
-                  <p className="text-xs text-[#6b7d6e] mt-1">{doc.file_type?.toUpperCase()} · {doc.chunk_count} chunks</p>
+                  <p className="text-xs text-[#6b7d6e] mt-1">{doc.file_type?.toUpperCase()} · {doc.chunk_count} {t.dashboard.kbDetail.chunks}</p>
                 </div>
                 <span style={{color: statusColor(doc.status), fontFamily:'var(--font-mono)'}}
                       className="text-xs uppercase tracking-widest">

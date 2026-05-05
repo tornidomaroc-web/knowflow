@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { MessageBubble, Citation } from './MessageBubble';
+import { Locale, locales, useTranslation } from '@/lib/i18n';
 
 interface Message {
   id: string;
@@ -30,6 +32,9 @@ function decodeCitations(header: string | null): Citation[] | undefined {
 }
 
 export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, onConversationCreated }: ChatBoxProps) {
+  const params = useParams<{ locale: Locale }>();
+  const safeLocale: Locale = locales.includes(params.locale) ? params.locale : 'en';
+  const t = useTranslation(safeLocale);
   const [messages, setMessages] = useState<Message[]>(
     initialMessages?.map((m, i) => ({ id: String(i), role: m.role as 'user' | 'assistant', content: m.content })) ?? []
   );
@@ -84,7 +89,7 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
       }
     } catch (error) {
       console.error(error);
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: 'Connection error.' }]);
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: t.dashboard.agent.connectionError }]);
     }
     setIsLoading(false);
   };
@@ -97,7 +102,7 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
     <div className="flex flex-col h-[calc(100dvh-100px)] border border-[var(--border-color)] bg-[#070d0a]">
       <div className="p-4 border-b border-[var(--border-color)] bg-[#0c1510]">
         <h2 className="font-[family-name:var(--font-mono)] text-[var(--muted-color)] uppercase tracking-widest text-xs">
-          Chatting with: {kbName}
+          {t.dashboard.agent.chatWith}: {kbName}
         </h2>
       </div>
 
@@ -112,7 +117,7 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
           />
         ))}
         {messages.length === 0 && (
-          <div className="text-[var(--muted-color)] font-[family-name:var(--font-sans)] text-center mt-10">Start typing to ask questions.</div>
+          <div className="text-[var(--muted-color)] font-[family-name:var(--font-sans)] text-center mt-10">{t.dashboard.agent.startTyping}</div>
         )}
       </div>
 
@@ -121,7 +126,7 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask a question (Cmd+Enter to send)..."
+          placeholder={t.dashboard.agent.askPlaceholder}
           className="flex-1 resize-none bg-[var(--bg-color)] border border-[var(--border-color)] p-3 text-white font-[family-name:var(--font-sans)] text-sm focus:outline-none focus:border-[var(--accent-color)]"
           rows={3}
         />
@@ -130,7 +135,7 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
           disabled={isLoading || !input.trim()}
           className="bg-[var(--accent-color)] text-[#070d0a] px-6 font-[family-name:var(--font-mono)] uppercase text-sm tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
         >
-          Send
+          {t.dashboard.agent.send}
         </button>
       </div>
     </div>
