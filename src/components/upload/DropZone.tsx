@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import type { Document } from '@/types';
+import { Locale, locales, useTranslation } from '@/lib/i18n';
 
 interface DropZoneProps {
   kbId: string;
@@ -13,13 +14,16 @@ type UploadState = 'idle' | 'uploading' | 'processing' | 'ready' | 'error';
 
 export function DropZone({ kbId, onSuccess }: DropZoneProps) {
   const router = useRouter();
+  const params = useParams<{ locale: Locale }>();
+  const safeLocale: Locale = locales.includes(params.locale) ? params.locale : 'en';
+  const t = useTranslation(safeLocale);
   const [state, setState] = useState<UploadState>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
     if (file.size > 52428800) {
-      setErrorMsg('File too large. Maximum size is 50MB.');
+      setErrorMsg(t.dashboard.upload.fileTooBig);
       setState('error');
       return;
     }
@@ -36,7 +40,7 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
       setState('processing');
 
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Upload failed');
+      if (!res.ok || !data.success) throw new Error(data.error || t.dashboard.upload.uploadFailed);
 
       setState('ready');
       if (onSuccess) {
@@ -74,16 +78,16 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
       <div className="flex flex-col items-center justify-center space-y-4">
         {state === 'idle' && (
           <>
-            <p className="font-[family-name:var(--font-mono)] text-white">Drop files here or click to upload</p>
-            <p className="text-[var(--muted-color)] text-xs font-[family-name:var(--font-sans)]">Supported: PDF, DOCX, XLSX, MP3, MP4 (Max: 50MB)</p>
+            <p className="font-[family-name:var(--font-mono)] text-white">{t.dashboard.upload.dropHere}</p>
+            <p className="text-[var(--muted-color)] text-xs font-[family-name:var(--font-sans)]">{t.dashboard.upload.supported}</p>
           </>
         )}
-        {state === 'uploading' && <p className="font-[family-name:var(--font-mono)] text-white">Uploading...</p>}
-        {state === 'processing' && <p className="font-[family-name:var(--font-mono)] text-[var(--accent-color)]">Processing...</p>}
-        {state === 'ready' && <p className="font-[family-name:var(--font-mono)] text-green-400">Ready ✓</p>}
+        {state === 'uploading' && <p className="font-[family-name:var(--font-mono)] text-white">{t.dashboard.upload.uploading}</p>}
+        {state === 'processing' && <p className="font-[family-name:var(--font-mono)] text-[var(--accent-color)]">{t.dashboard.upload.processing}</p>}
+        {state === 'ready' && <p className="font-[family-name:var(--font-mono)] text-green-400">{t.dashboard.upload.ready}</p>}
         {state === 'error' && (
           <>
-            <p className="font-[family-name:var(--font-mono)] text-red-500">Error</p>
+            <p className="font-[family-name:var(--font-mono)] text-red-500">{t.dashboard.upload.error}</p>
             <p className="text-red-400 text-xs mt-1">{errorMsg}</p>
           </>
         )}

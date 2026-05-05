@@ -163,6 +163,54 @@ export const en = {
       showLess: "Show less",
       viewAll: "View all",
       unknownKb: "Unknown KB"
+    },
+    newKb: {
+      title: "Create Knowledge Base",
+      name: "Name",
+      description: "Description (Optional)",
+      language: "Language",
+      languageAr: "Arabic",
+      languageEn: "English",
+      languageBoth: "Both",
+      create: "Create Knowledge Base",
+      creating: "Creating...",
+      errorAuth: "Not authenticated",
+      errorLimit: "Free plan allows 1 Knowledge Base only. Upgrade to Pro for more."
+    },
+    kbDetail: {
+      documents: "Documents",
+      noDocuments: "No documents yet. Upload your first file above.",
+      chunks: "chunks"
+    },
+    settings: {
+      title: "Settings",
+      account: "Account",
+      email: "Email",
+      plan: "Plan",
+      free: "Free",
+      pro: "Pro",
+      renews: "Renews",
+      upgrade: "Upgrade to Pro",
+      activeSubscription: "Active subscription"
+    },
+    agent: {
+      chatWith: "Chatting with",
+      startTyping: "Start typing to ask questions.",
+      askPlaceholder: "Ask a question (Cmd+Enter to send)...",
+      send: "Send",
+      connectionError: "Connection error.",
+      newConversation: "+ New Conversation",
+      noHistory: "No history yet."
+    },
+    upload: {
+      fileTooBig: "File too large. Maximum size is 50MB.",
+      uploadFailed: "Upload failed",
+      dropHere: "Drop files here or click to upload",
+      supported: "Supported: PDF, DOCX, XLSX, MP3, MP4 (Max: 50MB)",
+      uploading: "Uploading...",
+      processing: "Processing...",
+      ready: "Ready ✓",
+      error: "Error"
     }
   }
 };

@@ -1,6 +1,7 @@
 'use client';
 
-import { createClient } from '@/lib/supabase/client';
+import { useParams } from 'next/navigation';
+import { Locale, locales, useTranslation } from '@/lib/i18n';
 
 interface Conversation {
   id: string;
@@ -17,6 +18,10 @@ interface Props {
 }
 
 export function ConversationSidebar({ activeId, onSelect, onNew, conversations }: Props) {
+  const params = useParams<{ locale: Locale }>();
+  const safeLocale: Locale = locales.includes(params.locale) ? params.locale : 'en';
+  const t = useTranslation(safeLocale);
+
   return (
     <div className="w-64 shrink-0 flex flex-col border-r border-[var(--border-color)] bg-[#0c1510] h-full overflow-hidden">
       <div className="p-3 border-b border-[var(--border-color)]">
@@ -24,12 +29,12 @@ export function ConversationSidebar({ activeId, onSelect, onNew, conversations }
           onClick={onNew}
           className="w-full py-2 px-3 bg-[var(--accent-color)] text-[#070d0a] font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest hover:opacity-90 transition-opacity"
         >
-          + New Conversation
+          {t.dashboard.agent.newConversation}
         </button>
       </div>
       <div className="flex-1 overflow-y-auto">
         {conversations.length === 0 && (
-          <p className="p-4 text-[var(--muted-color)] text-xs font-[family-name:var(--font-mono)]">No history yet.</p>
+          <p className="p-4 text-[var(--muted-color)] text-xs font-[family-name:var(--font-mono)]">{t.dashboard.agent.noHistory}</p>
         )}
         {conversations.map(conv => (
           <button
@@ -42,7 +47,7 @@ export function ConversationSidebar({ activeId, onSelect, onNew, conversations }
             }`}
           >
             <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-wider truncate">
-              {conv.knowledge_bases?.name ?? 'Unknown KB'}
+              {conv.knowledge_bases?.name ?? t.dashboard.home.unknownKb}
             </p>
             <p className="text-[10px] text-[var(--muted-color)] mt-1 font-[family-name:var(--font-sans)]">
               {new Date(conv.created_at).toLocaleDateString()}
