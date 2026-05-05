@@ -63,7 +63,7 @@ export const en = {
       price: "$0",
       period: "/month",
       features: [
-        "1 Knowledge Base",
+        "2 Knowledge Bases",
         "10 documents",
         "100 conversations/month",
         "Web access only"
@@ -175,7 +175,7 @@ export const en = {
       create: "Create Knowledge Base",
       creating: "Creating...",
       errorAuth: "Not authenticated",
-      errorLimit: "Free plan allows 1 Knowledge Base only. Upgrade to Pro for more."
+      errorLimit: "Free plan allows 2 Knowledge Bases only. Upgrade to Pro for more."
     },
     kbDetail: {
       documents: "Documents",
