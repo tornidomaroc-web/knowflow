@@ -18,6 +18,11 @@ VOYAGE_MODEL = os.environ.get("VOYAGE_MODEL", "voyage-3-large")
 VOYAGE_URL = "https://api.voyageai.com/v1/embeddings"
 EMBED_DIM = 1024
 
+# Embedding provider seam (PIVOT_PLAN.md §4): swap providers with one env var, no
+# schema change. Default 'voyage' (the only provisioned path); 'bge_m3' is a
+# documented stub. Normalized so trailing space / casing can't cause a silent miss.
+EMBEDDING_PROVIDER = os.environ.get("EMBEDDING_PROVIDER", "voyage").strip().lower()
+
 CHUNK_TOKENS = 512
 CHUNK_OVERLAP = 64
 
@@ -57,6 +62,31 @@ def _chunk_text(text: str, chunk_tokens: int = CHUNK_TOKENS, overlap: int = CHUN
 
 
 async def _embed(texts: list[str], input_type: Literal["query", "document"]) -> list[list[float]]:
+    # Provider dispatch (PIVOT_PLAN.md §4): one branch, no registry/ABC. Voyage is
+    # the only provisioned path today; bge_m3 is a documented stub.
+    if EMBEDDING_PROVIDER == "voyage":
+        return await _embed_voyage(texts, input_type)
+    if EMBEDDING_PROVIDER == "bge_m3":
+        return await _embed_bge_m3(texts, input_type)
+    raise HTTPException(
+        status_code=503,
+        detail=f"Unknown EMBEDDING_PROVIDER '{EMBEDDING_PROVIDER}' — see PIVOT_PLAN.md §4",
+    )
+
+
+async def _embed_bge_m3(texts: list[str], input_type: Literal["query", "document"]) -> list[list[float]]:
+    # Documented stub (PIVOT_PLAN.md §4). Self-hosted bge-m3 (dense dim 1024,
+    # cosine) is intentionally NOT implemented yet: torch / sentence-transformers
+    # stay OUT of requirements.txt so the image stays slim until we provision an
+    # Oracle Always Free ARM VM at the §4 switch trigger. The real encode call
+    # goes here, honoring the same contract (dim 1024, same call for query/doc).
+    raise HTTPException(
+        status_code=503,
+        detail="Embedding provider 'bge_m3' is not provisioned — see PIVOT_PLAN.md §4",
+    )
+
+
+async def _embed_voyage(texts: list[str], input_type: Literal["query", "document"]) -> list[list[float]]:
     if not VOYAGE_API_KEY:
         raise HTTPException(status_code=503, detail="VOYAGE_API_KEY is not set")
     if not texts:
@@ -89,7 +119,12 @@ async def _embed(texts: list[str], input_type: Literal["query", "document"]) -> 
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "embed_model": VOYAGE_MODEL, "embed_dim": EMBED_DIM}
+    return {
+        "ok": True,
+        "embed_provider": EMBEDDING_PROVIDER,
+        "embed_model": VOYAGE_MODEL,
+        "embed_dim": EMBED_DIM,
+    }
 
 
 @app.post("/convert")
