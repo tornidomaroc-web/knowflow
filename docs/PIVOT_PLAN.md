@@ -240,14 +240,14 @@ Marketing is out of scope until the app is live and reviewed. Roadmap is
 
 | Phase | Title | Scope |
 |---|---|---|
-| **0** | Entitlement + embedding seam + rate limits | `getEntitlement` + `GET /api/entitlement`; gate `FREE_LIMITS` behind it; **harden Paddle webhook**; `EMBEDDING_PROVIDER` dispatch with bge-m3 as a documented stub (no torch deps); per-user daily rate limits via `usage_counters`. Voyage stays active. No VM, no schema-breaking change. |
+| **0** | Entitlement + embedding seam + rate limits + filename fix | `getEntitlement` + `GET /api/entitlement`; gate `FREE_LIMITS` behind it; **harden Paddle webhook**; `EMBEDDING_PROVIDER` dispatch with bge-m3 as a documented stub (no torch deps); per-user daily rate limits via `usage_counters`; **sanitize storage filenames (B4)** and **basic upload extension/MIME allowlist (B5a)** in `/api/ingest`. Voyage stays active. No VM, no schema-breaking change. |
 | **1** | Reframe to student product | Rewrite ar/en copy; rename concepts (Subject/Materials/Ask); raise free KB limit; drop Enterprise/Telegram/Slack/API. No engine changes. |
 | **2** | Consumer UI redesign (web, mobile-first) | New design system; restructure dashboard into a student home (subjects, streak placeholder, ask). Keep server APIs. |
 | **3** | Summaries | Per-document summary generation + UI. |
 | **4** | Quizzes | Generation + `quizzes`/`quiz_items` + quiz-taking UI. |
 | **5** | Streak & progress | `study_events` + streak logic + home widget. |
 | **6** | Flashcards + spaced repetition | SM-2 tables + daily review queue + UI (heaviest). |
-| **7** | Backend hardening **(GATE before Phase 8)** | Per-user rate-limit tuning; **async/queued ingestion**; **sanitize storage filenames**; **upload content-type/size hardening**. Must merge before the mobile shell. |
+| **7** | Backend hardening **(GATE before Phase 8)** | Per-user rate-limit tuning; **async/queued ingestion (B6)**; **deep upload content hardening (B5b)** — magic-byte verification, decompression-bomb / nested-archive limits, content scanning (coupled to the async rework). Must merge before the mobile shell. |
 | **8** | Capacitor mobile shell (Android) | Clone existing Capacitor+Next.js pipeline; client SPA over existing `/api/*`; branding swap. |
 | **9** | AdMob for free users | `@capacitor-community/admob`, gated by `GET /api/entitlement`. No ads for Pro. |
 | **10** | Play prep & submission | Privacy policy, Play Data-safety form, icons, screenshots, internal testing → production review. |
@@ -265,8 +265,9 @@ the checklist — a phase is not "done" until its rows are closed.
 | B1 | **Pro-buys-nothing:** `limits-server.ts` applies `FREE_LIMITS` to everyone; never reads subscription status. Paying users stay capped. | High (correctness/revenue) | **Phase 0** | Gate limits behind `getEntitlement`. |
 | B2 | **Dual entitlement source:** `profiles.plan` (dead, never updated) vs `subscriptions.status` (live). | High (correctness) | **Phase 0** | Make `subscriptions` single source of truth; stop using `profiles.plan`. |
 | B3 | **Paddle webhook gaps:** only handles `created`/`canceled`/`updated`. Missing `past_due`, `paused`, and resume. A failed payment never downgrades. | High (revenue/security) | **Phase 0** | Add the missing event handlers + resume path. |
-| B4 | **Unsanitized storage filename:** `${user.id}/${kbId}/${file.name}` — crafted name enables path traversal / overwrite. | High (security) | **Phase 7** | **Must fix before Phase 8 (mobile shell).** ~10-line fix; cherry-pick earlier if real uploads occur before Phase 7. |
-| B5 | **No upload content-type/size hardening** beyond the 50 MB cap — riskier at consumer scale (malicious/garbage uploads). | Medium (security/cost) | **Phase 7** | Same gate as B4 (before Phase 8). |
+| B4 | **Unsanitized storage filename:** `${user.id}/${kbId}/${file.name}` — crafted name enables path traversal / overwrite. | High (security) | **Phase 0** | Moved up from Phase 7: real uploads happen during dev/testing across Phases 2–6, so this hole must not stay open. ~10-line fix in `/api/ingest`. |
+| B5a | **No upload extension/MIME allowlist:** unexpected file types reach MarkItDown unchecked. | Medium (security) | **Phase 0** | Cheap (3–4 lines in the same `/api/ingest` handler as B4); pulled forward to ride along. Size cap (50 MB) already exists. |
+| B5b | **Deep upload content hardening:** magic-byte verification (don't trust extension), decompression-bomb / nested-archive limits, content scanning. | Medium (security/cost) | **Phase 7** | Genuine work, coupled to the async ingestion rework (B6) where the file is re-handled off the request path. Gates Phase 8. |
 | B6 | **Synchronous ingestion:** `/api/ingest` holds the HTTP connection through conversion + embedding; times out at scale. | Medium (scalability) | **Phase 7** | Move to background job/queue. |
 | B7 | **No rate limiting anywhere:** free consumer tier with no limiter = cost abuse on both Voyage and Claude calls. | High (cost) | **Phase 0** | `usage_counters` + per-user daily caps; burst guard. |
 
