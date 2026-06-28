@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkConversationLimit } from '@/lib/limits-server';
+import { enforceLimit } from '@/lib/rate-limit';
 import { embedQuery } from '@/lib/ingestion';
 
 interface MatchedChunk {
@@ -41,6 +42,17 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // B7 cost guard: burst + daily query cap, in front of the expensive
+    // embed/retrieve/Claude work. Returned as text/plain (not JSON) so the
+    // streaming client renders the message cleanly while the status is a real 429.
+    const limit = await enforceLimit(user.id, 'query');
+    if (!limit.allowed) {
+      return new Response(limit.error, {
+        status: limit.status,
+        headers: { 'Content-Type': 'text/plain' },
+      });
+    }
 
     const canChat = await checkConversationLimit(user.id);
     if (!canChat) {

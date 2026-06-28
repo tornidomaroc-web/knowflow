@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkDocumentLimit } from '@/lib/limits-server';
+import { enforceLimit } from '@/lib/rate-limit';
 
 interface IngestionChunk {
   chunk_index: number;
@@ -36,6 +37,14 @@ export async function POST(request: Request) {
     const canUpload = await checkDocumentLimit(kbId, user.id);
     if (!canUpload) {
       return NextResponse.json({ error: 'Document limit reached. Free plan allows 10 documents per knowledge base.' }, { status: 403 });
+    }
+
+    // B7 cost guard: daily upload cap, in front of the expensive storage +
+    // ingestion/embedding work. Placed after the per-KB document check so the
+    // counter only increments for uploads that actually proceed.
+    const limit = await enforceLimit(user.id, 'upload');
+    if (!limit.allowed) {
+      return NextResponse.json({ error: limit.error }, { status: limit.status });
     }
 
     const filePath = `${user.id}/${kbId}/${file.name}`;
