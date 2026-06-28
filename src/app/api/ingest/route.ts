@@ -23,16 +23,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File too large. Maximum size is 50MB.' }, { status: 413 });
     }
 
-    const canUpload = await checkDocumentLimit(kbId);
-    if (!canUpload) {
-      return NextResponse.json({ error: 'Document limit reached. Free plan allows 10 documents per knowledge base.' }, { status: 403 });
-    }
-
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Entitlement-gated (B1): Pro users get PRO_LIMITS. Needs user.id, so this
+    // now runs after auth — which is also correct ordering (no DB count for an
+    // unauthenticated request).
+    const canUpload = await checkDocumentLimit(kbId, user.id);
+    if (!canUpload) {
+      return NextResponse.json({ error: 'Document limit reached. Free plan allows 10 documents per knowledge base.' }, { status: 403 });
     }
 
     const filePath = `${user.id}/${kbId}/${file.name}`;
