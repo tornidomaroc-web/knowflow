@@ -1,5 +1,10 @@
 export const FREE_LIMITS = {
-  knowledge_bases: 2,
+  // Phase 1 (student reframe): a subject = a course. Students carry 5-8 courses,
+  // so the old HR-era cap of 2 was too low. 5 covers a light semester load while
+  // leaving headroom to upsell heavier students to Pro.
+  // NOTE: this number is also surfaced in copy (pricing features, the
+  // limit-reached message). Later copy sub-steps must keep those in sync with 5.
+  knowledge_bases: 5,
   documents: 10,
   conversations_per_month: 100,
 }
