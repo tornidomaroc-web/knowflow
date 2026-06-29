@@ -41,3 +41,22 @@ export interface Message {
   content: string;
   created_at: string;
 }
+
+/**
+ * Billing tier derived from the `subscriptions` table — the single source of
+ * truth for entitlement (see docs/PIVOT_PLAN.md §3). Distinct from
+ * `Profile.plan`, which is being retired as an entitlement signal (B2).
+ */
+export type Tier = 'free' | 'pro';
+
+/**
+ * The entitlement contract read by both the web app and the mobile app
+ * (via GET /api/entitlement). Mobile keys ad display off `adsEnabled`; it never
+ * computes entitlement locally.
+ */
+export interface Entitlement {
+  tier: Tier;
+  adsEnabled: boolean;
+  /** ISO timestamp the current Pro period ends, or null when free. */
+  expiresAt: string | null;
+}

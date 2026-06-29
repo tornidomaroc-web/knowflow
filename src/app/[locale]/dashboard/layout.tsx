@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { createClient } from '@/lib/supabase/server';
+import { getEntitlement } from '@/lib/entitlement';
 import { redirect } from 'next/navigation';
 import { Locale, locales, useTranslation } from '@/lib/i18n';
 
@@ -22,12 +23,13 @@ export default async function DashboardLayout({
     redirect(`/${safeLocale}/login`);
   }
 
-  const { data: subscription } = await supabase
-    .from('subscriptions')
-    .select('status')
-    .eq('user_id', user.id)
-    .single();
-  const isPro = subscription?.status === 'pro';
+  // Derive entitlement via getEntitlement (single source of truth), not a raw
+  // subscription.status === 'pro' check: the webhook now writes faithful Paddle
+  // statuses ('active'/'trialing'/'past_due'), so a === 'pro' check would show
+  // paying users as free. getEntitlement also uses maybeSingle internally, so a
+  // user with no subscription row resolves to free instead of throwing.
+  const { tier } = await getEntitlement(user.id);
+  const isPro = tier === 'pro';
 
   const isRtl = safeLocale === 'ar';
 

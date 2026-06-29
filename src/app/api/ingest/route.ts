@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkDocumentLimit } from '@/lib/limits-server';
+import { enforceLimit } from '@/lib/rate-limit';
 
 interface IngestionChunk {
   chunk_index: number;
@@ -8,6 +9,20 @@ interface IngestionChunk {
   token_count: number;
   embedding: number[];
 }
+
+// B5a: upload allowlist — only the formats MarkItDown handles well. Maps each
+// allowed extension to the MIME type(s) we accept for it. The extension is the
+// primary gate (it drives file_type and what we hand the converter); MIME is a
+// secondary sanity check — clients can spoof it and browsers report it
+// inconsistently, so empty / generic values are tolerated at the call site.
+const ALLOWED_TYPES: Record<string, string[]> = {
+  pdf: ['application/pdf'],
+  docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  pptx: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+  xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+  txt: ['text/plain'],
+  md: ['text/markdown', 'text/x-markdown', 'text/plain'],
+};
 
 export async function POST(request: Request) {
   try {
@@ -23,9 +38,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File too large. Maximum size is 50MB.' }, { status: 413 });
     }
 
-    const canUpload = await checkDocumentLimit(kbId);
-    if (!canUpload) {
-      return NextResponse.json({ error: 'Document limit reached. Free plan allows 10 documents per knowledge base.' }, { status: 403 });
+    // B5a: reject anything outside the extension + MIME allowlist before any
+    // storage or forwarding to the converter. ext is also reused as file_type
+    // below, so it's always a normalized, known value.
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const allowedMimes = ALLOWED_TYPES[ext];
+    if (!allowedMimes) {
+      return NextResponse.json(
+        { error: `Unsupported file type. Allowed: ${Object.keys(ALLOWED_TYPES).join(', ')}.` },
+        { status: 415 }
+      );
+    }
+    const mime = (file.type || '').toLowerCase();
+    // Tolerate empty / generic MIME (browsers send these for valid files); only
+    // reject a specific MIME that contradicts the extension.
+    if (mime && mime !== 'application/octet-stream' && !allowedMimes.includes(mime)) {
+      return NextResponse.json(
+        { error: `File content type "${file.type}" does not match its .${ext} extension.` },
+        { status: 415 }
+      );
     }
 
     const supabase = await createClient();
@@ -35,7 +66,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const filePath = `${user.id}/${kbId}/${file.name}`;
+    // Entitlement-gated (B1): Pro users get PRO_LIMITS. Needs user.id, so this
+    // now runs after auth — which is also correct ordering (no DB count for an
+    // unauthenticated request).
+    const canUpload = await checkDocumentLimit(kbId, user.id);
+    if (!canUpload) {
+      return NextResponse.json({ error: 'Document limit reached. Free plan allows 10 documents per knowledge base.' }, { status: 403 });
+    }
+
+    // B7 cost guard: daily upload cap, in front of the expensive storage +
+    // ingestion/embedding work. Placed after the per-KB document check so the
+    // counter only increments for uploads that actually proceed.
+    const limit = await enforceLimit(user.id, 'upload');
+    if (!limit.allowed) {
+      return NextResponse.json({ error: limit.error }, { status: limit.status });
+    }
+
+    // B4 (path-traversal fix): reduce the client-supplied filename to a safe,
+    // flat basename so the storage key cannot escape the user's prefix
+    // (e.g. ../../evil.pdf). Storage key only; the original name is preserved
+    // for display in the documents row below.
+    const safeName =
+      ((file.name || '').split(/[/\\]/).pop() || '') // basename: drop directories
+        .replace(/[\x00-\x1f\x7f]/g, '')             // strip control chars
+        .replace(/[^A-Za-z0-9._-]/g, '_')            // allowlist
+        .replace(/^\.+/, '')                         // drop leading dots ("..", etc.)
+      || `upload-${Date.now()}`;                     // fallback if nothing safe remains
+
+    const filePath = `${user.id}/${kbId}/${safeName}`;
     const { error: storageError } = await supabase.storage
       .from('documents')
       .upload(filePath, file, { upsert: true });
@@ -49,7 +107,7 @@ export async function POST(request: Request) {
       .insert({
         kb_id: kbId,
         filename: file.name,
-        file_type: file.name.split('.').pop() || 'unknown',
+        file_type: ext, // B5a: validated, normalized extension (was raw split/'unknown')
         status: 'processing',
         embedding_status: 'processing',
       })
