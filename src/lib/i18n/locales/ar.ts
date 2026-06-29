@@ -159,7 +159,7 @@ export const ar: Translation = {
       conversationsDesc: "الأسئلة المطروحة",
       newKbTitle: "مادة جديدة",
       newKbDesc: "أضف مادة وارفع ملفاتها",
-      talkAgentTitle: "اسأل موادك",
+      talkAgentTitle: "اسأل ملفاتك",
       talkAgentDesc: "اطرح أسئلة عن موادك",
       recentActivity: "النشاط الأخير",
       noActivity: "لا يوجد نشاط بعد",
