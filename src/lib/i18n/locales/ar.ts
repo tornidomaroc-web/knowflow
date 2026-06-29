@@ -144,46 +144,46 @@ export const ar: Translation = {
   dashboard: {
     nav: {
       dashboard: "اللوحة",
-      knowledge: "قواعد المعرفة",
-      agent: "الوكيل",
+      knowledge: "المواد",
+      agent: "اسأل",
       settings: "الإعدادات",
       signOut: "تسجيل الخروج"
     },
     home: {
       welcome: "مرحباً بعودتك.",
-      knowledgeBases: "قواعد المعرفة",
-      knowledgeBasesDesc: "قواعد المعرفة النشطة",
-      documents: "المستندات",
+      knowledgeBases: "المواد",
+      knowledgeBasesDesc: "المواد النشطة",
+      documents: "الملفات",
       documentsDesc: "ملفات تمت معالجتها",
       conversations: "المحادثات",
-      conversationsDesc: "تفاعلات الوكيل",
-      newKbTitle: "قاعدة معرفة جديدة",
-      newKbDesc: "ارفع مستندات وأنشئ وكيلاً",
-      talkAgentTitle: "تحدث مع الوكيل",
-      talkAgentDesc: "اطرح أسئلة حول قواعد معرفتك",
+      conversationsDesc: "الأسئلة المطروحة",
+      newKbTitle: "مادة جديدة",
+      newKbDesc: "أضف مادة وارفع ملفاتها",
+      talkAgentTitle: "اسأل موادك",
+      talkAgentDesc: "اطرح أسئلة عن موادك",
       recentActivity: "النشاط الأخير",
       noActivity: "لا يوجد نشاط بعد",
       conversation: "محادثة",
       showLess: "عرض أقل",
       viewAll: "عرض الكل",
-      unknownKb: "قاعدة معرفة غير معروفة"
+      unknownKb: "مادة غير معروفة"
     },
     newKb: {
-      title: "إنشاء قاعدة معرفة",
+      title: "إنشاء مادة",
       name: "الاسم",
       description: "الوصف (اختياري)",
       language: "اللغة",
       languageAr: "العربية",
       languageEn: "الإنجليزية",
       languageBoth: "كلاهما",
-      create: "إنشاء قاعدة معرفة",
+      create: "إنشاء مادة",
       creating: "جارٍ الإنشاء...",
       errorAuth: "غير مصادق عليه",
       errorLimit: "تسمح الباقة المجانية بقاعدتي معرفة فقط. قم بالترقية إلى الاحترافي للمزيد."
     },
     kbDetail: {
-      documents: "المستندات",
-      noDocuments: "لا توجد مستندات بعد. ارفع أول ملف لك أعلاه.",
+      documents: "الملفات",
+      noDocuments: "لا توجد ملفات بعد. ارفع أول ملف لك أعلاه.",
       chunks: "مقاطع"
     },
     settings: {
@@ -198,7 +198,7 @@ export const ar: Translation = {
       activeSubscription: "اشتراك نشط"
     },
     agent: {
-      chatWith: "محادثة مع",
+      chatWith: "تسأل عن",
       startTyping: "ابدأ بالكتابة لطرح أسئلتك.",
       askPlaceholder: "اطرح سؤالاً (Cmd+Enter للإرسال)...",
       send: "إرسال",

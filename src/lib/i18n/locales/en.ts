@@ -140,46 +140,46 @@ export const en = {
   dashboard: {
     nav: {
       dashboard: "Dashboard",
-      knowledge: "Knowledge Bases",
-      agent: "Agent",
+      knowledge: "Subjects",
+      agent: "Ask",
       settings: "Settings",
       signOut: "Sign Out"
     },
     home: {
       welcome: "Welcome back.",
-      knowledgeBases: "Knowledge Bases",
-      knowledgeBasesDesc: "Active knowledge bases",
-      documents: "Documents",
-      documentsDesc: "Files processed",
+      knowledgeBases: "Subjects",
+      knowledgeBasesDesc: "Active subjects",
+      documents: "Materials",
+      documentsDesc: "Materials processed",
       conversations: "Conversations",
-      conversationsDesc: "Agent interactions",
-      newKbTitle: "NEW KNOWLEDGE BASE",
-      newKbDesc: "Upload documents and create an agent",
-      talkAgentTitle: "TALK TO AGENT",
-      talkAgentDesc: "Ask questions about your knowledge bases",
+      conversationsDesc: "Questions asked",
+      newKbTitle: "NEW SUBJECT",
+      newKbDesc: "Add a subject and upload its materials",
+      talkAgentTitle: "ASK YOUR MATERIALS",
+      talkAgentDesc: "Ask questions across your subjects",
       recentActivity: "Recent Activity",
       noActivity: "No activity yet",
       conversation: "CONVERSATION",
       showLess: "Show less",
       viewAll: "View all",
-      unknownKb: "Unknown KB"
+      unknownKb: "Unknown subject"
     },
     newKb: {
-      title: "Create Knowledge Base",
+      title: "Create Subject",
       name: "Name",
       description: "Description (Optional)",
       language: "Language",
       languageAr: "Arabic",
       languageEn: "English",
       languageBoth: "Both",
-      create: "Create Knowledge Base",
+      create: "Create Subject",
       creating: "Creating...",
       errorAuth: "Not authenticated",
       errorLimit: "Free plan allows 2 Knowledge Bases only. Upgrade to Pro for more."
     },
     kbDetail: {
-      documents: "Documents",
-      noDocuments: "No documents yet. Upload your first file above.",
+      documents: "Materials",
+      noDocuments: "No materials yet. Upload your first file above.",
       chunks: "chunks"
     },
     settings: {
@@ -194,7 +194,7 @@ export const en = {
       activeSubscription: "Active subscription"
     },
     agent: {
-      chatWith: "Chatting with",
+      chatWith: "Asking about",
       startTyping: "Start typing to ask questions.",
       askPlaceholder: "Ask a question (Cmd+Enter to send)...",
       send: "Send",
