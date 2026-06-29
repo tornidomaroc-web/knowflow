@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import tempfile
 from typing import Literal
@@ -38,6 +39,21 @@ def _check_auth(authorization: str | None) -> None:
         raise HTTPException(status_code=401, detail="Missing bearer token")
     if authorization.removeprefix("Bearer ").strip() != INGESTION_TOKEN:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+
+def _safe_basename(name: str | None) -> str:
+    """Reduce a client-supplied filename to a safe, flat basename (B4).
+
+    Mirrors the Next-side sanitizer (src/app/api/ingest/route.ts) so the two
+    layers behave the same: a name like ../../evil.pdf can't inject ../ into a
+    path. os.path.basename is posix-only here, so backslashes are normalized to
+    forward slashes first to also strip Windows-style separators.
+    """
+    base = os.path.basename((name or "").replace("\\", "/"))
+    base = re.sub(r"[\x00-\x1f\x7f]", "", base)   # strip control chars
+    base = re.sub(r"[^A-Za-z0-9._-]", "_", base)  # allowlist
+    base = base.lstrip(".")                        # drop leading dots ("..", etc.)
+    return base or "upload"                        # mkstemp adds its own entropy
 
 
 def _chunk_text(text: str, chunk_tokens: int = CHUNK_TOKENS, overlap: int = CHUNK_OVERLAP) -> list[dict]:
@@ -135,7 +151,7 @@ async def convert(
     """Convert a document to markdown, chunk it, and return chunks with embeddings."""
     _check_auth(authorization)
 
-    fd, tmp_path = tempfile.mkstemp(suffix=f"_{file.filename or 'upload'}")
+    fd, tmp_path = tempfile.mkstemp(suffix=f"_{_safe_basename(file.filename)}")
     os.close(fd)
     try:
         with open(tmp_path, "wb") as buffer:
