@@ -10,6 +10,20 @@ interface IngestionChunk {
   embedding: number[];
 }
 
+// B5a: upload allowlist — only the formats MarkItDown handles well. Maps each
+// allowed extension to the MIME type(s) we accept for it. The extension is the
+// primary gate (it drives file_type and what we hand the converter); MIME is a
+// secondary sanity check — clients can spoof it and browsers report it
+// inconsistently, so empty / generic values are tolerated at the call site.
+const ALLOWED_TYPES: Record<string, string[]> = {
+  pdf: ['application/pdf'],
+  docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  pptx: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+  xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+  txt: ['text/plain'],
+  md: ['text/markdown', 'text/x-markdown', 'text/plain'],
+};
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -22,6 +36,27 @@ export async function POST(request: Request) {
 
     if (file.size > 52428800) {
       return NextResponse.json({ error: 'File too large. Maximum size is 50MB.' }, { status: 413 });
+    }
+
+    // B5a: reject anything outside the extension + MIME allowlist before any
+    // storage or forwarding to the converter. ext is also reused as file_type
+    // below, so it's always a normalized, known value.
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const allowedMimes = ALLOWED_TYPES[ext];
+    if (!allowedMimes) {
+      return NextResponse.json(
+        { error: `Unsupported file type. Allowed: ${Object.keys(ALLOWED_TYPES).join(', ')}.` },
+        { status: 415 }
+      );
+    }
+    const mime = (file.type || '').toLowerCase();
+    // Tolerate empty / generic MIME (browsers send these for valid files); only
+    // reject a specific MIME that contradicts the extension.
+    if (mime && mime !== 'application/octet-stream' && !allowedMimes.includes(mime)) {
+      return NextResponse.json(
+        { error: `File content type "${file.type}" does not match its .${ext} extension.` },
+        { status: 415 }
+      );
     }
 
     const supabase = await createClient();
@@ -72,7 +107,7 @@ export async function POST(request: Request) {
       .insert({
         kb_id: kbId,
         filename: file.name,
-        file_type: file.name.split('.').pop() || 'unknown',
+        file_type: ext, // B5a: validated, normalized extension (was raw split/'unknown')
         status: 'processing',
         embedding_status: 'processing',
       })
