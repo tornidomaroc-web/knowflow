@@ -159,7 +159,8 @@ export const en = {
       create: "Create Subject",
       creating: "Creating...",
       errorAuth: "Not authenticated",
-      errorLimit: "Free plan allows 2 Knowledge Bases only. Upgrade to Pro for more."
+      errorLimitFree: "You've reached the free plan's limit of {limit} subjects. Upgrade to Pro for more.",
+      errorLimitPro: "You've reached your limit of {limit} subjects."
     },
     kbDetail: {
       documents: "Materials",

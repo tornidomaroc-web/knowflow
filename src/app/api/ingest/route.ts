@@ -69,9 +69,15 @@ export async function POST(request: Request) {
     // Entitlement-gated (B1): Pro users get PRO_LIMITS. Needs user.id, so this
     // now runs after auth — which is also correct ordering (no DB count for an
     // unauthenticated request).
-    const canUpload = await checkDocumentLimit(kbId, user.id);
-    if (!canUpload) {
-      return NextResponse.json({ error: 'Document limit reached. Free plan allows 10 documents per knowledge base.' }, { status: 403 });
+    const docLimit = await checkDocumentLimit(kbId, user.id);
+    if (!docLimit.allowed) {
+      // Tier-correct: state the tier's actual limit and only offer the upgrade
+      // path to free users (a Pro user has no higher tier to upsell).
+      const tail = docLimit.tier === 'pro' ? '' : ' Upgrade to Pro for a higher limit.';
+      return NextResponse.json(
+        { error: `You've reached this subject's limit of ${docLimit.limit} materials.${tail}` },
+        { status: 403 }
+      );
     }
 
     // B7 cost guard: daily upload cap, in front of the expensive storage +

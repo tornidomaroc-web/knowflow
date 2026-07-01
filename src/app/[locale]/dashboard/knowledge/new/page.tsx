@@ -34,9 +34,13 @@ export default function NewKnowledgeBasePage({
     }
 
     const res = await fetch('/api/check-limit');
-    const { canCreate } = await res.json();
+    const { canCreate, limit, tier } = await res.json();
     if (!canCreate) {
-      setError(t.dashboard.newKb.errorLimit);
+      // Tier-correct message with the real limit interpolated from the API, so
+      // the copy can never drift from the enforced number. A Pro user never sees
+      // the free-plan / upgrade wording.
+      const template = tier === 'pro' ? t.dashboard.newKb.errorLimitPro : t.dashboard.newKb.errorLimitFree;
+      setError(template.replace('{limit}', String(limit)));
       setLoading(false);
       return;
     }

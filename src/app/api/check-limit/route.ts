@@ -10,6 +10,6 @@ export async function GET() {
     return NextResponse.json({ canCreate: false, error: 'Unauthorized' }, { status: 401 })
   }
 
-  const canCreate = await checkKBLimit(user.id)
-  return NextResponse.json({ canCreate })
+  const kb = await checkKBLimit(user.id)
+  return NextResponse.json({ canCreate: kb.allowed, limit: kb.limit, tier: kb.tier })
 }
