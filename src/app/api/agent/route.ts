@@ -54,12 +54,16 @@ export async function POST(request: Request) {
       });
     }
 
-    const canChat = await checkConversationLimit(user.id);
-    if (!canChat) {
+    const convoLimit = await checkConversationLimit(user.id);
+    if (!convoLimit.allowed) {
+      // Tier-correct: real per-tier monthly limit; only free users get the
+      // upgrade prompt (a Pro user is already on the top tier).
+      const tail = convoLimit.tier === 'pro' ? '' : ' Upgrade to Pro for a higher limit.';
+      const message = `You've reached your monthly limit of ${convoLimit.limit} conversations.${tail}`;
       const encoder = new TextEncoder();
       const readable = new ReadableStream({
         start(controller) {
-          controller.enqueue(encoder.encode("You've reached your monthly conversation limit. Upgrade to Pro to continue."));
+          controller.enqueue(encoder.encode(message));
           controller.close();
         },
       });

@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { useTranslation, Locale } from '@/lib/i18n';
-import { WaitlistForm } from '@/components/landing/WaitlistForm';
 
 export default async function LandingPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
@@ -66,12 +65,12 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                 <div className="w-3 h-3 rounded-full bg-red-500 opacity-50"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-500 opacity-50"></div>
                 <div className="w-3 h-3 rounded-full bg-green-500 opacity-50"></div>
-                <span className="pl-4 text-[var(--muted-color)] text-xs tracking-widest">agent@knowflow</span>
+                <span className="pl-4 text-[var(--muted-color)] text-xs tracking-widest">ask@knowflow</span>
               </div>
               <div className="p-6 space-y-4 text-green-400" dir="ltr">
-                <p><span className="text-[var(--muted-color)]">&gt;</span> markitdown ingest ./policy.pdf</p>
-                <p className="text-[var(--muted-color)]">[OK] Document indexed in 0.4s.</p>
-                <p><span className="text-[var(--muted-color)]">&gt;</span> ask "ما هي سياسة الإجازات؟"</p>
+                <p><span className="text-[var(--muted-color)]">&gt;</span> upload ./biology-notes.pdf</p>
+                <p className="text-[var(--muted-color)]">[OK] Ready in 0.4s.</p>
+                <p><span className="text-[var(--muted-color)]">&gt;</span> ask "ما الفرق بين الانقسام المتساوي والمنصّف؟"</p>
                 <p className="animate-pulse">▋</p>
               </div>
             </div>
@@ -137,15 +136,15 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
         <div className="absolute inset-0 bg-[var(--accent-color)] opacity-[0.03]"></div>
         <div className="max-w-3xl mx-auto px-6 text-center relative z-10">
           <h2 className="text-5xl font-[family-name:var(--font-playfair)] font-bold mb-10">{t.cta.title}</h2>
-          <WaitlistForm
-            placeholder={t.cta.placeholder}
-            button={t.cta.button}
-            badge={t.cta.badge}
-            isRtl={isRtl}
-            successText={t.cta.success}
-            errorDuplicate={t.cta.errorDuplicate}
-            errorGeneric={t.cta.errorGeneric}
-          />
+          <Link
+            href={`/${locale}/signup`}
+            className="inline-block bg-[var(--accent-color)] text-black px-10 py-4 font-[family-name:var(--font-mono)] text-sm uppercase tracking-widest font-bold hover:opacity-90 transition-opacity"
+          >
+            {t.cta.button}
+          </Link>
+          <p className="mt-8 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest text-[var(--muted-color)]">
+            {t.cta.note}
+          </p>
         </div>
       </section>
 
@@ -159,6 +158,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
             <Link href={`/${locale}/privacy`} className="hover:text-white transition-colors">{t.footer.privacy}</Link>
             <Link href={`/${locale}/terms`} className="hover:text-white transition-colors">{t.footer.terms}</Link>
             <Link href={`/${locale}/refund`} className="hover:text-white transition-colors">{t.footer.refund}</Link>
+            <Link href={`/${locale}/contact`} className="hover:text-white transition-colors">{t.footer.support}</Link>
             <Link href="https://github.com/tornidomaroc-web/knowflow" className="hover:text-[var(--accent-color)] transition-colors">{t.footer.github}</Link>
           </div>
           <div className="mt-6 md:mt-0 font-[family-name:var(--font-mono)] text-xs text-[var(--muted-color)]">

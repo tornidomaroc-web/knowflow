@@ -5,3 +5,15 @@ node_modules/
 __pycache__/
 *.pyc
 services/ingestion/__pycache__/
+
+# TypeScript incremental build cache (regenerated on build)
+*.tsbuildinfo
+
+# Python virtualenvs (env artifact, never versioned)
+.venv/
+
+# Claude Code: local per-developer settings + transient agent worktrees.
+# Scoped intentionally — shared config (.claude/settings.json, commands/,
+# agents/, hooks/) stays trackable.
+.claude/settings.local.json
+.claude/worktrees/

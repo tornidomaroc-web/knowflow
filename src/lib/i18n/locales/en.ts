@@ -4,55 +4,52 @@ export const en = {
     howItWorks: "How it works",
     pricing: "Pricing",
     docs: "Docs",
-    getStarted: "Get Started"
+    getStarted: "Start free"
   },
   hero: {
-    badge: "Open Source · MIT License",
-    title: "Your documents. Any question. In seconds.",
-    subtitle: "Upload your contracts, catalogs, or HR policies — and get instant answers in Arabic or English. No search. No digging. Just ask.",
-    note: "Built for teams who work with real documents every day.",
-    cta1: "Upload Your First Document",
+    badge: "Made for students · Arabic & English",
+    title: "Your notes. Any question. In seconds.",
+    subtitle: "Upload your lecture notes, slides, and PDFs — then ask questions and get clear answers in Arabic or English. No searching. No scrolling. Just ask.",
+    note: "Made for students who'd rather understand than dig through PDFs.",
+    cta1: "Start free",
     cta2: "See how it works",
-    disclaimer: "No credit card required · Free plan available · Works in seconds"
+    disclaimer: "No credit card · Free to start · Ready in seconds"
   },
   features: {
     title: "Why KnowFlow",
     items: [
       { title: "Works in Arabic and English", desc: "natively, not translated" },
-      { title: "Trained on your documents", desc: "not the internet" },
+      { title: "Answers from your notes", desc: "not the internet" },
       { title: "No setup. No coding.", desc: "Upload and start." }
     ]
   },
   usecases: {
-    title: "What your team can do with KnowFlow",
+    title: "What you can do with KnowFlow",
     items: [
-      { num: "01", title: "Answer HR questions instantly", desc: "Employee asks about leave policy at 9pm. KnowFlow answers from your actual HR documents — no waiting." },
-      { num: "02", title: "Search contracts in seconds", desc: "Stop reading 40-page contracts to find one clause. Ask KnowFlow and get the exact answer." },
-      { num: "03", title: "Turn your catalog into a sales assistant", desc: "Your team asks product questions all day. Upload the catalog once — KnowFlow answers forever." },
-      { num: "04", title: "Onboard new employees faster", desc: "New hire has 50 questions. KnowFlow knows every policy, process, and procedure in your documents." }
+      { num: "01", title: "Understand hard topics fast", desc: "Stuck on a concept the night before an exam? Ask KnowFlow and get a clear explanation drawn straight from your own notes." },
+      { num: "02", title: "Find answers without scrolling", desc: "Stop scrolling through 60 slides to find one definition. Ask KnowFlow and get the exact answer." },
+      { num: "03", title: "Review before exams", desc: "Turn a subject's notes into a study partner. Ask anything about that subject and get grounded answers." },
+      { num: "04", title: "Study in your language", desc: "Ask in Arabic or English — whichever helps you learn. KnowFlow answers from your materials either way." }
     ]
   },
   howItWorks: {
     title: "How it works",
     steps: [
-      { step: "Step 1", title: "Upload your documents", desc: "PDF, Word, Excel — any format your team already uses." },
-      { step: "Step 2", title: "Ask in Arabic or English", desc: "Type your question naturally. No keywords. No search terms." },
-      { step: "Step 3", title: "Get the exact answer", desc: "KnowFlow reads your documents and responds with the right information instantly." }
+      { step: "Step 1", title: "Upload your materials", desc: "Add a subject and upload its notes, slides, or PDFs — any format you already have." },
+      { step: "Step 2", title: "Ask in Arabic or English", desc: "Type your question naturally. No keywords, no searching." },
+      { step: "Step 3", title: "Get a clear answer", desc: "KnowFlow reads that subject's materials and answers with the right information, instantly." }
     ]
   },
   cta: {
-    title: "Ready to start?",
-    placeholder: "name@company.com",
-    button: "Start Now",
-    badge: "Open Source · MIT License",
-    success: "You're on the list. We'll be in touch.",
-    errorDuplicate: "This email is already on the list.",
-    errorGeneric: "Something went wrong. Please try again."
+    title: "Ready to study smarter?",
+    button: "Start free",
+    note: "Free plan · No credit card · Set up in a minute"
   },
   footer: {
     privacy: "Privacy",
     terms: "Terms",
     refund: "Refund",
+    support: "Support",
     github: "GitHub",
     copyright: "KnowFlow. All rights reserved."
   },
@@ -63,36 +60,24 @@ export const en = {
       price: "$0",
       period: "/month",
       features: [
-        "2 Knowledge Bases",
-        "10 documents",
+        "5 Subjects",
+        "10 materials",
         "100 conversations/month",
-        "Web access only"
+        "Arabic & English"
       ],
-      button: "Get Started Free"
+      button: "Start free"
     },
     pro: {
       name: "Pro",
       price: "$49",
       period: "/month",
       features: [
-        "10 Knowledge Bases",
-        "Unlimited documents",
-        "Unlimited conversations",
-        "Telegram + Slack + API",
+        "10 Subjects",
+        "Generous material limits",
+        "High daily limits",
         "Priority support"
       ],
       button: "Upgrade to Pro"
-    },
-    enterprise: {
-      name: "Enterprise",
-      price: "Custom",
-      features: [
-        "Unlimited everything",
-        "Custom domain",
-        "Dedicated support",
-        "SLA guarantee"
-      ],
-      button: "Contact Us"
     }
   },
   auth: {
@@ -113,24 +98,23 @@ export const en = {
     creating: "Creating..."
   },
   about: {
-    title: "We believe knowledge should work for you.",
-    subtitle: "KnowFlow turns your documents into intelligent agents that respond, learn, and execute — in Arabic and English.",
+    title: "We believe studying should feel simpler.",
+    subtitle: "KnowFlow turns your notes, slides, and PDFs into clear answers — grounded in your own material, in Arabic and English.",
     missionLabel: "Our Mission",
-    mission: "We're building the first AI knowledge platform designed for Arabic-speaking businesses and teams.",
+    mission: "We're building a study assistant that speaks Arabic natively — so students can learn from their own material, in the language they think in.",
     giants: "Built on the shoulders of giants",
     tools: [
-      { title: "MarkItDown by Microsoft", desc: "document intelligence" },
-      { title: "Hermes Agent by NousResearch", desc: "autonomous learning" },
-      { title: "Archon Workflows", desc: "deterministic execution" },
-      { title: "Claude by Anthropic", desc: "language understanding" }
+      { title: "MarkItDown by Microsoft", desc: "turns your files into clean text" },
+      { title: "Voyage AI", desc: "understands what your notes mean" },
+      { title: "Claude by Anthropic", desc: "answers your questions clearly" },
+      { title: "Supabase", desc: "keeps your material private to you" }
     ],
-    ctaTitle: "Ready to transform your knowledge?",
-    cta: "Start Free"
+    ctaTitle: "Ready to study smarter?",
+    cta: "Start free"
   },
   contact: {
-    title: "Get in touch.",
-    general: "General",
-    enterprise: "Enterprise",
+    title: "How can we help?",
+    general: "Support",
     name: "Name",
     email: "Email",
     message: "Message",
@@ -140,46 +124,47 @@ export const en = {
   dashboard: {
     nav: {
       dashboard: "Dashboard",
-      knowledge: "Knowledge Bases",
-      agent: "Agent",
+      knowledge: "Subjects",
+      agent: "Ask",
       settings: "Settings",
       signOut: "Sign Out"
     },
     home: {
       welcome: "Welcome back.",
-      knowledgeBases: "Knowledge Bases",
-      knowledgeBasesDesc: "Active knowledge bases",
-      documents: "Documents",
-      documentsDesc: "Files processed",
+      knowledgeBases: "Subjects",
+      knowledgeBasesDesc: "Active subjects",
+      documents: "Materials",
+      documentsDesc: "Materials processed",
       conversations: "Conversations",
-      conversationsDesc: "Agent interactions",
-      newKbTitle: "NEW KNOWLEDGE BASE",
-      newKbDesc: "Upload documents and create an agent",
-      talkAgentTitle: "TALK TO AGENT",
-      talkAgentDesc: "Ask questions about your knowledge bases",
+      conversationsDesc: "Questions asked",
+      newKbTitle: "NEW SUBJECT",
+      newKbDesc: "Add a subject and upload its materials",
+      talkAgentTitle: "ASK YOUR MATERIALS",
+      talkAgentDesc: "Ask about the materials in one subject",
       recentActivity: "Recent Activity",
       noActivity: "No activity yet",
       conversation: "CONVERSATION",
       showLess: "Show less",
       viewAll: "View all",
-      unknownKb: "Unknown KB"
+      unknownKb: "Unknown subject"
     },
     newKb: {
-      title: "Create Knowledge Base",
+      title: "Create Subject",
       name: "Name",
       description: "Description (Optional)",
       language: "Language",
       languageAr: "Arabic",
       languageEn: "English",
       languageBoth: "Both",
-      create: "Create Knowledge Base",
+      create: "Create Subject",
       creating: "Creating...",
       errorAuth: "Not authenticated",
-      errorLimit: "Free plan allows 2 Knowledge Bases only. Upgrade to Pro for more."
+      errorLimitFree: "You've reached the free plan's limit of {limit} subjects. Upgrade to Pro for more.",
+      errorLimitPro: "You've reached your limit of {limit} subjects."
     },
     kbDetail: {
-      documents: "Documents",
-      noDocuments: "No documents yet. Upload your first file above.",
+      documents: "Materials",
+      noDocuments: "No materials yet. Upload your first file above.",
       chunks: "chunks"
     },
     settings: {
@@ -194,7 +179,7 @@ export const en = {
       activeSubscription: "Active subscription"
     },
     agent: {
-      chatWith: "Chatting with",
+      chatWith: "Asking about",
       startTyping: "Start typing to ask questions.",
       askPlaceholder: "Ask a question (Cmd+Enter to send)...",
       send: "Send",
@@ -206,7 +191,7 @@ export const en = {
       fileTooBig: "File too large. Maximum size is 50MB.",
       uploadFailed: "Upload failed",
       dropHere: "Drop files here or click to upload",
-      supported: "Supported: PDF, DOCX, XLSX, MP3, MP4 (Max: 50MB)",
+      supported: "Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (Max: 50MB)",
       uploading: "Uploading...",
       processing: "Processing...",
       ready: "Ready ✓",
