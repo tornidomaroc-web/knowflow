@@ -74,7 +74,7 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
         state === 'idle' ? 'border-[var(--border-color)] hover:border-[var(--accent-color)]' : 'border-[var(--accent-color)]'
       } bg-[#0c1510] relative`}
     >
-      <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.docx,.xlsx,.mp3,.mp4" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+      <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.docx,.pptx,.xlsx,.txt,.md" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
       <div className="flex flex-col items-center justify-center space-y-4">
         {state === 'idle' && (
           <>
