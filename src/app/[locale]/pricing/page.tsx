@@ -53,7 +53,7 @@ export default function PricingPage({ params }: { params: Promise<{ locale: Loca
       <div className="max-w-7xl mx-auto px-6 text-center mb-16">
         <h1 className="text-5xl font-[family-name:var(--font-playfair)] font-bold mb-4">{t.pricing.title}</h1>
       </div>
-      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="max-w-4xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* FREE PLAN */}
         <div className={`border border-[var(--border-color)] bg-[var(--input-bg)] p-8 flex flex-col ${isRtl ? 'text-right' : 'text-left'}`}>
@@ -113,20 +113,6 @@ export default function PricingPage({ params }: { params: Promise<{ locale: Loca
               <p className="text-red-400 font-[family-name:var(--font-mono)] text-xs text-center mt-2">{errorMsg}</p>
             )}
           </div>
-        </div>
-
-        {/* ENTERPRISE PLAN */}
-        <div className={`border border-[var(--border-color)] bg-[var(--input-bg)] p-8 flex flex-col ${isRtl ? 'text-right' : 'text-left'}`}>
-          <h2 className="text-2xl font-[family-name:var(--font-playfair)] font-bold mb-2">{t.pricing.enterprise.name}</h2>
-          <div className="text-3xl font-bold mb-6">{t.pricing.enterprise.price}</div>
-          <ul className="space-y-4 mb-8 flex-1 font-[family-name:var(--font-mono)] text-sm text-[var(--muted-color)]">
-            {t.pricing.enterprise.features.map((feature, idx) => (
-              <li key={idx}>• {feature}</li>
-            ))}
-          </ul>
-          <Link href={`/${locale}/contact`} className="block text-center border border-[var(--muted-color)] text-[var(--muted-color)] hover:border-white hover:text-white py-3 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest transition-colors bg-transparent mx-0">
-            {t.pricing.enterprise.button}
-          </Link>
         </div>
 
       </div>

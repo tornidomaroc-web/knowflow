@@ -158,6 +158,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
             <Link href={`/${locale}/privacy`} className="hover:text-white transition-colors">{t.footer.privacy}</Link>
             <Link href={`/${locale}/terms`} className="hover:text-white transition-colors">{t.footer.terms}</Link>
             <Link href={`/${locale}/refund`} className="hover:text-white transition-colors">{t.footer.refund}</Link>
+            <Link href={`/${locale}/contact`} className="hover:text-white transition-colors">{t.footer.support}</Link>
             <Link href="https://github.com/tornidomaroc-web/knowflow" className="hover:text-[var(--accent-color)] transition-colors">{t.footer.github}</Link>
           </div>
           <div className="mt-6 md:mt-0 font-[family-name:var(--font-mono)] text-xs text-[var(--muted-color)]">

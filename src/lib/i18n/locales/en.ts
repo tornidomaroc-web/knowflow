@@ -49,6 +49,7 @@ export const en = {
     privacy: "Privacy",
     terms: "Terms",
     refund: "Refund",
+    support: "Support",
     github: "GitHub",
     copyright: "KnowFlow. All rights reserved."
   },
@@ -59,36 +60,24 @@ export const en = {
       price: "$0",
       period: "/month",
       features: [
-        "2 Knowledge Bases",
-        "10 documents",
+        "2 Subjects",
+        "10 materials",
         "100 conversations/month",
-        "Web access only"
+        "Arabic & English"
       ],
-      button: "Get Started Free"
+      button: "Start free"
     },
     pro: {
       name: "Pro",
       price: "$49",
       period: "/month",
       features: [
-        "10 Knowledge Bases",
-        "Unlimited documents",
+        "10 Subjects",
+        "Unlimited materials",
         "Unlimited conversations",
-        "Telegram + Slack + API",
         "Priority support"
       ],
       button: "Upgrade to Pro"
-    },
-    enterprise: {
-      name: "Enterprise",
-      price: "Custom",
-      features: [
-        "Unlimited everything",
-        "Custom domain",
-        "Dedicated support",
-        "SLA guarantee"
-      ],
-      button: "Contact Us"
     }
   },
   auth: {
@@ -109,24 +98,23 @@ export const en = {
     creating: "Creating..."
   },
   about: {
-    title: "We believe knowledge should work for you.",
-    subtitle: "KnowFlow turns your documents into intelligent agents that respond, learn, and execute — in Arabic and English.",
+    title: "We believe studying should feel simpler.",
+    subtitle: "KnowFlow turns your notes, slides, and PDFs into clear answers — grounded in your own material, in Arabic and English.",
     missionLabel: "Our Mission",
-    mission: "We're building the first AI knowledge platform designed for Arabic-speaking businesses and teams.",
+    mission: "We're building a study assistant that speaks Arabic natively — so students can learn from their own material, in the language they think in.",
     giants: "Built on the shoulders of giants",
     tools: [
-      { title: "MarkItDown by Microsoft", desc: "document intelligence" },
-      { title: "Hermes Agent by NousResearch", desc: "autonomous learning" },
-      { title: "Archon Workflows", desc: "deterministic execution" },
-      { title: "Claude by Anthropic", desc: "language understanding" }
+      { title: "MarkItDown by Microsoft", desc: "turns your files into clean text" },
+      { title: "Voyage AI", desc: "understands what your notes mean" },
+      { title: "Claude by Anthropic", desc: "answers your questions clearly" },
+      { title: "Supabase", desc: "keeps your material private to you" }
     ],
-    ctaTitle: "Ready to transform your knowledge?",
-    cta: "Start Free"
+    ctaTitle: "Ready to study smarter?",
+    cta: "Start free"
   },
   contact: {
-    title: "Get in touch.",
-    general: "General",
-    enterprise: "Enterprise",
+    title: "How can we help?",
+    general: "Support",
     name: "Name",
     email: "Email",
     message: "Message",

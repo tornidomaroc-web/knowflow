@@ -11,14 +11,10 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
       <div className="max-w-xl mx-auto px-6">
         <h1 className="text-5xl font-[family-name:var(--font-playfair)] font-bold mb-12 text-center">{t.contact.title}</h1>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 font-[family-name:var(--font-mono)] text-sm">
+        <div className="grid grid-cols-1 gap-6 mb-12 font-[family-name:var(--font-mono)] text-sm">
           <div className="border border-[var(--border-color)] p-6 bg-[var(--input-bg)] text-center">
             <h2 className="text-[var(--muted-color)] uppercase tracking-widest mb-2 text-xs">{t.contact.general}</h2>
             <a href="mailto:hello@tryknowflow.com" className="text-[var(--accent-color)] hover:underline">hello@tryknowflow.com</a>
-          </div>
-          <div className="border border-[var(--border-color)] p-6 bg-[var(--input-bg)] text-center">
-            <h2 className="text-[var(--muted-color)] uppercase tracking-widest mb-2 text-xs">{t.contact.enterprise}</h2>
-            <a href="mailto:enterprise@tryknowflow.com" className="text-[var(--accent-color)] hover:underline">enterprise@tryknowflow.com</a>
           </div>
         </div>
 
