@@ -2,7 +2,7 @@ export interface Profile {
   id: string;
   full_name: string | null;
   email: string;
-  plan: 'free' | 'pro' | 'enterprise';
+  plan: 'free' | 'pro';
   created_at: string;
 }
 

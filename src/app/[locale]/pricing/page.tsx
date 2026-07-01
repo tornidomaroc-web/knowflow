@@ -10,8 +10,7 @@ export default function PricingPage({ params }: { params: Promise<{ locale: Loca
   const t = useTranslation(locale);
   const isRtl = locale === 'ar';
 
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [paddle, setPaddle] = useState<Paddle | undefined>();
 
@@ -23,30 +22,6 @@ export default function PricingPage({ params }: { params: Promise<{ locale: Loca
       token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN!
     }).then(setPaddle);
   }, []);
-
-  const handleWaitlist = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    setStatus('loading');
-    setErrorMsg('');
-
-    const { error } = await supabase
-      .from('waitlist')
-      .insert({ email, plan: 'pro' });
-
-    if (error) {
-      if (error.code === '23505') {
-        setErrorMsg('Email already on waitlist.'); // keeping error message strings in English since they are system messages
-      } else {
-        setErrorMsg('Error joining waitlist.');
-      }
-      setStatus('error');
-      return;
-    }
-
-    setStatus('success');
-    setEmail('');
-  };
 
   return (
     <div className="bg-[var(--bg-color)] text-white min-h-screen font-[family-name:var(--font-sans)] py-24" dir={isRtl ? "rtl" : "ltr"}>
