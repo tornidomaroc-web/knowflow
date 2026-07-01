@@ -4,50 +4,46 @@ export const en = {
     howItWorks: "How it works",
     pricing: "Pricing",
     docs: "Docs",
-    getStarted: "Get Started"
+    getStarted: "Start free"
   },
   hero: {
-    badge: "Open Source · MIT License",
-    title: "Your documents. Any question. In seconds.",
-    subtitle: "Upload your contracts, catalogs, or HR policies — and get instant answers in Arabic or English. No search. No digging. Just ask.",
-    note: "Built for teams who work with real documents every day.",
-    cta1: "Upload Your First Document",
+    badge: "Made for students · Arabic & English",
+    title: "Your notes. Any question. In seconds.",
+    subtitle: "Upload your lecture notes, slides, and PDFs — then ask questions and get clear answers in Arabic or English. No searching. No scrolling. Just ask.",
+    note: "Made for students who'd rather understand than dig through PDFs.",
+    cta1: "Start free",
     cta2: "See how it works",
-    disclaimer: "No credit card required · Free plan available · Works in seconds"
+    disclaimer: "No credit card · Free to start · Ready in seconds"
   },
   features: {
     title: "Why KnowFlow",
     items: [
       { title: "Works in Arabic and English", desc: "natively, not translated" },
-      { title: "Trained on your documents", desc: "not the internet" },
+      { title: "Answers from your notes", desc: "not the internet" },
       { title: "No setup. No coding.", desc: "Upload and start." }
     ]
   },
   usecases: {
-    title: "What your team can do with KnowFlow",
+    title: "What you can do with KnowFlow",
     items: [
-      { num: "01", title: "Answer HR questions instantly", desc: "Employee asks about leave policy at 9pm. KnowFlow answers from your actual HR documents — no waiting." },
-      { num: "02", title: "Search contracts in seconds", desc: "Stop reading 40-page contracts to find one clause. Ask KnowFlow and get the exact answer." },
-      { num: "03", title: "Turn your catalog into a sales assistant", desc: "Your team asks product questions all day. Upload the catalog once — KnowFlow answers forever." },
-      { num: "04", title: "Onboard new employees faster", desc: "New hire has 50 questions. KnowFlow knows every policy, process, and procedure in your documents." }
+      { num: "01", title: "Understand hard topics fast", desc: "Stuck on a concept the night before an exam? Ask KnowFlow and get a clear explanation drawn straight from your own notes." },
+      { num: "02", title: "Find answers without scrolling", desc: "Stop scrolling through 60 slides to find one definition. Ask KnowFlow and get the exact answer." },
+      { num: "03", title: "Review before exams", desc: "Turn a subject's notes into a study partner. Ask anything about that subject and get grounded answers." },
+      { num: "04", title: "Study in your language", desc: "Ask in Arabic or English — whichever helps you learn. KnowFlow answers from your materials either way." }
     ]
   },
   howItWorks: {
     title: "How it works",
     steps: [
-      { step: "Step 1", title: "Upload your documents", desc: "PDF, Word, Excel — any format your team already uses." },
-      { step: "Step 2", title: "Ask in Arabic or English", desc: "Type your question naturally. No keywords. No search terms." },
-      { step: "Step 3", title: "Get the exact answer", desc: "KnowFlow reads your documents and responds with the right information instantly." }
+      { step: "Step 1", title: "Upload your materials", desc: "Add a subject and upload its notes, slides, or PDFs — any format you already have." },
+      { step: "Step 2", title: "Ask in Arabic or English", desc: "Type your question naturally. No keywords, no searching." },
+      { step: "Step 3", title: "Get a clear answer", desc: "KnowFlow reads that subject's materials and answers with the right information, instantly." }
     ]
   },
   cta: {
-    title: "Ready to start?",
-    placeholder: "name@company.com",
-    button: "Start Now",
-    badge: "Open Source · MIT License",
-    success: "You're on the list. We'll be in touch.",
-    errorDuplicate: "This email is already on the list.",
-    errorGeneric: "Something went wrong. Please try again."
+    title: "Ready to study smarter?",
+    button: "Start free",
+    note: "Free plan · No credit card · Set up in a minute"
   },
   footer: {
     privacy: "Privacy",
@@ -156,7 +152,7 @@ export const en = {
       newKbTitle: "NEW SUBJECT",
       newKbDesc: "Add a subject and upload its materials",
       talkAgentTitle: "ASK YOUR MATERIALS",
-      talkAgentDesc: "Ask questions across your subjects",
+      talkAgentDesc: "Ask about the materials in one subject",
       recentActivity: "Recent Activity",
       noActivity: "No activity yet",
       conversation: "CONVERSATION",
