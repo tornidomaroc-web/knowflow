@@ -40,7 +40,7 @@ export default async function DashboardPage({
   return (
     <StudentHome
       stats={stats}
-      streak={0} // Phase 5 wires real streak tracking; placeholder renders 0.
+      streak={null} // Not tracked yet → ghost "—" placeholder. Phase 5 passes a real number.
       askHref={`/${safeLocale}/dashboard/agent`}
       newSubjectHref={`/${safeLocale}/dashboard/knowledge/new`}
       subjectsHref={`/${safeLocale}/dashboard/knowledge`}

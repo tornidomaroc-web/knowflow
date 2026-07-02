@@ -24,8 +24,8 @@ interface StudentHomeLabels {
 
 export interface StudentHomeProps {
   stats: StudentHomeStat[];
-  /** Current study streak. Static 0 today — Phase 5 wires real tracking. */
-  streak: number;
+  /** Current study streak, or null when not yet tracked (ghost "—" placeholder). Phase 5 passes a real number. */
+  streak: number | null;
   askHref: string;
   newSubjectHref: string;
   subjectsHref: string;
@@ -77,9 +77,10 @@ export function StudentHome({
           </Link>
 
           {/*
-            Streak placeholder — intentionally inert. Renders whatever `streak`
-            is passed (0 today); the muted flame + neutral unit avoid implying
-            live tracking before Phase 5 wires it.
+            Streak placeholder — intentionally inert until Phase 5 wires it.
+            `streak` is null today, so it renders a ghost "—" (reads as "not
+            measured yet", NOT "measured, and it's zero") with the unit
+            suppressed. A real number renders normally with no code change.
           */}
           <Card className="flex flex-col justify-between p-5">
             <div className="flex items-center justify-between">
@@ -89,8 +90,14 @@ export function StudentHome({
               <Flame className="h-5 w-5 text-muted-foreground" />
             </div>
             <p className="mt-3">
-              <span className="text-4xl font-semibold text-foreground">{streak}</span>
-              <span className="ms-2 text-sm text-muted-foreground">{labels.streakUnit}</span>
+              {streak === null ? (
+                <span className="text-4xl font-semibold text-muted-foreground">—</span>
+              ) : (
+                <>
+                  <span className="text-4xl font-semibold text-foreground">{streak}</span>
+                  <span className="ms-2 text-sm text-muted-foreground">{labels.streakUnit}</span>
+                </>
+              )}
             </p>
           </Card>
         </section>
