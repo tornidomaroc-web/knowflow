@@ -49,52 +49,48 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
   }, [id])
 
   const statusColor = (s: string) => {
-    if (s === 'ready') return '#2eff8c'
-    if (s === 'processing') return '#f59e0b'
-    if (s === 'error') return '#ef4444'
-    return '#6b7d6e'
+    if (s === 'ready') return 'text-primary'
+    if (s === 'processing') return 'text-amber-700'
+    if (s === 'error') return 'text-red-700'
+    return 'text-muted-foreground'
   }
 
   return (
-    <div className="text-white max-w-4xl">
-      <div className="mb-8">
-        <h1 style={{fontFamily:'var(--font-playfair)'}}
-            className="text-3xl font-bold mb-2">
-          {kb?.name || '...'}
-        </h1>
-        <p className="text-[#6b7d6e] text-sm">{kb?.description}</p>
-      </div>
+    <div className="rounded-2xl bg-background p-4 text-foreground md:p-6">
+      <div className="mx-auto max-w-4xl space-y-8">
+        <header>
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{kb?.name || '...'}</h1>
+          {kb?.description ? <p className="mt-1 text-sm text-muted-foreground">{kb.description}</p> : null}
+        </header>
 
-      <div className="mb-8">
         <DropZone kbId={id} onSuccess={(doc) => setDocs(prev => [doc, ...prev])} />
-      </div>
 
-      <div>
-        <h2 style={{fontFamily:'var(--font-mono)'}}
-            className="text-xs uppercase tracking-widest text-[#6b7d6e] mb-4">
-          {t.dashboard.kbDetail.documents}
-        </h2>
-        {docs.length === 0 ? (
-          <div className="border border-dashed border-[#1a2e1e] p-8 text-center text-[#6b7d6e] text-sm">
-            {t.dashboard.kbDetail.noDocuments}
-          </div>
-        ) : (
-          <div className="border border-[#1a2e1e]">
-            {docs.map((doc, i) => (
-              <div key={doc.id}
-                   className={`flex items-center justify-between p-4 ${i !== docs.length-1 ? 'border-b border-[#1a2e1e]' : ''}`}>
-                <div>
-                  <p className="text-sm text-white">{doc.filename}</p>
-                  <p className="text-xs text-[#6b7d6e] mt-1">{doc.file_type?.toUpperCase()} · {doc.chunk_count} {t.dashboard.kbDetail.chunks}</p>
+        <section className="space-y-3">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {t.dashboard.kbDetail.documents}
+          </h2>
+          {docs.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-surface p-8 text-center text-sm text-muted-foreground">
+              {t.dashboard.kbDetail.noDocuments}
+            </div>
+          ) : (
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface shadow-soft">
+              {docs.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between gap-4 p-4">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">{doc.filename}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {doc.file_type?.toUpperCase()} · {doc.chunk_count} {t.dashboard.kbDetail.chunks}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 text-xs font-medium uppercase tracking-wide ${statusColor(doc.status)}`}>
+                    {doc.status}
+                  </span>
                 </div>
-                <span style={{color: statusColor(doc.status), fontFamily:'var(--font-mono)'}}
-                      className="text-xs uppercase tracking-widest">
-                  {doc.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   )
