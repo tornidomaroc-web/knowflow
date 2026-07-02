@@ -192,7 +192,8 @@ export const ar: Translation = {
       send: "إرسال",
       connectionError: "خطأ في الاتصال.",
       newConversation: "+ محادثة جديدة",
-      noHistory: "لا يوجد سجل بعد."
+      noHistory: "لا يوجد سجل بعد.",
+      history: "السجل"
     },
     upload: {
       fileTooBig: "الملف كبير جدًا. الحد الأقصى للحجم 50 ميجابايت.",

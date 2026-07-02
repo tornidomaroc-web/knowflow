@@ -188,7 +188,8 @@ export const en = {
       send: "Send",
       connectionError: "Connection error.",
       newConversation: "+ New Conversation",
-      noHistory: "No history yet."
+      noHistory: "No history yet.",
+      history: "History"
     },
     upload: {
       fileTooBig: "File too large. Maximum size is 50MB.",

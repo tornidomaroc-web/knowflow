@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
-import Link from 'next/link';
 import { KBSelector } from '@/components/agent/KBSelector';
+import { AgentEmptyState } from '@/components/agent/AgentEmptyState';
 import { Locale, locales, useTranslation } from '@/lib/i18n';
 
+// Thin server wrapper: data only. The chat UI (KBSelector) is a client island;
+// the no-subjects case renders the dumb <AgentEmptyState/> (Phase 8 reuse).
 export default async function AgentPage({
   params,
 }: {
@@ -21,21 +23,19 @@ export default async function AgentPage({
 
   if (!kbs || kbs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center text-white border border-[var(--border-color)] bg-[#0c1510]">
-        <h2 className="text-xl font-[family-name:var(--font-playfair)] mb-4">{t.dashboard.nav.knowledge}</h2>
-        <p className="text-[var(--muted-color)] font-[family-name:var(--font-sans)] mb-6">{t.dashboard.home.newKbDesc}</p>
-        <Link href={`/${safeLocale}/dashboard/knowledge/new`} className="bg-[var(--accent-color)] text-[#070d0a] px-6 py-2 font-[family-name:var(--font-mono)] uppercase text-xs tracking-widest">
-          {t.dashboard.home.newKbTitle}
-        </Link>
-      </div>
+      <AgentEmptyState
+        newHref={`/${safeLocale}/dashboard/knowledge/new`}
+        labels={{
+          title: t.dashboard.nav.knowledge,
+          prompt: t.dashboard.home.newKbDesc,
+          cta: t.dashboard.home.newSubject,
+        }}
+      />
     );
   }
 
   return (
-    <div className="text-white space-y-6 mx-auto h-full flex flex-col">
-      <h1 className="text-4xl font-[family-name:var(--font-playfair)] font-bold tracking-wider">
-        {t.dashboard.nav.agent}
-      </h1>
+    <div className="flex h-full flex-col">
       <KBSelector kbs={kbs} />
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { buttonVariants } from '@/components/ui';
 import { MessageBubble, Citation } from './MessageBubble';
 import { Locale, locales, useTranslation } from '@/lib/i18n';
 
@@ -99,14 +100,14 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-100px)] border border-[var(--border-color)] bg-[#070d0a]">
-      <div className="p-4 border-b border-[var(--border-color)] bg-[#0c1510]">
-        <h2 className="font-[family-name:var(--font-mono)] text-[var(--muted-color)] uppercase tracking-widest text-xs">
-          {t.dashboard.agent.chatWith}: {kbName}
+    <div className="flex h-[calc(100dvh-100px)] flex-col bg-surface">
+      <div className="border-b border-border bg-surface p-4">
+        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {t.dashboard.agent.chatWith}: <span className="text-foreground">{kbName}</span>
         </h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6" ref={scrollRef}>
+      <div className="flex-1 space-y-6 overflow-y-auto bg-background p-6" ref={scrollRef}>
         {messages.map((m, i) => (
           <MessageBubble
             key={m.id}
@@ -117,23 +118,23 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
           />
         ))}
         {messages.length === 0 && (
-          <div className="text-[var(--muted-color)] font-[family-name:var(--font-sans)] text-center mt-10">{t.dashboard.agent.startTyping}</div>
+          <div className="mt-10 text-center text-sm text-muted-foreground">{t.dashboard.agent.startTyping}</div>
         )}
       </div>
 
-      <div className="p-4 pb-8 md:pb-4 bg-[#0c1510] border-t border-[var(--border-color)] flex gap-4">
+      <div className="flex gap-3 border-t border-border bg-surface p-4 pb-8 md:pb-4">
         <textarea
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={t.dashboard.agent.askPlaceholder}
-          className="flex-1 resize-none bg-[var(--bg-color)] border border-[var(--border-color)] p-3 text-white font-[family-name:var(--font-sans)] text-sm focus:outline-none focus:border-[var(--accent-color)]"
+          className="flex-1 resize-none rounded-xl border border-border bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
           rows={3}
         />
         <button
           onClick={handleSend}
           disabled={isLoading || !input.trim()}
-          className="bg-[var(--accent-color)] text-[#070d0a] px-6 font-[family-name:var(--font-mono)] uppercase text-sm tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
+          className={buttonVariants({ variant: 'primary' })}
         >
           {t.dashboard.agent.send}
         </button>
