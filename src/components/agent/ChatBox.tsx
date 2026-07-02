@@ -62,7 +62,23 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
         body: JSON.stringify({ message: userMsg.content, kb_id: kbId, conversation_id: conversationId }),
       });
 
-      if (!res.ok) throw new Error('API Error');
+      // Surface the server's own message on a non-OK response — notably the
+      // rate-limit 429, whose reason ("you've hit today's limit…") is sent as
+      // text/plain and was previously swallowed into a misleading generic error.
+      // Confined to the !res.ok branch: we render the body and return before the
+      // SSE stream loop / decodeCitations / header reads below. Falls back to the
+      // generic string only when the body is empty; genuine network/stream
+      // failures still land in catch and keep the friendly fallback.
+      if (!res.ok) {
+        const body = (await res.text()).trim();
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: body || t.dashboard.agent.connectionError,
+        }]);
+        setIsLoading(false);
+        return;
+      }
 
       const newConvoId = res.headers.get('X-Conversation-Id');
       if (newConvoId && !conversationId) {
