@@ -7,33 +7,33 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
   const isRtl = locale === 'ar';
 
   return (
-    <div className="bg-[var(--bg-color)] text-white min-h-screen font-[family-name:var(--font-sans)] py-24" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className="bg-background text-foreground min-h-screen font-sans py-24" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="max-w-3xl mx-auto px-6 space-y-24">
         <section className="text-center">
-          <h1 className="text-5xl font-[family-name:var(--font-playfair)] font-bold mb-6">{t.about.title}</h1>
-          <p className="text-lg text-[var(--muted-color)] leading-relaxed">{t.about.subtitle}</p>
+          <h1 className="text-5xl font-bold tracking-tight mb-6">{t.about.title}</h1>
+          <p className="text-lg text-muted-foreground leading-relaxed">{t.about.subtitle}</p>
         </section>
 
         <section>
-          <h2 className="text-sm font-[family-name:var(--font-mono)] uppercase tracking-widest text-[var(--accent-color)] mb-4">{t.about.missionLabel}</h2>
-          <p className="text-2xl font-[family-name:var(--font-playfair)] leading-relaxed">{t.about.mission}</p>
+          <h2 className="text-sm uppercase tracking-wide font-medium text-primary mb-4">{t.about.missionLabel}</h2>
+          <p className="text-2xl leading-relaxed">{t.about.mission}</p>
         </section>
 
         <section>
-          <h2 className="text-sm font-[family-name:var(--font-mono)] uppercase tracking-widest text-[var(--accent-color)] mb-8">{t.about.giants}</h2>
+          <h2 className="text-sm uppercase tracking-wide font-medium text-primary mb-8">{t.about.giants}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {t.about.tools.map((tool, idx) => (
-              <div key={idx} className="border border-[var(--border-color)] p-6 bg-[var(--input-bg)]">
-                <h3 className="font-bold mb-2">{tool.title}</h3>
-                <p className="text-sm text-[var(--muted-color)] font-[family-name:var(--font-mono)]">{tool.desc}</p>
+              <div key={idx} className="rounded-xl border border-border bg-surface shadow-soft p-6">
+                <h3 className="font-semibold mb-2">{tool.title}</h3>
+                <p className="text-sm text-muted-foreground">{tool.desc}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="text-center pt-12 border-t border-[var(--border-color)]">
-          <h2 className="text-3xl font-[family-name:var(--font-playfair)] font-bold mb-8">{t.about.ctaTitle}</h2>
-          <Link href={`/${locale}/signup`} className="inline-block bg-[var(--accent-color)] text-black px-8 py-4 font-[family-name:var(--font-mono)] text-sm uppercase tracking-widest font-bold hover:opacity-90 transition-opacity">
+        <section className="text-center pt-12 border-t border-border">
+          <h2 className="text-3xl font-semibold mb-8">{t.about.ctaTitle}</h2>
+          <Link href={`/${locale}/signup`} className="inline-block rounded-xl bg-primary text-primary-foreground px-8 py-4 text-sm font-semibold hover:bg-primary-hover transition-colors">
             {t.about.cta}
           </Link>
         </section>

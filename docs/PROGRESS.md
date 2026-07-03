@@ -5,7 +5,7 @@ commit history + [`PIVOT_PLAN.md`](./PIVOT_PLAN.md) + project memory. Update thi
 file at the **end of every step** so we never jump ahead on a deferred item or
 skip a main phase.
 
-- **Last updated:** 2026-07-03 (P2.6b landing+pricing migrated; register #20 added).
+- **Last updated:** 2026-07-03 (P2.6 COMPLETE — all public/auth pages light; only P2.7 remains in Phase 2).
 - **Active branch:** `feat/phase-2-ui-redesign` → **draft PR #12** (not merged).
 - **Main tip:** `c3cdbe0` (Merge PR #11, Phase 1).
 
@@ -45,10 +45,10 @@ skip a main phase.
 | **P2.3** | Subjects list (`SubjectsList`) + subject detail + upload zone restyle | ✅ done | `57e0e68` |
 | **P2.4** | Ask/chat (KBSelector/ChatBox/MessageBubble/ConversationSidebar) + **Sheet focus trap**; 429 body surfaced | ✅ done | `adf6b3b`, `b0c9aff` |
 | **P2.5** | New-subject form + settings/plan (thin wrapper + dumb `SettingsPanel`). **Fully closed** — the `<a>`→`<Link>` upgrade CTA was verified (`/pricing` inits Paddle on a mount effect, not on a full page load) and kept. | ✅ done | `3b05549` |
-| **P2.6** | **DECIDED (2026-07-02).** Migrate the remaining **public + auth pages** to light. Presentation-only: preserve all copy (Phase-1 strings diff-clean), all auth/checkout/CTA wiring, and RTL. Split into 3 commits by concern/wiring risk (approved 2026-07-03): | 🟡 in progress | — |
+| **P2.6** | **DECIDED (2026-07-02).** Migrate the remaining **public + auth pages** to light. Presentation-only: all copy (Phase-1 strings diff-clean), all auth/checkout/CTA wiring, and RTL preserved. Done in 3 commits by concern/wiring risk: | ✅ done | 3 commits |
 | ↳ **P2.6a** | **Auth** — `login`, `signup` (bridge light canvas; `signInWithPassword` / `signUp` + `profiles` upsert + `router.push` + password-toggle preserved). | ✅ done | _this branch_ |
 | ↳ **P2.6b** | **Converting** — `landing`, `pricing` (all `/signup` CTAs + footer links; Paddle init-on-mount + checkout + free-plan `<Link>` preserved). | ✅ done | _this branch_ |
-| ↳ **P2.6c** | **Content/legal** — `about`, `contact`, `privacy`, `terms`, `refund` (low/no wiring; about CTA + contact mailto/GitHub preserved; legal content verbatim). | ⬜ remaining | — |
+| ↳ **P2.6c** | **Content/legal** — `about`, `contact`, `privacy`, `terms`, `refund` (low/no wiring; about CTA + contact mailto/GitHub preserved; legal content byte-identical; contact form left honestly inert per #19). | ✅ done | _this branch_ |
 | **P2.7** | **DECIDED (2026-07-02).** Final layout flip + Phase-2 close. Flip the shared dark surfaces light and remove the per-screen/per-page light-canvas bridges: (a) dashboard `<main>` in `dashboard/layout.tsx`; (b) the root `<body>` in `[locale]/layout.tsx`; (c) the `body {}` rule in `globals.css`. **Must be last** — the root body/globals rule sit behind the P2.6 pages, so flipping them before P2.6 is done would make un-migrated pages' bare `text-white` vanish. | ⬜ remaining | — |
 
 **Phase 2 exit criteria (decided):** every user-facing screen on the light palette
@@ -100,7 +100,7 @@ project memory, and per-step review debates. "Where" is the target phase/trigger
 | 17 🔎 | **Hardcoded English content bypasses `t.*`** (i18n dimension — won't localize under `/ar`). Instances: the three legal page bodies (`privacy`/`terms`/`refund`, fully hardcoded) **and** the auth left-panel tagline **"Unlock your knowledge"** (`login`/`signup`). | Content was never wired to i18n; surfaced during the P2.6 restyle (out of a presentation-only step's scope). | Later i18n gap — move these strings to `t.*`. **Suggest** a Phase 7 / pre-launch i18n pass with register #1. |
 | 18 🔎 | **Stale vocabulary + inconsistent contact domains in that hardcoded content** (copy-quality dimension). Instances: legal — "knowledge bases"/"AI agents"/"agents", `privacy@knowflow.ai` & `legal@knowflow.ai` vs the product's `tryknowflow.com` (refund uses `support@tryknowflow.com`); auth — the tagline "Unlock your **knowledge**" still uses the old "knowledge" concept renamed to **Subject/مادة** in Phase 1. | Copy issue, not presentation; out of a restyle's scope. | Later content pass — reword to student vocabulary + unify the contact domain. Fold into the same i18n/copy pass as #17. |
 | 19 🔎 | **Contact form is non-functional** (`button type="button"`, no `onSubmit`/handler) — only the `mailto:` and GitHub links work. | Never wired; the page currently *looks* interactive but isn't. | Later decision — either wire the form (endpoint/email service) or make it **honestly** mailto-only (drop the inert fields). |
-| 20 🔎 | **Landing hero terminal mock hardcodes a speed over-promise** — "[OK] Ready in 0.4s." implies near-instant uploads, but real ingestion (MarkItDown → chunk → Voyage embed, synchronous) is multi-second. Decorative, but still a claim on the primary converting page (violates "never promise what the app doesn't do"). Also hardcoded English (an #17 instance). | Content, not presentation; out of a restyle's scope (preserved verbatim in P2.6b). | Later content pass — reword/remove the specific time; fold into the i18n/copy pass (#17/#18). |
+| 20 🔎 | **FALSE PERFORMANCE CLAIM on the landing hero** — "[OK] Ready in 0.4s." promises near-instant uploads, but real ingestion (MarkItDown → chunk → Voyage embed) is **synchronous and multi-second**. **Honesty / over-promise bucket** — same family as "Unlimited" and page-citations, NOT a localization gap: it misleads the student about a real capability. (The string is also hardcoded English per #17, but that's incidental — the priority defect is the false claim.) | Content over-promise on the primary converting page; out of a restyle's scope (preserved verbatim in P2.6b). | **First content pass** — reword/remove the specific time so the claim is true. Treat as an honesty fix, not i18n. |
 
 **Founder-owned open items (PIVOT_PLAN §10) — not engineering-blocked, tracked for launch:**
 Next.js hosting decision (Vercel Pro vs self-host, ~Phase 7/10) · AdMob account
