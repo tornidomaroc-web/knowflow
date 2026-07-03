@@ -7,7 +7,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
   const isRtl = locale === 'ar';
 
   return (
-    <div className="bg-background text-foreground min-h-screen font-sans py-24" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen font-sans py-24" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="max-w-xl mx-auto px-6">
         <h1 className="text-5xl font-bold tracking-tight mb-12 text-center">{t.contact.title}</h1>
 

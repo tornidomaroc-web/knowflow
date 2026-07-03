@@ -24,7 +24,7 @@ export default function PricingPage({ params }: { params: Promise<{ locale: Loca
   }, []);
 
   return (
-    <div className="bg-background text-foreground min-h-screen font-sans py-24" dir={isRtl ? "rtl" : "ltr"}>
+    <div className="min-h-screen font-sans py-24" dir={isRtl ? "rtl" : "ltr"}>
       <div className="max-w-7xl mx-auto px-6 text-center mb-16">
         <h1 className="text-5xl font-bold tracking-tight mb-4">{t.pricing.title}</h1>
       </div>

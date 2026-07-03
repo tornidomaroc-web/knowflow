@@ -57,7 +57,7 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
     'w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring';
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className="flex min-h-screen" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden border-e border-border bg-primary text-primary-foreground lg:flex">
         <div
           className="absolute inset-0 z-0 opacity-20"

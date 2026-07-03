@@ -46,12 +46,12 @@ export default async function DashboardLayout({
       <MobileNav userEmail={user.email || ''} isPro={isPro} locale={safeLocale} labels={labels} />
 
       {/*
-        Content stays on the LEGACY dark surface until each screen is migrated
-        (P2.2+). Flipping it light now would hide the un-redesigned screens'
-        hardcoded white text. `ms-60` offsets the desktop sidebar (mirrors under
-        RTL); the mobile top/bottom padding clears the fixed bars.
+        The light content canvas for every dashboard screen (P2.7 flip — all
+        screens are migrated, so this owns the background + padding and screens
+        no longer paint their own). `ms-60` offsets the desktop sidebar (mirrors
+        under RTL); the mobile top/bottom padding clears the fixed bars.
       */}
-      <main className="min-h-screen bg-[var(--bg-color)] p-4 pb-24 pt-[4.5rem] text-white md:ms-60 md:p-8">
+      <main className="min-h-screen bg-background p-4 pb-24 pt-[4.5rem] text-foreground md:ms-60 md:p-8">
         {children}
       </main>
     </div>

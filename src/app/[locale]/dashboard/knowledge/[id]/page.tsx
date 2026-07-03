@@ -56,7 +56,7 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
   }
 
   return (
-    <div className="rounded-2xl bg-background p-4 text-foreground md:p-6">
+    <div>
       <div className="mx-auto max-w-4xl space-y-8">
         <header>
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{kb?.name || '...'}</h1>

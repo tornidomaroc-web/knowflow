@@ -24,12 +24,12 @@ export interface SettingsPanelProps {
 
 /**
  * Settings — dumb, presentational. Tier/renewal/email arrive as plain props from
- * the server wrapper (which is the sole caller of getEntitlement). Paints its own
- * light canvas so nothing inherits the layout's legacy text-white.
+ * the server wrapper (which is the sole caller of getEntitlement). Pure content:
+ * the dashboard `<main>` (P2.7) owns the light canvas + padding.
  */
 export function SettingsPanel({ email, isPro, renewsOn, upgradeHref, labels }: SettingsPanelProps) {
   return (
-    <div className="rounded-2xl bg-background p-4 text-foreground md:p-6">
+    <div>
       <div className="mx-auto max-w-2xl space-y-6">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{labels.title}</h1>
 

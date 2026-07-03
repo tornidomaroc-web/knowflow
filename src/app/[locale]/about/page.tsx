@@ -7,7 +7,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
   const isRtl = locale === 'ar';
 
   return (
-    <div className="bg-background text-foreground min-h-screen font-sans py-24" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen font-sans py-24" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="max-w-3xl mx-auto px-6 space-y-24">
         <section className="text-center">
           <h1 className="text-5xl font-bold tracking-tight mb-6">{t.about.title}</h1>

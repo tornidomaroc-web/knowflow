@@ -24,30 +24,13 @@
   --primary-subtle: #ecfdf5;     /* emerald-50 — soft accent fill / badges */
 
   --radius: 0.75rem;             /* rounded-xl baseline (D4) */
-
-  /* ─────────────────────────────────────────────────────────────────────────
-     LEGACY tokens (pre-Phase-2 neon/terminal palette). Still referenced by
-     screens not yet redesigned; removed screen-by-screen across P2.1–P2.7.
-     Do NOT build new UI on these.
-     ───────────────────────────────────────────────────────────────────────── */
-  --bg-color: #070d0a;
-  --accent-color: #2eff8c;
-  --border-color: #1a2e1e;
-  --muted-color: #6b7d6e;
-  --input-bg: #0c1510;
-
-  /* ─────────────────────────────────────────────────────────────────────────
-     TRANSITIONAL font aliases. Un-redesigned screens reference
-     --font-playfair / --font-mono / --font-sans; map all three to Rubik so the
-     transitional app renders uniformly in Rubik (never an unstyled fallback).
-     Each alias goes away as its screens switch to `font-sans` in P2.1–P2.7.
-     ───────────────────────────────────────────────────────────────────────── */
-  --font-playfair: var(--font-rubik);
-  --font-mono: var(--font-rubik);
-  --font-sans: var(--font-rubik);
 }
+
+/* Phase 2 complete: the legacy neon/terminal tokens (--bg-color, --accent-color,
+   --border-color, --muted-color, --input-bg) and the transitional Rubik font
+   aliases (--font-playfair/--font-mono/--font-sans) were removed in P2.7 once
+   every screen had migrated to the semantic tokens above. */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* Legacy dark body — kept until the app shell is redesigned in P2.1. */
-body { background-color: var(--bg-color); color: white; }
+body { background-color: var(--background); color: var(--foreground); }

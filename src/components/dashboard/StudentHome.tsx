@@ -37,12 +37,8 @@ export interface StudentHomeProps {
  * Student home — dumb, presentational. All data/labels arrive as plain props
  * (no i18n dict, no Supabase) so the shell can be reused/storybooked in Phase 8.
  *
- * First CONTENT screen to go light: the root paints its own light canvas
- * (`bg-background`) so every heading, card, and label sits on a light surface
- * with dark tokens — nothing inherits the layout's legacy `text-white`, so
- * nothing vanishes. The dark `<main>` still shows in its fixed-bar padding
- * gutter; that final gutter closes when the whole layout flips light at the end
- * of Phase 2 (un-migrated sibling screens still need the dark main until then).
+ * Pure content: the dashboard `<main>` (P2.7) owns the light canvas + padding,
+ * so this just lays out its sections and centres them (`mx-auto max-w-5xl`).
  */
 export function StudentHome({
   stats,
@@ -54,7 +50,7 @@ export function StudentHome({
   recentActivity,
 }: StudentHomeProps) {
   return (
-    <div className="rounded-2xl bg-background p-4 text-foreground md:p-6">
+    <div>
       <div className="mx-auto max-w-5xl space-y-8">
         <header>
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{labels.welcome}</h1>

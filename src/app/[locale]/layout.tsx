@@ -70,7 +70,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} className={rubik.variable}>
-      <body className="bg-[var(--bg-color)] text-white font-sans antialiased">
+      <body className="bg-background text-foreground font-sans antialiased">
         {children}
       </body>
     </html>

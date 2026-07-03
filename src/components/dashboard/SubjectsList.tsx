@@ -27,14 +27,12 @@ export interface SubjectsListProps {
  * Subjects list — dumb, presentational. Data/labels arrive as plain props
  * (hrefs pre-built by the server wrapper) so it can be reused in Phase 8.
  *
- * Like the student home, the root paints its own light canvas so every
- * heading, card, and label sits on a light surface with dark tokens — nothing
- * inherits the layout's legacy text-white, so nothing vanishes. The dark
- * <main> gutter closes with the Phase-2-end layout flip.
+ * Pure content: the dashboard `<main>` (P2.7) owns the light canvas + padding;
+ * this just centres the list (`mx-auto max-w-5xl`).
  */
 export function SubjectsList({ subjects, newHref, labels }: SubjectsListProps) {
   return (
-    <div className="rounded-2xl bg-background p-4 text-foreground md:p-6">
+    <div>
       <div className="mx-auto max-w-5xl space-y-6">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{labels.title}</h1>

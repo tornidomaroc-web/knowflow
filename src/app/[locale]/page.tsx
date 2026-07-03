@@ -7,7 +7,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
   const isRtl = locale === 'ar';
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary selection:text-primary-foreground">
+    <div className="min-h-screen font-sans selection:bg-primary selection:text-primary-foreground">
       {/* 1. NAV */}
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">

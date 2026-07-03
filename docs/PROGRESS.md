@@ -5,7 +5,7 @@ commit history + [`PIVOT_PLAN.md`](./PIVOT_PLAN.md) + project memory. Update thi
 file at the **end of every step** so we never jump ahead on a deferred item or
 skip a main phase.
 
-- **Last updated:** 2026-07-03 (P2.6 COMPLETE — all public/auth pages light; only P2.7 remains in Phase 2).
+- **Last updated:** 2026-07-03 (P2.7 done — root surfaces flipped, bridges removed, legacy tokens purged; **Phase 2 code-complete**, pending the PR #12 merge decision).
 - **Active branch:** `feat/phase-2-ui-redesign` → **draft PR #12** (not merged).
 - **Main tip:** `c3cdbe0` (Merge PR #11, Phase 1).
 
@@ -22,7 +22,7 @@ skip a main phase.
 |---|---|---|---|
 | **0** | Entitlement + embedding seam + rate limits + filename fix | ✅ **DONE** | PR **#10**, merge `043b22e` |
 | **1** | Reframe to student product | ✅ **DONE** | PR **#11**, merge `c3cdbe0` |
-| **2** | Consumer UI redesign (web, mobile-first) | 🟡 **IN PROGRESS** | draft PR **#12** (`feat/phase-2-ui-redesign`); P2.0–P2.5 done, P2.6–P2.7 remaining |
+| **2** | Consumer UI redesign (web, mobile-first) | ✅ **CODE-COMPLETE** (pending merge) | draft PR **#12** (`feat/phase-2-ui-redesign`); P2.0–P2.7 all done — awaiting the Phase 2 merge decision |
 | **3** | Summaries (per-document) | ⬜ NOT STARTED | — |
 | **4** | Quizzes | ⬜ NOT STARTED | — |
 | **5** | Streak & progress | ⬜ NOT STARTED | — |
@@ -49,7 +49,7 @@ skip a main phase.
 | ↳ **P2.6a** | **Auth** — `login`, `signup` (bridge light canvas; `signInWithPassword` / `signUp` + `profiles` upsert + `router.push` + password-toggle preserved). | ✅ done | _this branch_ |
 | ↳ **P2.6b** | **Converting** — `landing`, `pricing` (all `/signup` CTAs + footer links; Paddle init-on-mount + checkout + free-plan `<Link>` preserved). | ✅ done | _this branch_ |
 | ↳ **P2.6c** | **Content/legal** — `about`, `contact`, `privacy`, `terms`, `refund` (low/no wiring; about CTA + contact mailto/GitHub preserved; legal content byte-identical; contact form left honestly inert per #19). | ✅ done | _this branch_ |
-| **P2.7** | **DECIDED (2026-07-02).** Final layout flip + Phase-2 close. Flip the shared dark surfaces light and remove the per-screen/per-page light-canvas bridges: (a) dashboard `<main>` in `dashboard/layout.tsx`; (b) the root `<body>` in `[locale]/layout.tsx`; (c) the `body {}` rule in `globals.css`. **Must be last** — the root body/globals rule sit behind the P2.6 pages, so flipping them before P2.6 is done would make un-migrated pages' bare `text-white` vanish. | ⬜ remaining | — |
+| **P2.7** | **DONE.** Flipped all three shared dark surfaces to light — dashboard `<main>` (`dashboard/layout.tsx`), root `<body>` (`[locale]/layout.tsx`), and the `globals.css` `body {}` rule — removed every per-screen/per-page light-canvas bridge, and **purged the dead legacy tokens** (`--bg-color`/`--accent-color`/`--border-color`/`--muted-color`/`--input-bg` + the `--font-playfair`/`--font-mono`/`--font-sans` aliases). Full-sweep verified: zero legacy tokens/hexes remain in `src`; wiring intact; nothing vanishes. | ✅ done | _this branch_ |
 
 **Phase 2 exit criteria (decided):** every user-facing screen on the light palette
 (dashboard **and** public/auth); the dashboard `<main>`, the root `<body>`, and the
@@ -93,7 +93,7 @@ project memory, and per-step review debates. "Where" is the target phase/trigger
 | 10 | *(merged into #1 — same item: server-message localization / threading locale into the API).* | — | See #1. |
 | 11 🔎 | **`profiles.plan` dead column still present** (`001_initial_schema.sql`) — defaults `'free'`, never updated; entitlement reads from `subscriptions` only (B2). | B2 said "keep as cache **or drop**"; drop deferred. | Later schema cleanup — **same Phase 7 bucket as #4/#9**. |
 | 12 🔎 | **Public marketing + auth pages still on the legacy dark palette** (landing, pricing, about, contact, privacy, terms, refund, login, signup). A Pro user reaching `/pricing` from light Settings crosses a hard light→dark seam. | These were outside the dashboard-focused P2.0–P2.5 steps. | **P2.6 (decided)** — see §2. Closes before Phase 2 is "done." |
-| 13 🔎 | **Shared dark surfaces still forced** — dashboard `<main>` (`dashboard/layout.tsx`), the root `<body>` (`[locale]/layout.tsx`), and the `globals.css` `body {}` rule; each migrated screen paints its own light canvas as a bridge. | Can't flip a shared surface light until *all* screens/pages on it are migrated (un-migrated ones put bare `text-white` on it). | **P2.7 (decided)** — final flip of all three + remove bridges; must run last. |
+| 13 ✅ | ~~Shared dark surfaces still forced (dashboard `<main>`, root `<body>`, `globals.css` `body {}`); each migrated screen paints its own light-canvas bridge.~~ | — | **RESOLVED in P2.7** — all three flipped light, every bridge removed, legacy tokens purged. |
 | 14 🔎 | **Home streak is a non-functional placeholder** (ghost `—`, `streak: number\|null`). | The streak feature itself is Phase 5; P2.2 only shipped an honest placeholder. | **Phase 5** wires real tracking (`study_events`) — placeholder was designed so a real number drops in with no component change. |
 | 15 🔎 | **Embedding provider switch (Voyage → self-hosted bge-m3)** — seam shipped in Phase 0 as a documented stub; actual switch not implemented. | Deliberately deferred until a real usage/cost threshold (PIVOT_PLAN §4); avoids provisioning a VM early. | **Trigger-based, not a phase** — flip `EMBEDDING_PROVIDER` when a §4 trigger (Voyage ~80% free tier / DAU >~300–500 / non-zero invoice) hits. |
 | 16 🔎 | **Page-accurate citations** — engine cites filename + chunk only; page spans lost in MarkItDown conversion. | Decided (§6): ship file/section only, **never promise page citations**. True page citations need an ingestion rework. | **Later** (uncommitted possibility, revisited with Apple/iOS). |

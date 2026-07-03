@@ -5,7 +5,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
   const isRtl = locale === 'ar';
 
   return (
-    <div className="bg-background text-foreground min-h-screen font-sans py-24" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen font-sans py-24" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="max-w-3xl mx-auto px-6 text-muted-foreground text-start">
         <h1 className="text-5xl font-bold mb-4 text-foreground">Privacy Policy</h1>
         <p className="text-sm uppercase tracking-wide font-medium text-primary mb-12">Last updated: April 2026</p>

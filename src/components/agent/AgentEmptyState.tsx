@@ -15,12 +15,12 @@ export interface AgentEmptyStateProps {
 
 /**
  * Shown when the student has no subjects yet — you can't ask before you've added
- * material. Dumb, presentational; paints its own light canvas so nothing
- * inherits the layout's legacy text-white.
+ * material. Dumb, presentational; the dashboard `<main>` (P2.7) owns the light
+ * canvas + padding.
  */
 export function AgentEmptyState({ newHref, labels }: AgentEmptyStateProps) {
   return (
-    <div className="rounded-2xl bg-background p-4 text-foreground md:p-6">
+    <div>
       <div className="mx-auto flex max-w-md flex-col items-center rounded-xl border border-dashed border-border bg-surface p-12 text-center">
         <h2 className="text-xl font-semibold text-foreground">{labels.title}</h2>
         <p className="mb-6 mt-2 text-sm text-muted-foreground">{labels.prompt}</p>
