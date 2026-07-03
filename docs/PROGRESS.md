@@ -5,7 +5,7 @@ commit history + [`PIVOT_PLAN.md`](./PIVOT_PLAN.md) + project memory. Update thi
 file at the **end of every step** so we never jump ahead on a deferred item or
 skip a main phase.
 
-- **Last updated:** 2026-07-02 (P2.6/P2.7 scope decided; PROGRESS.md merged to `main`).
+- **Last updated:** 2026-07-03 (P2.6a auth pages migrated; register #17–19 added).
 - **Active branch:** `feat/phase-2-ui-redesign` → **draft PR #12** (not merged).
 - **Main tip:** `c3cdbe0` (Merge PR #11, Phase 1).
 
@@ -45,7 +45,10 @@ skip a main phase.
 | **P2.3** | Subjects list (`SubjectsList`) + subject detail + upload zone restyle | ✅ done | `57e0e68` |
 | **P2.4** | Ask/chat (KBSelector/ChatBox/MessageBubble/ConversationSidebar) + **Sheet focus trap**; 429 body surfaced | ✅ done | `adf6b3b`, `b0c9aff` |
 | **P2.5** | New-subject form + settings/plan (thin wrapper + dumb `SettingsPanel`). **Fully closed** — the `<a>`→`<Link>` upgrade CTA was verified (`/pricing` inits Paddle on a mount effect, not on a full page load) and kept. | ✅ done | `3b05549` |
-| **P2.6** | **DECIDED (2026-07-02).** Migrate the remaining **public + auth pages** to the light Calm-Focus palette: **landing, pricing, about, contact, privacy, terms, refund, login, signup**. Closes the light→dark seam (incl. the `/pricing` seam a Pro user hits from Settings). Presentation-only: preserve all copy (Phase-1 strings diff-clean), all auth/checkout/CTA wiring, and RTL. | ⬜ remaining | — |
+| **P2.6** | **DECIDED (2026-07-02).** Migrate the remaining **public + auth pages** to light. Presentation-only: preserve all copy (Phase-1 strings diff-clean), all auth/checkout/CTA wiring, and RTL. Split into 3 commits by concern/wiring risk (approved 2026-07-03): | 🟡 in progress | — |
+| ↳ **P2.6a** | **Auth** — `login`, `signup` (bridge light canvas; `signInWithPassword` / `signUp` + `profiles` upsert + `router.push` + password-toggle preserved). | ✅ done | _this branch_ |
+| ↳ **P2.6b** | **Converting** — `landing`, `pricing` (all `/signup` CTAs + footer links; Paddle init-on-mount + checkout + free-plan `<Link>` preserved). | ⬜ remaining | — |
+| ↳ **P2.6c** | **Content/legal** — `about`, `contact`, `privacy`, `terms`, `refund` (low/no wiring; about CTA + contact mailto/GitHub preserved; legal content verbatim). | ⬜ remaining | — |
 | **P2.7** | **DECIDED (2026-07-02).** Final layout flip + Phase-2 close. Flip the shared dark surfaces light and remove the per-screen/per-page light-canvas bridges: (a) dashboard `<main>` in `dashboard/layout.tsx`; (b) the root `<body>` in `[locale]/layout.tsx`; (c) the `body {}` rule in `globals.css`. **Must be last** — the root body/globals rule sit behind the P2.6 pages, so flipping them before P2.6 is done would make un-migrated pages' bare `text-white` vanish. | ⬜ remaining | — |
 
 **Phase 2 exit criteria (decided):** every user-facing screen on the light palette
@@ -94,6 +97,9 @@ project memory, and per-step review debates. "Where" is the target phase/trigger
 | 14 🔎 | **Home streak is a non-functional placeholder** (ghost `—`, `streak: number\|null`). | The streak feature itself is Phase 5; P2.2 only shipped an honest placeholder. | **Phase 5** wires real tracking (`study_events`) — placeholder was designed so a real number drops in with no component change. |
 | 15 🔎 | **Embedding provider switch (Voyage → self-hosted bge-m3)** — seam shipped in Phase 0 as a documented stub; actual switch not implemented. | Deliberately deferred until a real usage/cost threshold (PIVOT_PLAN §4); avoids provisioning a VM early. | **Trigger-based, not a phase** — flip `EMBEDDING_PROVIDER` when a §4 trigger (Voyage ~80% free tier / DAU >~300–500 / non-zero invoice) hits. |
 | 16 🔎 | **Page-accurate citations** — engine cites filename + chunk only; page spans lost in MarkItDown conversion. | Decided (§6): ship file/section only, **never promise page citations**. True page citations need an ingestion rework. | **Later** (uncommitted possibility, revisited with Apple/iOS). |
+| 17 🔎 | **Legal pages render hardcoded English JSX, not `t.*`** (`privacy`, `terms`, `refund`) — they show English even under `/ar`. | Content was never wired to i18n; surfaced during the P2.6 restyle (out of a presentation-only step's scope). | Later i18n gap — localize legal copy (thread `t.*` or per-locale content). **Suggest** a Phase 7 / pre-launch i18n pass with register #1. |
+| 18 🔎 | **Legal pages carry stale B2B vocabulary + inconsistent contact domains** — "knowledge bases"/"AI agents"/"agents"; `privacy@knowflow.ai` & `legal@knowflow.ai` vs the product's `tryknowflow.com` (refund uses `support@tryknowflow.com`). | Copy issue, not presentation; out of a restyle's scope. | Later content pass — reword to student vocabulary + unify the contact domain. Fold into the same legal-copy pass as #17. |
+| 19 🔎 | **Contact form is non-functional** (`button type="button"`, no `onSubmit`/handler) — only the `mailto:` and GitHub links work. | Never wired; the page currently *looks* interactive but isn't. | Later decision — either wire the form (endpoint/email service) or make it **honestly** mailto-only (drop the inert fields). |
 
 **Founder-owned open items (PIVOT_PLAN §10) — not engineering-blocked, tracked for launch:**
 Next.js hosting decision (Vercel Pro vs self-host, ~Phase 7/10) · AdMob account
