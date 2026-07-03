@@ -5,9 +5,18 @@ commit history + [`PIVOT_PLAN.md`](./PIVOT_PLAN.md) + project memory. Update thi
 file at the **end of every step** so we never jump ahead on a deferred item or
 skip a main phase.
 
-- **Last updated:** 2026-07-02 (P2.6/P2.7 scope decided; PROGRESS.md merged to `main`).
+- **Last updated:** 2026-07-03 (Supabase migration logged as a live BLOCKER — see banner + register #21; runbook at [`supabase-migration-runbook.md`](./supabase-migration-runbook.md)).
 - **Active branch:** `feat/phase-2-ui-redesign` → **draft PR #12** (not merged).
 - **Main tip:** `c3cdbe0` (Merge PR #11, Phase 1).
+
+> 🔴 **LIVE BLOCKER — Supabase project migration (register #21).** The KnowFlow
+> Supabase project must move to a new free account (old account hit the 2-project
+> free limit; the other two projects are entering Google Play review and must stay
+> active). **All work requiring the live DB is blocked until cutover completes.**
+> Follow [`supabase-migration-runbook.md`](./supabase-migration-runbook.md) — do
+> **not** delete the old project before the runbook's §4.6 end-to-end verification
+> passes. **Phase 2's remaining visual verification (Arabic/RTL on light) is PAUSED**
+> until the DB is reachable again.
 
 > **Provenance note.** `PIVOT_PLAN.md` §7 defines Phases **0–10 + Later**. It does
 > **not** sub-divide Phase 2 into P2.0–P2.7 — that decomposition is a
@@ -94,6 +103,7 @@ project memory, and per-step review debates. "Where" is the target phase/trigger
 | 14 🔎 | **Home streak is a non-functional placeholder** (ghost `—`, `streak: number\|null`). | The streak feature itself is Phase 5; P2.2 only shipped an honest placeholder. | **Phase 5** wires real tracking (`study_events`) — placeholder was designed so a real number drops in with no component change. |
 | 15 🔎 | **Embedding provider switch (Voyage → self-hosted bge-m3)** — seam shipped in Phase 0 as a documented stub; actual switch not implemented. | Deliberately deferred until a real usage/cost threshold (PIVOT_PLAN §4); avoids provisioning a VM early. | **Trigger-based, not a phase** — flip `EMBEDDING_PROVIDER` when a §4 trigger (Voyage ~80% free tier / DAU >~300–500 / non-zero invoice) hits. |
 | 16 🔎 | **Page-accurate citations** — engine cites filename + chunk only; page spans lost in MarkItDown conversion. | Decided (§6): ship file/section only, **never promise page citations**. True page citations need an ingestion rework. | **Later** (uncommitted possibility, revisited with Apple/iOS). |
+| 21 🚨 **BLOCKING** | **Supabase project migration to a new free account** — old account hit the 2-project free limit; the other two projects are entering Google Play review and must stay active, so KnowFlow's Supabase project must move to a new account/email. Schema is fully in `supabase/migrations/` but was **hand-applied** (no CLI linkage) so the live DB may have drifted; a schema dump + diff is mandatory before deleting. | **Not deferred — actively blocking:** all work requiring the live DB is paused until cutover. **Phase 2's remaining visual verification (Arabic/RTL on light) is PAUSED** until the DB is reachable. | Follow [`supabase-migration-runbook.md`](./supabase-migration-runbook.md). **Guardrail: never delete the old project before the runbook's §4.6 end-to-end verification passes.** Founder runs the dashboard-side actions (export, new account, key swap). |
 
 **Founder-owned open items (PIVOT_PLAN §10) — not engineering-blocked, tracked for launch:**
 Next.js hosting decision (Vercel Pro vs self-host, ~Phase 7/10) · AdMob account
