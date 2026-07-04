@@ -48,7 +48,9 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
         onSuccess({
           id: data.document_id, kb_id: kbId, filename: file.name,
           file_type: file.name.split('.').pop() as any, status: 'ready',
-          markdown_content: null, chunk_count: data.chunk_count, created_at: new Date().toISOString()
+          markdown_content: null, chunk_count: data.chunk_count, created_at: new Date().toISOString(),
+          // Phase 3: a just-uploaded document has no summary yet.
+          summary: null, summary_generated_at: null, summary_model: null, summary_is_partial: false,
         });
       } else {
         router.refresh(); // Refresh page data on completion
