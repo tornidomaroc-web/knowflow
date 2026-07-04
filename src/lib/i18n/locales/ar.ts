@@ -143,8 +143,11 @@ export const ar: Translation = {
       conversationsDesc: "الأسئلة المطروحة",
       newKbTitle: "مادة جديدة",
       newKbDesc: "أضف مادة وارفع ملفاتها",
+      newSubject: "مادة جديدة",
       talkAgentTitle: "اسأل ملفاتك",
       talkAgentDesc: "اطرح أسئلة على ملفات مادة واحدة",
+      streakLabel: "سلسلة المذاكرة",
+      streakUnit: "أيام",
       recentActivity: "النشاط الأخير",
       noActivity: "لا يوجد نشاط بعد",
       conversation: "محادثة",
@@ -189,7 +192,8 @@ export const ar: Translation = {
       send: "إرسال",
       connectionError: "خطأ في الاتصال.",
       newConversation: "+ محادثة جديدة",
-      noHistory: "لا يوجد سجل بعد."
+      noHistory: "لا يوجد سجل بعد.",
+      history: "السجل"
     },
     upload: {
       fileTooBig: "الملف كبير جدًا. الحد الأقصى للحجم 50 ميجابايت.",

@@ -139,8 +139,11 @@ export const en = {
       conversationsDesc: "Questions asked",
       newKbTitle: "NEW SUBJECT",
       newKbDesc: "Add a subject and upload its materials",
-      talkAgentTitle: "ASK YOUR MATERIALS",
+      newSubject: "New subject",
+      talkAgentTitle: "Ask your materials",
       talkAgentDesc: "Ask about the materials in one subject",
+      streakLabel: "Study streak",
+      streakUnit: "days",
       recentActivity: "Recent Activity",
       noActivity: "No activity yet",
       conversation: "CONVERSATION",
@@ -185,7 +188,8 @@ export const en = {
       send: "Send",
       connectionError: "Connection error.",
       newConversation: "+ New Conversation",
-      noHistory: "No history yet."
+      noHistory: "No history yet.",
+      history: "History"
     },
     upload: {
       fileTooBig: "File too large. Maximum size is 50MB.",

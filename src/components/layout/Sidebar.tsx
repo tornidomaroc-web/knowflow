@@ -1,18 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui';
 import type { Locale } from '@/lib/i18n';
+import { getNavItems, isNavActive, type NavLabels } from './nav-items';
+import { SignOutButton } from './SignOutButton';
 
-interface SidebarLabels {
-  dashboard: string;
-  knowledge: string;
-  agent: string;
-  settings: string;
-  signOut: string;
-}
-
+/**
+ * Desktop sidebar (md+). Fixed to the inline-start edge via logical properties
+ * (`start-0`, `border-e`), so it mirrors automatically under dir="rtl" with no
+ * isRtl branching. Mobile navigation lives in MobileNav.
+ */
 export function Sidebar({
   userEmail,
   isPro,
@@ -22,72 +22,51 @@ export function Sidebar({
   userEmail: string;
   isPro?: boolean;
   locale: Locale;
-  labels: SidebarLabels;
+  labels: NavLabels & { signOut: string };
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const supabase = createClient();
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push(`/${locale}/login`);
-  };
-
-  const navLinks = [
-    { label: labels.dashboard, href: `/${locale}/dashboard` },
-    { label: labels.knowledge, href: `/${locale}/dashboard/knowledge` },
-    { label: labels.agent, href: `/${locale}/dashboard/agent` },
-    { label: labels.settings, href: `/${locale}/dashboard/settings` },
-  ];
+  const items = getNavItems(locale, labels);
 
   return (
-    <div className="flex flex-col h-full bg-[#0c1510] font-[family-name:var(--font-mono)] text-white p-6 border-r border-[var(--border-color)]">
-      <div className="mb-12 cursor-default pointer-events-none">
-        <h1 className="text-[1.1rem] font-[family-name:var(--font-playfair)] font-bold tracking-wider text-white">
-          Know<span className="text-[var(--accent-color)]">Flow</span>
-        </h1>
+    <aside className="fixed inset-y-0 start-0 z-30 hidden w-60 flex-col border-e border-border bg-surface md:flex">
+      <div className="flex h-16 items-center px-6">
+        <Link href={`/${locale}/dashboard`} className="text-lg font-bold tracking-tight text-foreground">
+          Know<span className="text-primary">Flow</span>
+        </Link>
       </div>
 
-      <nav className="flex-1 space-y-2">
-        {navLinks.map((link) => {
-          const dashboardRoot = `/${locale}/dashboard`;
-          const isActive =
-            pathname === link.href ||
-            (link.href !== dashboardRoot && pathname.startsWith(link.href));
+      <nav className="flex-1 space-y-1 px-3 py-4">
+        {items.map((item) => {
+          const active = isNavActive(pathname, item);
+          const Icon = item.icon;
           return (
             <Link
-              key={link.href}
-              href={link.href}
-              className={`block px-4 py-2 text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
-                isActive
-                  ? 'text-[var(--accent-color)] border-l-2 border-[var(--accent-color)] bg-[var(--bg-color)]'
-                  : 'text-[var(--muted-color)] border-l-2 border-transparent hover:text-white'
-              }`}
+              key={item.key}
+              href={item.href}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                active
+                  ? 'bg-primary-subtle text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
             >
-              {link.label}
+              <Icon className="h-5 w-5 shrink-0" />
+              {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-auto border-t border-[var(--border-color)] pt-6">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="text-[var(--muted-color)] text-[0.72rem] truncate" title={userEmail}>
+      <div className="border-t border-border p-3">
+        <div className="flex items-center gap-2 px-3 py-2">
+          <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground" title={userEmail}>
             {userEmail}
-          </div>
-          {isPro && (
-            <span className="shrink-0 text-[#070d0a] bg-[#2eff8c] font-[family-name:var(--font-mono)] text-[0.6rem] uppercase tracking-widest px-1.5 py-0.5">
-              PRO
-            </span>
-          )}
+          </span>
+          {isPro && <Badge>PRO</Badge>}
         </div>
-        <button
-          onClick={handleSignOut}
-          className="text-[0.72rem] text-white hover:text-[var(--accent-color)] uppercase tracking-widest transition-colors w-full text-left"
-        >
-          {labels.signOut}
-        </button>
+        <SignOutButton locale={locale} label={labels.signOut} />
       </div>
-    </div>
+    </aside>
   );
 }

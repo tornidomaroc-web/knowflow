@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { MobileNav } from '@/components/layout/MobileNav';
 import { createClient } from '@/lib/supabase/server';
 import { getEntitlement } from '@/lib/entitlement';
 import { redirect } from 'next/navigation';
@@ -31,35 +32,28 @@ export default async function DashboardLayout({
   const { tier } = await getEntitlement(user.id);
   const isPro = tier === 'pro';
 
-  const isRtl = safeLocale === 'ar';
+  const labels = {
+    dashboard: t.dashboard.nav.dashboard,
+    knowledge: t.dashboard.nav.knowledge,
+    agent: t.dashboard.nav.agent,
+    settings: t.dashboard.nav.settings,
+    signOut: t.dashboard.nav.signOut,
+  };
 
   return (
-    <div className="flex min-h-screen text-white bg-[var(--bg-color)]">
-      <input type="checkbox" id="mobile-sidebar" className="peer hidden" />
+    <div className="min-h-screen bg-background">
+      <Sidebar userEmail={user.email || ''} isPro={isPro} locale={safeLocale} labels={labels} />
+      <MobileNav userEmail={user.email || ''} isPro={isPro} locale={safeLocale} labels={labels} />
 
-      <label htmlFor="mobile-sidebar" className={`md:hidden fixed top-4 ${isRtl ? 'right-4' : 'left-4'} z-50 p-2 bg-gray-900 border border-gray-700 rounded-md cursor-pointer text-white`}>
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-      </label>
-
-      <label htmlFor="mobile-sidebar" className="fixed inset-0 bg-black/50 hidden peer-checked:block md:hidden z-40 cursor-pointer"></label>
-
-      <div className={`fixed inset-y-0 ${isRtl ? 'right-0 translate-x-full peer-checked:translate-x-0 md:translate-x-0' : 'left-0 -translate-x-full peer-checked:translate-x-0 md:translate-x-0'} bg-[var(--input-bg)] w-[240px] transition-transform z-50 md:z-0`}>
-        <Sidebar
-          userEmail={user.email || ''}
-          isPro={isPro}
-          locale={safeLocale}
-          labels={{
-            dashboard: t.dashboard.nav.dashboard,
-            knowledge: t.dashboard.nav.knowledge,
-            agent: t.dashboard.nav.agent,
-            settings: t.dashboard.nav.settings,
-            signOut: t.dashboard.nav.signOut,
-          }}
-        />
-      </div>
-      <div className={`flex-1 ${isRtl ? 'md:mr-[240px]' : 'md:ml-[240px]'} p-8 pt-16 md:pt-8 w-full`}>
+      {/*
+        The light content canvas for every dashboard screen (P2.7 flip — all
+        screens are migrated, so this owns the background + padding and screens
+        no longer paint their own). `ms-60` offsets the desktop sidebar (mirrors
+        under RTL); the mobile top/bottom padding clears the fixed bars.
+      */}
+      <main className="min-h-screen bg-background p-4 pb-24 pt-[4.5rem] text-foreground md:ms-60 md:p-8">
         {children}
-      </div>
+      </main>
     </div>
   );
 }

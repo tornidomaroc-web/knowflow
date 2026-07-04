@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { Upload } from 'lucide-react';
 import type { Document } from '@/types';
 import { Locale, locales, useTranslation } from '@/lib/i18n';
 
@@ -70,28 +71,31 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
       onClick={() => fileInputRef.current?.click()}
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
-      className={`border-2 border-dashed p-10 text-center cursor-pointer transition-colors ${
-        state === 'idle' ? 'border-[var(--border-color)] hover:border-[var(--accent-color)]' : 'border-[var(--accent-color)]'
-      } bg-[#0c1510] relative`}
+      className={`relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-10 text-center transition-colors ${
+        state === 'idle'
+          ? 'border-border bg-surface hover:border-primary hover:bg-muted'
+          : 'border-primary bg-primary-subtle'
+      }`}
     >
       <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.docx,.pptx,.xlsx,.txt,.md" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
-      <div className="flex flex-col items-center justify-center space-y-4">
-        {state === 'idle' && (
-          <>
-            <p className="font-[family-name:var(--font-mono)] text-white">{t.dashboard.upload.dropHere}</p>
-            <p className="text-[var(--muted-color)] text-xs font-[family-name:var(--font-sans)]">{t.dashboard.upload.supported}</p>
-          </>
-        )}
-        {state === 'uploading' && <p className="font-[family-name:var(--font-mono)] text-white">{t.dashboard.upload.uploading}</p>}
-        {state === 'processing' && <p className="font-[family-name:var(--font-mono)] text-[var(--accent-color)]">{t.dashboard.upload.processing}</p>}
-        {state === 'ready' && <p className="font-[family-name:var(--font-mono)] text-green-400">{t.dashboard.upload.ready}</p>}
-        {state === 'error' && (
-          <>
-            <p className="font-[family-name:var(--font-mono)] text-red-500">{t.dashboard.upload.error}</p>
-            <p className="text-red-400 text-xs mt-1">{errorMsg}</p>
-          </>
-        )}
-      </div>
+      {state === 'idle' && (
+        <>
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary-subtle text-primary">
+            <Upload className="h-5 w-5" />
+          </span>
+          <p className="text-sm font-medium text-foreground">{t.dashboard.upload.dropHere}</p>
+          <p className="text-xs text-muted-foreground">{t.dashboard.upload.supported}</p>
+        </>
+      )}
+      {state === 'uploading' && <p className="text-sm font-medium text-foreground">{t.dashboard.upload.uploading}</p>}
+      {state === 'processing' && <p className="text-sm font-medium text-primary">{t.dashboard.upload.processing}</p>}
+      {state === 'ready' && <p className="text-sm font-medium text-primary">{t.dashboard.upload.ready}</p>}
+      {state === 'error' && (
+        <>
+          <p className="text-sm font-medium text-red-700">{t.dashboard.upload.error}</p>
+          <p className="mt-1 text-xs text-red-700">{errorMsg}</p>
+        </>
+      )}
     </div>
   );
 }

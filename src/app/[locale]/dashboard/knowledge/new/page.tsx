@@ -3,7 +3,12 @@
 import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
+import { Input, buttonVariants } from '@/components/ui';
 import { Locale, locales, useTranslation } from '@/lib/i18n';
+
+const fieldClass =
+  'w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring';
 
 export default function NewKnowledgeBasePage({
   params,
@@ -63,56 +68,57 @@ export default function NewKnowledgeBasePage({
   };
 
   return (
-    <div className="max-w-xl text-white">
-      <h1 className="text-3xl font-[family-name:var(--font-playfair)] font-bold tracking-wider mb-8">
-        {t.dashboard.newKb.title}
-      </h1>
+    <div>
+      <div className="mx-auto max-w-xl">
+        <h1 className="mb-8 text-2xl font-semibold tracking-tight md:text-3xl">
+          {t.dashboard.newKb.title}
+        </h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {error && <div className="text-red-500 font-[family-name:var(--font-mono)] text-sm">{error}</div>}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
-        <div className="flex flex-col space-y-2">
-          <label className="text-[var(--muted-color)] font-[family-name:var(--font-mono)] text-sm">{t.dashboard.newKb.name}</label>
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="bg-[#0c1510] border border-[var(--border-color)] px-4 py-3 text-white focus:outline-none focus:border-[var(--accent-color)] font-[family-name:var(--font-mono)] text-sm"
-          />
-        </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">{t.dashboard.newKb.name}</label>
+            <Input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
 
-        <div className="flex flex-col space-y-2">
-          <label className="text-[var(--muted-color)] font-[family-name:var(--font-mono)] text-sm">{t.dashboard.newKb.description}</label>
-          <textarea
-            rows={4}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="bg-[#0c1510] border border-[var(--border-color)] px-4 py-3 text-white focus:outline-none focus:border-[var(--accent-color)] font-[family-name:var(--font-mono)] text-sm resize-none"
-          />
-        </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">{t.dashboard.newKb.description}</label>
+            <textarea
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className={cn(fieldClass, 'resize-none')}
+            />
+          </div>
 
-        <div className="flex flex-col space-y-2">
-          <label className="text-[var(--muted-color)] font-[family-name:var(--font-mono)] text-sm">{t.dashboard.newKb.language}</label>
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as 'ar' | 'en' | 'both')}
-            className="bg-[#0c1510] border border-[var(--border-color)] px-4 py-3 text-white focus:outline-none focus:border-[var(--accent-color)] font-[family-name:var(--font-mono)] text-sm appearance-none"
-          >
-            <option value="ar">{t.dashboard.newKb.languageAr}</option>
-            <option value="en">{t.dashboard.newKb.languageEn}</option>
-            <option value="both">{t.dashboard.newKb.languageBoth}</option>
-          </select>
-        </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">{t.dashboard.newKb.language}</label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as 'ar' | 'en' | 'both')}
+              className={cn(fieldClass, 'h-11 py-0')}
+            >
+              <option value="ar">{t.dashboard.newKb.languageAr}</option>
+              <option value="en">{t.dashboard.newKb.languageEn}</option>
+              <option value="both">{t.dashboard.newKb.languageBoth}</option>
+            </select>
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-[var(--accent-color)] text-[#070d0a] font-[family-name:var(--font-sans)] font-bold px-8 py-3 hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
-          {loading ? t.dashboard.newKb.creating : t.dashboard.newKb.create}
-        </button>
-      </form>
+          <button type="submit" disabled={loading} className={buttonVariants({ variant: 'primary' })}>
+            {loading ? t.dashboard.newKb.creating : t.dashboard.newKb.create}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

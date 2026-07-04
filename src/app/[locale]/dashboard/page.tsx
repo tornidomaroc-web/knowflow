@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { RecentActivity } from '@/components/dashboard/RecentActivity'
+import { StudentHome } from '@/components/dashboard/StudentHome'
+import type { ActivityItem } from '@/components/dashboard/RecentActivity'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 
+// Thin server wrapper: auth + data only. Presentation lives in <StudentHome/>
+// (dumb, prop-driven) so it can be reused/storybooked in Phase 8.
 export default async function DashboardPage({
   params,
 }: {
@@ -35,67 +37,32 @@ export default async function DashboardPage({
     { label: t.dashboard.home.conversations, value: convosCount ?? 0, desc: t.dashboard.home.conversationsDesc },
   ]
 
-  const actions = [
-    { num: '01', title: t.dashboard.home.newKbTitle, desc: t.dashboard.home.newKbDesc, href: `/${safeLocale}/dashboard/knowledge/new` },
-    { num: '02', title: t.dashboard.home.talkAgentTitle, desc: t.dashboard.home.talkAgentDesc, href: `/${safeLocale}/dashboard/agent` },
-  ]
-
   return (
-    <div className="text-white space-y-10 max-w-5xl">
-      <div>
-        <h1 style={{ fontFamily: 'var(--font-playfair)', fontSize: '2.5rem', fontWeight: 700, lineHeight: 1.2 }}>
-          {t.dashboard.home.welcome}
-        </h1>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: '#6b7d6e', marginTop: '0.5rem' }}>
-          {user.email}
-        </p>
-        <div style={{ borderBottom: '1px solid #1a2e1e', marginTop: '1.5rem' }} />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {stats.map(({ label, value, desc }) => (
-          <div key={label} style={{ background: '#0c1510', border: '1px solid #1a2e1e', padding: '1.5rem' }}>
-            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: '#6b7d6e', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem' }}>
-              {label}
-            </p>
-            <p style={{ fontFamily: 'var(--font-playfair)', fontSize: '2.5rem', color: '#2eff8c', lineHeight: 1, marginBottom: '0.5rem' }}>
-              {value}
-            </p>
-            <p style={{ fontSize: '0.8rem', color: '#6b7d6e' }}>{desc}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {actions.map(({ num, title, desc, href }) => (
-          <Link key={num} href={href} className="group block border transition-colors duration-200 hover:border-[#2eff8c]" style={{ background: '#0c1510', borderColor: '#1a2e1e', padding: '1.5rem', textDecoration: 'none' }}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: '#2eff8c', marginBottom: '0.5rem' }}>{num}</p>
-                <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'white', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>{title}</p>
-                <p style={{ fontSize: '0.85rem', color: '#6b7d6e' }}>{desc}</p>
-              </div>
-              <span style={{ color: '#2eff8c', fontSize: '1.25rem', marginLeft: '1rem' }}>→</span>
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      <div>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: '#6b7d6e', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>
-          {t.dashboard.home.recentActivity}
-        </p>
-        <RecentActivity
-          items={(recentActivity ?? []) as never[]}
-          labels={{
-            noActivity: t.dashboard.home.noActivity,
-            conversation: t.dashboard.home.conversation,
-            showLess: t.dashboard.home.showLess,
-            viewAll: t.dashboard.home.viewAll,
-            unknownKb: t.dashboard.home.unknownKb,
-          }}
-        />
-      </div>
-    </div>
+    <StudentHome
+      stats={stats}
+      streak={null} // Not tracked yet → ghost "—" placeholder. Phase 5 passes a real number.
+      askHref={`/${safeLocale}/dashboard/agent`}
+      newSubjectHref={`/${safeLocale}/dashboard/knowledge/new`}
+      subjectsHref={`/${safeLocale}/dashboard/knowledge`}
+      labels={{
+        welcome: t.dashboard.home.welcome,
+        askTitle: t.dashboard.home.talkAgentTitle,
+        askDesc: t.dashboard.home.talkAgentDesc,
+        newSubject: t.dashboard.home.newSubject,
+        newSubjectDesc: t.dashboard.home.newKbDesc,
+        subjects: t.dashboard.nav.knowledge,
+        streakLabel: t.dashboard.home.streakLabel,
+        streakUnit: t.dashboard.home.streakUnit,
+        recentActivity: t.dashboard.home.recentActivity,
+        activity: {
+          noActivity: t.dashboard.home.noActivity,
+          conversation: t.dashboard.home.conversation,
+          showLess: t.dashboard.home.showLess,
+          viewAll: t.dashboard.home.viewAll,
+          unknownKb: t.dashboard.home.unknownKb,
+        },
+      }}
+      recentActivity={(recentActivity ?? []) as never[] as ActivityItem[]}
+    />
   )
 }

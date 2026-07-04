@@ -4,6 +4,8 @@ import { useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
+import { buttonVariants } from '@/components/ui';
 import { useTranslation, Locale } from '@/lib/i18n';
 
 export default function SignupPage({ params }: { params: Promise<{ locale: Locale }> }) {
@@ -23,13 +25,13 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
-    const { data: authData, error: authError } = await supabase.auth.signUp({ 
-      email, 
+
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
       password,
       options: { data: { full_name: fullName } }
     });
-    
+
     if (authError) {
       setError(authError.message);
       setLoading(false);
@@ -51,52 +53,58 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
     router.push(`/${locale}/dashboard`);
   };
 
+  const fieldClass =
+    'w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring';
+
   return (
-    <div className="flex min-h-screen bg-[var(--bg-color)]" dir={isRtl ? 'rtl' : 'ltr'}>
-      <div className="hidden lg:flex flex-col justify-center items-center w-1/2 relative overflow-hidden border-r border-[var(--border-color)]">
-        <div className="absolute inset-0 z-0 opacity-20" style={{ backgroundImage: 'linear-gradient(to right, var(--border-color) 1px, transparent 1px), linear-gradient(to bottom, var(--border-color) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+    <div className="flex min-h-screen" dir={isRtl ? 'rtl' : 'ltr'}>
+      <div className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden border-e border-border bg-primary text-primary-foreground lg:flex">
+        <div
+          className="absolute inset-0 z-0 opacity-20"
+          style={{ backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.4) 1px, transparent 1px)', backgroundSize: '40px 40px' }}
+        />
         <div className="relative z-10 text-center">
-          <h1 className="text-6xl font-[family-name:var(--font-playfair)] font-bold text-white mb-4 tracking-wider">
-            {t.nav.home.replace('Flow', '')}<span className="text-[var(--accent-color)]">Flow</span>
+          <h1 className="mb-4 text-6xl font-bold tracking-tight">
+            {t.nav.home.replace('Flow', '')}<span className="opacity-80">Flow</span>
           </h1>
-          <p className="text-[var(--muted-color)] font-[family-name:var(--font-mono)] text-lg tracking-widest uppercase">
+          <p className="text-lg uppercase tracking-widest text-primary-foreground/80">
             Unlock your knowledge
           </p>
         </div>
       </div>
-      <div className="flex w-full lg:w-1/2 justify-center items-center bg-[var(--input-bg)] p-8 text-white">
-        <form onSubmit={handleSignup} className={`w-full max-w-sm space-y-6 ${isRtl ? 'text-right' : 'text-left'}`}>
-          <div className="text-center mb-10 lg:hidden">
-             <h1 className="text-4xl font-[family-name:var(--font-playfair)] font-bold tracking-wider">
-               {t.nav.home.replace('Flow', '')}<span className="text-[var(--accent-color)]">Flow</span>
-             </h1>
+      <div className="flex w-full items-center justify-center bg-surface p-8 lg:w-1/2">
+        <form onSubmit={handleSignup} className="w-full max-w-sm space-y-6 text-start">
+          <div className="mb-10 text-center lg:hidden">
+            <h1 className="text-4xl font-bold tracking-tight">
+              {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
+            </h1>
           </div>
-          <h2 className="text-3xl font-[family-name:var(--font-playfair)] font-bold">{t.auth.signupTitle}</h2>
-          <p className="text-[var(--muted-color)] font-[family-name:var(--font-sans)] text-sm mb-8">{t.auth.signupSubtitle}</p>
-          
-          {error && <div className="text-red-500 font-[family-name:var(--font-mono)] text-sm py-2">{error}</div>}
-          
-          <div className="space-y-4 font-[family-name:var(--font-mono)] text-sm">
-            <div className="flex flex-col space-y-2">
-              <label className="text-[var(--muted-color)]">{t.auth.name}</label>
-              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-none px-4 py-3 focus:outline-none focus:border-[var(--accent-color)] transition-colors" />
+          <h2 className="text-3xl font-semibold tracking-tight">{t.auth.signupTitle}</h2>
+          <p className="mb-8 text-sm text-muted-foreground">{t.auth.signupSubtitle}</p>
+
+          {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">{t.auth.name}</label>
+              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required className={fieldClass} />
             </div>
-            <div className="flex flex-col space-y-2">
-              <label className="text-[var(--muted-color)]">{t.auth.email}</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-none px-4 py-3 focus:outline-none focus:border-[var(--accent-color)] transition-colors" />
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">{t.auth.email}</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={fieldClass} />
             </div>
-            <div className="flex flex-col space-y-2">
-              <label className="text-[var(--muted-color)]">{t.auth.password}</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-none px-4 py-3 focus:outline-none focus:border-[var(--accent-color)] transition-colors" />
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">{t.auth.password}</label>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className={fieldClass} />
             </div>
           </div>
-          
-          <button type="submit" disabled={loading} className="w-full bg-[var(--accent-color)] text-[#070d0a] font-[family-name:var(--font-sans)] font-bold py-3 mt-6 hover:opacity-90 transition-opacity disabled:opacity-50">
+
+          <button type="submit" disabled={loading} className={cn(buttonVariants({ variant: 'primary' }), 'mt-6 w-full')}>
             {loading ? t.auth.creating : t.auth.createBtn}
           </button>
-          
-          <div className="text-center mt-6">
-            <Link href={`/${locale}/login`} className="text-[var(--muted-color)] font-[family-name:var(--font-sans)] text-sm hover:text-[var(--accent-color)] transition-colors">
+
+          <div className="mt-6 text-center">
+            <Link href={`/${locale}/login`} className="text-sm text-muted-foreground transition-colors hover:text-primary">
               {t.auth.hasAccount}
             </Link>
           </div>

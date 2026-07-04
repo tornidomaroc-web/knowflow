@@ -1,6 +1,8 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { buttonVariants } from '@/components/ui';
 import { Locale, locales, useTranslation } from '@/lib/i18n';
 
 interface Conversation {
@@ -23,33 +25,31 @@ export function ConversationSidebar({ activeId, onSelect, onNew, conversations }
   const t = useTranslation(safeLocale);
 
   return (
-    <div className="w-64 shrink-0 flex flex-col border-r border-[var(--border-color)] bg-[#0c1510] h-full overflow-hidden">
-      <div className="p-3 border-b border-[var(--border-color)]">
-        <button
-          onClick={onNew}
-          className="w-full py-2 px-3 bg-[var(--accent-color)] text-[#070d0a] font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest hover:opacity-90 transition-opacity"
-        >
+    <div className="flex h-full flex-col overflow-hidden bg-surface">
+      <div className="border-b border-border p-3">
+        <button onClick={onNew} className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'w-full')}>
           {t.dashboard.agent.newConversation}
         </button>
       </div>
       <div className="flex-1 overflow-y-auto">
         {conversations.length === 0 && (
-          <p className="p-4 text-[var(--muted-color)] text-xs font-[family-name:var(--font-mono)]">{t.dashboard.agent.noHistory}</p>
+          <p className="p-4 text-xs text-muted-foreground">{t.dashboard.agent.noHistory}</p>
         )}
-        {conversations.map(conv => (
+        {conversations.map((conv) => (
           <button
             key={conv.id}
             onClick={() => onSelect(conv)}
-            className={`w-full text-left px-4 py-3 border-b border-[var(--border-color)] transition-colors ${
+            className={cn(
+              'w-full border-b border-border px-4 py-3 text-start transition-colors',
               activeId === conv.id
-                ? 'bg-[#1a2e20] text-white'
-                : 'text-[var(--muted-color)] hover:bg-[#111c16] hover:text-white'
-            }`}
+                ? 'bg-primary-subtle text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            )}
           >
-            <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-wider truncate">
+            <p className="truncate text-sm font-medium">
               {conv.knowledge_bases?.name ?? t.dashboard.home.unknownKb}
             </p>
-            <p className="text-[10px] text-[var(--muted-color)] mt-1 font-[family-name:var(--font-sans)]">
+            <p className="mt-1 text-[11px] text-muted-foreground">
               {new Date(conv.created_at).toLocaleDateString()}
             </p>
           </button>

@@ -1,15 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import { Badge } from '@/components/ui';
 
-interface ActivityItem {
+export interface ActivityItem {
   id: string;
   created_at: string;
   platform: string | null;
   knowledge_bases: { name: string } | null;
 }
 
-interface RecentActivityLabels {
+export interface RecentActivityLabels {
   noActivity: string;
   conversation: string;
   showLess: string;
@@ -25,8 +26,7 @@ export function RecentActivity({ items, labels }: { items: ActivityItem[]; label
 
   if (!items || items.length === 0) {
     return (
-      <div className="border border-dashed border-[#1a2e1e] p-8 text-center text-[#6b7d6e] text-sm"
-           style={{ fontFamily: 'var(--font-mono)' }}>
+      <div className="rounded-xl border border-dashed border-border bg-surface p-8 text-center text-sm text-muted-foreground">
         {labels.noActivity}
       </div>
     );
@@ -34,28 +34,26 @@ export function RecentActivity({ items, labels }: { items: ActivityItem[]; label
 
   return (
     <div>
-      <div className="border border-[#1a2e1e]">
-        {visible.map((conv, i) => (
-          <div key={conv.id}
-               className={`flex items-center justify-between p-4 ${i !== visible.length - 1 ? 'border-b border-[#1a2e1e]' : ''}`}>
-            <div>
-              <p className="text-sm text-white">{conv.knowledge_bases?.name || labels.unknownKb}</p>
-              <p className="text-xs text-[#6b7d6e] mt-1" style={{ fontFamily: 'var(--font-mono)' }}>
+      <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface shadow-soft">
+        {visible.map((conv) => (
+          <div key={conv.id} className="flex items-center justify-between gap-4 p-4">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-foreground">
+                {conv.knowledge_bases?.name || labels.unknownKb}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
                 {conv.platform?.toUpperCase()} · {new Date(conv.created_at).toLocaleDateString('en-GB')}
               </p>
             </div>
-            <span className="text-xs text-[#2eff8c]" style={{ fontFamily: 'var(--font-mono)' }}>
-              {labels.conversation}
-            </span>
+            <Badge className="shrink-0">{labels.conversation}</Badge>
           </div>
         ))}
       </div>
       {items.length > LIMIT && (
-        <div className="flex justify-end mt-2">
+        <div className="mt-2 flex justify-end">
           <button
-            onClick={() => setShowAll(v => !v)}
-            className="text-xs text-[#2eff8c] hover:opacity-70 transition-opacity"
-            style={{ fontFamily: 'var(--font-mono)' }}
+            onClick={() => setShowAll((v) => !v)}
+            className="text-sm font-medium text-primary transition-colors hover:text-primary-hover"
           >
             {showAll ? labels.showLess : labels.viewAll}
           </button>

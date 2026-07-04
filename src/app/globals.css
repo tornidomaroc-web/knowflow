@@ -3,12 +3,34 @@
 @tailwind utilities;
 
 :root {
-  --bg-color: #070d0a;
-  --accent-color: #2eff8c;
-  --border-color: #1a2e1e;
-  --muted-color: #6b7d6e;
-  --input-bg: #0c1510;
+  /* ─────────────────────────────────────────────────────────────────────────
+     Phase 2 design tokens — "Calm Focus", light-first, emerald accent.
+     Consumed via Tailwind semantic utilities (bg-background, text-foreground,
+     bg-primary, border-border, shadow-soft, …). Dark-ready by design: a future
+     `.dark { … }` block overrides these values with NO utility changes.
+     ───────────────────────────────────────────────────────────────────────── */
+  --background: #f7faf9;         /* soft off-white canvas */
+  --surface: #ffffff;            /* cards / raised surfaces */
+  --foreground: #10201a;         /* primary text — deep green-slate (~15:1 on white) */
+  --muted: #eef2f0;              /* subtle fills */
+  --muted-foreground: #566b62;   /* secondary text (~4.9:1 on white, AA) */
+  --border: #e2e8e5;             /* hairline borders */
+  --input: #ffffff;              /* input background */
+  --ring: #059669;               /* focus ring (emerald-600) */
+
+  --primary: #047857;            /* emerald-700 — calm, non-neon; white text ~4.5:1 (AA) */
+  --primary-foreground: #ffffff;
+  --primary-hover: #036249;      /* darker emerald for hover/press */
+  --primary-subtle: #ecfdf5;     /* emerald-50 — soft accent fill / badges */
+
+  --radius: 0.75rem;             /* rounded-xl baseline (D4) */
 }
 
+/* Phase 2 complete: the legacy neon/terminal tokens (--bg-color, --accent-color,
+   --border-color, --muted-color, --input-bg) and the transitional Rubik font
+   aliases (--font-playfair/--font-mono/--font-sans) were removed in P2.7 once
+   every screen had migrated to the semantic tokens above. */
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background-color: var(--bg-color); color: white; }
+
+body { background-color: var(--background); color: var(--foreground); }

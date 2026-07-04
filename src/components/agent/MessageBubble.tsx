@@ -20,37 +20,36 @@ export function MessageBubble({ role, content, isStreaming, citations }: Message
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[75%] flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}>
+      <div className={`flex max-w-[75%] flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}>
         <div
           dir="auto"
-          className={`p-4 font-[family-name:var(--font-sans)] text-sm whitespace-pre-wrap rounded-none ${
+          className={`whitespace-pre-wrap rounded-2xl p-4 text-sm shadow-soft ${
             isUser
-              ? 'bg-[#1a2e1e] text-white border-l-2 border-[var(--accent-color)]'
-              : 'bg-[#0c1510] text-[var(--muted-color)] border-l-2 border-transparent'
+              ? 'bg-primary text-primary-foreground'
+              : 'border border-border bg-surface text-foreground'
           }`}
-          style={!isUser ? { borderLeftColor: 'var(--muted-color)' } : {}}
         >
+          {/* Markdown marks inherit the bubble's text color so they read on both
+              the emerald user bubble and the light assistant bubble. */}
           <ReactMarkdown
             components={{
               p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-              strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
-              ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-              ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+              strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+              ul: ({ children }) => <ul className="mb-2 list-inside list-disc space-y-1">{children}</ul>,
+              ol: ({ children }) => <ol className="mb-2 list-inside list-decimal space-y-1">{children}</ol>,
               li: ({ children }) => <li className="text-sm">{children}</li>,
               code: ({ children }) => (
-                <code className="bg-[#070d0a] px-1 py-0.5 rounded text-[#2eff8c] text-xs font-mono">
-                  {children}
-                </code>
+                <code className="rounded bg-black/10 px-1 py-0.5 font-mono text-xs">{children}</code>
               ),
-              h1: ({ children }) => <h1 className="text-lg font-bold text-white mb-2">{children}</h1>,
-              h2: ({ children }) => <h2 className="text-base font-bold text-white mb-2">{children}</h2>,
-              h3: ({ children }) => <h3 className="text-sm font-bold text-white mb-1">{children}</h3>,
+              h1: ({ children }) => <h1 className="mb-2 text-lg font-bold">{children}</h1>,
+              h2: ({ children }) => <h2 className="mb-2 text-base font-bold">{children}</h2>,
+              h3: ({ children }) => <h3 className="mb-1 text-sm font-bold">{children}</h3>,
             }}
           >
             {content}
           </ReactMarkdown>
           {isStreaming && (
-            <span className="animate-pulse inline-block mt-2 font-bold text-[var(--accent-color)]">▋</span>
+            <span className="mt-2 inline-block animate-pulse font-bold text-primary">▋</span>
           )}
         </div>
 
@@ -60,7 +59,7 @@ export function MessageBubble({ role, content, isStreaming, citations }: Message
               <span
                 key={c.chunk_id}
                 title={`${c.filename} · ${(c.similarity * 100).toFixed(0)}% match`}
-                className="text-[10px] font-[family-name:var(--font-mono)] uppercase tracking-widest text-[var(--muted-color)] border border-[var(--border-color)] px-2 py-1 hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] transition-colors cursor-default"
+                className="cursor-default rounded-full border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
               >
                 [{c.index}] {c.filename}
               </span>
