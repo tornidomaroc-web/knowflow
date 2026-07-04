@@ -1,11 +1,24 @@
 # Supabase Migration Runbook — move KnowFlow to a new free account
 
-**Status:** 🔴 NOT STARTED · planning complete, no move actions taken.
-**Why:** the current Supabase account hit the free 2-project limit; the other two
-projects are entering Google Play review and must stay active, so KnowFlow's
-Supabase project must move to a brand-new account on a new email.
-**Old project ref:** `wnpqdafdkbuvwecksrjj` (from `.env.local`).
-**New project ref:** _(fill in after creation)_ `________________`
+> ✅ **SUPERSEDED / NOT NEEDED (2026-07-04).** This heavyweight migration was
+> **never executed** and is retained for reference only. The blocker it addressed
+> (see PROGRESS.md register #21) was resolved a different, non-destructive way: the
+> KnowFlow project was **transferred into a new organization** owned by a second
+> real account and the old account's membership was removed from that org — which
+> cleared the free active-project limit and let the project resume. **The project
+> URL and API keys never changed, so none of the steps below (export → recreate →
+> key-swap → delete) were required, and no project was deleted.** Do **not** run
+> this runbook. The old project ref `wnpqdafdkbuvwecksrjj` is still the live
+> project. The production-backend decision that remains open is PROGRESS.md
+> register **#22** (free tier is not a launch foundation), which is *not* this
+> migration.
+
+**Status:** ✅ SUPERSEDED · resolved by org-transfer, no move actions taken.
+**Why (original):** the Supabase account hit the free active-project limit; the
+other two projects are entering Google Play review and must stay active, so
+KnowFlow's project needed to move off that account.
+**Old project ref:** `wnpqdafdkbuvwecksrjj` (from `.env.local`) — **still live.**
+**New project ref:** _(n/a — no new project was created)._
 
 This is a checkable, ordered runbook. Tick each `[ ]` as you complete it.
 **Do the sections IN ORDER.** The two things that prevent irreversible loss are

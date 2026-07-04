@@ -5,18 +5,25 @@ commit history + [`PIVOT_PLAN.md`](./PIVOT_PLAN.md) + project memory. Update thi
 file at the **end of every step** so we never jump ahead on a deferred item or
 skip a main phase.
 
-- **Last updated:** 2026-07-03 (Supabase migration logged as a live BLOCKER — see banner + register #21; runbook at [`supabase-migration-runbook.md`](./supabase-migration-runbook.md)).
+- **Last updated:** 2026-07-04 (Supabase blocker **RESOLVED** — project resumed via an org-transfer that preserved URL/keys; register #21 closed, runbook superseded. New pre-launch item **#22** logged: free tier is not a production foundation).
 - **Active branch:** `feat/phase-2-ui-redesign` → **draft PR #12** (not merged).
-- **Main tip:** `c3cdbe0` (Merge PR #11, Phase 1).
+- **Main tip:** `ed36a3b` (Merge PR #14, Supabase runbook + blocker log).
 
-> 🔴 **LIVE BLOCKER — Supabase project migration (register #21).** The KnowFlow
-> Supabase project must move to a new free account (old account hit the 2-project
-> free limit; the other two projects are entering Google Play review and must stay
-> active). **All work requiring the live DB is blocked until cutover completes.**
-> Follow [`supabase-migration-runbook.md`](./supabase-migration-runbook.md) — do
-> **not** delete the old project before the runbook's §4.6 end-to-end verification
-> passes. **Phase 2's remaining visual verification (Arabic/RTL on light) is PAUSED**
-> until the DB is reachable again.
+> ✅ **RESOLVED 2026-07-04 — Supabase project back online (register #21).** The
+> project **auto-paused** (free-tier inactivity) and then hit Supabase's free
+> **active-project limit**, which is enforced **per Owner across every organization
+> they own**. It was fixed **without any project migration**: the project was moved
+> into a **new organization** owned by a second real account, and the old account's
+> membership was removed from that org — clearing the limit and letting the project
+> resume. **The project URL and API keys did not change, so no app code, env,
+> re-embedding, or rebuild was needed;** verified by a successful login. The
+> heavyweight move planned in [`supabase-migration-runbook.md`](./supabase-migration-runbook.md)
+> was **never executed** and is now superseded. **Phase 2's paused Arabic/RTL
+> visual verification can now resume.**
+>
+> ⚠️ This is a dev-time fix, **not** a launch foundation — see register **#22**
+> (free tier is not production-grade; a stable, policy-compliant backend is a
+> pre-launch decision).
 
 > **Provenance note.** `PIVOT_PLAN.md` §7 defines Phases **0–10 + Later**. It does
 > **not** sub-divide Phase 2 into P2.0–P2.7 — that decomposition is a
@@ -103,12 +110,14 @@ project memory, and per-step review debates. "Where" is the target phase/trigger
 | 14 🔎 | **Home streak is a non-functional placeholder** (ghost `—`, `streak: number\|null`). | The streak feature itself is Phase 5; P2.2 only shipped an honest placeholder. | **Phase 5** wires real tracking (`study_events`) — placeholder was designed so a real number drops in with no component change. |
 | 15 🔎 | **Embedding provider switch (Voyage → self-hosted bge-m3)** — seam shipped in Phase 0 as a documented stub; actual switch not implemented. | Deliberately deferred until a real usage/cost threshold (PIVOT_PLAN §4); avoids provisioning a VM early. | **Trigger-based, not a phase** — flip `EMBEDDING_PROVIDER` when a §4 trigger (Voyage ~80% free tier / DAU >~300–500 / non-zero invoice) hits. |
 | 16 🔎 | **Page-accurate citations** — engine cites filename + chunk only; page spans lost in MarkItDown conversion. | Decided (§6): ship file/section only, **never promise page citations**. True page citations need an ingestion rework. | **Later** (uncommitted possibility, revisited with Apple/iOS). |
-| 21 🚨 **BLOCKING** | **Supabase project migration to a new free account** — old account hit the 2-project free limit; the other two projects are entering Google Play review and must stay active, so KnowFlow's Supabase project must move to a new account/email. Schema is fully in `supabase/migrations/` but was **hand-applied** (no CLI linkage) so the live DB may have drifted; a schema dump + diff is mandatory before deleting. | **Not deferred — actively blocking:** all work requiring the live DB is paused until cutover. **Phase 2's remaining visual verification (Arabic/RTL on light) is PAUSED** until the DB is reachable. | Follow [`supabase-migration-runbook.md`](./supabase-migration-runbook.md). **Guardrail: never delete the old project before the runbook's §4.6 end-to-end verification passes.** Founder runs the dashboard-side actions (export, new account, key swap). |
+| 21 ✅ **RESOLVED** | ~~**Supabase project migration to a new free account**~~ — the live DB became unreachable after the project **auto-paused** (free-tier idle) and the owning account hit Supabase's free **active-project limit** (enforced per Owner across every org they own). | **Was actively blocking; cleared 2026-07-04.** | **Resolved without migration:** the project was transferred into a **new organization** under a second real account and the old account's membership was removed from that org, clearing the limit so the project could resume. **URL + API keys unchanged → no re-embedding, rebuild, or env/code change; verified by login.** The [`supabase-migration-runbook.md`](./supabase-migration-runbook.md) plan (export → recreate → key-swap → delete) was **not needed** and is now **superseded** — no old project was deleted. Phase 2's paused Arabic/RTL verification can resume. **Standing footprint is now register #22.** |
+| 22 🚀 **PRE-LAUNCH (launch-blocker decision)** | **Supabase free tier is not a production foundation.** Per Supabase's own docs a free project is capped at **500 MB database**, **5 GB egress/month**, **auto-pauses after ~1 week idle**, and is subject to the **active-project limit enforced per Owner across all their organizations**. KnowFlow currently runs on free tier across a **multi-account** setup that stays within Supabase's Acceptable Use Policy (real emails, ≤2 active projects per account, not an "excessive" number of accounts) — fine for development, **not a stable launch foundation.** | Cost/architecture choice that belongs at launch time, not now. **Do not act on this during development.** | **Before public launch, decide a stable, policy-compliant backend:** either a **paid Supabase plan** (a founder budget call at launch) **or migrate to another free-tier-capable Postgres host** (a larger engineering task). **Standing operational reality until then:** a free KnowFlow project **keeps auto-pausing when idle** during development, and the founder **resumes it manually.** Flagged here so it can't be forgotten at ship time. |
 
 **Founder-owned open items (PIVOT_PLAN §10) — not engineering-blocked, tracked for launch:**
-Next.js hosting decision (Vercel Pro vs self-host, ~Phase 7/10) · AdMob account
-verification/payout (before Phase 9) · final free-tier limit numbers (set Phase
-0/1, tune with real usage).
+Next.js hosting decision (Vercel Pro vs self-host, ~Phase 7/10) · **Supabase backend
+plan — paid vs. free-tier-capable-host migration (pre-launch; see register #22)** ·
+AdMob account verification/payout (before Phase 9) · final free-tier limit numbers
+(set Phase 0/1, tune with real usage).
 
 ---
 
