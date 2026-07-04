@@ -5,9 +5,25 @@ commit history + [`PIVOT_PLAN.md`](./PIVOT_PLAN.md) + project memory. Update thi
 file at the **end of every step** so we never jump ahead on a deferred item or
 skip a main phase.
 
-- **Last updated:** 2026-07-03 (P2.7 done — root surfaces flipped, bridges removed, legacy tokens purged; **Phase 2 code-complete**, pending the PR #12 merge decision).
-- **Active branch:** `feat/phase-2-ui-redesign` → **draft PR #12** (not merged).
-- **Main tip:** `c3cdbe0` (Merge PR #11, Phase 1).
+- **Last updated:** 2026-07-04 (**Phase 2 COMPLETE** — all P2.0–P2.7 done, visually verified on `/ar` (RTL + mobile), merged to `main` via PR #12. The light "Calm Focus" redesign now ships to production `tryknowflow.com` on Vercel's rebuild. Also carries the earlier Supabase blocker resolution — register **#21** RESOLVED + pre-launch **#22**).
+- **Active branch:** none — Phase 2 merged and `feat/phase-2-ui-redesign` deleted; next work (Phase 3, Summaries) starts a fresh branch.
+- **Main tip:** **PR #12** merge (Phase 2 — consumer UI redesign, light Calm-Focus) on `main`. Prior tip: `ed36a3b` (PR #14, Supabase runbook + blocker log).
+
+> ✅ **RESOLVED 2026-07-04 — Supabase project back online (register #21).** The
+> project **auto-paused** (free-tier inactivity) and then hit Supabase's free
+> **active-project limit**, which is enforced **per Owner across every organization
+> they own**. It was fixed **without any project migration**: the project was moved
+> into a **new organization** owned by a second real account, and the old account's
+> membership was removed from that org — clearing the limit and letting the project
+> resume. **The project URL and API keys did not change, so no app code, env,
+> re-embedding, or rebuild was needed;** verified by a successful login. The
+> heavyweight move planned in [`supabase-migration-runbook.md`](./supabase-migration-runbook.md)
+> was **never executed** and is now superseded. **Phase 2's paused Arabic/RTL
+> visual verification can now resume.**
+>
+> ⚠️ This is a dev-time fix, **not** a launch foundation — see register **#22**
+> (free tier is not production-grade; a stable, policy-compliant backend is a
+> pre-launch decision).
 
 > **Provenance note.** `PIVOT_PLAN.md` §7 defines Phases **0–10 + Later**. It does
 > **not** sub-divide Phase 2 into P2.0–P2.7 — that decomposition is a
@@ -22,7 +38,7 @@ skip a main phase.
 |---|---|---|---|
 | **0** | Entitlement + embedding seam + rate limits + filename fix | ✅ **DONE** | PR **#10**, merge `043b22e` |
 | **1** | Reframe to student product | ✅ **DONE** | PR **#11**, merge `c3cdbe0` |
-| **2** | Consumer UI redesign (web, mobile-first) | ✅ **CODE-COMPLETE** (pending merge) | draft PR **#12** (`feat/phase-2-ui-redesign`); P2.0–P2.7 all done — awaiting the Phase 2 merge decision |
+| **2** | Consumer UI redesign (web, mobile-first) | ✅ **DONE** | PR **#12** (`feat/phase-2-ui-redesign`); P2.0–P2.7 all done, visually verified on `/ar` (RTL + mobile), merged to `main` → production `tryknowflow.com` rebuilds on the light redesign |
 | **3** | Summaries (per-document) | ⬜ NOT STARTED | — |
 | **4** | Quizzes | ⬜ NOT STARTED | — |
 | **5** | Streak & progress | ⬜ NOT STARTED | — |
@@ -35,7 +51,7 @@ skip a main phase.
 
 ---
 
-## 2. Active phase — Phase 2 sub-steps
+## 2. Phase 2 sub-steps (completed record)
 
 | Step | Scope | Status | Commit(s) |
 |---|---|---|---|
@@ -100,12 +116,15 @@ project memory, and per-step review debates. "Where" is the target phase/trigger
 | 17 🔎 | **Hardcoded English content bypasses `t.*`** (i18n dimension — won't localize under `/ar`). Instances: the three legal page bodies (`privacy`/`terms`/`refund`, fully hardcoded) **and** the auth left-panel tagline **"Unlock your knowledge"** (`login`/`signup`). | Content was never wired to i18n; surfaced during the P2.6 restyle (out of a presentation-only step's scope). | Later i18n gap — move these strings to `t.*`. **Suggest** a Phase 7 / pre-launch i18n pass with register #1. |
 | 18 🔎 | **Stale vocabulary + inconsistent contact domains in that hardcoded content** (copy-quality dimension). Instances: legal — "knowledge bases"/"AI agents"/"agents", `privacy@knowflow.ai` & `legal@knowflow.ai` vs the product's `tryknowflow.com` (refund uses `support@tryknowflow.com`); auth — the tagline "Unlock your **knowledge**" still uses the old "knowledge" concept renamed to **Subject/مادة** in Phase 1. | Copy issue, not presentation; out of a restyle's scope. | Later content pass — reword to student vocabulary + unify the contact domain. Fold into the same i18n/copy pass as #17. |
 | 19 🔎 | **Contact form is non-functional** (`button type="button"`, no `onSubmit`/handler) — only the `mailto:` and GitHub links work. | Never wired; the page currently *looks* interactive but isn't. | Later decision — either wire the form (endpoint/email service) or make it **honestly** mailto-only (drop the inert fields). |
-| 20 🔎 | **FALSE PERFORMANCE CLAIM on the landing hero** — "[OK] Ready in 0.4s." promises near-instant uploads, but real ingestion (MarkItDown → chunk → Voyage embed) is **synchronous and multi-second**. **Honesty / over-promise bucket** — same family as "Unlimited" and page-citations, NOT a localization gap: it misleads the student about a real capability. (The string is also hardcoded English per #17, but that's incidental — the priority defect is the false claim.) | Content over-promise on the primary converting page; out of a restyle's scope (preserved verbatim in P2.6b). | **First content pass** — reword/remove the specific time so the claim is true. Treat as an honesty fix, not i18n. |
+| 20 🔎 | **FALSE PERFORMANCE CLAIM on the landing hero** — "[OK] Ready in 0.4s." promises near-instant uploads, but real ingestion (MarkItDown → chunk → Voyage embed) is **synchronous and multi-second**. **Honesty / over-promise bucket** — same family as "Unlimited" and page-citations, NOT a localization gap: it misleads the student about a real capability. (The string is also hardcoded English per #17, but that's incidental — the priority defect is the false claim.) **Still live on the merged landing page — knowingly shipped to production; not a Phase 2 blocker.** | Content over-promise on the primary converting page; out of a restyle's scope (preserved verbatim in P2.6b). | **First content pass** — reword/remove the specific time so the claim is true. Treat as an honesty fix, not i18n. |
+| 21 ✅ **RESOLVED** | ~~**Supabase project migration to a new free account**~~ — the live DB became unreachable after the project **auto-paused** (free-tier idle) and the owning account hit Supabase's free **active-project limit** (enforced per Owner across every org they own). | **Was actively blocking; cleared 2026-07-04.** | **Resolved without migration:** the project was transferred into a **new organization** under a second real account and the old account's membership was removed from that org, clearing the limit so the project could resume. **URL + API keys unchanged → no re-embedding, rebuild, or env/code change; verified by login.** The [`supabase-migration-runbook.md`](./supabase-migration-runbook.md) plan (export → recreate → key-swap → delete) was **not needed** and is now **superseded** — no old project was deleted. Phase 2's paused Arabic/RTL verification can resume. **Standing footprint is now register #22.** |
+| 22 🚀 **PRE-LAUNCH (launch-blocker decision)** | **Supabase free tier is not a production foundation.** Per Supabase's own docs a free project is capped at **500 MB database**, **5 GB egress/month**, **auto-pauses after ~1 week idle**, and is subject to the **active-project limit enforced per Owner across all their organizations**. KnowFlow currently runs on free tier across a **multi-account** setup that stays within Supabase's Acceptable Use Policy (real emails, ≤2 active projects per account, not an "excessive" number of accounts) — fine for development, **not a stable launch foundation.** | Cost/architecture choice that belongs at launch time, not now. **Do not act on this during development.** | **Before public launch, decide a stable, policy-compliant backend:** either a **paid Supabase plan** (a founder budget call at launch) **or migrate to another free-tier-capable Postgres host** (a larger engineering task). **Standing operational reality until then:** a free KnowFlow project **keeps auto-pausing when idle** during development, and the founder **resumes it manually.** Flagged here so it can't be forgotten at ship time. |
 
 **Founder-owned open items (PIVOT_PLAN §10) — not engineering-blocked, tracked for launch:**
-Next.js hosting decision (Vercel Pro vs self-host, ~Phase 7/10) · AdMob account
-verification/payout (before Phase 9) · final free-tier limit numbers (set Phase
-0/1, tune with real usage).
+Next.js hosting decision (Vercel Pro vs self-host, ~Phase 7/10) · **Supabase backend
+plan — paid vs. free-tier-capable-host migration (pre-launch; see register #22)** ·
+AdMob account verification/payout (before Phase 9) · final free-tier limit numbers
+(set Phase 0/1, tune with real usage).
 
 ---
 
