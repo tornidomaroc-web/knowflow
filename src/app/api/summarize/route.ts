@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     if (doc.summary) {
       return NextResponse.json({
         summary: doc.summary,
-        is_partial: doc.summary_is_partial,
+        is_partial: doc.summary_is_partial ?? false,
         generated_at: doc.summary_generated_at,
         model: doc.summary_model,
         cached: true,
