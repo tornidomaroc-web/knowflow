@@ -5,9 +5,9 @@ commit history + [`PIVOT_PLAN.md`](./PIVOT_PLAN.md) + project memory. Update thi
 file at the **end of every step** so we never jump ahead on a deferred item or
 skip a main phase.
 
-- **Last updated:** 2026-07-04 (**Phase 2 COMPLETE** — all P2.0–P2.7 done, visually verified on `/ar` (RTL + mobile), merged to `main` via PR #12. The light "Calm Focus" redesign now ships to production `tryknowflow.com` on Vercel's rebuild. Also carries the earlier Supabase blocker resolution — register **#21** RESOLVED + pre-launch **#22**).
-- **Active branch:** none — Phase 2 merged and `feat/phase-2-ui-redesign` deleted; next work (Phase 3, Summaries) starts a fresh branch.
-- **Main tip:** **PR #12** merge (Phase 2 — consumer UI redesign, light Calm-Focus) on `main`. Prior tip: `ed36a3b` (PR #14, Supabase runbook + blocker log).
+- **Last updated:** 2026-07-05 (**Live-DB reconciliation** — audited the live Supabase project against the repo migrations before P3.1 and found it **far behind**: `usage_counters` + `increment_usage()` and several objects had never actually been applied, so the Phase-0 rate limits were **NOT live**. Reconciled via a consolidated idempotent script; live DB now matches the repo. New register **#23** + lesson recorded; B7 noted as now-genuinely-live. Phase 3 is in progress — P3.0 (schema + types) merged-to-branch, PR **#16** draft.).
+- **Active branch:** `feat/phase-3-summaries` (Phase 3, Summaries) — P3.0 committed (`04d1901`), PR **#16** open as **draft**; P3.1 (summary route + rate-limit wiring) next. This `docs/live-db-reconciliation` branch is a docs-only side-step merged ahead of P3.1.
+- **Main tip:** **PR #12** merge (Phase 2 — consumer UI redesign, light Calm-Focus) on `main`; this docs PR lands on top. Prior tip: `ed36a3b` (PR #14, Supabase runbook + blocker log).
 
 > ✅ **RESOLVED 2026-07-04 — Supabase project back online (register #21).** The
 > project **auto-paused** (free-tier inactivity) and then hit Supabase's free
@@ -39,7 +39,7 @@ skip a main phase.
 | **0** | Entitlement + embedding seam + rate limits + filename fix | ✅ **DONE** | PR **#10**, merge `043b22e` |
 | **1** | Reframe to student product | ✅ **DONE** | PR **#11**, merge `c3cdbe0` |
 | **2** | Consumer UI redesign (web, mobile-first) | ✅ **DONE** | PR **#12** (`feat/phase-2-ui-redesign`); P2.0–P2.7 all done, visually verified on `/ar` (RTL + mobile), merged to `main` → production `tryknowflow.com` rebuilds on the light redesign |
-| **3** | Summaries (per-document) | ⬜ NOT STARTED | — |
+| **3** | Summaries (per-document) | 🔄 **IN PROGRESS** | P3.0 done (`04d1901`, schema + types); PR **#16** (draft, `feat/phase-3-summaries`). P3.1 (summary route + rate-limit wiring) next |
 | **4** | Quizzes | ⬜ NOT STARTED | — |
 | **5** | Streak & progress | ⬜ NOT STARTED | — |
 | **6** | Flashcards + spaced repetition (SM-2) | ⬜ NOT STARTED | — |
@@ -85,7 +85,7 @@ canvas bridges remaining; PR #12 reviewed and merged to `main`.
 | B5a | Upload extension/MIME allowlist | Phase 0 | ✅ done (`ca34b45`); accept/hint/allowlist re-aligned in P1.2b/P2.3 |
 | B5b | Deep upload content hardening (magic-byte, bomb limits, scanning) | **Phase 7** | ⬜ not started (gates Phase 8) |
 | B6 | Synchronous ingestion (holds HTTP connection) | **Phase 7** | ⬜ not started (gates Phase 8) |
-| B7 | No rate limiting (cost abuse) | Phase 0 | ✅ done (`9c3b7ba`) |
+| B7 | No rate limiting (cost abuse) | Phase 0 | ✅ done (`9c3b7ba`) — ⚠️ **code shipped Phase 0 but was NOT actually live** until the live-DB reconciliation on 2026-07-05 (`usage_counters`/`increment_usage` had never been applied, so `enforceLimit` failed closed). **Now genuinely active** (real 429s at caps) — see register **#23** |
 
 ---
 
@@ -120,6 +120,8 @@ project memory, and per-step review debates. "Where" is the target phase/trigger
 | 21 ✅ **RESOLVED** | ~~**Supabase project migration to a new free account**~~ — the live DB became unreachable after the project **auto-paused** (free-tier idle) and the owning account hit Supabase's free **active-project limit** (enforced per Owner across every org they own). | **Was actively blocking; cleared 2026-07-04.** | **Resolved without migration:** the project was transferred into a **new organization** under a second real account and the old account's membership was removed from that org, clearing the limit so the project could resume. **URL + API keys unchanged → no re-embedding, rebuild, or env/code change; verified by login.** The [`supabase-migration-runbook.md`](./supabase-migration-runbook.md) plan (export → recreate → key-swap → delete) was **not needed** and is now **superseded** — no old project was deleted. Phase 2's paused Arabic/RTL verification can resume. **Standing footprint is now register #22.** |
 | 22 🚀 **PRE-LAUNCH (launch-blocker decision)** | **Supabase free tier is not a production foundation.** Per Supabase's own docs a free project is capped at **500 MB database**, **5 GB egress/month**, **auto-pauses after ~1 week idle**, and is subject to the **active-project limit enforced per Owner across all their organizations**. KnowFlow currently runs on free tier across a **multi-account** setup that stays within Supabase's Acceptable Use Policy (real emails, ≤2 active projects per account, not an "excessive" number of accounts) — fine for development, **not a stable launch foundation.** | Cost/architecture choice that belongs at launch time, not now. **Do not act on this during development.** | **Before public launch, decide a stable, policy-compliant backend:** either a **paid Supabase plan** (a founder budget call at launch) **or migrate to another free-tier-capable Postgres host** (a larger engineering task). **Standing operational reality until then:** a free KnowFlow project **keeps auto-pausing when idle** during development, and the founder **resumes it manually.** Flagged here so it can't be forgotten at ship time. |
 
+| 23 ✅ **RESOLVED 2026-07-05** | **The live Supabase DB was far behind the repo migrations — the Phase-0 rate limits were never actually live.** A pre-P3.1 audit of the live project against `supabase/migrations/` (via `information_schema`) found only **8 tables**, with **`usage_counters` + `increment_usage()` and several other objects never applied**. Because `enforceLimit` **fails CLOSED** when `increment_usage` errors (`rate-limit.ts` — deny rather than risk uncapped cost), the missing counter infra meant the rate-limited paths (`/api/agent` Ask, `/api/ingest` Upload) were **failing closed / the Phase-0 budget caps were inert** — a written migration file had been treated as an applied one. | **Was silently defeating Phase-0 (B7); cleared 2026-07-05.** | **Reconciled** by running a **consolidated, idempotent** script (additive `add column if not exists` / `create or replace`, plus the destructive-but-safe drop/recreate of drifted objects, flagged as such before running) in the Supabase SQL editor — completed *"Success, no rows returned"*. **Verified via `information_schema`:** tables now number **9** with `usage_counters` present, and `documents` carries all four P3.0 summary columns (`summary`, `summary_generated_at`, `summary_is_partial`, `summary_model`). **Live DB now matches the repo migrations.** **Effect:** Phase-0 budget protection (B7) is now **genuinely active** — real **429s at the caps** — where it was previously inert, and Ask/Upload work again instead of failing closed. **Lesson (now a standing rule — see §5): after any migration, VERIFY the live DB matches the repo (`information_schema`) — never treat a written migration file as an applied one.** Related: the org move in #21 and the pre-launch backend decision in #22. |
+
 **Founder-owned open items (PIVOT_PLAN §10) — not engineering-blocked, tracked for launch:**
 Next.js hosting decision (Vercel Pro vs self-host, ~Phase 7/10) · **Supabase backend
 plan — paid vs. free-tier-capable-host migration (pre-launch; see register #22)** ·
@@ -148,6 +150,10 @@ AdMob account verification/payout (before Phase 9) · final free-tier limit numb
 - **Presentation-only means locale-diff-clean & logic-verbatim** — restyle without
   touching engine wiring; prove preservation (diff/grep), don't assert it.
 - **Verify payment/security facts in code, not from memory** before asserting them.
+- **A migration file is a plan, not a fact.** After any migration, **verify the
+  live DB matches the repo** (`information_schema`) — never treat a written
+  migration file as an applied one (see register #23: the Phase-0 rate limits sat
+  inert because `usage_counters`/`increment_usage` were never actually applied).
 
 ---
 
