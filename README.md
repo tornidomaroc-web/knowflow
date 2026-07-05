@@ -54,3 +54,11 @@ SUPABASE_ANON_KEY=
 ## Built by
 
 [AboJad](https://github.com/tornidomaroc-web) — Full Stack AI Engineer, Marrakesh 🇲🇦 
+
+## Secrets & API keys
+
+**Standing rule:** one named API key per project per environment, living in exactly one location, never copied between projects. Give each environment its own distinctly named key (e.g. `knowflow-dev`, `knowflow-prod`) so rotating means replacing a single copy with none left to go stale. The recurring Anthropic key "exposures" across these repos were one key hand-copied between consumers, not a leak.
+
+- Local secrets live only in `.env.local` / `.env` (gitignored), never in a committed file.
+- Deployed secrets live only in the host env store (Vercel / Railway / etc.).
+- A pre-commit secrets scan (`scripts/secrets_scan.py`) blocks accidental commits; install it once per clone with `powershell -ExecutionPolicy Bypass -File scripts/install_hooks.ps1`.
