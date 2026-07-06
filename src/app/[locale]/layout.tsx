@@ -23,7 +23,7 @@ export async function generateMetadata({
   if (!locales.includes(locale as Locale)) return {};
 
   const t = useTranslation(locale as Locale);
-  const title = `${SITE_NAME} — ${t.hero.title}`;
+  const title = `${SITE_NAME} · ${t.hero.title}`;
   const description = t.hero.subtitle;
   const url = `${SITE_URL}/${locale}`;
 
