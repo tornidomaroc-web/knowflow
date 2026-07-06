@@ -87,7 +87,7 @@ export function StudentHome({
             </div>
             <p className="mt-3">
               {streak === null ? (
-                <span className="text-4xl font-semibold text-muted-foreground">—</span>
+                <span className="text-4xl font-semibold text-muted-foreground">-</span>
               ) : (
                 <>
                   <span className="text-4xl font-semibold text-foreground">{streak}</span>
