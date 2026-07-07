@@ -20,6 +20,23 @@ const MIN_CONTENT_CHARS = 200;
 
 const MAX_SUMMARY_TOKENS = 1024;
 
+// Belt-and-suspenders plain-text safety net. The summary is rendered as literal
+// text (whitespace-pre-wrap, no Markdown renderer) and is permanent once stored
+// (generate-once, no regenerate; register #26), so a single stray marker would
+// stick forever. We therefore strip only UNAMBIGUOUS Markdown before persisting
+// and deliberately leave real content untouched:
+//   - **bold**/__bold__ -> inner text (paired markers only; a lone `*` is kept,
+//     and `__` is word-boundary guarded so snake_case like my__var__x survives)
+//   - a leading "# ".."###### " heading marker at the start of a line -> removed
+//     (requires whitespace after the hashes, so "C#" and "#1" are NOT touched)
+function stripStrayMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/(?<!\w)__(.+?)__(?!\w)/g, '$1')
+    .replace(/^[ \t]*#{1,6}[ \t]+/gm, '')
+    .trim();
+}
+
 // Fabrication safeguard (prompt layer): a strict, source-tying instruction. The
 // user turn wraps the source in a <document> block and this system prompt binds
 // the model to it, prefers brevity over padding, and gives an explicit
@@ -29,17 +46,23 @@ const SYSTEM_INSTRUCTIONS = `You are KnowFlow's study-summary writer. You write 
 Rules:
 - Summarize ONLY what is inside the <document> block in the user message. It is your sole source of truth.
 - Never add facts, examples, numbers, or conclusions that are not in the document. If it is not in the document, it does not go in the summary.
-- Write in the same language as the document (Arabic or English).
+- Write your summary in the language specified in the user message below, regardless of the document's own language.
+- Output PLAIN TEXT only. Do NOT use any Markdown formatting: no ** for bold, no * for italics, no # headings, no backticks, and no bullet characters. Write in plain sentences and paragraphs.
 - Prefer brevity. Cover the document's actual key points and then stop — do NOT pad to a target length. A short document gets a short summary.
 - If the document is too thin or has no real content to summarize, say that plainly in one sentence instead of inventing material.
 - Output the summary text only — no preamble such as "Here is a summary".`;
 
 export async function POST(request: Request) {
   try {
-    const { document_id } = await request.json();
+    const { document_id, locale } = await request.json();
     if (!document_id || typeof document_id !== 'string') {
       return NextResponse.json({ error: 'Missing document_id' }, { status: 400 });
     }
+    // Fail-closed whitelist: the summary follows the APP UI language, never the
+    // document's language. Any value other than 'ar' collapses to 'en' so a raw
+    // client string can never reach the prompt. (Only the concrete directive
+    // built from `lang` is interpolated, never `locale` itself.)
+    const lang = locale === 'ar' ? 'ar' : 'en';
 
     const supabase = await createClient();
     const {
@@ -116,7 +139,17 @@ export async function POST(request: Request) {
       ? '\n\nNote: this is only the FIRST PART of a longer document. Summarize just the part provided below; do not guess at the rest.'
       : '';
 
-    const userTurn = `Summarize the following study document.${partialNote}\n\n<document>\n${sourceText}\n</document>`;
+    // Concrete language directive (dynamic, per request) so the cached system
+    // block stays constant and does not fork per locale. Placed BEFORE the
+    // <document> block as a standalone instruction sentence, so the model never
+    // mistakes it for content to summarize. It also explicitly covers the
+    // cross-language case (e.g. Arabic UI over an English document).
+    const langDirective =
+      lang === 'ar'
+        ? 'Write the summary in Arabic (العربية), even if the document itself is written in another language such as English. Translate the meaning faithfully into Arabic; do not leave sentences in the source language.'
+        : 'Write the summary in English, even if the document itself is written in another language such as Arabic. Translate the meaning faithfully into English; do not leave sentences in the source language.';
+
+    const userTurn = `${langDirective}\n\nSummarize the following study document.${partialNote}\n\n<document>\n${sourceText}\n</document>`;
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
 
@@ -145,6 +178,11 @@ export async function POST(request: Request) {
         { status: 502 }
       );
     }
+
+    // Runs once, on the value that gets stored (permanent). If stripping leaves
+    // nothing, the empty-response guard below fires the same 502 as an empty
+    // model reply, which is the correct fail-safe (never persist a blank).
+    summaryText = stripStrayMarkdown(summaryText);
 
     if (!summaryText) {
       // Empty model output — do not persist an empty summary (that would poison

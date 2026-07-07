@@ -36,7 +36,7 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
       const res = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ document_id: doc.id }),
+        body: JSON.stringify({ document_id: doc.id, locale: safeLocale }),
       });
 
       if (!res.ok) {
