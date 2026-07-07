@@ -13,16 +13,21 @@
 import { getEntitlement } from '@/lib/entitlement';
 import { createClient } from '@/lib/supabase/server';
 
-export type UsageKind = 'query' | 'upload';
+export type UsageKind = 'query' | 'upload' | 'summary';
 
 /**
  * Daily caps per tier. Pro is high but FINITE on purpose — we never allow
  * unbounded inference/ingestion cost, even for paying users (same principle as
  * PRO_LIMITS in limits.ts). Tunable with real usage.
+ *
+ * `summary` is a DEDICATED counter (its own column, its own cap): a summary sends
+ * the whole document to Claude, so it must be bounded independently of the query
+ * cap and must never drain a user's question quota (see Phase 3 in
+ * docs/PROGRESS.md). Free is deliberately low because each summary is expensive.
  */
 const DAILY_CAPS: Record<'free' | 'pro', Record<UsageKind, number>> = {
-  free: { query: 30, upload: 5 },
-  pro: { query: 2000, upload: 500 },
+  free: { query: 30, upload: 5, summary: 5 },
+  pro: { query: 2000, upload: 500, summary: 100 },
 };
 
 /**
@@ -91,7 +96,8 @@ export async function enforceLimit(
   }
 
   if (data > cap) {
-    const noun = kind === 'query' ? 'questions' : 'uploads';
+    const noun =
+      kind === 'query' ? 'questions' : kind === 'upload' ? 'uploads' : 'summaries';
     const tail =
       tier === 'pro'
         ? 'Please try again tomorrow.'

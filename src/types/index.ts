@@ -24,6 +24,14 @@ export interface Document {
   markdown_content: string | null;
   chunk_count: number;
   created_at: string;
+  // Phase 3 (per-document summaries) — generated on demand from markdown_content
+  // and stored (generate-once). `summary` null = not generated yet.
+  // `summary_is_partial` is true only when the source exceeded the model input cap
+  // and the summary honestly covers just the first part (never a silent truncation).
+  summary: string | null;
+  summary_generated_at: string | null;
+  summary_model: string | null;
+  summary_is_partial: boolean;
 }
 
 export interface Conversation {

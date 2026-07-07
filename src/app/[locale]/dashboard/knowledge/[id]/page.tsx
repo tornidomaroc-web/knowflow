@@ -3,16 +3,9 @@ import React from 'react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { DropZone } from '@/components/upload/DropZone'
+import { SummarySection } from '@/components/summary/SummarySection'
+import type { Document } from '@/types'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
-
-interface Document {
-  id: string
-  filename: string
-  file_type: string
-  status: string
-  chunk_count: number
-  created_at: string
-}
 
 interface KB {
   id: string
@@ -76,16 +69,19 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
           ) : (
             <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface shadow-soft">
               {docs.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between gap-4 p-4">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">{doc.filename}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {doc.file_type?.toUpperCase()} · {doc.chunk_count} {t.dashboard.kbDetail.chunks}
-                    </p>
+                <div key={doc.id} className="p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">{doc.filename}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {doc.file_type?.toUpperCase()} · {doc.chunk_count} {t.dashboard.kbDetail.chunks}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 text-xs font-medium uppercase tracking-wide ${statusColor(doc.status)}`}>
+                      {doc.status}
+                    </span>
                   </div>
-                  <span className={`shrink-0 text-xs font-medium uppercase tracking-wide ${statusColor(doc.status)}`}>
-                    {doc.status}
-                  </span>
+                  <SummarySection doc={doc} />
                 </div>
               ))}
             </div>
