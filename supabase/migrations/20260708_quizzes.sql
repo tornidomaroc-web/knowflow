@@ -21,12 +21,18 @@
 --    two hops up (quiz.document_id → documents.kb_id → knowledge_bases.user_id),
 --    mirroring the indirect-ownership shape of the documents/messages policies in
 --    001_initial_schema.sql.
+--
+--    UNIQUE (document_id) enforces generate-once at the DB level (register #26,
+--    consistent with the summary decision and the cost-ceiling rule): a second
+--    generation attempt for the same document cannot insert a duplicate row, so
+--    the P4.1 route returns the cached quiz instead of paying for another one.
 create table quizzes (
   id uuid primary key default gen_random_uuid(),
   document_id uuid references documents(id) on delete cascade not null,
   generated_at timestamptz,
   model text,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  constraint quizzes_document_id_unique unique (document_id)
 );
 
 alter table quizzes enable row level security;
@@ -49,14 +55,38 @@ create policy "Users can manage own quizzes" on quizzes for all using (
 --    Ownership is resolved three hops up (quiz_item.quiz_id → quizzes.document_id
 --    → documents.kb_id → knowledge_bases.user_id), the same indirect-ownership
 --    pattern one level deeper than quizzes.
+--
+--    Integrity CHECKs (RLS guards ownership, not validity — these guard validity):
+--      * options_is_nonempty_array — `options` must be a non-empty JSON array, so
+--        a question can never have zero (or non-array) choices.
+--      * correct_index_in_range — `correct_index` must point at a real choice
+--        (0-based, strictly inside the array), so a stored answer can never index
+--        outside its own options. Depends on options being an array; see the note
+--        below the table on cross-constraint evaluation order.
+--      * position_non_negative — `position` is a 0-based order key.
 create table quiz_items (
   id uuid primary key default gen_random_uuid(),
   quiz_id uuid references quizzes(id) on delete cascade not null,
   question text not null,
   options jsonb not null,
   correct_index int not null,
-  position int not null
+  position int not null,
+  constraint options_is_nonempty_array
+    check (jsonb_typeof(options) = 'array' and jsonb_array_length(options) > 0),
+  constraint correct_index_in_range
+    check (correct_index >= 0 and correct_index < jsonb_array_length(options)),
+  constraint position_non_negative
+    check (position >= 0)
 );
+
+-- Note on evaluation order: `correct_index_in_range` calls jsonb_array_length(),
+-- which raises if `options` is not an array. Postgres does not guarantee an
+-- ordering between separate CHECK constraints, so a malformed non-array `options`
+-- may be rejected by a runtime type error from this constraint rather than a clean
+-- violation of `options_is_nonempty_array`. Either way the bad row is REJECTED —
+-- the data guarantee holds; only the error message differs in that edge case
+-- (which P4.1 generation should never produce). Left as two constraints for
+-- readability, matching the exact predicates specified for P4.0.
 
 alter table quiz_items enable row level security;
 create policy "Users can manage own quiz_items" on quiz_items for all using (
