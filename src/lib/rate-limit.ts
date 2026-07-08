@@ -32,6 +32,20 @@ const DAILY_CAPS: Record<'free' | 'pro', Record<UsageKind, number>> = {
 };
 
 /**
+ * User-facing plural noun per usage kind, for the daily-limit denial message.
+ * Typed `Record<UsageKind, string>` on purpose: a future UsageKind added without
+ * a noun here is a COMPILE error, not a silent mislabel — the same exhaustiveness
+ * guarantee DAILY_CAPS has. (Replaces a ternary chain whose terminal else would
+ * have silently labelled any new kind as the last arm.)
+ */
+const KIND_NOUN: Record<UsageKind, string> = {
+  query: 'questions',
+  upload: 'uploads',
+  summary: 'summaries',
+  quiz: 'quizzes',
+};
+
+/**
  * Burst guard: minimum spacing between a user's queries. Best-effort and
  * per-instance (module memory) — it is NOT durable across serverless instances
  * or cold starts. That is fine: its only job is to defang a runaway loop
@@ -97,14 +111,7 @@ export async function enforceLimit(
   }
 
   if (data > cap) {
-    const noun =
-      kind === 'query'
-        ? 'questions'
-        : kind === 'upload'
-          ? 'uploads'
-          : kind === 'summary'
-            ? 'summaries'
-            : 'quizzes';
+    const noun = KIND_NOUN[kind];
     const tail =
       tier === 'pro'
         ? 'Please try again tomorrow.'
