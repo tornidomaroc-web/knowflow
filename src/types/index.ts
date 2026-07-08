@@ -46,6 +46,11 @@ export interface Quiz {
   generated_at: string | null;
   model: string | null;
   created_at: string;
+  // Phase 4 (P4.1 follow-up) — true when the quiz was generated from only the
+  // first INPUT_CHAR_CAP chars of a long document (never a silent truncation).
+  // Persisted so a cached read reports it truthfully. Column added by
+  // 20260708_quizzes_is_partial.sql.
+  is_partial: boolean;
 }
 
 /**

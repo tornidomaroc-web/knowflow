@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { enforceLimit } from '@/lib/rate-limit';
-import type { ClientQuizItem } from '@/types';
+import type { ClientQuizItem, Quiz } from '@/types';
 
 // Same cheap tier as /api/summarize and /api/agent — a quiz is a single, bounded
 // Haiku call. Identical model string to summarize's SUMMARY_MODEL on purpose.
@@ -117,7 +117,7 @@ function validateItems(parsed: unknown): ValidItem[] | null {
 // is the row (or null when none exists) and `items` are its client-safe items.
 interface QuizFetchResult {
   error: boolean;
-  quiz?: Record<string, unknown> | null;
+  quiz?: Quiz | null;
   items?: ClientQuizItem[];
 }
 
@@ -130,7 +130,7 @@ async function fetchClientQuiz(
 ): Promise<QuizFetchResult> {
   const { data: quiz, error: quizErr } = await supabase
     .from('quizzes')
-    .select('id, document_id, generated_at, model, created_at')
+    .select('id, document_id, generated_at, model, created_at, is_partial')
     .eq('document_id', documentId)
     .maybeSingle();
 
@@ -200,9 +200,9 @@ export async function POST(request: Request) {
       return NextResponse.json({
         quiz: cached.quiz,
         items: cached.items,
-        // is_partial is NOT persisted (no column on `quizzes`, P4.0 schema) — a
-        // cache hit cannot recover it, so we report false. See PR risk note.
-        is_partial: false,
+        // Real persisted value (register #29 sibling honesty fix): a cached quiz
+        // now reports whether it was generated from only the first part.
+        is_partial: cached.quiz.is_partial,
         generated_at: cached.quiz.generated_at,
         model: cached.quiz.model,
         cached: true,
@@ -314,8 +314,8 @@ export async function POST(request: Request) {
     const generatedAt = new Date().toISOString();
     const { data: quizRow, error: quizErr } = await supabase
       .from('quizzes')
-      .insert({ document_id, generated_at: generatedAt, model: QUIZ_MODEL })
-      .select('id, document_id, generated_at, model, created_at')
+      .insert({ document_id, generated_at: generatedAt, model: QUIZ_MODEL, is_partial: isPartial })
+      .select('id, document_id, generated_at, model, created_at, is_partial')
       .single();
 
     if (quizErr) {
@@ -325,7 +325,7 @@ export async function POST(request: Request) {
           return NextResponse.json({
             quiz: raced.quiz,
             items: raced.items,
-            is_partial: false,
+            is_partial: raced.quiz.is_partial,
             generated_at: raced.quiz.generated_at,
             model: raced.quiz.model,
             cached: true,
