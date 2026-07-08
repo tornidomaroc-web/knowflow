@@ -13,21 +13,36 @@
 import { getEntitlement } from '@/lib/entitlement';
 import { createClient } from '@/lib/supabase/server';
 
-export type UsageKind = 'query' | 'upload' | 'summary';
+export type UsageKind = 'query' | 'upload' | 'summary' | 'quiz';
 
 /**
  * Daily caps per tier. Pro is high but FINITE on purpose — we never allow
  * unbounded inference/ingestion cost, even for paying users (same principle as
  * PRO_LIMITS in limits.ts). Tunable with real usage.
  *
- * `summary` is a DEDICATED counter (its own column, its own cap): a summary sends
- * the whole document to Claude, so it must be bounded independently of the query
- * cap and must never drain a user's question quota (see Phase 3 in
- * docs/PROGRESS.md). Free is deliberately low because each summary is expensive.
+ * `summary` and `quiz` are each a DEDICATED counter (own column, own cap): both
+ * send a whole document to Claude, so they must be bounded independently of the
+ * query cap and of each other, and must never drain a user's question quota (see
+ * Phase 3 / Phase 4 in docs/PROGRESS.md). Free is deliberately low because each is
+ * expensive; `quiz` mirrors `summary`.
  */
 const DAILY_CAPS: Record<'free' | 'pro', Record<UsageKind, number>> = {
-  free: { query: 30, upload: 5, summary: 5 },
-  pro: { query: 2000, upload: 500, summary: 100 },
+  free: { query: 30, upload: 5, summary: 5, quiz: 5 },
+  pro: { query: 2000, upload: 500, summary: 100, quiz: 100 },
+};
+
+/**
+ * User-facing plural noun per usage kind, for the daily-limit denial message.
+ * Typed `Record<UsageKind, string>` on purpose: a future UsageKind added without
+ * a noun here is a COMPILE error, not a silent mislabel — the same exhaustiveness
+ * guarantee DAILY_CAPS has. (Replaces a ternary chain whose terminal else would
+ * have silently labelled any new kind as the last arm.)
+ */
+const KIND_NOUN: Record<UsageKind, string> = {
+  query: 'questions',
+  upload: 'uploads',
+  summary: 'summaries',
+  quiz: 'quizzes',
 };
 
 /**
@@ -96,8 +111,7 @@ export async function enforceLimit(
   }
 
   if (data > cap) {
-    const noun =
-      kind === 'query' ? 'questions' : kind === 'upload' ? 'uploads' : 'summaries';
+    const noun = KIND_NOUN[kind];
     const tail =
       tier === 'pro'
         ? 'Please try again tomorrow.'

@@ -34,6 +34,45 @@ export interface Document {
   summary_is_partial: boolean;
 }
 
+/**
+ * Phase 4 (P4.0) — document-scoped, server-graded multiple-choice quizzes.
+ * One quiz is generated once per document (generate-once, read-many, like the
+ * Phase 3 summary). `generated_at`/`model` are null until a generation run
+ * (P4.1) fills them.
+ */
+export interface Quiz {
+  id: string;
+  document_id: string;
+  generated_at: string | null;
+  model: string | null;
+  created_at: string;
+}
+
+/**
+ * A quiz question as stored on the SERVER. `correct_index` is the 0-based index
+ * into `options` of the correct choice.
+ *
+ * SECURITY: `correct_index` is server-only. It must NEVER be sent to the client
+ * — grading happens server-side (P4.2). Use `ClientQuizItem` for anything that
+ * crosses the wire; it structurally omits `correct_index` so a leak is a type
+ * error, not just a convention.
+ */
+export interface QuizItem {
+  id: string;
+  quiz_id: string;
+  question: string;
+  options: string[];
+  correct_index: number;
+  position: number;
+}
+
+/**
+ * The ONLY quiz-item shape allowed in a client payload: everything except the
+ * answer. Deriving it with `Omit` keeps it locked to `QuizItem` — adding a field
+ * to the server type without deciding its client exposure fails loudly here.
+ */
+export type ClientQuizItem = Omit<QuizItem, 'correct_index'>;
+
 export interface Conversation {
   id: string;
   kb_id: string;
