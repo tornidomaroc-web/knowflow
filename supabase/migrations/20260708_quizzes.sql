@@ -57,13 +57,19 @@ create policy "Users can manage own quizzes" on quizzes for all using (
 --    pattern one level deeper than quizzes.
 --
 --    Integrity CHECKs (RLS guards ownership, not validity — these guard validity):
---      * options_is_nonempty_array — `options` must be a non-empty JSON array, so
---        a question can never have zero (or non-array) choices.
---      * correct_index_in_range — `correct_index` must point at a real choice
---        (0-based, strictly inside the array), so a stored answer can never index
---        outside its own options. Depends on options being an array; see the note
---        below the table on cross-constraint evaluation order.
+--      * quiz_item_valid — `options` must be a non-empty JSON array AND
+--        `correct_index` must point at a real choice inside it (0-based, strictly
+--        in range), so a stored answer can never index outside its own options.
 --      * position_non_negative — `position` is a 0-based order key.
+--
+--    quiz_item_valid uses CASE, NOT a flat AND chain, to force evaluation order.
+--    jsonb_array_length() raises on a non-array, and Postgres does NOT guarantee
+--    left-to-right short-circuit of AND (manual §4.2.14 — the same reason its
+--    division-by-zero example must use CASE, not `x > 0 AND y/x > 1.5`). The CASE
+--    guard is the type check ALONE (no length call in WHEN); only when `options`
+--    is proven an array does the THEN branch call jsonb_array_length(). Result: a
+--    malformed non-array `options` yields a clean quiz_item_valid violation, never
+--    a runtime jsonb type error.
 create table quiz_items (
   id uuid primary key default gen_random_uuid(),
   quiz_id uuid references quizzes(id) on delete cascade not null,
@@ -71,22 +77,17 @@ create table quiz_items (
   options jsonb not null,
   correct_index int not null,
   position int not null,
-  constraint options_is_nonempty_array
-    check (jsonb_typeof(options) = 'array' and jsonb_array_length(options) > 0),
-  constraint correct_index_in_range
-    check (correct_index >= 0 and correct_index < jsonb_array_length(options)),
+  constraint quiz_item_valid check (
+    case when jsonb_typeof(options) = 'array'
+         then jsonb_array_length(options) > 0
+              and correct_index >= 0
+              and correct_index < jsonb_array_length(options)
+         else false
+    end
+  ),
   constraint position_non_negative
     check (position >= 0)
 );
-
--- Note on evaluation order: `correct_index_in_range` calls jsonb_array_length(),
--- which raises if `options` is not an array. Postgres does not guarantee an
--- ordering between separate CHECK constraints, so a malformed non-array `options`
--- may be rejected by a runtime type error from this constraint rather than a clean
--- violation of `options_is_nonempty_array`. Either way the bad row is REJECTED —
--- the data guarantee holds; only the error message differs in that edge case
--- (which P4.1 generation should never produce). Left as two constraints for
--- readability, matching the exact predicates specified for P4.0.
 
 alter table quiz_items enable row level security;
 create policy "Users can manage own quiz_items" on quiz_items for all using (
