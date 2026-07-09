@@ -19,9 +19,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // safe: a real client can never trip it.
 const MAX_ANSWERS = 200;
 
-// The internal, server-only shape of a quiz item during grading. `correct_index`
-// lives ONLY inside this type and never crosses the response boundary — see the
-// GradedResult type, which is what actually gets serialized.
+// The internal shape of a quiz item during grading. `options` and `position` stay
+// server-side; `correct_index` is copied into the graded results deliberately (see
+// GradedResult). Nothing serializes this type directly.
 interface GradingItem {
   id: string;
   position: number;
@@ -29,14 +29,19 @@ interface GradingItem {
   options: unknown;
 }
 
-// The ONLY per-item shape that may leave the server (register #29). Note what is
-// absent: no `correct_index`, no `question`, no `options`. The client already has
-// the questions and options from POST /api/quiz/generate; echoing them back would
-// be redundant, and echoing the answer key would make the quiz self-answering.
+// The per-item shape returned by GRADING (register #29). `correct_index` IS here,
+// deliberately: this is the one response in the product allowed to carry it, as
+// pedagogical feedback after an attempt. It must still never appear on
+// /api/quiz/generate or on any quiz-item read that PRECEDES grading — a quiz whose
+// answers you can see before attempting it has no value.
+//
+// `question` and `options` stay absent: the client already holds them from the
+// generate response, and re-sending them would only duplicate state.
 interface GradedResult {
   item_id: string;
   selected_index: number | null;
   is_correct: boolean;
+  correct_index: number;
 }
 
 // A submitted answer, after validation. `selected_index` is null when the student
@@ -102,10 +107,10 @@ export async function POST(request: Request) {
     }
     if (!quiz) return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
 
-    // 4. THE ONE QUERY THAT MAY READ THE ANSWER KEY (register #29). This result is
-    //    server-only: it is consumed by the grading loop below and never appears in
-    //    any response. `question` is deliberately NOT selected — grading does not
-    //    need it, and every column we do not fetch is one we cannot leak.
+    // 4. The grading fetch — the one place the answer key is read. It reaches the
+    //    client only through the graded results below, AFTER an attempt, never as
+    //    raw items. `question` is deliberately NOT selected: grading does not need
+    //    it, and every column we do not fetch is one we cannot mishandle.
     //    quiz_items RLS independently re-checks ownership three hops up.
     const { data: rawItems, error: itemsErr } = await supabase
       .from('quiz_items')
@@ -170,31 +175,47 @@ export async function POST(request: Request) {
         item_id: item.id,
         selected_index: selected,
         is_correct: inRange && selected === item.correct_index,
+        // Deliberate, decided 2026-07-09: feedback from the FIRST submission on.
+        // Withholding this bought nothing — is_correct already leaks the key in
+        // at most four submissions — while costing the student the one thing that
+        // makes a quiz worth taking. See the register and the migration header.
+        correct_index: item.correct_index,
       };
     });
 
     const score = results.filter((r) => r.is_correct).length;
+    const total = items.length;
 
-    // 8. Minimal response. No correct_index, anywhere, for any item — including
-    //    the ones answered wrong (a student must not be able to harvest the key by
-    //    answering deliberately wrong and reading it back). No is_partial /
-    //    generated_at / model: those belong to the generate response and would only
-    //    duplicate what the client already holds.
+    // 8. Record the attempt. BOOKKEEPING ONLY — nothing reads this row, and the
+    //    grade above is already final. A failure here is logged and swallowed: a
+    //    student who answered correctly must not be told their submission failed
+    //    because an INSERT did. Fail-OPEN is right precisely because this write
+    //    grants nothing and gates nothing (contrast enforceLimit, which fails
+    //    CLOSED because it guards spend).
     //
-    //    Stateless by design: nothing is persisted. There is no attempts table, and
-    //    register #28 keeps the taking layer keyed to quiz_id so one can be added
-    //    later as a pure migration.
+    //    `total > 0` is guaranteed by the zero-item guard above, satisfying the
+    //    quiz_attempt_total_positive CHECK.
+    const { error: attemptErr } = await supabase
+      .from('quiz_attempts')
+      .insert({ quiz_id: quiz.id, score, total });
+
+    if (attemptErr) {
+      console.error('quiz/submit: attempt insert failed (grade still returned)', attemptErr);
+    }
+
+    // 9. Minimal response. Carries correct_index per item (see GradedResult), but
+    //    NOT is_partial / generated_at / model — those belong to the generate
+    //    response and would only duplicate what the client already holds.
     //
     //    No enforceLimit: grading performs no Claude call and costs no credit, so
-    //    charging a quiz counter here would wrongly drain the generation cap.
-    //    (See PR notes: this leaves /submit unthrottled, which is a real gap —
-    //    the per-item is_correct flags are an answer-key oracle across repeated
-    //    submissions. Scoped to the caller's OWN quiz by RLS, so it is self-
-    //    cheating, not a cross-user vulnerability.)
+    //    charging the 'quiz' counter here would wrongly drain the GENERATION cap —
+    //    a student could exhaust their daily quota by retaking one quiz five times.
+    //    A dedicated submission throttle is the right instrument and is deferred to
+    //    its own step (see the register).
     return NextResponse.json({
       quiz_id: quiz.id,
       score,
-      total: items.length,
+      total,
       results,
     });
   } catch (error) {
