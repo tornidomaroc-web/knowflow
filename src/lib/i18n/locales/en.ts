@@ -185,6 +185,29 @@ export const en = {
         connection: "Connection failed. Check your connection and try again."
       }
     },
+    quiz: {
+      heading: "Quiz",
+      start: "Quiz me on this material",
+      starting: "Preparing your quiz…",
+      partialNotice: "This quiz covers only the first part of this long material.",
+      submit: "Check my answers",
+      submitting: "Checking…",
+      retake: "Try again",
+      score: "Your score",
+      correctAnswer: "Correct answer",
+      noAnswer: "You didn't answer this question.",
+      errors: {
+        session: "Your session expired. Please refresh the page and sign in again.",
+        notFound: "This material could not be found.",
+        processing: "This material is still processing. Wait until it's ready, then try again.",
+        notEnoughText: "There isn't enough text in this material to make a quiz.",
+        limit: "You've reached your daily quiz limit. Please try again tomorrow.",
+        badRequest: "Something went wrong with that request. Please refresh the page and try again.",
+        incomplete: "This quiz is incomplete and can't be graded.",
+        temporary: "Couldn't do that right now. Please try again shortly.",
+        connection: "Connection failed. Check your connection and try again."
+      }
+    },
     settings: {
       title: "Settings",
       account: "Account",
