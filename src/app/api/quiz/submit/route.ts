@@ -30,10 +30,16 @@ interface GradingItem {
 }
 
 // The per-item shape returned by GRADING (register #29). `correct_index` IS here,
-// deliberately: this is the one response in the product allowed to carry it, as
-// pedagogical feedback after an attempt. It must still never appear on
-// /api/quiz/generate or on any quiz-item read that PRECEDES grading — a quiz whose
-// answers you can see before attempting it has no value.
+// deliberately — but ONLY on items the student actually attempted, hence optional.
+// This is the one response in the product allowed to carry the key. It must still
+// never appear on /api/quiz/generate, nor on any quiz-item read that PRECEDES
+// grading: a quiz whose answers you can see before attempting it has no value.
+//
+// Revealing the key is the REWARD FOR AN ATTEMPT, not the gift of a request. When
+// the reveal was unconditional, `{"answers": []}` returned every correct_index for
+// zero attempts — and wrote a 0/N attempt row that a future streak feature would
+// misread as studying. Gating the reveal on a real attempt closes that, and closes
+// the same bypass dressed as an out-of-range guess (see ATTEMPTED, below).
 //
 // `question` and `options` stay absent: the client already holds them from the
 // generate response, and re-sending them would only duplicate state.
@@ -41,7 +47,7 @@ interface GradedResult {
   item_id: string;
   selected_index: number | null;
   is_correct: boolean;
-  correct_index: number;
+  correct_index?: number;
 }
 
 // A submitted answer, after validation. `selected_index` is null when the student
@@ -165,22 +171,38 @@ export async function POST(request: Request) {
     //        never visited, so it cannot affect the score.
     //    An out-of-range selected_index (>= options.length) is graded incorrect
     //    rather than rejected: the DB CHECK guarantees correct_index is in range,
-    //    so an out-of-range guess can never coincidentally equal it.
+    //    so an out-of-range guess can never coincidentally equal it. It also does
+    //    NOT count as an attempt, so it earns no answer reveal.
     const results: GradedResult[] = items.map((item) => {
       const has = submitted.has(item.id);
       const selected = has ? submitted.get(item.id) : null;
       const optionCount = Array.isArray(item.options) ? item.options.length : 0;
-      const inRange = selected !== null && selected < optionCount;
-      return {
+
+      // ATTEMPTED means the student picked a REAL option on this item: a
+      // non-negative integer that indexes inside this item's own `options`.
+      //
+      // "Not null" is NOT a sufficient test, and using it would reopen the very
+      // hole this gate exists to close. readSelectedIndex accepts any non-negative
+      // integer, so `selected_index: 99` is non-null while selecting nothing — a
+      // client could send 99 for every item and harvest the whole key in ONE
+      // request without attempting anything, exactly as `{"answers": []}` used to.
+      // Requiring an in-range choice makes the reveal cost a genuine commitment.
+      const attempted = selected !== null && selected < optionCount;
+
+      const result: GradedResult = {
         item_id: item.id,
         selected_index: selected,
-        is_correct: inRange && selected === item.correct_index,
-        // Deliberate, decided 2026-07-09: feedback from the FIRST submission on.
-        // Withholding this bought nothing — is_correct already leaks the key in
-        // at most four submissions — while costing the student the one thing that
-        // makes a quiz worth taking. See the register and the migration header.
-        correct_index: item.correct_index,
+        is_correct: attempted && selected === item.correct_index,
       };
+
+      // Reveal the key ONLY as feedback on a real attempt. Unattempted items come
+      // back { item_id, selected_index: null, is_correct: false } with no
+      // correct_index — an honest 0 that teaches nothing, which is correct: there
+      // is nothing to learn from a question you did not engage.
+      if (attempted) {
+        result.correct_index = item.correct_index;
+      }
+      return result;
     });
 
     const score = results.filter((r) => r.is_correct).length;
@@ -203,9 +225,10 @@ export async function POST(request: Request) {
       console.error('quiz/submit: attempt insert failed (grade still returned)', attemptErr);
     }
 
-    // 9. Minimal response. Carries correct_index per item (see GradedResult), but
-    //    NOT is_partial / generated_at / model — those belong to the generate
-    //    response and would only duplicate what the client already holds.
+    // 9. Minimal response. Carries correct_index ONLY on attempted items (see
+    //    GradedResult), and NOT is_partial / generated_at / model — those belong to
+    //    the generate response and would only duplicate what the client already
+    //    holds.
     //
     //    No enforceLimit: grading performs no Claude call and costs no credit, so
     //    charging the 'quiz' counter here would wrongly drain the GENERATION cap —
