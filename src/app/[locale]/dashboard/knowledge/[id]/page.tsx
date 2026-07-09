@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { DropZone } from '@/components/upload/DropZone'
 import { SummarySection } from '@/components/summary/SummarySection'
+import { QuizSection } from '@/components/quiz/QuizSection'
 import type { Document } from '@/types'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 
@@ -82,6 +83,7 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
                     </span>
                   </div>
                   <SummarySection doc={doc} />
+                  <QuizSection doc={doc} />
                 </div>
               ))}
             </div>
