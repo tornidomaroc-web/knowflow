@@ -208,33 +208,23 @@ export async function POST(request: Request) {
     const score = results.filter((r) => r.is_correct).length;
     const total = items.length;
 
-    // 8. Record the attempt. BOOKKEEPING ONLY — nothing reads this row, and the
-    //    grade above is already final. A failure here is logged and swallowed: a
-    //    student who answered correctly must not be told their submission failed
-    //    because an INSERT did. Fail-OPEN is right precisely because this write
-    //    grants nothing and gates nothing (contrast enforceLimit, which fails
-    //    CLOSED because it guards spend).
+    // 8. Grading is STATELESS — nothing is persisted. `quiz_attempts` was dropped in
+    //    P5.0 (migration 20260709_quiz_attempts_drop.sql): it cascaded through
+    //    quizzes → documents, so deleting one material erased attempts beneath it.
+    //    That is right for content-lifecycle data and exactly wrong for a streak,
+    //    which is an immutable claim about the student's past. The streak substrate
+    //    is `study_events` (PIVOT_PLAN.md §7 row 5), built in its own later step; it
+    //    must NOT be an FK to any content table. See register #33.
     //
-    //    `total > 0` is guaranteed by the zero-item guard above, satisfying the
-    //    quiz_attempt_total_positive CHECK.
-    const { error: attemptErr } = await supabase
-      .from('quiz_attempts')
-      .insert({ quiz_id: quiz.id, score, total });
-
-    if (attemptErr) {
-      console.error('quiz/submit: attempt insert failed (grade still returned)', attemptErr);
-    }
-
-    // 9. Minimal response. Carries correct_index ONLY on attempted items (see
-    //    GradedResult), and NOT is_partial / generated_at / model — those belong to
-    //    the generate response and would only duplicate what the client already
-    //    holds.
+    //    Response carries correct_index ONLY on attempted items (see GradedResult),
+    //    and NOT is_partial / generated_at / model — those belong to the generate
+    //    response and would only duplicate what the client already holds.
     //
     //    No enforceLimit: grading performs no Claude call and costs no credit, so
     //    charging the 'quiz' counter here would wrongly drain the GENERATION cap —
     //    a student could exhaust their daily quota by retaking one quiz five times.
     //    A dedicated submission throttle is the right instrument and is deferred to
-    //    its own step (see the register).
+    //    its own step (register #32).
     return NextResponse.json({
       quiz_id: quiz.id,
       score,

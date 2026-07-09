@@ -1,0 +1,59 @@
+-- Phase 5 (P5.0): drop `quiz_attempts`.
+--
+-- WHY, and why this is not a reversal of a mistake but a correction of a
+-- presumption. `quiz_attempts` (added hours earlier by 20260709_quiz_attempts.sql)
+-- was built as a record for "a history/progress feature that does not yet exist —
+-- presumably Phase 5's streak" (register #33). That presumption was WRONG, and the
+-- source of truth never supported it: PIVOT_PLAN.md names `study_events` as the
+-- streak substrate in THREE independent places (§7 row 5; the feature table at
+-- line 65, "One `study_events` table + streak query"; and the new-tables list at
+-- line 105, "`study_events` (streaks)"), plus register #14 in PROGRESS.md. It names
+-- `quiz_attempts` in ZERO. Per register #33's own rule — "name a reader or drop the
+-- table" — there is no reader and no planned reader.
+--
+-- THE STRUCTURAL DISQUALIFICATION (the real reason; keep this in writing so nobody
+-- resurrects the table for a streak later). `quiz_attempts` cascades:
+--
+--     quiz_attempts.quiz_id  -> quizzes(id)   ON DELETE CASCADE
+--     quizzes.document_id    -> documents(id) ON DELETE CASCADE
+--
+-- so deleting ONE material erases every attempt beneath it. That is correct for
+-- content-lifecycle data — an attempt at a deleted quiz is meaningless — and it is
+-- exactly WRONG for a streak, which is an IMMUTABLE claim about what the student
+-- did. A student deleting a subject would silently rewrite their own study history:
+-- days they really studied would vanish, the streak number would drop, and nothing
+-- could recover it. The two lifecycles are opposites. No amount of care at the
+-- application layer fixes a table whose rows disappear when unrelated content does.
+--
+-- Cheap to remove: the table has no reader, so nothing breaks. Its columns are NOT
+-- being relocated into `study_events` — score/total have no reader either, and
+-- smuggling quiz-specific columns into a generic activity log would make it a quiz
+-- table with a general name. If per-quiz score history is ever wanted, it returns as
+-- its OWN table WITH a named reader, which is the discipline register #33 exists to
+-- enforce.
+--
+-- `study_events` is deliberately NOT created here. P5.0 is the removal only; the
+-- streak substrate is its own step, with its own decisions still open (which actions
+-- emit an event; whether an empty submission counts; and the timezone question —
+-- `current_date` is server UTC, so a UTC+1 student studying at 00:30 local would be
+-- recorded on the previous day, which is invisible in a rate-limit ledger but a
+-- user-visible lie in a streak).
+--
+-- `if exists` so this is idempotent and safe to re-run. The cascade drops the
+-- table's own index and RLS policy with it; `quizzes` and `quiz_items` are NOT
+-- touched — the quiz feature (Phase 4) keeps working exactly as live-verified.
+--
+-- FILENAME ORDERING — this bit is load-bearing, not cosmetic. Migrations apply in
+-- lexicographic filename order. Named `..._quiz_attempts_drop.sql` (NOT
+-- `..._drop_quiz_attempts.sql`) because `20260709_quiz_attempts.sql` <
+-- `20260709_quiz_attempts_drop.sql` ('.' sorts before '_'), so the drop runs AFTER
+-- the create on a clean from-scratch apply. `20260709_drop_quiz_attempts.sql` would
+-- have sorted BEFORE it ('d' < 'q'), dropping a table that did not exist yet and
+-- then letting the create resurrect it — the table would survive the migration that
+-- was supposed to remove it. Same trap, and same fix, as documented in
+-- 20260708_quizzes_is_partial.sql.
+--
+-- This file is a PLAN, not a fact. Abo Jad applies it manually in the Supabase SQL
+-- editor and then VERIFIES the live DB no longer has the table (standing rule §5 /
+-- register #23: a written migration file is never an applied one).
+drop table if exists quiz_attempts;
