@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { checkConversationLimit } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
 import { embedQuery } from '@/lib/ingestion';
+import { recordStudyEvent } from '@/lib/study-events';
 
 interface MatchedChunk {
   id: string;
@@ -168,6 +169,30 @@ export async function POST(request: Request) {
               controller.enqueue(encoder.encode(text));
             }
           }
+
+          // P5.2 study event. This route's success point is NOT the `return new
+          // Response(...)` below it: that hands back a ReadableStream with a 200 the
+          // instant the stream OPENS, before Claude has emitted a single token. An
+          // emit there would fire for a question that then died mid-stream — and,
+          // worse, the conversation-limit branch ALSO returns a 200 text stream
+          // (carrying only "You've reached your monthly limit"), so a status-based
+          // gate would credit a study event to a student who was refused an answer.
+          // That branch returns early and never reaches this closure, which is
+          // exactly why the emit belongs here.
+          //
+          // So the real success point is here: the for-await drained without
+          // throwing, meaning the model produced a complete answer that the student
+          // has now received. The non-empty check rejects a stream that opened and
+          // closed with no text — a question with no answer is not studying. A
+          // mid-stream failure jumps to the catch below and emits nothing.
+          //
+          // Placed BEFORE the assistant-message insert on purpose: both are
+          // bookkeeping, and the student's answer does not become un-studied because
+          // a `messages` row failed to persist. Fails open; never throws.
+          if (assistantMessage.trim()) {
+            await recordStudyEvent(supabase, 'question_asked');
+          }
+
           await supabase.from('messages').insert({
             conversation_id: convoId,
             role: 'assistant',
