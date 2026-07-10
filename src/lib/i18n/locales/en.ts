@@ -144,6 +144,12 @@ export const en = {
       talkAgentDesc: "Ask about the materials in one subject",
       streakLabel: "Study streak",
       streakUnit: "days",
+      // Shown beneath the streak number, never beside the ghost placeholder. §5
+      // forbids promising what the app does not do: the count is bucketed into days
+      // in the STUDENT'S timezone, which is true but invisible, so a student who
+      // studies at 00:30 and watches the number tick has no way to know why. This
+      // says so in one line.
+      streakZoneHint: "in your local time",
       recentActivity: "Recent Activity",
       noActivity: "No activity yet",
       conversation: "CONVERSATION",

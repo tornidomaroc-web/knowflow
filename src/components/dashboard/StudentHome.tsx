@@ -18,6 +18,7 @@ interface StudentHomeLabels {
   subjects: string;
   streakLabel: string;
   streakUnit: string;
+  streakZoneHint: string;
   recentActivity: string;
   activity: RecentActivityLabels;
 }
@@ -73,10 +74,13 @@ export function StudentHome({
           </Link>
 
           {/*
-            Streak placeholder — intentionally inert until Phase 5 wires it.
-            `streak` is null today, so it renders a ghost "—" (reads as "not
-            measured yet", NOT "measured, and it's zero") with the unit
-            suppressed. A real number renders normally with no code change.
+            Streak. P5.3 wired it; the component did not change shape, exactly as
+            register #14 predicted — `streak` simply stopped being a literal null.
+
+            `null` still means NOT MEASURED (no timezone yet, or the read failed) and
+            renders the ghost with the unit AND the zone hint suppressed: a hint that
+            the dash is "in your local time" would be a claim about a number that
+            does not exist. `0` is a real, earned zero and renders normally.
           */}
           <Card className="flex flex-col justify-between p-5">
             <div className="flex items-center justify-between">
@@ -85,16 +89,27 @@ export function StudentHome({
               </span>
               <Flame className="h-5 w-5 text-muted-foreground" />
             </div>
-            <p className="mt-3">
+            <div className="mt-3">
               {streak === null ? (
-                <span className="text-4xl font-semibold text-muted-foreground">-</span>
+                <p>
+                  <span className="text-4xl font-semibold text-muted-foreground">-</span>
+                </p>
               ) : (
                 <>
-                  <span className="text-4xl font-semibold text-foreground">{streak}</span>
-                  <span className="ms-2 text-sm text-muted-foreground">{labels.streakUnit}</span>
+                  <p>
+                    <span className="text-4xl font-semibold text-foreground">{streak}</span>
+                    <span className="ms-2 text-sm text-muted-foreground">{labels.streakUnit}</span>
+                  </p>
+                  {/*
+                    §5, "never promise what the app doesn't do". The streak counts
+                    days in the STUDENT'S timezone; that is true but opaque, so it is
+                    stated rather than left to be inferred from a number that ticks
+                    at what looks like a strange hour.
+                  */}
+                  <p className="mt-1 text-xs text-muted-foreground">{labels.streakZoneHint}</p>
                 </>
               )}
-            </p>
+            </div>
           </Card>
         </section>
 

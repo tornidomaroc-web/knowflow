@@ -148,6 +148,7 @@ export const ar: Translation = {
       talkAgentDesc: "اطرح أسئلة على ملفات مادة واحدة",
       streakLabel: "سلسلة المذاكرة",
       streakUnit: "أيام",
+      streakZoneHint: "بتوقيتك المحلّي",
       recentActivity: "النشاط الأخير",
       noActivity: "لا يوجد نشاط بعد",
       conversation: "محادثة",
