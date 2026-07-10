@@ -147,7 +147,19 @@ export const ar: Translation = {
       talkAgentTitle: "اسأل ملفاتك",
       talkAgentDesc: "اطرح أسئلة على ملفات مادة واحدة",
       streakLabel: "سلسلة المذاكرة",
-      streakUnit: "أيام",
+      // The six CLDR plural categories for يوم. Selected by `Intl.PluralRules('ar')`,
+      // never by a suffix rule: `many` (11..99) takes the SINGULAR ACCUSATIVE يومًا,
+      // not the plural, and `other` (100, 101, 102, 200...) takes the bare singular
+      // يوم. Rendering "1 أيام" — the defect this replaces — was found on preview
+      // `3af9dd5`.
+      streakUnit: {
+        zero: "أيام", // 0 أيام
+        one: "يوم", // 1 يوم
+        two: "يومان", // 2 يومان
+        few: "أيام", // 3..10 أيام
+        many: "يومًا", // 11..99 يومًا
+        other: "يوم", // 100 يوم
+      },
       streakZoneHint: "بتوقيتك المحلّي",
       recentActivity: "النشاط الأخير",
       noActivity: "لا يوجد نشاط بعد",

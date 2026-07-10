@@ -6,6 +6,7 @@ import { TimeZoneSync } from '@/components/dashboard/TimeZoneSync'
 import type { ActivityItem } from '@/components/dashboard/RecentActivity'
 import { getCurrentStreak, TIME_ZONE_COOKIE } from '@/lib/streak'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
+import { pluralize } from '@/lib/i18n/plural'
 
 // Thin server wrapper: auth + data only. Presentation lives in <StudentHome/>
 // (dumb, prop-driven) so it can be reused/storybooked in Phase 8.
@@ -70,7 +71,15 @@ export default async function DashboardPage({
           newSubjectDesc: t.dashboard.home.newKbDesc,
           subjects: t.dashboard.nav.knowledge,
           streakLabel: t.dashboard.home.streakLabel,
-          streakUnit: t.dashboard.home.streakUnit,
+          // Form selection happens HERE, not in StudentHome. The component stays dumb
+          // and prop-driven (it must remain storybookable in Phase 8), so it receives
+          // a resolved string and never learns what a plural category is.
+          //
+          // `''` when the streak is null: the unit is not rendered beside the ghost,
+          // so there is no form to choose. Passing the `other` form instead would be
+          // a string that exists only to be discarded.
+          streakUnit:
+            streak === null ? '' : pluralize(safeLocale, streak, t.dashboard.home.streakUnit),
           streakZoneHint: t.dashboard.home.streakZoneHint,
           recentActivity: t.dashboard.home.recentActivity,
           activity: {

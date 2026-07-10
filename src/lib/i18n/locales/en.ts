@@ -1,3 +1,5 @@
+import type { PluralForms } from '../plural';
+
 export const en = {
   nav: {
     home: "KnowFlow",
@@ -143,7 +145,14 @@ export const en = {
       talkAgentTitle: "Ask your materials",
       talkAgentDesc: "Ask about the materials in one subject",
       streakLabel: "Study streak",
-      streakUnit: "days",
+      // A COUNTED NOUN, so it carries its plural forms rather than one baked string.
+      // `as PluralForms` is load-bearing: `ar.ts` is typed `typeof en`, so without the
+      // widening annotation this literal would infer `{ one: string; other: string }`
+      // and Arabic could not declare its `zero`/`two`/`few`/`many` forms at all.
+      //
+      // English declares exactly the two categories its CLDR rules can select. It is
+      // NOT forced through an Arabic-shaped API — there is no empty `two` here.
+      streakUnit: { one: "day", other: "days" } as PluralForms,
       // Shown beneath the streak number, never beside the ghost placeholder. §5
       // forbids promising what the app does not do: the count is bucketed into days
       // in the STUDENT'S timezone, which is true but invisible, so a student who
