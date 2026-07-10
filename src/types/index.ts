@@ -78,6 +78,44 @@ export interface QuizItem {
  */
 export type ClientQuizItem = Omit<QuizItem, 'correct_index'>;
 
+/**
+ * Phase 5 (P5.1) — the four study actions that count toward a streak. Decided
+ * 2026-07-09 and mirrored by the `study_event_kind_valid` CHECK and by
+ * `record_study_event`'s fail-closed guard, both in `20260709_study_events.sql`.
+ *
+ * `'summary_read'` is deliberately NOT a member: passively viewing stored text is
+ * not studying, and admitting it would make the streak farmable by opening a page.
+ * An empty quiz submission (zero in-range answers) emits NO event at all.
+ */
+export type StudyEventKind =
+  | 'quiz_submitted'
+  | 'summary_generated'
+  | 'question_asked'
+  | 'material_uploaded';
+
+/**
+ * Phase 5 (P5.1) — one recorded study action. The streak substrate.
+ *
+ * `occurred_at` is the INSTANT, never a server-bucketed day: the streak groups
+ * events into days in the STUDENT'S timezone at read time. A `day date` column
+ * computed with `current_date` (server UTC) would record a UTC+1 student's 00:30
+ * session on the previous day, and destroying the instant makes that permanent.
+ *
+ * There is deliberately NO `document_id`/`quiz_id`/`kb_id` here. A streak is an
+ * immutable claim about what the student did; deleting a subject must never
+ * rewrite it. The only FK is to the user (register #33, register #34).
+ *
+ * Written only via the `record_study_event` RPC — `study_events` has a read-own
+ * RLS policy and no insert/update/delete policy, so it is append-only from
+ * outside and cannot be backdated.
+ */
+export interface StudyEvent {
+  id: string;
+  user_id: string;
+  kind: StudyEventKind;
+  occurred_at: string;
+}
+
 export interface Conversation {
   id: string;
   kb_id: string;
