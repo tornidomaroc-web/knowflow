@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkDocumentLimit } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
+import { recordStudyEvent } from '@/lib/study-events';
 
 interface IngestionChunk {
   chunk_index: number;
@@ -185,6 +186,20 @@ export async function POST(request: Request) {
         chunk_count: chunks.length,
       })
       .eq('id', docRecord.id);
+
+    // P5.2 study event. You asked whether this route can succeed while the document
+    // is "still processing" — it cannot. `status: 'processing'` is written at the
+    // insert above, but the route then BLOCKS on the converter fetch, the chunk
+    // inserts, and the final `status: 'ready'` update; every one of those has an
+    // error return that flips the row to `status: 'error'` and exits non-2xx. By the
+    // time control reaches this line the document is genuinely ready, so this is an
+    // unambiguous success point. (A future move to background processing would break
+    // that and the emit would have to follow the work, not the request.)
+    //
+    // Past the 400, the 413, both 415s, the 401, the per-KB 403, the rate-limit
+    // denial, the storage 500, the insert 500, the misconfig 500, the converter 500,
+    // and the chunk-insert 500. Fails open; never throws.
+    await recordStudyEvent(supabase, 'material_uploaded');
 
     return NextResponse.json({ success: true, document_id: docRecord.id, chunk_count: chunks.length });
   } catch (error) {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { enforceLimit } from '@/lib/rate-limit';
+import { recordStudyEvent } from '@/lib/study-events';
 
 // Same cheap tier as /api/agent — a summary is a single, bounded Haiku call.
 const SUMMARY_MODEL = 'claude-haiku-4-5-20251001';
@@ -208,6 +209,21 @@ export async function POST(request: Request) {
       console.error('summarize: persist failed', updErr);
       return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
+
+    // P5.2 study event. This is the LAST statement before the success response, and
+    // every failure mode is already behind us: the 400, the 401, the 404, the
+    // still-processing 409, the thin-content 422, the rate-limit denial, the two
+    // 502s (Claude threw / returned empty), and the persist 500. A summary that
+    // 502s did not generate a summary and must not feed a streak.
+    //
+    // NOT on the cached branch above (`if (doc.summary)`, which returns
+    // `cached: true` without a Claude call). Re-reading a summary you generated last
+    // week is `summary_read`, and that kind was deliberately excluded from the union
+    // — admitting it would make the streak farmable by opening a page. This emit
+    // fires once, on the request that actually generated the text.
+    //
+    // Fails open: a lost event never costs the student their summary.
+    await recordStudyEvent(supabase, 'summary_generated');
 
     return NextResponse.json({
       summary: summaryText,

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { recordStudyEvent } from '@/lib/study-events';
 
 // Well-formed-UUID gate. Applied to `quiz_id` BEFORE any DB query on purpose:
 // `quizzes.id` is a `uuid` column, so a malformed value reaches Postgres as
@@ -57,6 +58,27 @@ interface GradedResult {
 function readSelectedIndex(raw: unknown): number | null {
   if (typeof raw !== 'number' || !Number.isInteger(raw) || raw < 0) return null;
   return raw;
+}
+
+// ATTEMPTED means the student picked a REAL option on this item: a non-negative
+// integer that indexes inside this item's own `options`.
+//
+// THE SINGLE DEFINITION. Two independent decisions now hinge on it, and they must
+// never drift apart:
+//   1. the answer-key reveal (register #29) — an attempt earns `correct_index`;
+//   2. the P5.2 `quiz_submitted` study event — a submission with zero attempts is
+//      not studying and emits nothing.
+// Both bugs it closes are the same bug. `{"answers": []}` once revealed the whole
+// key for zero attempts; an all-`99` body did the same while selecting nothing,
+// because `readSelectedIndex` accepts ANY non-negative integer, so "not null" is
+// not a sufficient test. The streak has the identical hole: without the in-range
+// bound, one empty POST per day sustains a streak forever.
+//
+// Hoisted out of the grading loop so the emit gate CANNOT quietly grow a second,
+// weaker copy of this rule. If this predicate is ever loosened, the reveal and the
+// streak loosen together, visibly, in one place.
+function isAttempted(selected: number | null, optionCount: number): boolean {
+  return selected !== null && selected < optionCount;
 }
 
 export async function POST(request: Request) {
@@ -173,21 +195,19 @@ export async function POST(request: Request) {
     //    rather than rejected: the DB CHECK guarantees correct_index is in range,
     //    so an out-of-range guess can never coincidentally equal it. It also does
     //    NOT count as an attempt, so it earns no answer reveal.
+
+    // Counted inside the ONE loop that evaluates `isAttempted`, so the emit gate
+    // below reads the predicate's actual output rather than re-deriving it. See
+    // isAttempted's note: a second copy of that rule is the failure mode.
+    let attemptedCount = 0;
+
     const results: GradedResult[] = items.map((item) => {
       const has = submitted.has(item.id);
       const selected = has ? submitted.get(item.id) : null;
       const optionCount = Array.isArray(item.options) ? item.options.length : 0;
 
-      // ATTEMPTED means the student picked a REAL option on this item: a
-      // non-negative integer that indexes inside this item's own `options`.
-      //
-      // "Not null" is NOT a sufficient test, and using it would reopen the very
-      // hole this gate exists to close. readSelectedIndex accepts any non-negative
-      // integer, so `selected_index: 99` is non-null while selecting nothing — a
-      // client could send 99 for every item and harvest the whole key in ONE
-      // request without attempting anything, exactly as `{"answers": []}` used to.
-      // Requiring an in-range choice makes the reveal cost a genuine commitment.
-      const attempted = selected !== null && selected < optionCount;
+      const attempted = isAttempted(selected, optionCount);
+      if (attempted) attemptedCount++;
 
       const result: GradedResult = {
         item_id: item.id,
@@ -225,6 +245,24 @@ export async function POST(request: Request) {
     //    a student could exhaust their daily quota by retaking one quiz five times.
     //    A dedicated submission throttle is the right instrument and is deferred to
     //    its own step (register #32).
+    //
+    // 9. P5.2 study event. Grading is stateless, so there is no persist to succeed:
+    //    "the work succeeded" here means we reached this point past the 400s, the
+    //    401, the 404, the two 500s and the zero-item 409 — the student has a real
+    //    graded result in hand.
+    //
+    //    GATED ON A REAL ATTEMPT. A submission with zero in-range answers is not
+    //    studying, and without this gate one empty POST per day would sustain a
+    //    streak forever. The gate reads `attemptedCount`, produced by the same
+    //    `isAttempted` call that decides the answer reveal — one predicate, two
+    //    consumers, no possible drift.
+    //
+    //    Fails open: recordStudyEvent never throws, so a lost bookkeeping row can
+    //    never cost a student their grade.
+    if (attemptedCount > 0) {
+      await recordStudyEvent(supabase, 'quiz_submitted');
+    }
+
     return NextResponse.json({
       quiz_id: quiz.id,
       score,
