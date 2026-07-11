@@ -177,7 +177,7 @@ export async function POST(request: Request) {
 
     // We still keep the raw markdown for debugging / re-chunking, but it's no
     // longer used at query time.
-    await supabase
+    const { error: readyErr } = await supabase
       .from('documents')
       .update({
         markdown_content: result.markdown ?? null,
@@ -186,19 +186,36 @@ export async function POST(request: Request) {
         chunk_count: chunks.length,
       })
       .eq('id', docRecord.id);
+    if (readyErr) {
+      // PostgREST reports DB failures in `error`, not by throwing, so an unchecked
+      // ready write would fall through to the emit below with the row still at
+      // `status: 'processing'`. Guard it like every other status write in this
+      // route: log, flip the row to `error`, and exit non-2xx. The update is a
+      // single atomic UPDATE, so a returned error means none of the four fields
+      // landed — flipping to `error` is not fighting a half-applied ready write.
+      console.error('Ready status update error:', readyErr);
+      await supabase
+        .from('documents')
+        .update({ status: 'error', embedding_status: 'error', error_message: readyErr.message })
+        .eq('id', docRecord.id);
+      return NextResponse.json({ success: false, error: 'Failed to finalize document' }, { status: 500 });
+    }
 
-    // P5.2 study event. You asked whether this route can succeed while the document
-    // is "still processing" — it cannot. `status: 'processing'` is written at the
+    // P5.2 study event. You asked whether this route can emit while the document is
+    // "still processing" — it now cannot. `status: 'processing'` is written at the
     // insert above, but the route then BLOCKS on the converter fetch, the chunk
     // inserts, and the final `status: 'ready'` update; every one of those has an
-    // error return that flips the row to `status: 'error'` and exits non-2xx. By the
-    // time control reaches this line the document is genuinely ready, so this is an
-    // unambiguous success point. (A future move to background processing would break
-    // that and the emit would have to follow the work, not the request.)
+    // error return that flips the row to `status: 'error'` and exits non-2xx —
+    // INCLUDING the ready write just above, whose `error` is now captured rather
+    // than dropped. So the guarantee is: the row is `ready` unless we verified
+    // otherwise and bailed. By the time control reaches this line the ready
+    // transition was confirmed successful, making this an unambiguous success
+    // point. (A future move to background processing would break that and the emit
+    // would have to follow the work, not the request.)
     //
     // Past the 400, the 413, both 415s, the 401, the per-KB 403, the rate-limit
     // denial, the storage 500, the insert 500, the misconfig 500, the converter 500,
-    // and the chunk-insert 500. Fails open; never throws.
+    // the chunk-insert 500, and the ready-write 500. Fails open; never throws.
     await recordStudyEvent(supabase, 'material_uploaded');
 
     return NextResponse.json({ success: true, document_id: docRecord.id, chunk_count: chunks.length });
