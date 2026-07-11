@@ -126,12 +126,14 @@ interface QuizFetchResult {
 // key never leaves the server. `quiz` is null when none exists.
 async function fetchClientQuiz(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  documentId: string
+  documentId: string,
+  lang: string
 ): Promise<QuizFetchResult> {
   const { data: quiz, error: quizErr } = await supabase
     .from('quizzes')
     .select('id, document_id, generated_at, model, created_at, is_partial')
     .eq('document_id', documentId)
+    .eq('lang', lang) // register #31: cache is per (document, language)
     .maybeSingle();
 
   if (quizErr) {
@@ -189,10 +191,11 @@ export async function POST(request: Request) {
     }
     if (!doc) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
 
-    // 5. Cache check by EXISTENCE of a quizzes row (generate-once; register #28's
-    //    unique(document_id)). Runs BEFORE enforceLimit so a re-read never charges
-    //    a quiz credit. The returned payload is client-safe (no correct_index).
-    const cached = await fetchClientQuiz(supabase, document_id);
+    // 5. Cache check by EXISTENCE of a quizzes row for this (document, language)
+    //    (generate-once per language; register #28's unique(document_id, lang)).
+    //    Runs BEFORE enforceLimit so a re-read never charges a quiz credit. The
+    //    returned payload is client-safe (no correct_index).
+    const cached = await fetchClientQuiz(supabase, document_id, lang);
     if (cached.error) {
       return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
@@ -306,21 +309,22 @@ export async function POST(request: Request) {
     // 12. Persist. Two inserts (supabase-js has no client-side transaction across
     //     statements; a true fix is a SECURITY DEFINER RPC — deferred, needs a
     //     migration → out of P4.1 scope, see PR notes).
-    //     - quizzes first (FK parent). A unique(document_id) violation (23505)
-    //       means a concurrent request already generated one → treat as cache hit.
+    //     - quizzes first (FK parent). A unique(document_id, lang) violation (23505)
+    //       means a concurrent request already generated one for this (document,
+    //       language) → treat as cache hit.
     //     - quiz_items next. If they fail, DELETE the just-inserted quiz row so we
     //       never leave an orphan empty quiz (which the step-5 cache check would
     //       then return forever, with no retry possible under the unique index).
     const generatedAt = new Date().toISOString();
     const { data: quizRow, error: quizErr } = await supabase
       .from('quizzes')
-      .insert({ document_id, generated_at: generatedAt, model: QUIZ_MODEL, is_partial: isPartial })
+      .insert({ document_id, lang, generated_at: generatedAt, model: QUIZ_MODEL, is_partial: isPartial })
       .select('id, document_id, generated_at, model, created_at, is_partial')
       .single();
 
     if (quizErr) {
       if (quizErr.code === '23505') {
-        const raced = await fetchClientQuiz(supabase, document_id);
+        const raced = await fetchClientQuiz(supabase, document_id, lang);
         if (!raced.error && raced.quiz) {
           return NextResponse.json({
             quiz: raced.quiz,
