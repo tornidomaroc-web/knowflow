@@ -19,12 +19,20 @@
 -- transform on an empty rebuild. It is a PLAN — Abo Jad applies/re-runs it manually
 -- and verifies the live DB matches after (standing rule §5).
 --
--- ⚠️ VERIFY THE LIVE CONSTRAINT NAMES BEFORE RUNNING. The `drop constraint if exists`
---    guards below match on NAME. If the live constraints were created under different
---    names (e.g. Postgres' auto-generated `quizzes_document_id_lang_key` rather than
---    the explicit `quizzes_document_id_lang_unique` used here), the drop silently
---    misses and the add creates a SECOND, redundant unique constraint — no error, but
---    a duplicate index. Check first, and rename or adjust if they differ:
+-- ✅ CONSTRAINT NAMES VERIFIED 2026-07-12 AGAINST THE LIVE DB (Abo Jad). The
+--    `drop constraint if exists` guards below match on NAME, so a name mismatch would
+--    make the drop silently miss and the add create a SECOND, redundant unique
+--    constraint — no error, but a duplicate index. That hole DOES NOT APPLY here: the
+--    live names match this file exactly (`quizzes_lang_valid`,
+--    `quizzes_document_id_lang_unique`), because the constraints were created through
+--    the SQL editor with explicit names rather than letting Postgres auto-name them
+--    (which would have produced `quizzes_document_id_lang_key`). Live also has
+--    `lang text not null default 'ar'::text` and NO `quizzes_document_id_unique` —
+--    so re-running this file against live is a confirmed clean idempotent no-op.
+--
+--    On any environment whose provenance is UNKNOWN (a fresh project, a restore, a DB
+--    someone else migrated), re-run this check before applying — the guarantee above
+--    is about OUR live DB, not about Postgres in general:
 --
 --      select conname, contype, pg_get_constraintdef(oid)
 --      from pg_constraint where conrelid = 'quizzes'::regclass order by conname;
