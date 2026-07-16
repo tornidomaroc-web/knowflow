@@ -1,0 +1,61 @@
+name: typecheck
+
+# Runs `tsc --noEmit` on every PR into main, and on main itself after merge.
+#
+# The push-to-main trigger is deliberate and is NOT redundant with the
+# pull_request trigger. Two reasons:
+#   1. A PR is typechecked against a MERGE COMMIT of the branch and main at the
+#      time of the run. If main moves afterwards, a green PR can still land a red
+#      main (semantic conflict — e.g. two PRs each type-clean alone that aren't
+#      together). Only a run on main itself proves main is actually clean.
+#   2. Enabling this as a required status check needs a green run on main to
+#      exist first. Without this trigger, merging produces no main run at all.
+#
+# Both triggers are free: the repository is public, so Actions minutes are not
+# billed (GitHub bills only private-repo minutes).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Least privilege: this job only reads the tree. It never writes to the repo,
+# posts comments, or publishes packages.
+permissions:
+  contents: read
+
+# Superseded PR runs are pointless, so cancel them. Runs on main are NEVER
+# cancelled — a cancelled main run leaves no green baseline, which is exactly
+# what the required status check depends on.
+concurrency:
+  group: typecheck-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  tsc:
+    # Pinned, not `ubuntu-latest`: `latest` silently rolls to the next LTS image
+    # and can change toolchain behaviour with no commit to this repo.
+    runs-on: ubuntu-24.04
+    steps:
+      # Actions are pinned to immutable commit SHAs, not tags. Tags like `v7` are
+      # mutable and are republished in place, so a tag pin would NOT prevent an
+      # action's behaviour from changing under us.
+      - name: Check out the repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          # Exact patch, not `22.x`. Node 20 went EOL 2026-04-30; 22 is LTS
+          # ("Jod") until 2027-04-30.
+          node-version: 22.23.1
+          cache: npm
+
+      # `ci`, not `install`: installs exactly what package-lock.json pins and
+      # fails if the lockfile and package.json have drifted apart.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
