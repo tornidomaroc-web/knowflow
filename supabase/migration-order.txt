@@ -1,0 +1,59 @@
+# Order in which migrations are applied to the ephemeral type-generation
+# database, and which ones are deliberately skipped.
+#
+# Format, one record per line:   <filename> <apply|skip:reason>
+# Blank lines and `#` comments are ignored.
+#
+# WHY THIS FILE EXISTS
+# --------------------
+# This ordering is NOT derivable from the filenames, and must not be left to a
+# filesystem sort:
+#
+#   1. The `supabase` CLI migration runner cannot run these migrations at all.
+#      It parses the leading digits as a version string, and the 8-digit dates
+#      collide -- 20260708 appears twice and 20260709 three times -- so the
+#      second insert of each duplicate violates schema_migrations_pkey. The
+#      generator therefore applies migrations with psql, in the order below.
+#
+#   2. Once psql is doing the applying, order is ours to choose, and a plain
+#      `sort` is locale-dependent in a way that silently corrupts it. glibc's
+#      en_US.UTF-8 collation ignores punctuation at primary strength, so `.`
+#      stops separating from `_` and these pairs INVERT:
+#
+#        LC_ALL=C            en_US.UTF-8         effect if UTF-8 order were used
+#        ----------------    ----------------    ------------------------------
+#        quizzes.sql         quizzes_is_partial  ALTER before the CREATE
+#        quizzes_is_partial  quizzes.sql
+#        quiz_attempts.sql   quiz_attempts_drop  DROP before the CREATE
+#        quiz_attempts_drop  quiz_attempts.sql
+#
+#      A generator that sorted filenames would depend on the runner's locale to
+#      produce a correct schema, and `LC_ALL=C` would be load-bearing while
+#      looking cosmetic -- one deletion away from breaking, with no symptom a
+#      reviewer would catch. Listing the order explicitly removes that
+#      dependency instead of documenting it.
+#
+# The order below is the real authoring order: it matches the git add-date of
+# all 14 files exactly (verified 2026-07-17), so the ephemeral database
+# reproduces the sequence production actually saw.
+#
+# ADDING A MIGRATION
+# ------------------
+# Append it here. scripts/gen-db-types.sh cross-checks this list against the
+# *.sql files on disk in BOTH directions and fails if they disagree, so a new
+# migration cannot be silently left out or silently ordered by accident.
+
+001_initial_schema.sql              apply
+002_storage.sql                     skip:targets-storage-schema-absent-on-bare-postgres
+003_waitlist.sql                    apply
+20260414_subscriptions.sql          apply
+20260501_rag_pgvector.sql           apply
+20260629_usage_counters.sql         apply
+20260705_document_summaries.sql     apply
+20260708_quizzes.sql                apply
+20260708_quizzes_is_partial.sql     apply
+20260709_quiz_attempts.sql          apply
+20260709_quiz_attempts_drop.sql     apply
+20260709_study_events.sql           apply
+20260710_current_streak.sql         apply
+20260711_quizzes_lang.sql           apply
