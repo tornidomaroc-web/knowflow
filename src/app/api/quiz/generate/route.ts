@@ -131,7 +131,11 @@ async function fetchClientQuiz(
 ): Promise<QuizFetchResult> {
   const { data: quiz, error: quizErr } = await supabase
     .from('quizzes')
-    .select('id, document_id, generated_at, model, created_at, is_partial')
+    // `lang` is fetched (not just filtered on) so the returned row satisfies the
+    // Quiz type, which now carries the DB-enforced `lang` column. Without it the
+    // object would be missing a required field, or a cast would leave `quiz.lang`
+    // undefined at runtime.
+    .select('id, document_id, generated_at, model, created_at, is_partial, lang')
     .eq('document_id', documentId)
     .eq('lang', lang) // register #31: cache is per (document, language)
     .maybeSingle();
@@ -153,7 +157,11 @@ async function fetchClientQuiz(
     return { error: true };
   }
 
-  return { error: false, quiz, items: (items ?? []) as ClientQuizItem[] };
+  // `lang` comes back as `string` from <Database>; Quiz narrows it to 'ar' | 'en'.
+  // Unlike the knowledge_bases/documents casts, this narrowing IS database-backed
+  // — the `quizzes_lang_valid` check guarantees the domain — so it is sound, not
+  // just an app convention. Type-only: every other field already conforms.
+  return { error: false, quiz: quiz as Quiz, items: (items ?? []) as ClientQuizItem[] };
 }
 
 export async function POST(request: Request) {
