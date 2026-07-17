@@ -77,7 +77,12 @@ export async function POST(request: Request) {
     try {
       const queryEmbedding = await embedQuery(message);
       const { data, error } = await supabase.rpc('match_chunks', {
-        query_embedding: queryEmbedding,
+        // pgvector's `vector` argument is generated as `string`, but the RPC
+        // accepts a JSON number[] on the wire and postgREST coerces it to a
+        // vector — which is how this has always run. Type-only assertion; the
+        // value passed is unchanged (still the number[] from embedQuery), so
+        // there is no runtime behaviour change.
+        query_embedding: queryEmbedding as unknown as string,
         match_kb_id: kb_id,
         match_count: MATCH_COUNT,
         match_threshold: 0.3,

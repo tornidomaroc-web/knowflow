@@ -37,7 +37,12 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
         .select('*')
         .eq('kb_id', id)
         .order('created_at', { ascending: false })
-      setDocs(docsData || [])
+      // `<Database>` types documents.file_type as `string | null` (the column is
+      // bare `text`, no check constraint); Document narrows it to the app-enforced
+      // extension union. The ingest route validates every written value against
+      // ALLOWED_TYPES, whose keys are exactly that union, so this cast asserts an
+      // app invariant — not a DB-guaranteed one.
+      setDocs((docsData || []) as Document[])
     }
     load()
   }, [id])

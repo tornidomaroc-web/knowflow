@@ -157,7 +157,12 @@ export async function POST(request: Request) {
         chunk_index: c.chunk_index,
         content: c.content,
         token_count: c.token_count,
-        embedding: c.embedding,
+        // chunks.embedding is pgvector `vector`, generated as `string`. postgREST
+        // accepts a JSON number[] and coerces it to the vector on insert, which is
+        // how ingestion has always worked. Type-only assertion; the value written
+        // is still the number[] from the chunker, so ingestion behaviour is
+        // unchanged.
+        embedding: c.embedding as unknown as string,
       }));
 
       // Insert in batches to avoid Supabase request-size limits.

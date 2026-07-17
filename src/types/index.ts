@@ -19,7 +19,13 @@ export interface Document {
   id: string;
   kb_id: string;
   filename: string;
-  file_type: 'pdf' | 'docx' | 'xlsx' | 'mp3' | null;
+  // The DB column is bare `text` (no check constraint), so the generated type is
+  // `string | null`. This union is the APP-enforced domain: the ingest route
+  // writes `file_type` from a file extension it has validated against
+  // ALLOWED_TYPES, whose keys are exactly these six. `mp3` was previously listed
+  // but is unreachable (no audio ingestion path exists); pptx/txt/md are real
+  // writable types that were previously, wrongly, absent.
+  file_type: 'pdf' | 'docx' | 'pptx' | 'xlsx' | 'txt' | 'md' | null;
   status: 'pending' | 'processing' | 'ready' | 'error';
   markdown_content: string | null;
   chunk_count: number;
@@ -51,6 +57,12 @@ export interface Quiz {
   // Persisted so a cached read reports it truthfully. Column added by
   // 20260708_quizzes_is_partial.sql.
   is_partial: boolean;
+  // Phase 4 / register #31 — the language this quiz's questions are written in.
+  // Unlike the other columns here, this union IS database-enforced: the
+  // `quizzes_lang_valid` check (`lang in ('ar','en')`) and `not null default 'ar'`
+  // from 20260711_quizzes_lang.sql guarantee it. Generate-once is per (document,
+  // lang), so one document can hold an 'ar' quiz and an 'en' quiz independently.
+  lang: 'ar' | 'en';
 }
 
 /**
