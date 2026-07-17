@@ -9,3 +9,5 @@ ALTER TABLE public.waitlist ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Anyone can join waitlist" ON public.waitlist
   FOR INSERT WITH CHECK (true);
+
+alter table public.waitlist add column bind_probe text;
