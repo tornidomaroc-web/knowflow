@@ -1,0 +1,73 @@
+name: db-types
+
+# Regenerates supabase/database.types.ts from the SQL migrations and fails if the
+# result differs from what is committed. This is a DRIFT gate: it catches a
+# migration that lands without its regenerated types, which would otherwise only
+# surface as a runtime error against a schema the types no longer describe.
+#
+# It does NOT typecheck the generated file against application code -- nothing
+# imports it yet. Wiring the `Database` generic into the Supabase clients is a
+# separate change; until then this job's guarantee is exactly "the committed
+# types match the migrations", and nothing more.
+#
+# The push-to-main trigger is here for the same two reasons as typecheck.yml: a
+# PR is verified against a merge commit rather than main itself, and enabling
+# this as a required status check needs a green run on main to exist first.
+#
+# Both triggers are free: the repository is public, so Actions minutes are not
+# billed. Running Postgres in a container does not change that -- the container
+# runs on the same runner, and there is no separate charge for containers.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Least privilege: this job reads the tree and regenerates a file in the
+# workspace. It never pushes that file back, never comments, and never needs a
+# Supabase token -- the database it reads is a throwaway container it created
+# itself, so this job cannot reach, read, or mutate production.
+permissions:
+  contents: read
+
+concurrency:
+  group: db-types-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Job id is the status-check context string. Keep it stable: renaming it
+  # silently detaches any branch-protection rule that requires the old name, and
+  # a rule requiring a context nothing publishes blocks every PR indefinitely.
+  db-types:
+    name: db-types
+    runs-on: ubuntu-24.04
+    steps:
+      # Actions pinned to immutable commit SHAs, not tags: tags are mutable and
+      # are republished in place.
+      - name: Check out the repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22.23.1
+          cache: npm
+
+      # Deliberately NOT a `services:` container. The generator is a script so
+      # that CI and a developer's machine run the exact same code path -- a
+      # `services:` block would fork the pinning and the readiness logic into a
+      # second place that only CI exercises, which is where drift hides.
+      - name: Regenerate types from migrations
+        run: ./scripts/gen-db-types.sh
+
+      - name: Fail if the committed types are stale
+        run: git diff --exit-code -- supabase/database.types.ts
+
+      - name: Explain the failure
+        if: failure()
+        run: |
+          echo "::error::supabase/database.types.ts does not match the migrations."
+          echo "If you changed a migration, regenerate and commit the result:"
+          echo "    ./scripts/gen-db-types.sh && git add supabase/database.types.ts"
+          echo "If you added a migration, also add it to supabase/migration-order.txt."

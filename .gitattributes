@@ -1,0 +1,12 @@
+# Pin the generated types file to LF.
+#
+# .github/workflows/db-types.yml regenerates supabase/database.types.ts on Linux
+# and gates on `git diff --exit-code`. If a contributor on Windows ever commits
+# it with CRLF (which happens with core.autocrlf=false), CI would regenerate LF,
+# and every line would differ while looking byte-identical in a diff view --
+# blocking the PR with no visible cause. Line endings are part of this file's
+# contract, so state them rather than depending on each developer's git config.
+#
+# Deliberately scoped to the generated file only: a repo-wide `* text=auto`
+# would renormalise unrelated files and is not this change's business.
+supabase/database.types.ts text eol=lf
