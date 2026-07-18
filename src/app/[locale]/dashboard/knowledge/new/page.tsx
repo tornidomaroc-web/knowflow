@@ -6,9 +6,26 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { Input, buttonVariants } from '@/components/ui';
 import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { KB_LANGUAGES, type KbLanguage } from '@/types';
 
 const fieldClass =
   'w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring';
+
+// Type guard against the shared KB_LANGUAGES source of truth, so the runtime
+// narrowing and the compile-time KbLanguage domain are literally the same list
+// (mirrors the ingest route's isAllowedFileType). `.some` narrows a widened
+// `string` with no cast — replacing the old `as 'ar'|'en'|'both'` assertion.
+function isKbLanguage(v: string): v is KbLanguage {
+  return KB_LANGUAGES.some((l) => l === v);
+}
+
+// Each language's existing i18n label key, keyed by KbLanguage so adding a
+// language to KB_LANGUAGES without giving it a label here is a compile error.
+const LANG_LABEL: Record<KbLanguage, 'languageAr' | 'languageEn' | 'languageBoth'> = {
+  ar: 'languageAr',
+  en: 'languageEn',
+  both: 'languageBoth',
+};
 
 export default function NewKnowledgeBasePage({
   params,
@@ -22,7 +39,7 @@ export default function NewKnowledgeBasePage({
   const supabase = createClient();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [language, setLanguage] = useState<'ar' | 'en' | 'both'>('ar');
+  const [language, setLanguage] = useState<KbLanguage>('ar');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -105,12 +122,15 @@ export default function NewKnowledgeBasePage({
             <label className="text-sm font-medium text-foreground">{t.dashboard.newKb.language}</label>
             <select
               value={language}
-              onChange={(e) => setLanguage(e.target.value as 'ar' | 'en' | 'both')}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (isKbLanguage(v)) setLanguage(v);
+              }}
               className={cn(fieldClass, 'h-11 py-0')}
             >
-              <option value="ar">{t.dashboard.newKb.languageAr}</option>
-              <option value="en">{t.dashboard.newKb.languageEn}</option>
-              <option value="both">{t.dashboard.newKb.languageBoth}</option>
+              {KB_LANGUAGES.map((l) => (
+                <option key={l} value={l}>{t.dashboard.newKb[LANG_LABEL[l]]}</option>
+              ))}
             </select>
           </div>
 
