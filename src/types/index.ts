@@ -15,17 +15,29 @@ export interface KnowledgeBase {
   created_at: string;
 }
 
+/**
+ * Single source of truth for the file extensions KnowFlow ingests. BOTH the
+ * `Document.file_type` domain and the ingest route's upload validator derive
+ * from this ONE array, so the type and the write-path allowlist cannot drift
+ * apart — that drift is exactly what let `mp3` sit in the type while pptx/txt/md
+ * were writable-but-unlisted (register #3). The ingest route types its MIME map
+ * as `Record<FileType, string[]>`, so adding or dropping a key there without
+ * editing this array is now a compile error, and vice versa. `as const` freezes
+ * the members so `FileType` is the exact union, not `string`.
+ */
+export const ALLOWED_FILE_TYPES = ['pdf', 'docx', 'pptx', 'xlsx', 'txt', 'md'] as const;
+export type FileType = (typeof ALLOWED_FILE_TYPES)[number];
+
 export interface Document {
   id: string;
   kb_id: string;
   filename: string;
   // The DB column is bare `text` (no check constraint), so the generated type is
-  // `string | null`. This union is the APP-enforced domain: the ingest route
-  // writes `file_type` from a file extension it has validated against
-  // ALLOWED_TYPES, whose keys are exactly these six. `mp3` was previously listed
-  // but is unreachable (no audio ingestion path exists); pptx/txt/md are real
-  // writable types that were previously, wrongly, absent.
-  file_type: 'pdf' | 'docx' | 'pptx' | 'xlsx' | 'txt' | 'md' | null;
+  // `string | null`. This union is the APP-enforced domain, narrowed to
+  // `FileType` — the shared `ALLOWED_FILE_TYPES` source of truth that the ingest
+  // route validates every written value against. Type and validator are now the
+  // same declaration and cannot disagree.
+  file_type: FileType | null;
   status: 'pending' | 'processing' | 'ready' | 'error';
   markdown_content: string | null;
   chunk_count: number;
