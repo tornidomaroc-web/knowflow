@@ -6,12 +6,29 @@ export interface Profile {
   created_at: string;
 }
 
+/**
+ * Single source of truth for a knowledge base's content language. BOTH the
+ * `KnowledgeBase.language` domain and the KB-create form's `<select>` (its
+ * rendered options AND its onChange narrowing) derive from this ONE array, so
+ * the type and the sole write path cannot drift apart: adding a language is one
+ * array member here + one i18n label, and the option list, the state type, and
+ * the interface all update together. `as const` freezes the members so
+ * `KbLanguage` is the exact union, not `string`.
+ *
+ * APP-ENFORCED ONLY: `knowledge_bases.language` is bare `text` with NO CHECK
+ * constraint (`001_initial_schema.sql`), so this makes the app's own
+ * declarations agree with each other — it does NOT make the database enforce the
+ * domain. A row written outside the web app can still violate it.
+ */
+export const KB_LANGUAGES = ['ar', 'en', 'both'] as const;
+export type KbLanguage = (typeof KB_LANGUAGES)[number];
+
 export interface KnowledgeBase {
   id: string;
   user_id: string;
   name: string;
   description: string | null;
-  language: 'ar' | 'en' | 'both';
+  language: KbLanguage;
   created_at: string;
 }
 
