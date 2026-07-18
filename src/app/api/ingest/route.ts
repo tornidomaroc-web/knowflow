@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkDocumentLimit } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
 import { recordStudyEvent } from '@/lib/study-events';
+import { ALLOWED_FILE_TYPES, type FileType } from '@/types';
 
 interface IngestionChunk {
   chunk_index: number;
@@ -16,7 +17,12 @@ interface IngestionChunk {
 // primary gate (it drives file_type and what we hand the converter); MIME is a
 // secondary sanity check — clients can spoof it and browsers report it
 // inconsistently, so empty / generic values are tolerated at the call site.
-const ALLOWED_TYPES: Record<string, string[]> = {
+//
+// Keyed by `FileType` (the shared ALLOWED_FILE_TYPES source of truth), so this
+// MIME map and the `Document.file_type` domain cannot drift: a key here that
+// isn't in ALLOWED_FILE_TYPES — or an allowed type missing its MIME row — is a
+// compile error, not a silent 415/type-lie.
+const ALLOWED_TYPES: Record<FileType, string[]> = {
   pdf: ['application/pdf'],
   docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
   pptx: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
@@ -24,6 +30,13 @@ const ALLOWED_TYPES: Record<string, string[]> = {
   txt: ['text/plain'],
   md: ['text/markdown', 'text/x-markdown', 'text/plain'],
 };
+
+// Type guard against the SoT array, so the runtime membership test and the
+// compile-time FileType domain are literally the same list. `.some` (not
+// `.includes`) lets us compare against a widened `string` with no cast.
+function isAllowedFileType(ext: string): ext is FileType {
+  return ALLOWED_FILE_TYPES.some((t) => t === ext);
+}
 
 export async function POST(request: Request) {
   try {
@@ -43,13 +56,15 @@ export async function POST(request: Request) {
     // storage or forwarding to the converter. ext is also reused as file_type
     // below, so it's always a normalized, known value.
     const ext = (file.name.split('.').pop() || '').toLowerCase();
-    const allowedMimes = ALLOWED_TYPES[ext];
-    if (!allowedMimes) {
+    if (!isAllowedFileType(ext)) {
       return NextResponse.json(
-        { error: `Unsupported file type. Allowed: ${Object.keys(ALLOWED_TYPES).join(', ')}.` },
+        { error: `Unsupported file type. Allowed: ${ALLOWED_FILE_TYPES.join(', ')}.` },
         { status: 415 }
       );
     }
+    // `ext` is now narrowed to `FileType`, so this index is total (no undefined)
+    // and `file_type: ext` below writes a value guaranteed to be in the union.
+    const allowedMimes = ALLOWED_TYPES[ext];
     const mime = (file.type || '').toLowerCase();
     // Tolerate empty / generic MIME (browsers send these for valid files); only
     // reject a specific MIME that contradicts the extension.
