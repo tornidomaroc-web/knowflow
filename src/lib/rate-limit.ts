@@ -12,6 +12,7 @@
  */
 import { getEntitlement } from '@/lib/entitlement';
 import { createClient } from '@/lib/supabase/server';
+import type { Tier } from '@/types';
 
 export type UsageKind = 'query' | 'upload' | 'summary' | 'quiz';
 
@@ -26,7 +27,7 @@ export type UsageKind = 'query' | 'upload' | 'summary' | 'quiz';
  * Phase 3 / Phase 4 in docs/PROGRESS.md). Free is deliberately low because each is
  * expensive; `quiz` mirrors `summary`.
  */
-const DAILY_CAPS: Record<'free' | 'pro', Record<UsageKind, number>> = {
+const DAILY_CAPS: Record<Tier, Record<UsageKind, number>> = {
   free: { query: 30, upload: 5, summary: 5, quiz: 5 },
   pro: { query: 2000, upload: 500, summary: 100, quiz: 100 },
 };
