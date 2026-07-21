@@ -36,6 +36,42 @@ PG_IMAGE="supabase/postgres@sha256:80d7b27c3e8d77cfa7226eee9508671796da214781ff1
 # this repo (see supabase/migration-order.txt).
 SUPABASE_CLI_VERSION="2.109.1"
 
+# `gen types` does not talk to Postgres itself: it shells out to
+# `docker run public.ecr.aws/supabase/postgres-meta:v0.96.6`. That reference is
+# compiled into the CLI binary and is a MUTABLE TAG on a rate-limited anonymous
+# registry -- the one dependency of this job that was not pinned, in a job whose
+# whole premise (see PG_IMAGE above) is that an unpinned toolchain "turns any
+# upstream release into a spontaneous red main, with no commit to this repo."
+# A republished v0.96.6 with a changed emitter is indistinguishable from schema
+# drift to `git diff --exit-code`, so this pin closes the same hole for the
+# second image, not merely a reliability one.
+#
+# Pinned by the multi-arch INDEX digest, exactly as PG_IMAGE is. The digest is
+# byte-identical at Docker Hub and at public.ecr.aws, so this is the SAME image
+# fetched over a registry that works: content addressing means docker verifies
+# these bytes or fails the pull -- it cannot silently substitute. Docker Hub is
+# also already in this script's trust set (PG_IMAGE has no registry prefix, so
+# it resolves there), and it succeeded in the very run where ECR answered
+# `toomanyrequests: Rate exceeded`.
+META_IMAGE="docker.io/supabase/postgres-meta@sha256:a84cc713585eea7b401e4a2561ec4a1e48c87083d1c7ecb4502f204bb4391300"
+
+# The reference the CLI actually asks docker for. It must be BYTE-EXACT: docker
+# resolves this string, so a local copy stored only under the docker.io digest
+# satisfies neither the registry, the repo path, nor the tag, and the CLI's
+# pull-if-missing would go straight back to ECR.
+META_TAG="public.ecr.aws/supabase/postgres-meta:v0.96.6"
+
+# COUPLING -- read before bumping SUPABASE_CLI_VERSION. The `v0.96.6` above is
+# not a choice we made; it is compiled into CLI 2.109.1. A CLI bump may change
+# it, which would leave META_TAG naming an image the new CLI never asks for --
+# the retag would go unused and the CLI would silently fall back to pulling from
+# ECR. That degrades to today's FLAKINESS, never to a wrong result, but it is
+# invisible until the throttle hits. So a CLI bump requires re-deriving the tag
+# from the new binary and updating BOTH values here:
+#
+#     grep -a -o -E "postgres-meta[:@a-zA-Z0-9._/-]{0,40}" \
+#       "$(npm root -g)/supabase/bin/supabase"   # or the npx-cached binary
+
 CONTAINER="knowflow-typegen-$$"
 
 # Not 5432: that would collide with a developer's local Postgres. Not 543xx
@@ -222,6 +258,24 @@ if [ "$skipped" -gt 0 ]; then
 fi
 
 # --- Generate ---------------------------------------------------------------
+#
+# Put postgres-meta in the local daemon under the EXACT reference the CLI will
+# ask for, before the CLI runs. `docker run` pulls only when the reference is
+# not found locally (the CLI does not pass --pull always: its failures print
+# "Unable to find image ... locally" first), so a local hit means the CLI never
+# contacts ECR at all.
+#
+# The retag is REQUIRED, not defensive. Pulling by digest stores the image under
+# `docker.io/supabase/postgres-meta@sha256:...`; the CLI asks for
+# `public.ecr.aws/supabase/postgres-meta:v0.96.6`. Different registry, different
+# repo path, no tag -- docker would not match it and would pull from ECR exactly
+# as before. Nothing here relies on digest-to-tag back-reference behaviour,
+# which varies by daemon version; the alias is created explicitly.
+echo "==> Pre-pulling postgres-meta ($META_IMAGE)"
+docker pull "$META_IMAGE" >/dev/null
+docker tag "$META_IMAGE" "$META_TAG"
+echo "--> tagged as $META_TAG (the reference the CLI resolves)"
+
 echo "==> Generating types (supabase CLI $SUPABASE_CLI_VERSION)"
 npx --yes "supabase@$SUPABASE_CLI_VERSION" gen types typescript \
   --db-url "postgresql://postgres:postgres@127.0.0.1:$PGPORT/postgres" \
