@@ -74,6 +74,32 @@ if [ "$listed" != "$on_disk" ]; then
   exit 1
 fi
 
+# --- Skipped migrations: verify, do not assume ------------------------------
+#
+# The skip in migration-order.txt is keyed on the FILENAME, not on the file's
+# content. Nothing stopped a `public`-schema object from being added to a
+# skipped file: it would be absent from the generated types while this job --
+# a REQUIRED status check -- stayed green. A required check passing on a wrong
+# result carries authority it has not earned.
+#
+# So each skipped file is statically verified: every statement must match a form
+# whose target is explicitly qualified to an allowlisted schema (auth, storage).
+# The predicate is an ALLOWLIST and it fails closed, which is the whole point --
+# an UNQUALIFIED `create table foo` resolves to `public` through search_path and
+# contains no `public` token at all, so a token scan would sail past exactly the
+# case that matters. See scripts/verify-skipped-migrations.awk for the argument
+# in full, including what it deliberately refuses to decide.
+#
+# This runs HERE, beside the manifest/disk cross-check and BEFORE `docker run`,
+# because it is a pure text read: it reds in seconds rather than after a minute
+# of Postgres startup and a partial application.
+for file in $(manifest_rows | awk '$2 ~ /^skip:/ { print $1 }'); do
+  echo "==> Verifying skipped migration $file (targets no public-schema object)"
+  awk -v FNAME="supabase/migrations/$file" \
+      -f "$REPO_ROOT/scripts/verify-skipped-migrations.awk" \
+      "$MIG_DIR/$file" >&2 || exit 1
+done
+
 # --- Ephemeral database -----------------------------------------------------
 echo "==> Starting ephemeral Postgres ($PG_IMAGE)"
 docker run -d --name "$CONTAINER" \
@@ -186,9 +212,13 @@ if [ "$skipped" -gt 0 ]; then
   # this for a full application of the migration set.
   echo "==> NOTE: this is a PARTIAL application. Skipped, and why:"
   manifest_rows | awk '$2 ~ /^skip:/ { sub(/^skip:/, "", $2); print "      - " $1 "  (" $2 ")" }'
-  echo "      Skipped migrations create no objects in the public schema, so they"
-  echo "      cannot affect the generated types. This gate therefore covers the"
-  echo "      public schema only -- it is not a proof that every migration applies."
+  echo "      Each file above was STATICALLY VERIFIED before startup: every one of"
+  echo "      its statements matched a form whose target is explicitly qualified to"
+  echo "      an allowlisted schema (auth, storage), so none of them can create a"
+  echo "      public-schema object that the generated types would then be missing."
+  echo "      That check is a fail-closed static heuristic over SQL text, not a"
+  echo "      proof of application: this gate still covers the public schema only,"
+  echo "      and it does not prove that every migration applies."
 fi
 
 # --- Generate ---------------------------------------------------------------
