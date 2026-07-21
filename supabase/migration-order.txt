@@ -42,6 +42,16 @@
 # Append it here. scripts/gen-db-types.sh cross-checks this list against the
 # *.sql files on disk in BOTH directions and fails if they disagree, so a new
 # migration cannot be silently left out or silently ordered by accident.
+#
+# MARKING ONE `skip:`
+# -------------------
+# A skipped file is never applied, so anything it puts in `public` would be
+# missing from the generated types while db-types stayed GREEN. The skip is
+# keyed on the filename, so the CONTENT is checked separately: every statement
+# in a skipped file must target a schema on a short allowlist (auth, storage),
+# explicitly qualified. An unqualified target resolves to `public` and is
+# rejected; so is anything the checker cannot statically decide (a $$-quoted
+# body, dynamic SQL). See scripts/verify-skipped-migrations.awk.
 
 001_initial_schema.sql              apply
 002_storage.sql                     skip:targets-storage-schema-absent-on-bare-postgres
