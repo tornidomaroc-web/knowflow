@@ -3,10 +3,6 @@
     "frontend": {
       "routePrefix": "/",
       "framework": "nextjs"
-    },
-    "ingestion": {
-      "entrypoint": "services/ingestion",
-      "routePrefix": "/_/ingestion"
     }
   }
 }
