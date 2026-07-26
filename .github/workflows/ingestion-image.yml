@@ -1,0 +1,168 @@
+name: ingestion-image
+
+# Builds the Railway ingestion image the way Railway builds it, then proves the
+# module actually imports and the app actually serves inside that image.
+#
+# WHY THIS EXISTS. The two existing required checks are `tsc` and `db-types`.
+# Neither inspects a single line of Python. A PR that changes only
+# services/ingestion/ therefore passes both VACUOUSLY -- a green checkmark that
+# vouches for nothing -- and Railway's "Wait for CI" is OFF, so the deploy does
+# not even pause for them. The failure this closes is specific: main.py imports
+# `acreate_client`/`AsyncClient`/`AsyncClientOptions` from `supabase` at MODULE
+# SCOPE, and `tiktoken.get_encoding("cl100k_base")` also runs at module scope, so
+# a bad resolve or an unreachable encoder file is a BOOT-time crash. All four
+# endpoints -- /health, /embed, /convert, /ingest -- live in one uvicorn process,
+# so a boot crash takes the Ask path down with the upload path.
+#
+# WHAT IT DELIBERATELY DOES NOT PROVE. It does not prove the Railway environment
+# is correct: the CI container has no SUPABASE_URL or SUPABASE_ANON_KEY, so its
+# /health correctly reports "supabase_configured": false. That distinction is
+# load-bearing -- see docs/b1-verification-protocol.md items 1 and 2. This job is
+# item 1's CI twin; item 2 has no CI twin and cannot have one.
+#
+# BUILD PARITY. Railway's "knowflow" service has Root Directory /services/ingestion
+# and an empty Dockerfile Path, so its build CONTEXT is services/ingestion and its
+# Dockerfile is services/ingestion/Dockerfile. The build below uses exactly that
+# context. Changing either here without changing it there makes this job green on
+# an image production never builds.
+#
+# NOT PINNED BY DIGEST, DELIBERATELY. services/ingestion/Dockerfile says
+# `FROM python:3.11-slim`, a mutable tag. Pinning the base by digest HERE but not
+# THERE would make CI test an image production does not build -- a silent
+# false-green, which is worse than the flakiness it would avoid. If the base
+# should be pinned, pin it in the Dockerfile so both paths move together. See
+# register #43's residual (1): Docker Hub is anonymous-rate-limited per IP and
+# GitHub runners share NAT pools, so this job CAN red on a third party's traffic.
+# That is the explicit reason it is NOT a required check -- see the PR body.
+#
+# Actions minutes are not billed: this repository is PUBLIC.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# No `paths:` filter, deliberately. A path-filtered job never reports a status on
+# PRs it skips; if this check is ever promoted to required, a rule demanding a
+# context that nothing publishes blocks every unrelated PR indefinitely. Running
+# a few unnecessary minutes on TypeScript-only PRs is the cheaper mistake, and
+# minutes are free here.
+
+# Least privilege: this job reads the tree and builds a container from it. It never
+# writes to the repo, never pushes an image, never posts a comment, and needs NO
+# secret of any kind -- not a registry credential, not a Supabase key, not the
+# INGESTION_TOKEN. It cannot reach, read, or mutate production.
+permissions:
+  contents: read
+
+concurrency:
+  group: ingestion-image-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Job id is the status-check context string. Keep it stable: renaming it
+  # silently detaches any branch-protection rule that requires the old name, and
+  # a rule requiring a context nothing publishes blocks every PR indefinitely.
+  # (Same warning as db-types.yml:39-41, for the same reason.)
+  ingestion-image:
+    name: ingestion-image
+    # Pinned, not `ubuntu-latest`: `latest` silently rolls to the next LTS image
+    # and can change the preinstalled Docker version with no commit to this repo.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      # Actions are pinned to immutable commit SHAs, not tags. Tags like `v7` are
+      # mutable and are republished in place, so a tag pin would NOT prevent an
+      # action's behaviour from changing under us.
+      - name: Check out the repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # Build with Railway's context, not the repo root. `docker build` is used
+      # rather than buildx + a cache backend: a cache would make a green run
+      # depend on a cache entry rather than on a clean build, which is the
+      # opposite of what this gate is for.
+      - name: Build the ingestion image
+        run: |
+          docker build \
+            -f services/ingestion/Dockerfile \
+            -t knowflow-ingestion:ci \
+            services/ingestion
+
+      # Import the module INSIDE the built image, at the image's own WORKDIR
+      # (/app), with the image's own interpreter. This is the check that a bad
+      # `supabase` resolve or a missing tiktoken encoder is caught here rather
+      # than on Railway. The full traceback is printed so a NETWORK failure
+      # (tiktoken fetching cl100k_base, PyPI, DNS) is distinguishable from a real
+      # ImportError -- they are not the same defect and must not read the same.
+      #
+      # `-i` IS LOAD-BEARING. DO NOT REMOVE IT. `python -` reads its program from
+      # STDIN, and `docker run` WITHOUT `-i` does not attach stdin to the
+      # container. The first version of this workflow omitted it (PR #71, run
+      # 30218194135): python read EOF, executed an EMPTY program, exited 0, and
+      # the step reported GREEN having asserted nothing -- zero bytes of stdout,
+      # no ROUTES line, no IMPORT OK. A workflow whose entire purpose is to end
+      # vacuous green checks shipped one. Proven by direct experiment, not
+      # inferred: without `-i` the heredoc never reaches the interpreter and the
+      # exit code is 0; with `-i` it runs.
+      #
+      # The trailing `grep` is what actually fails this step, and it is the
+      # STRUCTURAL fix rather than a second opinion. GitHub runs steps with
+      # `bash -e` and NOT `-o pipefail` (see `shell: /usr/bin/bash -e {0}` in any
+      # job log), so piping through `tee` MASKS a non-zero `docker run`. Asserting
+      # on the step's OUTPUT instead of on its exit code is the only thing that
+      # makes a silent no-op impossible to pass again -- which is the same lesson
+      # register #52 exists to record.
+      - name: Import the module inside the image
+        run: |
+          docker run --rm -i knowflow-ingestion:ci python - <<'PY' | tee /tmp/import.log
+          import traceback, sys
+          try:
+              import main
+          except Exception:
+              print("IMPORT FAILED -- full traceback follows.", flush=True)
+              print("If this is a network error (tiktoken/cl100k_base, PyPI, DNS),", flush=True)
+              print("it is register #43's class, NOT a code defect. Read before re-running.", flush=True)
+              traceback.print_exc()
+              sys.exit(1)
+
+          paths = sorted({r.path for r in main.app.routes})
+          print("ROUTES:", paths, flush=True)
+
+          # Assert only the endpoints that exist in EVERY version of this service:
+          # before PR A (/convert, /embed, /health), after PR A (all four), and
+          # after PR C (/ingest, /embed, /health). Asserting a version-specific
+          # route here would make this workflow need editing in lockstep with the
+          # service, which is exactly the drift it exists to prevent.
+          for required in ("/health", "/embed"):
+              assert required in paths, f"missing route: {required}"
+
+          print("IMPORT OK", flush=True)
+          PY
+          grep -q "IMPORT OK" /tmp/import.log
+
+      # Stronger than an import: actually run the image's own CMD and prove uvicorn
+      # binds and serves. This catches ASGI/lifespan startup failures that a bare
+      # import does not.
+      - name: Boot the container and probe /health
+        run: |
+          docker run -d --name ingestion-ci -p 8000:8000 knowflow-ingestion:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health > /tmp/health.json; then
+              echo "HEALTH: $(cat /tmp/health.json)"
+              # Assert the boot invariant only. `supabase_configured` is EXPECTED
+              # to be false here -- CI has no Supabase env vars, by design. Only
+              # the live probe (protocol item 2 / V2) can assert it is true.
+              grep -q '"ok":true' /tmp/health.json
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Container never served /health. Logs follow:"
+          docker logs ingestion-ci
+          exit 1
+
+      - name: Container logs (always)
+        if: always()
+        run: docker logs ingestion-ci || true
