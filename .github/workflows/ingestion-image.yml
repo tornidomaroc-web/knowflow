@@ -96,9 +96,27 @@ jobs:
       # than on Railway. The full traceback is printed so a NETWORK failure
       # (tiktoken fetching cl100k_base, PyPI, DNS) is distinguishable from a real
       # ImportError -- they are not the same defect and must not read the same.
+      #
+      # `-i` IS LOAD-BEARING. DO NOT REMOVE IT. `python -` reads its program from
+      # STDIN, and `docker run` WITHOUT `-i` does not attach stdin to the
+      # container. The first version of this workflow omitted it (PR #71, run
+      # 30218194135): python read EOF, executed an EMPTY program, exited 0, and
+      # the step reported GREEN having asserted nothing -- zero bytes of stdout,
+      # no ROUTES line, no IMPORT OK. A workflow whose entire purpose is to end
+      # vacuous green checks shipped one. Proven by direct experiment, not
+      # inferred: without `-i` the heredoc never reaches the interpreter and the
+      # exit code is 0; with `-i` it runs.
+      #
+      # The trailing `grep` is what actually fails this step, and it is the
+      # STRUCTURAL fix rather than a second opinion. GitHub runs steps with
+      # `bash -e` and NOT `-o pipefail` (see `shell: /usr/bin/bash -e {0}` in any
+      # job log), so piping through `tee` MASKS a non-zero `docker run`. Asserting
+      # on the step's OUTPUT instead of on its exit code is the only thing that
+      # makes a silent no-op impossible to pass again -- which is the same lesson
+      # register #52 exists to record.
       - name: Import the module inside the image
         run: |
-          docker run --rm knowflow-ingestion:ci python - <<'PY'
+          docker run --rm -i knowflow-ingestion:ci python - <<'PY' | tee /tmp/import.log
           import traceback, sys
           try:
               import main
@@ -122,6 +140,7 @@ jobs:
 
           print("IMPORT OK", flush=True)
           PY
+          grep -q "IMPORT OK" /tmp/import.log
 
       # Stronger than an import: actually run the image's own CMD and prove uvicorn
       # binds and serves. This catches ASGI/lifespan startup failures that a bare
