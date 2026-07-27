@@ -98,9 +98,19 @@ to take effect.
 Locations these three live in and must be swapped:
 - [ ] `.env.local` (local dev)
 - [ ] **Vercel** project env → **then redeploy** (mandatory for the `NEXT_PUBLIC_*` pair)
-- [ ] **Railway ingestion service** — *verify* it holds **no** `SUPABASE_*` vars. From
-  this repo's code the Python service only receives files and returns chunks; Next.js
-  does all Supabase writes. But it's a **separate repo** — confirm before assuming clean.
+- [ ] **Railway ingestion service** — it holds **`SUPABASE_URL` + `SUPABASE_ANON_KEY`**, and
+  **must** (register **#51**, 2026-07-26). **From enabler (b1)'s PR B onward** the service writes
+  `chunks` and the terminal `documents` status itself, authenticating **as the uploading user** via
+  a forwarded JWT layered on the **public anon key**. Between PR A and PR B it already holds both
+  values but does not yet persist, because Next still calls `/convert`. Either way both values need
+  swapping here too.
+  Same two values as the `NEXT_PUBLIC_*` pair in §2, **different variable names** (no
+  `NEXT_PUBLIC_` prefix; the service is not a browser bundle). It must **NEVER** hold
+  `SUPABASE_SERVICE_ROLE_KEY`: register **#45** proved this exact service was publicly
+  duplicable with a shared bearer token, so an RLS-bypassing credential in that process is a
+  full-database breach, not a leak. **Correction (2026-07-26):** this service is **not** a
+  separate repo — its code is `services/ingestion/` in **this** repo, which Railway
+  auto-deploys from `main`.
 
 ---
 
@@ -137,7 +147,12 @@ Locations these three live in and must be swapped:
 - [ ] Recreate all [§3](#3-config-not-in-migrations--recreate-manually-on-the-new-project) auth config (providers, Confirm-email, Site/Redirect URLs, templates).
 
 ### Step 4.5 — Swap env vars
-- [ ] Swap the three [§2](#2-environment-variables-the-app-reads-for-supabase) vars in `.env.local`, Vercel (+ **redeploy**), and verify Railway has none.
+- [ ] Swap the three [§2](#2-environment-variables-the-app-reads-for-supabase) vars in `.env.local`
+  and Vercel (+ **redeploy**), **and** swap `SUPABASE_URL` + `SUPABASE_ANON_KEY` on the **Railway
+  ingestion service** (§2). Railway has held the anon pair since register **#51**, and **once (b1)'s
+  PR B has landed** a stale pair there fails every upload at the persistence step while Next itself
+  still looks perfectly healthy — so this is not optional and not verify-only. Confirm with an
+  unauthenticated `GET /health` → `"supabase_configured": true`.
 
 ### Step 4.6 — Verify end-to-end on the NEW project (BEFORE deleting old)
 Run the full flow against the new project. **All must pass before §5.**
