@@ -308,54 +308,6 @@ def _convert_to_markdown(file: UploadFile) -> str:
                 pass
 
 
-@app.post("/convert")
-async def convert(
-    file: UploadFile = File(...),
-    authorization: str | None = Header(default=None),
-):
-    """DEPRECATED compatibility shim. Byte-identical contract to the pre-(b1) handler.
-
-    Exists ONLY to make the two-merge deploy sequence zero-window. At THIS PR's
-    merge the live Next still calls `/convert`; at the NEXT PR's merge the new
-    Next calls `/ingest` while this image is already live. Serving both for the
-    span of one PR is what removes the skew window in both directions. The third
-    PR of the sequence deletes this handler, once nothing calls it.
-
-    It deliberately does NOT share /ingest's improvements, and each omission is
-    load-bearing:
-      * NO chunk/embedding length guard. The old contract truncates via `zip`
-        and the old caller tolerates a chunk with no `embedding` key. Adding the
-        guard would turn a silent short-return into a 500 -- a better behaviour,
-        and a DIFFERENT contract. This shim's only job is to be identical.
-      * NO `Form(...)` parameters. The old caller posts `file` alone
-        (src/app/api/ingest/route.ts on main appends nothing else), so any extra
-        required Form field makes multipart validation 422 every production
-        upload.
-      * NO Supabase client and NO persistence of any kind. The old caller does
-        its own chunk inserts and its own status writes; a write here would
-        double-write every chunk of every upload for the life of the shim.
-    """
-    _check_auth(authorization)
-
-    try:
-        markdown_text = _convert_to_markdown(file)
-        chunks = _chunk_text(markdown_text)
-        if chunks:
-            embeddings = await _embed([c["content"] for c in chunks], input_type="document")
-            for c, emb in zip(chunks, embeddings):
-                c["embedding"] = emb
-
-        return {
-            "markdown": markdown_text,
-            "filename": file.filename,
-            "chunks": chunks,
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
 @app.post("/ingest")
 async def ingest(
     file: UploadFile = File(...),
