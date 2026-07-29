@@ -681,7 +681,7 @@ which is the register **#39** problem this file exists to solve.
 | Row | Check | Filled by | Run at (UTC) | Result | Evidence | Deployment |
 |-----|-------|-----------|--------------|--------|----------|------------|
 | V11 | `ingestion-image` green on `main` | PR A | 2026-07-26 20:41 | **PASS** — `success` in **44s** on `eaad75294e9102ef83e93b810542e93217e2a2f1` | https://github.com/tornidomaroc-web/knowflow/actions/runs/30219501234 | CI runner; no Railway deployment |
-| V3 | No service-role key on Railway; anon key decodes `role: anon` | PR A (pre-merge) | | | | |
+| V3 | No service-role key on Railway; anon key decodes `role: anon` | PR A (pre-merge) | 2026-07-29 15:57 | **PASS** | Decoded payload's `role` claim reads `anon`, not `service_role`; legacy Supabase JWT format, so the `sb_publishable_` branch did not apply. Railway service carries no `SUPABASE_SERVICE_ROLE_KEY` — its four user variables are `INGESTION_TOKEN`, `VOYAGE_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`. See dependency note below. | Dashboard read plus local decode; no Railway deployment |
 | V1 | `/health` returns 200 | PR A (post-merge PR) | | | | |
 | V2 | `/health` reports `supabase_configured: true` | PR A (post-merge PR) | | | | |
 | V4 | Production upload via `/convert` shim reaches `ready` | PR A (post-merge PR) | | | | |
@@ -698,6 +698,14 @@ which is the register **#39** problem this file exists to solve.
 | N6 | `POST /convert` returns 404; production upload still passes Q3 | PR C (post-merge) | | | | |
 | N8 | Watch Paths pattern empirically confirmed to fire | between B and C | | | | |
 | — | Throwaway account cleanup (§6.3) executed and §6.2 re-run all-zero | PR C | | | | |
+
+**V3 rests on two dependencies that this PASS does not discharge.** First, the absence half is a
+**dashboard read performed by the repository owner, not by the agent recording this row** — no
+tooling here enumerated Railway's variables, so "no `SUPABASE_SERVICE_ROLE_KEY`" is an attested
+observation, not a machine-verified one. Second, **decoding proves the value examined is an anon
+key; it does not prove it is the value the deployed service holds.** The decode ran against a copy.
+Nothing in this check ties that copy to the variable Railway injects at runtime. V3 is therefore
+PASS on the claim as stated and no wider.
 
 ---
 
