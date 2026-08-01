@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getServiceUrl } from '@/lib/ingestion';
 import { checkDocumentLimit } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
 import { recordStudyEvent } from '@/lib/study-events';
@@ -140,7 +141,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: docError?.message }, { status: 500 });
     }
 
-    const pythonServiceUrl = process.env.INGESTION_SERVICE_URL || 'http://localhost:8000';
+    // Shared with embedQuery's client so the two callers of this service cannot
+    // disagree about where it lives, and so the production guard applies to
+    // uploads as well as to Ask.
+    const pythonServiceUrl = getServiceUrl();
     const ingestionToken = process.env.INGESTION_TOKEN;
     if (!ingestionToken) {
       console.error('INGESTION_TOKEN env var is not set');
@@ -158,7 +162,30 @@ export async function POST(request: Request) {
     });
 
     if (!pyResponse.ok) {
-      await supabase.from('documents').update({ status: 'error', embedding_status: 'error' }).eq('id', docRecord.id);
+      // DO NOT LOSE THE UPSTREAM CAUSE. This branch previously flipped the row
+      // to `error` with a NULL error_message and logged nothing whatsoever, so
+      // a 401 from a desynchronized INGESTION_TOKEN, a 503 from an unset one,
+      // a 500 from the converter and a 404 from a version-skewed endpoint were
+      // all indistinguishable — from the user ("Ingestion failed"), from the
+      // database (status='error', error_message=null), and from the server logs
+      // (silence). That is the whole reason the 2026-07-23 credential outage ran
+      // for nine days: nothing anywhere recorded a status code. Register #54.
+      //
+      // The body is read only on the failure path, so the success path is
+      // untouched, and .catch() keeps a body-read failure from masking the
+      // status we came here to record. Truncated because this string is written
+      // to the database.
+      const detail = await pyResponse.text().catch(() => '');
+      const upstream = `ingestion service returned ${pyResponse.status}${detail ? `: ${detail.slice(0, 500)}` : ''}`;
+      console.error('Ingestion service error:', upstream);
+      await supabase
+        .from('documents')
+        // error_message is written by this route and rendered nowhere under
+        // src/ (verified), so recording the upstream status here does not put
+        // internal detail in front of a user. The user-facing body below is
+        // deliberately unchanged.
+        .update({ status: 'error', embedding_status: 'error', error_message: upstream })
+        .eq('id', docRecord.id);
       return NextResponse.json({ success: false, error: 'Ingestion failed' }, { status: 500 });
     }
 

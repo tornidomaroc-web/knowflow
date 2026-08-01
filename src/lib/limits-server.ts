@@ -37,10 +37,22 @@ export async function checkKBLimit(userId: string): Promise<LimitCheck> {
 export async function checkDocumentLimit(kbId: string, userId: string): Promise<LimitCheck> {
   const { tier, limits } = await limitsFor(userId)
   const supabase = await createClient()
+  // A document that FAILED to ingest must not consume the user's quota. Every
+  // failure path in /api/ingest leaves its row behind at status='error' rather
+  // than deleting it (the row is the only record that the attempt happened), so
+  // an unfiltered count charges the user for our own outages: during the
+  // 2026-07-23 ingestion incident every retry burned another slot, and the free
+  // tier's 10 would have been exhausted by roughly a day of failures — surfacing
+  // as "You've reached this subject's limit of 10 materials", a message that
+  // reads as a product limit rather than as a bug. Register #54.
+  //
+  // This does not open a quota bypass: /api/ingest still runs enforceLimit's
+  // daily upload cap (B7) before any work, so failures are bounded per day.
   const { count } = await supabase
     .from('documents')
     .select('*', { count: 'exact', head: true })
     .eq('kb_id', kbId)
+    .neq('status', 'error')
   return { allowed: (count ?? 0) < limits.documents, limit: limits.documents, tier }
 }
 
