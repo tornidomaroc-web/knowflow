@@ -592,8 +592,20 @@ entire content of register **#39**.
 
 There are **four**. Reducing them would be wrong.
 
+> **AMENDED 2026-08-02 — READ §8.1.1 BEFORE ACTING ON ANY TRIGGER BELOW.** The four triggers survive
+> **unchanged as detection conditions**. The **remedy** they pointed at does not. Railway marks
+> deployment images **REMOVED** on this plan — **for the entire deployment history, not just old
+> ones** — so the no-rebuild rollback this section promised **does not exist**. §8.1.1 states what
+> replaced it, and what that costs.
+
 > **TRIGGER 1 — If `GET /health` does not return HTTP 200 within 10 minutes of PR A's merge, roll
 > back. Do not debug forward.**
+>
+> *Amended 2026-08-02:* **ten minutes is the window to DECIDE, not the window to finish.** A
+> rollback is now a rebuild (§8.1.1), so budget build time **on top of** the decision. The
+> `ingestion-image` job builds this exact context in **~50s** (52s on `9e31c22`, 56s on `0c73297`),
+> which is the closest available proxy for Railway's build. The margin still fits; it is thinner
+> than the number implies, and it is no longer dominated by container start.
 
 > **TRIGGER 2 — If V4 fails (a production upload through the `/convert` shim does not reach
 > `status='ready'`), roll back immediately.** That is live user harm, and it means the shim is not
@@ -611,11 +623,62 @@ There are **four**. Reducing them would be wrong.
 > drive conversion and embedding without a credential — **register #45's exact failure**. This is
 > worse live harm than a failed upload: a broken upload is visible and bounded, an open endpoint is
 > invisible and unbounded. Roll back first, diagnose after.
+>
+> *Amended 2026-08-02:* the sequence is now **roll back, THEN IMMEDIATELY RE-PROBE N9 against the
+> rolled-back deployment.** "Roll back first, diagnose after" was premised on rollback being fast
+> and known-good. It is now neither. Because the rollback rebuilds from source rather than
+> re-activating the image that was running (§8.1.1), **nothing guarantees the rebuilt image
+> reproduces the authenticated behaviour of the deployment you are rolling back to.** Rolling an
+> auth defect into an unverified rebuild and walking away is a new failure mode, and it is worse
+> than the one being fixed. The trigger still fires; it now has a second half.
 
-**The rollback:** Railway dashboard → Deployments → the last pre-PR-A deployment → **Rollback**. It
-re-activates an already-built image with no rebuild. Production Next is unchanged and still calls
-`/convert`, which that image serves (`services/ingestion/main.py:146` on `main`). Duration is
-container start plus health gate.
+### 8.1.1 The rollback, as it actually works — corrected 2026-08-02
+
+**The superseded claim is preserved rather than deleted, because it led every rollback plan in this
+file and deleting it would hide why the plans were shaped that way:**
+
+> ~~**The rollback:** Railway dashboard → Deployments → the last pre-PR-A deployment → **Rollback**.
+> It re-activates an already-built image with no rebuild. Production Next is unchanged and still
+> calls `/convert`, which that image serves (`services/ingestion/main.py:146` on `main`). Duration
+> is container start plus health gate.~~
+
+**That paragraph is false on this plan.** Read from the Railway dashboard on 2026-08-02: **every
+deployment in the history is marked REMOVED**, not merely the old ones. There is no already-built
+image to re-activate. What "Rollback" does now is **rebuild from that commit's source**.
+
+Three consequences, graded by how much they cost:
+
+1. **"no rebuild" — false.** Rollback is a rebuild. Nothing re-activates.
+2. **"container start plus health gate" — false, but survivable.** Add ~50s of build (see TRIGGER 1
+   above). Slower, not disqualifying.
+3. **THE FIDELITY LOSS — the real casualty, and it was never written down because it was assumed.**
+   `services/ingestion/Dockerfile` says `FROM python:3.11-slim`, a **mutable tag**, and
+   `requirements.txt` pins its seven direct dependencies but **nothing transitive** — there is no
+   lock file and no hashes, and `markitdown[all]==0.1.5` pulls the entire PDF/DOCX/PPTX extraction
+   stack unpinned. So rebuilding commit *X* today produces an image with **today's base layer and
+   today's transitive dependency resolution**. **A rollback therefore restores SOURCE, not STATE.**
+   It is not a return to a verified artifact; it is a **forward deploy to an unverified one that
+   happens to carry older source.**
+
+**What that changes about every trigger in §8.1:**
+
+- **Every rollback must be followed by re-running V1, N9 and V4** against the rolled-back
+  deployment. This section previously required nothing after a rollback, because rolling back was
+  *defined* as returning to a known-good state. It is not one any more. Without the re-run, a
+  rollback can silently introduce a **new** defect while removing the old one — and it would be
+  discovered by the same mechanism that found the last one, which is to say nine days later.
+- **TRIGGER 4 gains an explicit second half**, stated in the amendment above.
+- **TRIGGER 1's ten minutes is a decision budget**, not a completion budget.
+
+**DIGEST-PINNING IS A PRECONDITION FOR THIS PROCEDURE WORKING — not cleanup, and not an
+optimisation.** This section cannot be repaired by rewriting it. Rewriting only makes it *honest*;
+the procedure stays degraded. The only change that makes "roll back" mean what this file has always
+assumed it means is pinning the base image **by digest** in `services/ingestion/Dockerfile` and
+adding a hash-pinned dependency lock. With those, rebuilding commit *X* reproduces near-identical
+bytes and rollback recovers its definition. Without them, **no rollback in this document can restore
+a known artifact, ever.** `.github/workflows/ingestion-image.yml:29-36` already ruled on the
+location: the Dockerfile, so CI and Railway move together — pinning in CI alone is a silent
+false-green. That is a `services/` change and is **deliberately not in this PR.**
 
 **This rollback is valid for the entire PR A window and dies the moment PR B merges** — after that,
 production Next calls `/ingest`, and the pre-PR-A image does not have it, so rolling back one
@@ -660,9 +723,52 @@ silently skipped PR C is not.
 **Empty cells are not "pass by default."** A blank cell means the check has not been run, and V12
 forbids merging PR B while any PR-A/PR-B row is blank.
 
-The **Deployment** column records the Railway deployment ID or image digest each row was observed
-against. Without it a green row cannot be tied to the artifact that produced it after any rollback —
-which is the register **#39** problem this file exists to solve.
+### The **Artifact** column — what it can and cannot prove
+
+**Renamed from "Deployment" and re-specified 2026-08-02, because its original promise cannot be
+kept.** It was defined as recording "the Railway deployment ID or image digest each row was observed
+against," so that "a green row can be tied to the artifact that produced it after any rollback" —
+the register **#39** problem this file exists to solve.
+
+**It cannot do that any more, and no wording fixes it.** Railway marks deployment images **REMOVED**
+on this plan, for the entire history (§8.1.1). **No row below can be re-inspected.** The deployment
+*record* survives; the *artifact* does not.
+
+So the column records, in this order:
+
+1. **`built from <sha>` — the durable identity.** Which source produced the row. Survives everything.
+2. **`observed <UTC>` — when the check ran.** Survives everything.
+3. **`ARTIFACT REAPED` — mandatory on every row.** Present so no reader mistakes an identifier for a
+   retrievable artifact.
+4. **`dep <id>` — a pointer into Railway's own record, secondary and expiring.** It is **not**
+   artifact identity. It earns its place for exactly one reason: **Railway rebuilds `main`'s head on
+   any trigger, so one commit SHA can correspond to several distinct deployments** — and because the
+   base tag is mutable and transitive dependencies are unlocked, those deployments are **not
+   guaranteed to be the same artifact**. The SHA alone cannot separate them; the ID can. It is also
+   the only handle on build duration and trigger label. It proves nothing about bytes.
+
+**`⟨FILL-IN⟩` marks a value not yet read off the dashboard.** It is a populated, honest cell — not a
+settled one. **V12 is checked when PR B merges, not when this table is drafted**, so a `⟨FILL-IN⟩`
+does not block drafting; it must be resolved before PR B moves.
+
+### Provenance classes
+
+Every row carries one, because "PASS" alone hides how much the PASS is worth:
+
+- **`machine-verified`** — an agent ran the probe or query against live production this session and
+  the result is reproducible by anyone with the same access.
+- **`owner-attested`** — observed by the repository owner in a dashboard or UI. Not machine-verified,
+  and not weaker for being honest about it. **V3** established this class; **V5** joins it.
+- **`CI-observed`** — asserted by a workflow on a runner nobody here controls, with public logs.
+
+**Unfilled rows carry `— (PR X fills)` in this column until they are run.** That is a placeholder
+naming who owes the row, not a provenance class, and it replaces the old **Filled by** column.
+
+**V1, V2 and N9 carry `machine-verified` + `CI-observed` together**, and that combination is what
+makes them a stronger class than a one-time reading. Since 2026-08-02T14:59Z the
+`production-monitor` workflow (PR **#75**) re-asserts all three **every 15 minutes**. They stopped
+being a single observation by one agent at that moment. No other row has an independent standing
+check, and none of them should be read as if it does.
 
 **Who fills what:**
 
@@ -672,32 +778,37 @@ which is the register **#39** problem this file exists to solve.
   item 8 gates PR A pre-merge.
 - **V1, V2, V4, V5, N4 and N9 are only observable after PR A's image is live**, so they are recorded
   by a small **docs-only PR to `main`** between PR A and PR B — a PR, not a direct push, like every
-  other change in this repo. That PR's merge commit is the artifact V12 checks for. It is docs-only,
-  so it triggers a redundant Railway rebuild of an unchanged `main.py` — harmless, and a second free
-  rehearsal of the swap.
+  other change in this repo. That PR's merge commit is the artifact V12 checks for. **That PR is
+  this one.** It is docs-only, so it triggers a Railway rebuild of an unchanged `main.py`.
+  **Corrected 2026-08-02: that rebuild is not "harmless" and not incidental — it is a defect with
+  its own register row.** Confirmed empirically the same day: PR **#74** touched only `src/` and
+  `docs/`, and the Railway dashboard showed the resulting deployment **active, "via GitHub",
+  successful**. Every frontend or docs PR silently rebuilds and swaps the production ingestion
+  image, from a mutable base tag and unlocked transitive dependencies. It is still a free rehearsal
+  of the swap; it is no longer filed as harmless.
 - **PR B fills** V6, V7, V8, V9, V10, and V12, and may not be merged until every row above is filled.
 - **PR C fills** the N5 and N6 rows, and records the cleanup.
 
-| Row | Check | Filled by | Run at (UTC) | Result | Evidence | Deployment |
+| Row | Check | Provenance | Run at (UTC) | Result | Evidence | Artifact |
 |-----|-------|-----------|--------------|--------|----------|------------|
-| V11 | `ingestion-image` green on `main` | PR A | 2026-07-26 20:41 | **PASS** — `success` in **44s** on `eaad75294e9102ef83e93b810542e93217e2a2f1` | https://github.com/tornidomaroc-web/knowflow/actions/runs/30219501234 | CI runner; no Railway deployment |
-| V3 | No service-role key on Railway; anon key decodes `role: anon` | PR A (pre-merge) | 2026-07-29 15:57 | **PASS** | Decoded payload's `role` claim reads `anon`, not `service_role`; legacy Supabase JWT format, so the `sb_publishable_` branch did not apply. Railway service carries no `SUPABASE_SERVICE_ROLE_KEY` — its four user variables are `INGESTION_TOKEN`, `VOYAGE_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`. See dependency note below. | Dashboard read plus local decode; no Railway deployment |
-| V1 | `/health` returns 200 | PR A (post-merge PR) | | | | |
-| V2 | `/health` reports `supabase_configured: true` | PR A (post-merge PR) | | | | |
-| V4 | Production upload via `/convert` shim reaches `ready` | PR A (post-merge PR) | | | | |
-| V5 | Production Ask returns a grounded answer | PR A (post-merge PR) | | | | |
-| N4 | All-accounts Q6b (§4) returns 0, `created_at` bounded at PR A's merge | PR A (post-merge PR) | | | | |
-| N9 | Unauthenticated `POST /convert` returns 401 | PR A (post-merge PR) | | | | |
-| V6 | Preview upload via `/ingest` satisfies Q3 | PR B | | | | |
-| V7 | Q4 all six conditions | PR B | | | | |
-| V8 | Preview Ask contains `QORVANTHIL`; Q5 returns rows | PR B | | | | |
-| V9 | `corrupt.pdf` reaches `error`, 0 chunks; Q6b = 0 | PR B | | | | |
-| V10 | `material_uploaded` = Q7-BEFORE + 1 | PR B | | | | |
-| V12 | This table committed with no blanks above | PR B | | | | |
-| N5 | Nothing calls `/convert`; production Next at or after PR B's merge SHA | PR C (pre-merge) | | | | |
-| N6 | `POST /convert` returns 404; production upload still passes Q3 | PR C (post-merge) | | | | |
-| N8 | Watch Paths pattern empirically confirmed to fire | between B and C | | | | |
-| — | Throwaway account cleanup (§6.3) executed and §6.2 re-run all-zero | PR C | | | | |
+| V11 | `ingestion-image` green on `main` | CI-observed | 2026-07-26 20:41 | **PASS** — `success` in **44s** on `eaad75294e9102ef83e93b810542e93217e2a2f1` | https://github.com/tornidomaroc-web/knowflow/actions/runs/30219501234 | CI runner; no Railway deployment |
+| V3 | No service-role key on Railway; anon key decodes `role: anon` | owner-attested | 2026-07-29 15:57 | **PASS** | Decoded payload's `role` claim reads `anon`, not `service_role`; legacy Supabase JWT format, so the `sb_publishable_` branch did not apply. Railway service carries no `SUPABASE_SERVICE_ROLE_KEY` — its four user variables are `INGESTION_TOKEN`, `VOYAGE_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`. See dependency note below. | Dashboard read plus local decode; no Railway deployment |
+| V1 | `/health` returns 200 | machine-verified + **CI-observed** | 2026-08-02 14:06:10 | **PASS** — HTTP 200 | `GET /health` → `200` in 0.43s. Re-asserted every 15 min since 14:59Z by `production-monitor` (PR #75); first run [30753322454](https://github.com/tornidomaroc-web/knowflow/actions/runs/30753322454) green in 9s. | built from `9e31c22` · observed 2026-08-02T14:06:10Z · **ARTIFACT REAPED** · dep `⟨FILL-IN: dashboard⟩` |
+| V2 | `/health` reports `supabase_configured: true` | machine-verified + **CI-observed** | 2026-08-02 14:06:10 | **PASS** | Body: `{"ok":true,"embed_provider":"voyage","embed_model":"voyage-3-large","embed_dim":1024,"supabase_configured":true}`. The monitor additionally asserts `embed_dim == 1024`, which this row never covered — `chunks.embedding` is `vector(1024)`. | built from `9e31c22` · observed 2026-08-02T14:06:10Z · **ARTIFACT REAPED** · dep `⟨FILL-IN: dashboard⟩` |
+| V4 | Production upload via `/convert` shim reaches `ready` | machine-verified | 2026-08-02 14:20 (document created 2026-08-01 16:00:40) | **PASS** — all five Q3 conditions | Q3 on `6c0ff12c-b462-479f-b918-1889f19703a2` (`cv_abdelfettah_amellah.pdf`, account `72ebd7b5`): `status=ready`, `embedding_status=ready`, `chunk_count=2` = `actual_chunk_rows=2`, `has_markdown=true` (2633 chars), `error_message` null. **Q4 was additionally run against this same document as supporting evidence — not as V7**, which is PR B's preview upload: 2 rows, 0 null embeddings, 0 wrong dims, `min_idx=0`, `max_idx=1`, `distinct_idx=2`, both vectors 1024-dim. | built from `ee45958` · **produced** 2026-08-01T16:00:40Z (observed 2026-08-02) · **ARTIFACT REAPED** · dep `⟨FILL-IN: dashboard⟩` |
+| V5 | Production Ask returns a grounded answer | **owner-attested** | 2026-08-01 | **PASS** | The summarize action on document `6c0ff12c` returned a substantive **Arabic summary drawn from the PDF's real content**, not the "can't find that in your materials" response. **Attested by the repository owner, not machine-verified — the same epistemic class as V3.** No artifact, log or transcript survives behind it. | built from `ee45958` · observed 2026-08-01 · **ARTIFACT REAPED** · dep `⟨FILL-IN: dashboard⟩` |
+| N4 | All-accounts Q6b (§4) returns 0, `created_at` bounded at PR A's merge | machine-verified | 2026-08-02 14:2x | **PASS** — 0, both bounded and unbounded | `documents where status='processing' and created_at > 2026-07-29T19:20:36Z` (PR A's merge) across **all accounts** → **0**. Re-run with the date bound removed → also **0**, so nothing is stranded anywhere at any time, which is stronger than the row requires. | **Not attributable to a single deployment.** This row asserts a **global invariant across every document ever written**, not the behaviour of one artifact. Observed 2026-08-02T14:2xZ. |
+| N9 | Unauthenticated `POST /convert` returns 401 | machine-verified + **CI-observed** | 2026-08-02 14:0x | **PASS** — `401 {"detail":"Missing bearer token"}` | **TRIGGER 4 does not fire.** Probed before any other work this session, precisely because it is a rollback trigger. **The multipart file part is load-bearing:** FastAPI validates the body *before* the bearer check, so an unauthenticated POST with **no** file returns **422 `"Field required"`** — proven by direct probe, not inferred. With a file part and no `Authorization`: **401**. Re-asserted every 15 min by `production-monitor`. | built from `9e31c22` · observed 2026-08-02T14:0xZ · **ARTIFACT REAPED** · dep `⟨FILL-IN: dashboard⟩` |
+| V6 | Preview upload via `/ingest` satisfies Q3 | — *(PR B fills)* | | | | |
+| V7 | Q4 all six conditions | — *(PR B fills)* | | | | |
+| V8 | Preview Ask contains `QORVANTHIL`; Q5 returns rows | — *(PR B fills)* | | | | |
+| V9 | `corrupt.pdf` reaches `error`, 0 chunks; Q6b = 0 | — *(PR B fills)* | | | | |
+| V10 | `material_uploaded` = Q7-BEFORE + 1 | — *(PR B fills)* | | | | |
+| V12 | This table committed with no blanks above | — *(PR B fills)* | | | | |
+| N5 | Nothing calls `/convert`; production Next at or after PR B's merge SHA | — *(PR C fills, pre-merge)* | | | | |
+| N6 | `POST /convert` returns 404; production upload still passes Q3 | — *(PR C fills, post-merge)* | | | | |
+| N8 | Watch Paths pattern empirically confirmed to fire | — *(fills between B and C)* | | | | |
+| — | Throwaway account cleanup (§6.3) executed and §6.2 re-run all-zero | — *(PR C fills)* | | | | |
 
 **V3 rests on two dependencies that this PASS does not discharge.** First, the absence half is a
 **dashboard read performed by the repository owner, not by the agent recording this row** — no
