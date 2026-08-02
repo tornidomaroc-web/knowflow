@@ -177,7 +177,7 @@ and **V11** respectively (§8). They appear here because §3 is organised by *wh
 | **N5** nothing still calls `/convert` | **C** pre-merge | `grep -rn "/convert" src/` returns zero hits **and** the production Vercel deployment's commit SHA is at or after PR B's merge commit | **Yes.** |
 | **N6** `/convert` gone, uploads still work | **C** post-merge | Authenticated `POST /convert` returns **404**; then one production upload passes Q3 | Partly — the 404 probe needs only `INGESTION_TOKEN`; the upload needs the UI. |
 | **N7** image builds and imports in CI | **A0** | The `ingestion-image` workflow green on `main` (register **#52**) | **Yes.** |
-| **N8** Watch Paths does not orphan PR C | between **B** and **C** | See §9 | **Yes.** |
+| **N8** Watch Paths does not orphan PR C | **after C** — *re-sequenced 2026-08-02, see §9.1* | See §9 and **§9.1**, which supersedes the "between B and C" placement and specifies the two-direction empirical test | **Yes.** |
 | **N9** `/convert` still requires authentication | **A** post-merge | Unauthenticated `POST /convert` returns **401** | **Yes** — no UI, no SQL. |
 | **N10** base image digest-pinned and dependencies hash-locked — **HARD GATE on PR C** | **C** **pre**-merge | `services/ingestion/Dockerfile` reads `FROM python:3.11-slim@sha256:…` and a `--generate-hashes` lock is present. **Added 2026-08-02; see §8.1.1.** Without it PR C ships the one change in this sequence whose abort path is known broken. | **Yes** — repo-side, greppable; no UI, no SQL, no dashboard. |
 
@@ -759,6 +759,44 @@ silently skipped PR C is not.
 
 **N6 is the backstop.** If `POST /convert` does not return 404 after PR C merges, PR C did not deploy.
 
+### 9.1 RULED 2026-08-02 — Watch Paths is set AFTER PR C, not between B and C. This is a B9 line.
+
+**The "between B and C" placement above is superseded.** It schedules the pattern's **first live
+exercise on PR C** — the single merge in this whole sequence that **must** trigger a deploy, and the
+one whose silent failure §9 itself describes as `/convert` staying live forever with no symptom. An
+untested configuration pattern should never have its debut on the deploy that cannot be allowed to
+go missing.
+
+**Why not simply rely on the monitor to catch it:** it would. `production-monitor` derives its
+expected `/convert` status from `main.py` at the checked-out commit, so a PR C that merges without
+deploying reds within **one tick — at most ~15 minutes**. That is a real backstop and it is why the
+monitor had to land before any Watch Paths change. **But catching it is not the same as wanting it
+to happen.** Debugging a glob's evaluation root *inside* the shim-removal window mixes two unrelated
+problems — "did PR C deploy?" and "is the pattern right?" — at the moment when the answer to the
+first must be unambiguous. **There is no gain that offsets it:** the only thing Watch Paths buys is
+avoiding redundant rebuilds, and a redundant rebuild is cheap. Sequence it after PR C, where a wrong
+pattern costs a delayed deploy instead of an invisible one.
+
+**How the pattern gets verified empirically once set — both directions, because one is not enough:**
+
+| Push | Pattern `services/ingestion/**` | Reading |
+|---|---|---|
+| no-op commit touching **only a file under `services/ingestion/`** | a deployment fires | globs are **repo-root-relative** → pattern confirmed |
+| same | **no** deployment | root-dir-relative, **or the pattern was discarded** → retest with `**` |
+| no-op commit touching **only a file outside `services/`** (e.g. `docs/`) | **no** deployment | pattern is **active** |
+| same | a deployment fires | pattern is being **ignored** → revert to empty; it is not trusted |
+
+**The negative push is not optional.** A malformed pattern that Railway silently discards passes the
+positive test, delivers zero savings, and leaves everyone believing the scoping is on. Only the
+outside-`services/` push distinguishes "root-dir-relative and working" from "discarded entirely".
+
+`services/ingestion/**` is the right first probe because it can only match under one reading: taken
+as Root-Directory-relative it would require `services/ingestion/services/ingestion/…`, which never
+exists. Record deployment ID, commit SHA, trigger label and duration for **each** of the two pushes,
+read from Railway's deployment list — never inferred from the absence of a notification. **The
+pattern is not trusted until the next real `services/` change is confirmed live by probing the
+running service**, N6-style, rather than by reading the dashboard.
+
 ---
 
 ## 10. Results
@@ -792,7 +830,23 @@ So the column records, in this order:
 
 **`⟨FILL-IN⟩` marks a value not yet read off the dashboard.** It is a populated, honest cell — not a
 settled one. **V12 is checked when PR B merges, not when this table is drafted**, so a `⟨FILL-IN⟩`
-does not block drafting; it must be resolved before PR B moves.
+does not block drafting; it must be resolved before PR B moves. **Both of this table's `⟨FILL-IN⟩`
+markers were resolved 2026-08-02 before PR B moved**; the convention is kept for future rows.
+
+### Why the ID must be labelled with what kind of thing it is
+
+**Recorded because it cost a session, and because it is the single cleanest argument for this whole
+column.** A Railway deployment card's header shows an **8-hex string that is a DEPLOYMENT-ID prefix**
+— it is **not a commit SHA**. Unlabelled, it looks exactly like an abbreviated git object, and it was
+read as one: it does not resolve with `git cat-file`, does not resolve after `git fetch --prune`, and
+returns **422** from the GitHub commits API. Every explanation offered for those failures assumed the
+string was a commit and searched for a reason the commit was missing. **None of them could be right,
+because the string was never a commit at all.**
+
+The lesson generalises past Railway: **an identifier recorded without stating what it points to will
+be read as the wrong kind of thing, and every subsequent inference inherits the error.** That is why
+each cell below spells out `built from <commit>` and `dep <deployment-ID prefix>` separately and
+says so in words, instead of listing two 8-hex strings side by side and trusting the reader.
 
 ### Provenance classes
 
@@ -812,6 +866,16 @@ makes them a stronger class than a one-time reading. Since 2026-08-02T14:59Z the
 `production-monitor` workflow (PR **#75**) re-asserts all three **every 15 minutes**. They stopped
 being a single observation by one agent at that moment. No other row has an independent standing
 check, and none of them should be read as if it does.
+
+**`CI-observed` asserts whatever is LIVE at each tick — never the artifact the row was filled
+against.** The two claims are different and must not be collapsed. Concretely, and by a margin small
+enough to prove the point: deployment `d7fb32b5` stopped at **14:59:24Z**, and the monitor's first
+`/health` probe fired at **14:59:25.5Z** — **1.5 seconds later**, against the deployment PR #75's
+merge had just created. **So the standing corroboration for V1/V2/N9 began against a different
+artifact than the one their `machine-verified` observation was taken on.** That is correct behaviour
+and exactly what a monitor is for; it is recorded here so nobody later reads the `CI-observed` mark
+as evidence that a *reaped* artifact is still being checked. Nothing re-checks a reaped artifact.
+Nothing can.
 
 **Who fills what:**
 
@@ -836,12 +900,12 @@ check, and none of them should be read as if it does.
 |-----|-------|-----------|--------------|--------|----------|------------|
 | V11 | `ingestion-image` green on `main` | CI-observed | 2026-07-26 20:41 | **PASS** — `success` in **44s** on `eaad75294e9102ef83e93b810542e93217e2a2f1` | https://github.com/tornidomaroc-web/knowflow/actions/runs/30219501234 | CI runner; no Railway deployment |
 | V3 | No service-role key on Railway; anon key decodes `role: anon` | owner-attested | 2026-07-29 15:57 | **PASS** | Decoded payload's `role` claim reads `anon`, not `service_role`; legacy Supabase JWT format, so the `sb_publishable_` branch did not apply. Railway service carries no `SUPABASE_SERVICE_ROLE_KEY` — its four user variables are `INGESTION_TOKEN`, `VOYAGE_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`. See dependency note below. | Dashboard read plus local decode; no Railway deployment |
-| V1 | `/health` returns 200 | machine-verified + **CI-observed** | 2026-08-02 14:06:10 | **PASS** — HTTP 200 | `GET /health` → `200` in 0.43s. Re-asserted every 15 min since 14:59Z by `production-monitor` (PR #75); first run [30753322454](https://github.com/tornidomaroc-web/knowflow/actions/runs/30753322454) green in 9s. | built from `9e31c22` · observed 2026-08-02T14:06:10Z · **ARTIFACT REAPED** · dep `⟨FILL-IN: dashboard⟩` |
-| V2 | `/health` reports `supabase_configured: true` | machine-verified + **CI-observed** | 2026-08-02 14:06:10 | **PASS** | Body: `{"ok":true,"embed_provider":"voyage","embed_model":"voyage-3-large","embed_dim":1024,"supabase_configured":true}`. The monitor additionally asserts `embed_dim == 1024`, which this row never covered — `chunks.embedding` is `vector(1024)`. | built from `9e31c22` · observed 2026-08-02T14:06:10Z · **ARTIFACT REAPED** · dep `⟨FILL-IN: dashboard⟩` |
-| V4 | Production upload via `/convert` shim reaches `ready` | machine-verified | 2026-08-02 14:20 (document created 2026-08-01 16:00:40) | **PASS** — all five Q3 conditions | Q3 on `6c0ff12c-b462-479f-b918-1889f19703a2` (`cv_abdelfettah_amellah.pdf`, account `72ebd7b5`): `status=ready`, `embedding_status=ready`, `chunk_count=2` = `actual_chunk_rows=2`, `has_markdown=true` (2633 chars), `error_message` null. **Q4 was additionally run against this same document as supporting evidence — not as V7**, which is PR B's preview upload: 2 rows, 0 null embeddings, 0 wrong dims, `min_idx=0`, `max_idx=1`, `distinct_idx=2`, both vectors 1024-dim. | built from `ee45958` · **produced** 2026-08-01T16:00:40Z (observed 2026-08-02) · **ARTIFACT REAPED** · dep `⟨FILL-IN: dashboard⟩` |
-| V5 | Production Ask returns a grounded answer | **owner-attested** | 2026-08-01 | **PASS** | The summarize action on document `6c0ff12c` returned a substantive **Arabic summary drawn from the PDF's real content**, not the "can't find that in your materials" response. **Attested by the repository owner, not machine-verified — the same epistemic class as V3.** No artifact, log or transcript survives behind it. | built from `ee45958` · observed 2026-08-01 · **ARTIFACT REAPED** · dep `⟨FILL-IN: dashboard⟩` |
+| V1 | `/health` returns 200 | machine-verified + **CI-observed** | 2026-08-02 14:06:10 | **PASS** — HTTP 200 | `GET /health` → `200` in 0.43s. Re-asserted every 15 min since 14:59Z by `production-monitor` (PR #75); first run [30753322454](https://github.com/tornidomaroc-web/knowflow/actions/runs/30753322454) green in 9s. | built from `9e31c22` · observed 2026-08-02T14:06:10Z · **ARTIFACT REAPED** (Railway status: *Removed*) · dep `d7fb32b5` — an 8-hex **deployment-ID prefix, NOT a commit SHA** · deployment live 2026-08-02T14:02Z → 14:59:24Z, so the observation falls inside its lifetime |
+| V2 | `/health` reports `supabase_configured: true` | machine-verified + **CI-observed** | 2026-08-02 14:06:10 | **PASS** | Body: `{"ok":true,"embed_provider":"voyage","embed_model":"voyage-3-large","embed_dim":1024,"supabase_configured":true}`. The monitor additionally asserts `embed_dim == 1024`, which this row never covered — `chunks.embedding` is `vector(1024)`. | built from `9e31c22` · observed 2026-08-02T14:06:10Z · **ARTIFACT REAPED** (Railway status: *Removed*) · dep `d7fb32b5` — an 8-hex **deployment-ID prefix, NOT a commit SHA** · deployment live 2026-08-02T14:02Z → 14:59:24Z, so the observation falls inside its lifetime |
+| V4 | Production upload via `/convert` shim reaches `ready` | machine-verified | 2026-08-02 14:20 (document created 2026-08-01 16:00:40) | **PASS** — all five Q3 conditions | Q3 on `6c0ff12c-b462-479f-b918-1889f19703a2` (`cv_abdelfettah_amellah.pdf`, account `72ebd7b5`): `status=ready`, `embedding_status=ready`, `chunk_count=2` = `actual_chunk_rows=2`, `has_markdown=true` (2633 chars), `error_message` null. **Q4 was additionally run against this same document as supporting evidence — not as V7**, which is PR B's preview upload: 2 rows, 0 null embeddings, 0 wrong dims, `min_idx=0`, `max_idx=1`, `distinct_idx=2`, both vectors 1024-dim. | built from `ee45958` · **produced** 2026-08-01T16:00:40Z (observed 2026-08-02) · **ARTIFACT REAPED** (Railway status: *Removed*) · dep `16ea983d` — an 8-hex **deployment-ID prefix, NOT a commit SHA** · created 2026-08-01T15:38Z; its deploy log carries the authenticated `/convert` 200 at 15:45:03Z and the restoration upload at 16:00:48Z |
+| V5 | Production Ask returns a grounded answer | **owner-attested** | 2026-08-01 | **PASS** | The summarize action on document `6c0ff12c` returned a substantive **Arabic summary drawn from the PDF's real content**, not the "can't find that in your materials" response. **Attested by the repository owner, not machine-verified — the same epistemic class as V3.** No artifact, log or transcript survives behind it. | built from `ee45958` · observed 2026-08-01 · **ARTIFACT REAPED** (Railway status: *Removed*) · dep `16ea983d` — an 8-hex **deployment-ID prefix, NOT a commit SHA** · created 2026-08-01T15:38Z; its deploy log carries the authenticated `/convert` 200 at 15:45:03Z and the restoration upload at 16:00:48Z |
 | N4 | All-accounts Q6b (§4) returns 0, `created_at` bounded at PR A's merge | machine-verified | 2026-08-02 14:2x | **PASS** — 0, both bounded and unbounded | `documents where status='processing' and created_at > 2026-07-29T19:20:36Z` (PR A's merge) across **all accounts** → **0**. Re-run with the date bound removed → also **0**, so nothing is stranded anywhere at any time, which is stronger than the row requires. | **Not attributable to a single deployment.** This row asserts a **global invariant across every document ever written**, not the behaviour of one artifact. Observed 2026-08-02T14:2xZ. |
-| N9 | Unauthenticated `POST /convert` returns 401 | machine-verified + **CI-observed** | 2026-08-02 14:0x | **PASS** — `401 {"detail":"Missing bearer token"}` | **TRIGGER 4 does not fire.** Probed before any other work this session, precisely because it is a rollback trigger. **The multipart file part is load-bearing:** FastAPI validates the body *before* the bearer check, so an unauthenticated POST with **no** file returns **422 `"Field required"`** — proven by direct probe, not inferred. With a file part and no `Authorization`: **401**. Re-asserted every 15 min by `production-monitor`. | built from `9e31c22` · observed 2026-08-02T14:0xZ · **ARTIFACT REAPED** · dep `⟨FILL-IN: dashboard⟩` |
+| N9 | Unauthenticated `POST /convert` returns 401 | machine-verified + **CI-observed** | 2026-08-02 14:0x | **PASS** — `401 {"detail":"Missing bearer token"}` | **TRIGGER 4 does not fire.** Probed before any other work this session, precisely because it is a rollback trigger. **The multipart file part is load-bearing:** FastAPI validates the body *before* the bearer check, so an unauthenticated POST with **no** file returns **422 `"Field required"`** — proven by direct probe, not inferred. With a file part and no `Authorization`: **401**. Re-asserted every 15 min by `production-monitor`. | built from `9e31c22` · observed 2026-08-02T14:0xZ · **ARTIFACT REAPED** (Railway status: *Removed*) · dep `d7fb32b5` — an 8-hex **deployment-ID prefix, NOT a commit SHA** · deployment live 2026-08-02T14:02Z → 14:59:24Z, so the observation falls inside its lifetime |
 | V6 | Preview upload via `/ingest` satisfies Q3 | — *(PR B fills)* | | | | |
 | V7 | Q4 all six conditions | — *(PR B fills)* | | | | |
 | V8 | Preview Ask contains `QORVANTHIL`; Q5 returns rows | — *(PR B fills)* | | | | |
@@ -850,7 +914,7 @@ check, and none of them should be read as if it does.
 | V12 | This table committed with no blanks above | — *(PR B fills)* | | | | |
 | N5 | Nothing calls `/convert`; production Next at or after PR B's merge SHA | — *(PR C fills, pre-merge)* | | | | |
 | N6 | `POST /convert` returns 404; production upload still passes Q3 | — *(PR C fills, post-merge)* | | | | |
-| N8 | Watch Paths pattern empirically confirmed to fire | — *(fills between B and C)* | | | | |
+| N8 | Watch Paths pattern empirically confirmed to fire **in both directions** (§9.1) | — *(fills **after** C; re-sequenced 2026-08-02)* | | | | |
 | **N10** | **HARD GATE (§8.1.1)** — `services/ingestion/Dockerfile` pins the base **by digest** and a **hash-pinned** dependency lock is in place | — *(PR C fills, **pre**-merge)* | | | | |
 | — | Throwaway account cleanup (§6.3) executed and §6.2 re-run all-zero | — *(PR C fills)* | | | | |
 
