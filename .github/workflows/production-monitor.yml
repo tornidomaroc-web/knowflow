@@ -1,0 +1,193 @@
+name: production-monitor
+
+# WHY THIS EXISTS. Between 2026-07-23 and 2026-08-01 every production upload
+# returned 401, because INGESTION_TOKEN differed between Railway and Vercel --
+# and NOBODY KNEW FOR NINE DAYS. PR #74 (register #54) made that class of failure
+# legible to anyone who looks. This workflow is the thing that looks. It converts
+# detection latency from nine days to one schedule interval.
+#
+# It is deliberately a PEER of the section-10 verification table, not a component
+# of it. Every row in docs/b1-verification-protocol.md section 10 is a
+# point-in-time observation against a Railway deployment. Railway marks
+# deployments REMOVED on this plan -- confirmed 2026-08-02, for the ENTIRE
+# deployment history -- so those observations decay into unverifiable claims the
+# moment the artifact behind them is reaped. A standing probe is what keeps the
+# claims true rather than merely once-true.
+#
+# NO SECRET GRANTS ACCESS HERE. Every probe below is UNAUTHENTICATED by design.
+# The one repository secret used, INGESTION_SERVICE_URL, is a hostname, not a
+# credential -- it is a secret only so the production hostname is not published
+# in a public repository, and so it is masked in this public repo's job logs.
+# The workflow cannot upload, convert, embed, or read a single row. If that
+# property is ever lost, this file has become something else and needs rereview.
+#
+# Actions minutes are not billed: this repository is PUBLIC.
+
+on:
+  schedule:
+    # Every 15 minutes. GitHub does not guarantee punctuality for scheduled
+    # workflows and delays runs under load, so treat the real detection window as
+    # "tens of minutes", not "15 minutes exactly". That is still two orders of
+    # magnitude better than nine days, which is the bar this has to clear.
+    - cron: '*/15 * * * *'
+  # So a human can force a probe during an incident without waiting for the tick,
+  # and so this file can be exercised on its own PR before it is trusted.
+  workflow_dispatch:
+
+# KNOWN LIMITATION, STATED RATHER THAN HIDDEN. GitHub DISABLES scheduled
+# workflows in a public repository after 60 days with no commit activity. A
+# monitor that can stop silently is the exact bug class this repo is trying to
+# retire, so it is recorded here: if this repository goes quiet for two months,
+# this monitor stops and says nothing. The durable fix is a dead-man's-switch
+# (an external heartbeat that alarms on ABSENCE of a run). Until that exists,
+# 60 days of silence is an accepted, written-down risk.
+
+permissions:
+  contents: read
+
+concurrency:
+  # Never let a slow probe stack up behind the next tick. Do NOT cancel in
+  # progress: a cancelled probe reports nothing, and "reported nothing" is
+  # indistinguishable from "was never scheduled" -- the failure mode above.
+  group: production-monitor
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: probe
+    # Pinned, not `ubuntu-latest`, for the reason given in ingestion-image.yml:70.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      # Pinned to an immutable commit SHA, not a tag. Same SHA as
+      # ingestion-image.yml:80 -- keep them together when either moves.
+      - name: Check out the repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # ------------------------------------------------------------------
+      # PROBE 1 -- /health. This is protocol items 1 and 2 (V1 and V2) run on a
+      # schedule instead of once by hand.
+      # ------------------------------------------------------------------
+      - name: Probe /health
+        env:
+          BASE: ${{ secrets.INGESTION_SERVICE_URL }}
+        run: |
+          set -u
+          code=000
+          for attempt in 1 2 3; do
+            code=$(curl -sS -m 20 -o /tmp/health.json -w '%{http_code}' "$BASE/health" || echo 000)
+            [ "$code" = "200" ] && break
+            echo "attempt $attempt: HTTP $code -- retrying in 10s"
+            sleep 10
+          done
+          echo "HTTP $code"
+          echo "body: $(cat /tmp/health.json 2>/dev/null || echo '<none>')"
+
+          # Three retries before red, deliberately. A monitor that alarms on a
+          # single cold start or a transient edge blip gets muted by its
+          # audience, and a muted monitor is worse than no monitor because it
+          # reads as coverage. Three attempts over ~30s clears a container swap
+          # without masking a real outage.
+          if [ "$code" != "200" ]; then
+            echo "::error::/health did not return 200 after 3 attempts (last: $code). This is the TRIGGER 1 class in docs/b1-verification-protocol.md section 8.1 -- but read section 8.1's REMOVED-deployment caveat before rolling back."
+            exit 1
+          fi
+
+          jq -e '.ok == true' /tmp/health.json > /dev/null || {
+            echo '::error::/health returned 200 but "ok" is not true. The process is serving but reports itself unhealthy.'; exit 1; }
+
+          # embed_dim is load-bearing, not cosmetic: chunks.embedding is
+          # vector(1024). If the provider or model silently moves the dimension,
+          # every subsequent embedding write is either rejected or wrong, and
+          # protocol Q4's wrong_dims check would only catch it after the fact on
+          # a document someone happened to inspect.
+          jq -e '.embed_dim == 1024' /tmp/health.json > /dev/null || {
+            echo "::error::embed_dim is not 1024 (got $(jq -c '.embed_dim' /tmp/health.json)). chunks.embedding is vector(1024); this breaks every new embedding."; exit 1; }
+
+          # NOT a rollback trigger -- docs/b1-verification-protocol.md section 8.2
+          # is explicit that a booted process with supabase_configured=false is a
+          # config repair, not a rollback. It still fails this job, because it is
+          # a real defect that must be seen; the message carries the distinction
+          # so whoever reads it does not over-react.
+          jq -e '.supabase_configured == true' /tmp/health.json > /dev/null || {
+            echo '::error::supabase_configured is false. Per section 8.2 this is NOT a rollback trigger -- the process booted and /convert and /embed do not touch Supabase. Fix the Railway environment and restart. Do not roll back.'; exit 1; }
+
+          echo "HEALTH OK"
+
+      # ------------------------------------------------------------------
+      # PROBE 2 -- unauthenticated POST /convert.
+      #
+      # This single probe does three jobs at once:
+      #
+      #   1. N9 / TRIGGER 4 -- proves the ingestion endpoint is not publicly
+      #      open. Register #45's exact failure. An open endpoint is "invisible
+      #      and unbounded" (section 8.1) and is the worst thing on this board.
+      #
+      #   2. N6 -- after PR C removes the shim, /convert must be GONE. The
+      #      expected status is DERIVED from main.py below rather than hardcoded,
+      #      so this workflow needs no edit when PR C lands, and cannot be left
+      #      asserting a stale expectation.
+      #
+      #   3. N8 -- the Watch Paths backstop. Section 9 warns that a Watch Paths
+      #      glob which never matches means "PR C merges green and /convert stays
+      #      live forever, with no symptom anywhere." This IS the symptom. Within
+      #      one tick of PR C merging, a /convert that is still answering 401
+      #      when main.py no longer declares it reds this job.
+      #
+      # AND, for free, it is a live-vs-main DRIFT detector. The expectation comes
+      # from the CHECKED-OUT commit; the answer comes from the RUNNING service. A
+      # disagreement between them means live != main, which is register #39's
+      # entire hazard. That this job reds on such a divergence is the FEATURE,
+      # not a false positive.
+      # ------------------------------------------------------------------
+      - name: Probe unauthenticated POST /convert
+        env:
+          BASE: ${{ secrets.INGESTION_SERVICE_URL }}
+        run: |
+          set -u
+          if grep -q '@app.post("/convert")' services/ingestion/main.py; then
+            expected=401
+            phase="BEFORE PR C -- main.py still declares the /convert shim"
+          else
+            expected=404
+            phase="AFTER PR C -- main.py no longer declares /convert"
+          fi
+          echo "expectation derived from services/ingestion/main.py: $phase -> expect HTTP $expected"
+
+          # THE FILE PART IS LOAD-BEARING. DO NOT REMOVE IT. FastAPI validates the
+          # multipart body BEFORE the bearer check runs, so an unauthenticated
+          # POST with no file returns 422 ("Field required"), not 401 -- proven by
+          # direct probe on 2026-08-02. Without a file part this step would
+          # compare 422 against 401 and red on every single run, and the fix
+          # someone would reach for under that pressure is to relax the
+          # assertion, which is how a monitor becomes decorative.
+          echo "probe" > /tmp/probe.txt
+
+          code=000
+          for attempt in 1 2 3; do
+            code=$(curl -sS -m 20 -o /tmp/convert.json -w '%{http_code}' \
+                     -X POST -F "file=@/tmp/probe.txt" "$BASE/convert" || echo 000)
+            [ "$code" != "000" ] && break
+            echo "attempt $attempt: transport failure -- retrying in 10s"
+            sleep 10
+          done
+          echo "HTTP $code"
+          echo "body: $(cat /tmp/convert.json 2>/dev/null || echo '<none>')"
+
+          # Checked FIRST and separately, because it is a different severity from
+          # every other outcome. A 2xx means an unauthenticated caller just drove
+          # conversion and embedding. Section 8.1: "Roll back first, diagnose
+          # after."
+          case "$code" in
+            2*)
+              echo "::error::UNAUTHENTICATED POST /convert RETURNED $code. The ingestion endpoint is PUBLICLY OPEN. This is TRIGGER 4 (section 8.1) and register #45's exact failure. Roll back first, diagnose after."
+              exit 1 ;;
+          esac
+
+          if [ "$code" != "$expected" ]; then
+            echo "::error::expected HTTP $expected ($phase) but the live service returned $code. Two readings, both serious: (a) the running image does not match main -- register #39; or (b) a deploy that should have shipped did not, which is section 9's silent Watch Paths failure. Do not relax this assertion; find out which."
+            exit 1
+          fi
+
+          echo "CONVERT CONTRACT OK ($code, as derived from main.py)"
