@@ -93,8 +93,24 @@ export async function POST(request: Request) {
         chunks = (data ?? []) as MatchedChunk[];
       }
     } catch (e) {
-      console.error('Embedding/retrieval failed:', e);
-      // Fall through with empty chunks; the model will say it can't find an answer.
+      // RETRIEVAL INFRASTRUCTURE FAILURE — this is NOT "the knowledge base had
+      // no matching chunks". Control only reaches here when embedQuery threw:
+      // the ingestion service was unreachable, returned a non-2xx (a
+      // desynchronized INGESTION_TOKEN reads exactly like this), or
+      // INGESTION_SERVICE_URL was unset. A genuine no-match returns normally
+      // with an empty `data` and never enters this catch.
+      //
+      // We still fall through with zero chunks, so the user sees the ordinary
+      // "I can't find that in your materials" answer — indistinguishable from an
+      // empty knowledge base. THAT AMBIGUITY IS THE BUG: it is why a nine-day
+      // ingestion outage produced no Ask complaints (register #54). Changing
+      // what the user sees is deliberately NOT in this PR; what changes here is
+      // that the log line names the cause and carries a tag that can be alerted
+      // on without matching prose.
+      console.error(
+        `[retrieval-infra-failure] embedQuery threw for kb_id=${kb_id}; answering with zero chunks:`,
+        e
+      );
     }
 
     const citations: Citation[] = chunks.map((c, i) => ({
