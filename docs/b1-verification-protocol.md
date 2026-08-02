@@ -179,6 +179,7 @@ and **V11** respectively (§8). They appear here because §3 is organised by *wh
 | **N7** image builds and imports in CI | **A0** | The `ingestion-image` workflow green on `main` (register **#52**) | **Yes.** |
 | **N8** Watch Paths does not orphan PR C | between **B** and **C** | See §9 | **Yes.** |
 | **N9** `/convert` still requires authentication | **A** post-merge | Unauthenticated `POST /convert` returns **401** | **Yes** — no UI, no SQL. |
+| **N10** base image digest-pinned and dependencies hash-locked — **HARD GATE on PR C** | **C** **pre**-merge | `services/ingestion/Dockerfile` reads `FROM python:3.11-slim@sha256:…` and a `--generate-hashes` lock is present. **Added 2026-08-02; see §8.1.1.** Without it PR C ships the one change in this sequence whose abort path is known broken. | **Yes** — repo-side, greppable; no UI, no SQL, no dashboard. |
 
 ---
 
@@ -675,14 +676,56 @@ optimisation.** This section cannot be repaired by rewriting it. Rewriting only 
 the procedure stays degraded. The only change that makes "roll back" mean what this file has always
 assumed it means is pinning the base image **by digest** in `services/ingestion/Dockerfile` and
 adding a hash-pinned dependency lock. With those, rebuilding commit *X* reproduces near-identical
-bytes and rollback recovers its definition. Without them, **no rollback in this document can restore
-a known artifact, ever.** `.github/workflows/ingestion-image.yml:29-36` already ruled on the
-location: the Dockerfile, so CI and Railway move together — pinning in CI alone is a silent
-false-green. That is a `services/` change and is **deliberately not in this PR.**
+bytes and rollback recovers its definition. Without them, **no rollback OF THE INGESTION SERVICE can
+restore a known artifact, ever.**
+
+**That scope is deliberate and was narrowed 2026-08-02 after an earlier draft of this paragraph
+overstated it.** The precondition binds on rollbacks of the **Railway ingestion service** — the
+subject of this entire section. It does **not** bind on **PR B**, and the reason is a fact worth
+stating rather than leaving to be re-derived: **PR B changes `src/app/api/ingest/route.ts`, which is
+a Vercel deployment, and Vercel RETAINS its deployments.** PR B's abort path is `git revert` or
+Vercel's own instant rollback, neither of which touches a Railway image. **PR B never depended on
+the rollback that was already dead.** See the amended asymmetry note above.
+
+> ### HARD GATE — the digest pin and the hash-locked lockfile are REQUIRED BEFORE PR C MERGES.
+>
+> **This is a gate, not a recommendation, and it carries a date because a precondition narrowed
+> without a deadline becomes an intention — and an intention recorded as a completed action is
+> exactly the defect this PR's §7 block supersedes in the 2026-07-23 register-#45 entry.** A future
+> reader is entitled to hold this sequence to the sentence above the same way they would have been
+> entitled to hold it to the unscoped version.
+>
+> **PR C is where the precondition binds**, because PR C is a `services/` change whose failure mode
+> is remediated by exactly the Railway rollback that §8.1.1 has just shown does not work. Merging
+> PR C without the pin means shipping the one change in this sequence whose abort path is known to
+> be broken.
+>
+> **Required, both of them, in `services/ingestion/`:**
+> 1. `Dockerfile` — `FROM python:3.11-slim@sha256:<digest>` replacing the mutable tag.
+> 2. A hash-pinned dependency lock (`pip-compile --generate-hashes`), because pinning the base
+>    while `markitdown[all]==0.1.5` still resolves its transitive tree freely leaves most of the
+>    drift surface open.
+>
+> **Recorded as row N10 in §10**, so it is checkable rather than merely written down.
+
+`.github/workflows/ingestion-image.yml:29-36` already ruled on the location: the Dockerfile, so CI
+and Railway move together — pinning in CI alone is a silent false-green. That is a `services/`
+change and is **deliberately not in this PR.**
 
 **This rollback is valid for the entire PR A window and dies the moment PR B merges** — after that,
 production Next calls `/ingest`, and the pre-PR-A image does not have it, so rolling back one
 deployment makes things strictly worse. That asymmetry is why V1 gates PR B.
+
+**Amended 2026-08-02 — the asymmetry above is real but it was never PR B's safety net, and the
+distinction matters now that §8.1.1 has shown the net was already gone.** For the *service*, the
+rollback did not "die the moment PR B merges" — **it was already dead and nobody knew**, because
+Railway had reaped the images this section assumed it could re-activate. What survives unchanged is
+the narrower true statement: **PR B's own abort path never ran through Railway at all.** PR B
+changes `src/app/api/ingest/route.ts`, which is a **Vercel** deployment, and **Vercel retains its
+deployments** — so PR B aborts by `git revert` or by Vercel's own instant rollback, neither of which
+needs a Railway image to exist. **That is the fact that makes moving PR B safe rather than merely
+convenient**, and it is the reason the digest-pin gate below lands on **PR C**, which genuinely does
+depend on a Railway rollback, rather than on PR B, which never did.
 
 **A dashboard rollback leaves live ≠ `main`**, which is register **#39**'s hazard. It must be
 followed by a revert PR and a §7 entry. Leaving it as a quiet dashboard fact is not an option.
@@ -808,6 +851,7 @@ check, and none of them should be read as if it does.
 | N5 | Nothing calls `/convert`; production Next at or after PR B's merge SHA | — *(PR C fills, pre-merge)* | | | | |
 | N6 | `POST /convert` returns 404; production upload still passes Q3 | — *(PR C fills, post-merge)* | | | | |
 | N8 | Watch Paths pattern empirically confirmed to fire | — *(fills between B and C)* | | | | |
+| **N10** | **HARD GATE (§8.1.1)** — `services/ingestion/Dockerfile` pins the base **by digest** and a **hash-pinned** dependency lock is in place | — *(PR C fills, **pre**-merge)* | | | | |
 | — | Throwaway account cleanup (§6.3) executed and §6.2 re-run all-zero | — *(PR C fills)* | | | | |
 
 **V3 rests on two dependencies that this PASS does not discharge.** First, the absence half is a
