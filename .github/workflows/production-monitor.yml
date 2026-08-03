@@ -25,11 +25,29 @@ name: production-monitor
 
 on:
   schedule:
-    # Every 15 minutes. GitHub does not guarantee punctuality for scheduled
-    # workflows and delays runs under load, so treat the real detection window as
-    # "tens of minutes", not "15 minutes exactly". That is still two orders of
-    # magnitude better than nine days, which is the bar this has to clear.
-    - cron: '*/15 * * * *'
+    # WHAT IS REQUESTED HERE IS NOT WHAT GETS DELIVERED, AND THE MEASURED GAP IS
+    # RECORDED RATHER THAN LEFT AS "GitHub may delay runs". Requesting */15 from
+    # 2026-08-02T16:08Z produced, over the following 18.8 hours, ELEVEN runs at a
+    # mean interval of 112.6 minutes -- 67.9 min mean across the daytime window
+    # (16:08-23:59Z, 7 runs, range 60.8-76.6) and 210.8-225.7 min across the
+    # three overnight intervals. Not one interval came within 45 minutes of the
+    # 15 requested.
+    #
+    # THIS LINE IS NOW AN EMPIRICAL ROUND, NOT A SETTING. The hypothesis is that
+    # GitHub sheds high-frequency schedules on public repos and that asking for
+    # less gets more. It may be wrong. The read-back criteria are stated in the
+    # commit that made this change (and are repeated in docs/b9-queue.md so they
+    # are not buried in git history); the result is recorded either way.
+    #
+    # */30 rather than hourly, deliberately: hourly's predicted-if-honoured
+    # cadence (~60 min) is indistinguishable from the ~68 min already being
+    # delivered, so an hourly round could not tell "the scheduler started obeying
+    # us" from "nothing changed". */30 also keeps the same minute alignment
+    # (:00/:30) as */15, so requested RATE is the only variable that moves.
+    #
+    # Either way the bar this has to clear is nine days, and even the overnight
+    # 3.5-hour worst case clears it by two orders of magnitude.
+    - cron: '*/30 * * * *'
   # So a human can force a probe during an incident without waiting for the tick,
   # and so this file can be exercised on its own PR before it is trusted.
   workflow_dispatch:
