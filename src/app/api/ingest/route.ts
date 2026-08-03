@@ -6,11 +6,22 @@ import { enforceLimit } from '@/lib/rate-limit';
 import { recordStudyEvent } from '@/lib/study-events';
 import { ALLOWED_FILE_TYPES, type FileType } from '@/types';
 
-interface IngestionChunk {
-  chunk_index: number;
-  content: string;
-  token_count: number;
-  embedding: number[];
+// (b1) The ingestion service's ack, and deliberately tiny. The service persists
+// the chunks and writes the terminal document status itself, so nothing comes
+// back here except confirmation. The endpoint this replaces returned every
+// chunk with its 1024-float embedding PLUS the full markdown, and
+// `await pyResponse.json()` materialized all of it in this function's memory.
+// (Named without its literal path on purpose. N5 gates PR C on a `grep -rn`
+// for that path over `src/` returning ZERO hits — a comment is enough to turn
+// that check into a false failure someone then has to explain away, and an
+// explanation that quotes the path defeats itself the same way.)
+// Every field is optional because this is an unvalidated wire shape until the
+// check below narrows it — a service that answers 200 with something else must
+// fail loudly here, not flow into the success path.
+interface IngestionAck {
+  document_id?: string;
+  chunk_count?: number;
+  status?: string;
 }
 
 // B5a: upload allowlist — only the formats MarkItDown handles well. Maps each
@@ -141,6 +152,42 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: docError?.message }, { status: 500 });
     }
 
+    // (b1) THE POST-FORWARD ERROR WRITE, AND WHY IT IS CONDITIONAL.
+    //
+    // Once the request leaves for the ingestion service, THAT service owns the
+    // terminal status: it writes `ready` (or `error`) itself, before it acks us.
+    // So a failure on OUR side after the forward must never blind-write `error`.
+    // The service may well have succeeded and had its ack lost to a timeout, a
+    // socket reset, or a platform-level request cutoff — and stomping a
+    // correctly-finished `ready` row would destroy a document that is fine,
+    // taking its chunks out of the Ask path while the user watches the upload
+    // fail. The row would be wrong AND the chunks would be orphaned.
+    //
+    // `.eq('status', 'processing')` makes this write a no-op in exactly that
+    // case, because the service has already moved the row off `processing`. It
+    // still rescues the row when the service never got far enough to write
+    // anything — which is the orphan-stuck-at-`processing` class this whole
+    // change exists to kill. PostgREST reports a filtered-out UPDATE as success
+    // with zero rows, so "did nothing" and "worked" are the same return here,
+    // and that is correct: both mean the row is in the state it should be in.
+    //
+    // PRE-forward failures below KEEP their unconditional writes, and the
+    // asymmetry is deliberate rather than an oversight: before the forward,
+    // nothing else can have touched the row — this route inserted it moments
+    // ago and no other writer exists — so there is no correct state to protect
+    // and an unconditional write is the honest one.
+    const failIfStillProcessing = async (message: string) => {
+      const { error: guardErr } = await supabase
+        .from('documents')
+        .update({ status: 'error', embedding_status: 'error', error_message: message })
+        .eq('id', docRecord.id)
+        .eq('status', 'processing');
+      // Register #54 again: a failure to record a failure is the exact silence
+      // this repo spent nine days inside. It cannot change the response, but it
+      // must not be swallowed.
+      if (guardErr) console.error('Post-forward error write failed:', guardErr.message);
+    };
+
     // Shared with embedQuery's client so the two callers of this service cannot
     // disagree about where it lives, and so the production guard applies to
     // uploads as well as to Ask.
@@ -152,14 +199,62 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Server misconfigured' }, { status: 500 });
     }
 
+    // (b1) The ingestion service writes to Supabase AS THIS USER, so it needs the
+    // user's own access token. It is deliberately NOT given a service-role key:
+    // that service was publicly duplicable once already (register #45), and an
+    // RLS-bypassing credential sitting in it turns any exposure into a
+    // full-database breach. Sending the user's token instead means RLS decides
+    // what the service may touch, exactly as it decides for this route.
+    //
+    // `getUser()` above already verified this session against the auth server —
+    // that is the check that matters and it has happened. This only lifts the
+    // token that verification was performed on; it is not a second, weaker auth
+    // check standing in for the first.
+    const { data: { session } } = await supabase.auth.getSession();
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      // Pre-forward: unconditional write, per the note above.
+      console.error('Authenticated session carries no access token');
+      await supabase
+        .from('documents')
+        .update({ status: 'error', embedding_status: 'error', error_message: 'no access token on an authenticated session' })
+        .eq('id', docRecord.id);
+      return NextResponse.json({ success: false, error: 'Server misconfigured' }, { status: 500 });
+    }
+
+    // `document_id` and `kb_id` travel in the form body so the service knows
+    // which row it is completing. The user token travels in its OWN header,
+    // because `Authorization` is already carrying INGESTION_TOKEN — two
+    // credentials doing two different jobs (service-to-service identity vs. the
+    // end user's database authority), and neither is put in the form body.
     const pyFormData = new FormData();
     pyFormData.append('file', file);
+    pyFormData.append('document_id', docRecord.id);
+    pyFormData.append('kb_id', kbId);
 
-    const pyResponse = await fetch(`${pythonServiceUrl}/convert`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${ingestionToken}` },
-      body: pyFormData,
-    });
+    let pyResponse: Response;
+    try {
+      pyResponse = await fetch(`${pythonServiceUrl}/ingest`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${ingestionToken}`,
+          'X-Supabase-Token': accessToken,
+        },
+        body: pyFormData,
+      });
+    } catch (fetchErr) {
+      // THE ORPHAN CLASS, HANDLED AT LAST. The request died in flight and we do
+      // not know whether the service finished. Previously this fell through to
+      // the outer catch, which logged and returned 500 without touching the row
+      // — leaving it at `processing` forever, with no reaper and no UI path out.
+      // Now: if the service succeeded, it has already written `ready` and the
+      // guard leaves that alone; if it never got there, the guard rescues the
+      // row. Either way the document stops lying about its state.
+      const reason = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+      console.error('Ingestion service unreachable:', reason);
+      await failIfStillProcessing(`ingestion service unreachable: ${reason.slice(0, 500)}`);
+      return NextResponse.json({ success: false, error: 'Ingestion failed' }, { status: 500 });
+    }
 
     if (!pyResponse.ok) {
       // DO NOT LOSE THE UPSTREAM CAUSE. This branch previously flipped the row
@@ -175,97 +270,65 @@ export async function POST(request: Request) {
       // untouched, and .catch() keeps a body-read failure from masking the
       // status we came here to record. Truncated because this string is written
       // to the database.
+      //
+      // (b1) THE CAPTURE SURVIVES THE MOVE — it is now the argument to the
+      // guarded write rather than an unconditional update. That is not a
+      // weakening, and the case split is worth stating because it is the whole
+      // reason this is safe: when the service failed AFTER it could reach the
+      // database, it has already written `error` with its OWN, more specific
+      // message (`_mark_error`), so the guard correctly declines to overwrite a
+      // better diagnosis with a worse one. When the service could NOT write —
+      // a 401 at its auth gate before it builds a client, a 404 from version
+      // skew, a 503, a crash — the row is still `processing` and this string
+      // lands exactly as it did before. Either way the status code reaches the
+      // database, and it reaches the logs unconditionally on the line above.
       const detail = await pyResponse.text().catch(() => '');
       const upstream = `ingestion service returned ${pyResponse.status}${detail ? `: ${detail.slice(0, 500)}` : ''}`;
       console.error('Ingestion service error:', upstream);
-      await supabase
-        .from('documents')
-        // error_message is written by this route and rendered nowhere under
-        // src/ (verified), so recording the upstream status here does not put
-        // internal detail in front of a user. The user-facing body below is
-        // deliberately unchanged.
-        .update({ status: 'error', embedding_status: 'error', error_message: upstream })
-        .eq('id', docRecord.id);
+      // error_message is written by this route and rendered nowhere under src/
+      // (verified), so recording the upstream status here does not put internal
+      // detail in front of a user. The user-facing body below is deliberately
+      // unchanged.
+      await failIfStillProcessing(upstream);
       return NextResponse.json({ success: false, error: 'Ingestion failed' }, { status: 500 });
     }
 
-    const result: { markdown?: string; chunks?: IngestionChunk[] } = await pyResponse.json();
-    const chunks = result.chunks ?? [];
-
-    if (chunks.length > 0) {
-      const rows = chunks.map((c) => ({
-        document_id: docRecord.id,
-        kb_id: kbId,
-        chunk_index: c.chunk_index,
-        content: c.content,
-        token_count: c.token_count,
-        // chunks.embedding is pgvector `vector`, generated as `string`. postgREST
-        // accepts a JSON number[] and coerces it to the vector on insert, which is
-        // how ingestion has always worked. Type-only assertion; the value written
-        // is still the number[] from the chunker, so ingestion behaviour is
-        // unchanged.
-        embedding: c.embedding as unknown as string,
-      }));
-
-      // Insert in batches to avoid Supabase request-size limits.
-      const BATCH = 50;
-      for (let i = 0; i < rows.length; i += BATCH) {
-        const { error: chunkErr } = await supabase.from('chunks').insert(rows.slice(i, i + BATCH));
-        if (chunkErr) {
-          console.error('Chunk insert error:', chunkErr);
-          await supabase
-            .from('documents')
-            .update({ status: 'error', embedding_status: 'error', error_message: chunkErr.message })
-            .eq('id', docRecord.id);
-          return NextResponse.json({ success: false, error: 'Failed to store chunks' }, { status: 500 });
-        }
-      }
+    // Small ack only: {document_id, chunk_count, status}. No chunks, no
+    // embeddings, no markdown — none of it crosses the network or is
+    // materialized here any more. The chunk rows, the markdown and the `ready`
+    // transition were all written by the service, under this user's RLS, before
+    // this response was sent.
+    //
+    // A 200 is NOT taken as success on its own. A version-skewed or misbehaving
+    // service that answers 200 with a body we do not recognise must not be
+    // allowed to flow into the emit and the success response — that is how a
+    // document gets reported ready to a user while nothing was persisted.
+    const ack: IngestionAck = await pyResponse.json().catch(() => ({} as IngestionAck));
+    if (ack.status !== 'ready' || typeof ack.chunk_count !== 'number') {
+      const shape = JSON.stringify(ack).slice(0, 500);
+      console.error('Unexpected ingestion ack:', shape);
+      await failIfStillProcessing(`ingestion returned an unexpected ack: ${shape}`);
+      return NextResponse.json({ success: false, error: 'Ingestion failed' }, { status: 500 });
     }
 
-    // We still keep the raw markdown for debugging / re-chunking, but it's no
-    // longer used at query time.
-    const { error: readyErr } = await supabase
-      .from('documents')
-      .update({
-        markdown_content: result.markdown ?? null,
-        status: 'ready',
-        embedding_status: 'ready',
-        chunk_count: chunks.length,
-      })
-      .eq('id', docRecord.id);
-    if (readyErr) {
-      // PostgREST reports DB failures in `error`, not by throwing, so an unchecked
-      // ready write would fall through to the emit below with the row still at
-      // `status: 'processing'`. Guard it like every other status write in this
-      // route: log, flip the row to `error`, and exit non-2xx. The update is a
-      // single atomic UPDATE, so a returned error means none of the four fields
-      // landed — flipping to `error` is not fighting a half-applied ready write.
-      console.error('Ready status update error:', readyErr);
-      await supabase
-        .from('documents')
-        .update({ status: 'error', embedding_status: 'error', error_message: readyErr.message })
-        .eq('id', docRecord.id);
-      return NextResponse.json({ success: false, error: 'Failed to finalize document' }, { status: 500 });
-    }
-
-    // P5.2 study event. You asked whether this route can emit while the document is
-    // "still processing" — it now cannot. `status: 'processing'` is written at the
-    // insert above, but the route then BLOCKS on the converter fetch, the chunk
-    // inserts, and the final `status: 'ready'` update; every one of those has an
-    // error return that flips the row to `status: 'error'` and exits non-2xx —
-    // INCLUDING the ready write just above, whose `error` is now captured rather
-    // than dropped. So the guarantee is: the row is `ready` unless we verified
-    // otherwise and bailed. By the time control reaches this line the ready
-    // transition was confirmed successful, making this an unambiguous success
-    // point. (A future move to background processing would break that and the emit
-    // would have to follow the work, not the request.)
+    // P5.2 study event. The emit is still gated on a CONFIRMED success — but the
+    // confirmation is now the service's ack rather than a `ready` write made
+    // here. Reaching this line means the service reported `status: 'ready'`, and
+    // it only reports that after BOTH its chunk inserts and its `documents`
+    // update landed (it verifies the update matched a row, because an
+    // RLS-filtered UPDATE returns 200 with zero rows rather than an error). The
+    // old guarantee — "the row is `ready` unless we verified otherwise and
+    // bailed" — is unchanged in substance; what changed is which process did the
+    // verifying. (A future move to background processing would still break it,
+    // and the emit would have to follow the work rather than the request.)
     //
     // Past the 400, the 413, both 415s, the 401, the per-KB 403, the rate-limit
-    // denial, the storage 500, the insert 500, the misconfig 500, the converter 500,
-    // the chunk-insert 500, and the ready-write 500. Fails open; never throws.
+    // denial, the storage 500, the insert 500, the token-misconfig 500, the
+    // no-access-token 500, the unreachable-service 500, the non-2xx 500, and the
+    // bad-ack 500. Fails open; never throws.
     await recordStudyEvent(supabase, 'material_uploaded');
 
-    return NextResponse.json({ success: true, document_id: docRecord.id, chunk_count: chunks.length });
+    return NextResponse.json({ success: true, document_id: docRecord.id, chunk_count: ack.chunk_count });
   } catch (error) {
     console.error('Ingest API error:', error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
