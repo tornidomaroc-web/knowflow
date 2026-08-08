@@ -417,6 +417,52 @@ and **V11** respectively (§8). They appear here because §3 is organised by *wh
 | **N9** `/convert` still requires authentication | **A** post-merge | Unauthenticated `POST /convert` returns **401** | **Yes** — no UI, no SQL. |
 | **N10** base image digest-pinned and dependencies hash-locked — **HARD GATE on PR C** | **C** **pre**-merge | `services/ingestion/Dockerfile` reads `FROM python:3.11-slim@sha256:…` and a `--generate-hashes` lock is present. **Added 2026-08-02; see §8.1.1.** Without it PR C ships the one change in this sequence whose abort path is known broken. | **Yes** — repo-side, greppable; no UI, no SQL, no dashboard. |
 
+| **N11** | **One production upload through `/ingest` passes Q3.** **POST-MERGE OBSERVATION — NOT A MERGE GATE.** See §3.1 | **B** post-merge, immediately | Production UI upload + Q3 against the real account | Trigger: **no** (production UI). Proof: **yes** (SQL). |
+
+### 3.1 N11 — the post-merge production check. IT IS NOT AN ACCEPTANCE CRITERION.
+
+**READ THIS PARAGRAPH BEFORE CITING N11 ANYWHERE.** N11 is a **post-merge observation with a
+rollback condition**, in the same class as N1, N4 and N9. **It is NOT one of PR B's acceptance
+criteria and must never be read as an eleventh.** §8's binary is **V1–V12, unchanged**, and PR B
+merges on that list and nothing else. A future reader who finds N11 and retroactively treats it as a
+gate will have inverted the sequence: N11 cannot gate a merge it is defined to run *after*.
+
+**Added 2026-08-08, before PR B merged, and recorded as a GAP IN THIS PROTOCOL rather than as a new
+idea.** Had it been thought of at pin time it would have been in §3 from the start.
+
+**What it checks.** Immediately after PR B merges and the production Vercel deployment carries the
+merge commit: one upload through the **production** UI, into the real account, must satisfy **Q3** in
+full (§4, with the real account's `user_id` substituted for `<UID>` — the same substitution N1 uses).
+
+**Why it exists, and the argument is asymmetry rather than mere absence.** Every other transition in
+this sequence has a check attached to it: PR A's image going live has V1, V2, V4, V5, N4 and N9; PR
+C's shim deletion has N5 and N6. **PR B's transition has none** — and PR B is the merge at which
+**production changes which endpoint it calls**. The next production upload check in this document is
+**N6, at PR C post-merge**, so between PR B and PR C the production upload path is verified only by
+inference from a preview. **`production-monitor` does not close this**: it probes `/health` and
+`/convert`'s auth posture, and never performs an upload. A break here is TRIGGER 2's exact harm —
+production uploads failing — with nothing scheduled to notice it.
+
+**THE REMEDY, NAMED CONCRETELY. Do not route this through TRIGGER 2.** TRIGGER 2's remedy is
+Railway-shaped: it rolls back an ingestion-service image, which §8.1.1 established is a rebuild from
+source and not a return to a known artifact. **None of that applies to PR B.** PR B changes
+`src/app/api/ingest/route.ts`, which is a **Vercel** deployment, and **Vercel retains its
+deployments** (§8.1.1).
+
+> **If N11 fails: roll back in the Vercel dashboard to the immediately preceding production
+> deployment — the last one built before PR B's merge commit — which is retained and is the exact
+> artifact that was serving production beforehand. Then re-run N11 against it.**
+>
+> This is a genuine return to a known-good artifact, which is precisely what the Railway rollback is
+> **not**. No rebuild, no dependency re-resolution, no fidelity loss.
+>
+> **A dashboard rollback leaves live ≠ `main`** — register **#39**'s hazard — so it must be followed
+> by a `git revert` PR and a §7 entry. Leaving it as a quiet dashboard fact is not an option.
+
+**Cost.** One upload on the founder's real account, creating a real `documents` row, its chunks and a
+real `material_uploaded` event. Precedented by **N1**, and **left in place** under §6.4 — do not run
+§6.3 against the real account.
+
 ---
 
 ## 4. The exact queries
@@ -1180,6 +1226,7 @@ Nothing can.
 | V9 | `corrupt2.pdf` reaches `error`, 0 chunks; Q6b = 0 | **owner-attested** (§2.6.6) | 2026-08-08 22:1x | **PASS** — all four Q6a conditions and Q6b | **FIXTURE SUBSTITUTED UNDER §2.7 — §2.1's mandated fixture is empirically invalid and this row was NOT obtained with it.** Q6a on `d23154de-9909-4a01-b890-99147b5618d5` (`corrupt2.pdf`, 2048 null bytes, `md5 c99a74c555371a433d121f551d6c6398`): `status='error'`, `embedding_status='error'`, `chunk_rows=0`, `error_message` = *"File conversion failed after 1 attempts: - PdfConverter threw PDFSyntaxError with message: No /Root object!"*. Q6b `stuck_processing=0`. UI showed *"Error — Ingestion failed"*; `POST /api/ingest` → **500**; the file never entered the materials list. Both pre-existing rows survived untouched at `ready`/1 chunk. **WHO OWNS TERMINAL STATUS — OBSERVED, NOT READ:** that `error_message` is the **service's own** string from `_mark_error` (`main.py:257-275`, called at `:409-410`) and is **none of `route.ts`'s** strings. An unconditional post-forward write would have replaced it with *"ingestion service returned 500: …"*. It did not. So the guarded `.eq('status','processing')` write (`route.ts:179-189`, called at `:292`) **stood down as designed** — the premise of this entire PR, proved on the wire. The zero-row UPDATE is not directly observable; its **effect** is, and that is what this cell claims. | Vercel preview built from `5bc850e` · observed 2026-08-08T22:1xZ · **RETAINED** (§8.1.1) · Railway ingestion service: `main` head was `365ac24`; serving deployment ⟨FILL-IN: dashboard⟩, image **ARTIFACT REAPED**. **`route.ts` is byte-identical between `295e1b4` and `5bc850e`** — the only commit between them is docs-only — so V6–V8 and V9 exercised the same runtime code |
 | V10 | `material_uploaded` = Q7-BEFORE + 1 | **owner-attested** (§2.6.6) | 2026-08-08 20:3x | **PASS** — in its absolute form | Q7-BEFORE, run before the item-3 upload while the account was empty and **read rather than assumed** (§2.2): `before_count = 0`. Q7-AFTER: `material_uploaded` **`n = 1`**, `first_at = last_at = 2026-08-08T20:33:31.348123Z`. Equal timestamps mean one emit instant, not two events collapsed by the grouping. **EMIT-TIMING CORROBORATION:** that occurred_at is **2.124 s after** the document's `created_at` (20:33:29.224554Z), consistent with the emit firing after the service's ack at `route.ts:329` rather than at row insert — evidence for the gating this PR claims, which the row's own condition does not cover. **Not claimed:** Q7-AFTER was run *before* the two failed uploads and has **not** been re-read since, so this table does not assert that a failed upload emits nothing. | Same as V6 |
 | V12 | This table committed with no blanks above | **owner-attested** (§2.6.6) | 2026-08-08 22:3x | **CONDITIONAL — the PR-A/PR-B rows are filled; two `⟨FILL-IN⟩` cells and the merge itself remain** | V6–V10 filled by commit **`1fed6e5783febfcfeb94f74247144bf976ff4785`**; this V12 row filled by the immediately following commit, since it cannot precede itself. **V12's condition is "committed to `main`", and this is a branch** — it resolves when PR **#78** merges and not before. **Two blockers remain inside this row's own terms:** the Railway serving-deployment IDs on V6–V10 are `⟨FILL-IN: dashboard⟩`, and §10 states a `⟨FILL-IN⟩` "must be resolved before PR B moves." | Branch `feat/b1-repoint-route-to-ingest` at `1fed6e5` + this commit · not yet on `main` |
+| **N11** | **Production upload via `/ingest` passes Q3** — **post-merge OBSERVATION, not a merge gate (§3.1)** | — *(fills immediately **after** PR B merges)* | | | | |
 | N5 | Nothing calls `/convert`; production Next at or after PR B's merge SHA | — *(PR C fills, pre-merge)* | | | | |
 | N6 | `POST /convert` returns 404; production upload still passes Q3 | — *(PR C fills, post-merge)* | | | | |
 | N8 | Watch Paths pattern empirically confirmed to fire **in both directions** (§9.1) | — *(fills **after** C; re-sequenced 2026-08-02)* | | | | |
