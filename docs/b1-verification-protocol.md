@@ -260,6 +260,126 @@ against the pass conditions. That is the **same epistemic class as V3 and V5**, 
 for being stated. `machine-verified` (§10) means an agent ran the query itself; that will not be true
 of these rows, and they must not carry the mark.
 
+### 2.7 §2.1's mandated fixture is EMPIRICALLY INVALID — recorded 2026-08-08, after V9 failed to occur
+
+**§2.1's replacement method does not work, and this was established by spending an upload on it.** The
+fixture is replaced below with one whose failure is measured rather than asserted. Written before the
+replacement fixture is uploaded, per the discipline in §2.6.
+
+#### 2.7.1 What §2.1 claims, and the clause that is false
+
+§2.1 mandates *"a plain text file containing the literal text `not a pdf`, renamed to `corrupt.pdf`"*
+and states it *"passes the extension + MIME allowlist … reaches MarkItDown, **which raises** →
+`_convert_to_markdown` raises → caught at `services/ingestion/main.py:409` → `_mark_error` writes the
+terminal error → 500 to the caller."*
+
+**"which raises" is false.** Every link after it was conditional on it, so the whole chain is void.
+
+Observed 2026-08-08T20:5xZ on PR B's preview, throwaway account
+`d52de42c-cf30-4d46-a130-26bbbd925bae`: the 9-byte fixture uploaded as `corrupt.pdf` reached
+`status='ready'`, `embedding_status='ready'`, `error_message` null, `chunk_count=1`, with chunk 0
+holding exactly `not a pdf` (9 chars). Document `e1170dd6-4326-4955-9667-1e2923ca34a6`. **It was
+accepted, converted, chunked and embedded.** V9 did not fail; it did not occur.
+
+**The agent executing this run repeated §2.1's claim as the expected code path and told the owner
+what exception to watch for, without ever having run MarkItDown against that input.** That is
+recorded because the failure is not that a document was wrong — it is that an unverified assertion
+was passed along a second time inside the run whose purpose is to stop exactly that.
+
+#### 2.7.2 THE METHOD, which matters more here than the result: a probe calibrated against a known production outcome
+
+**A future reader should take the method from this section, not just the fixture.** A local probe of
+a library's behaviour is worth nothing on its own — it is a different machine with a different
+dependency resolution, which is §8.1.1's own finding about this very package. What converts it into
+evidence is a **control**.
+
+`markitdown[all]==0.1.5` — the exact pin from `services/ingestion/requirements.txt` — was installed
+in a throwaway local venv on Python 3.12.10, and seven candidate payloads were run through **the same
+call shape as `main.py:294-301`**: a temp file whose suffix preserves the client-supplied filename
+(and therefore its extension), then `MarkItDown().convert(path)`.
+
+**Candidate 1 was the 9-byte fixture whose production result was already known.** The rule fixed
+before the probe ran: *if the harness does not reproduce production on the control, every other
+result is discarded.*
+
+It reproduced it exactly — `CONVERTED, len=9, 'not a pdf'`, the same bytes the database holds.
+
+| Payload (extension as named) | Result |
+|---|---|
+| **CONTROL** — `not a pdf`, 9 bytes, `.pdf` | **CONVERTED, no raise.** `len=9`, `'not a pdf'` — matches production |
+| 2048 random bytes, `.pdf` | **RAISED** `FileConversionException` — `PdfConverter threw PDFSyntaxError: No /Root object! - Is this really a PDF?` |
+| 0 bytes, `.pdf` | **RAISED** — same |
+| `%PDF-1.4\n` + 2048 random bytes, `.pdf` | **RAISED** — same |
+| **2048 null bytes, `.pdf`** | **RAISED** — same |
+| 2048 random bytes, `.docx` | **RAISED** — `DocxConverter threw BadZipFile: File is not a zip file` |
+| 2048 random bytes, `.xlsx` | **RAISED** — `XlsxConverter threw BadZipFile: File is not a zip file` |
+
+**The mechanism, read off which converter threw.** Every raise came from the **extension-driven**
+converter. The control raised nothing because no converter was reached: MarkItDown sniffs content and
+**the plain-text converter is a universal accept for text-like bytes**, so the extension is only
+consulted when sniffing finds nothing text-like. §2.1's fixture was defeated by its own readability
+— it was too plainly text to ever reach the PDF path.
+
+**The limit of this evidence, stated rather than left to be found.** A calibrated local harness is
+not the Railway container. `markitdown[all]==0.1.5` resolves its transitive tree freely and the base
+image is a mutable tag (§8.1.1), so the two dependency sets differ by construction. The control
+agreeing is strong evidence **about the harness** and is **not proof about Railway**.
+
+#### 2.7.3 The replacement fixture — REPRODUCIBLE, which is why it is not the random one
+
+**2048 null bytes, uploaded as `corrupt2.pdf`.**
+
+```sh
+head -c 2048 /dev/zero > corrupt2.pdf
+```
+
+`md5 = c99a74c555371a433d121f551d6c6398`, size 2048, every byte `0x00`.
+
+Random bytes raised identically and were **rejected as the fixture** because they cannot be
+regenerated by a future reader. A fixture nobody can recreate is the class of artifact this document
+exists to prevent. That two maximally different non-text payloads — uniform nulls and high-entropy
+random — both raise through the same `PdfConverter → PDFSyntaxError` path is what makes the mechanism
+robust rather than incidental to one payload.
+
+**FILENAME DEVIATION, and it is not cosmetic.** §2.1 and Q6a pin `filename = 'corrupt.pdf'`. That
+name now identifies the **junk `ready` row** left by the invalid fixture, which is retained as
+evidence and will be removed by §6.3 at PR C. The replacement is therefore named **`corrupt2.pdf`**,
+and **Q6a's target row is identified by `filename = 'corrupt2.pdf'`** for this run. §4's standing
+warning — *"never by position: a retry can put more than one candidate in range"* — anticipated this
+exactly.
+
+#### 2.7.4 THE STOP RULE — binding, not a handshake
+
+**If the `corrupt2.pdf` upload also converts instead of raising, the run STOPS.** No third fixture,
+no adjusted payload, no further attempt in this session. V9 is left unfilled, the remaining upload
+budget is left unspent, and V9 is reopened later with a different method rather than a third guess.
+
+This is written down because the pressure to try one more thing is highest at exactly the moment it
+should be resisted, and because two fixtures have now been proposed on reasoning and one of them was
+wrong.
+
+#### 2.7.5 A product finding, and an owner claim corrected BY MEASUREMENT
+
+The invalid fixture demonstrated a real gap: `src/app/api/ingest/route.ts:70-88` gates uploads on
+**extension and MIME only** — magic-byte verification is B5b and has not landed — while
+`_convert_to_markdown` (`main.py:294-301`) preserves the client-supplied extension into the temp path
+and lets MarkItDown pick a converter by **sniffing content**. So a file whose content does not match
+its declared extension is accepted, converted as its *sniffed* type, and stored `ready` with
+`file_type` recording the *declared* type. The mismatch is flagged nowhere. **This is pre-existing and
+identical on `main`; PR B neither causes nor worsens it.** Severity is data integrity, not security:
+the content is the uploader's own and RLS-scoped, and the extension allowlist still applies.
+
+**The repository owner's framing of this finding was that "a user can upload a damaged file and be
+shown a READY material whose content is garbage, with no signal anywhere." The probe disproved it,
+and it is recorded as disproved rather than softened.** A structurally destroyed PDF — real
+`%PDF-1.4` header, garbage body — **RAISED**, landing on the error path exactly as designed. The
+silent-acceptance path requires the payload to **sniff as text** (or as another convertible type), not
+merely to be damaged. The true claim is narrower than the one made: it is a **type-mismatch** hole,
+not a **damaged-file** hole, and a renamed `.txt` is its shape rather than a corrupted document.
+
+Untested and not claimed either way: a **structurally valid** PDF with corrupted content streams,
+which might extract garbage without raising.
+
 ---
 
 ## 3. Gate table
@@ -1053,5 +1173,6 @@ PASS on the claim as stated and no wider.
 
 | Date | Change |
 |------|--------|
+| 2026-08-08 | **§2.7 added by PR B, after V9 failed to occur and before the replacement fixture was uploaded.** §2.1's mandated fixture is empirically INVALID — the 9-byte `not a pdf` file reached `status='ready'` with 1 chunk, because MarkItDown sniffs content and the plain-text converter accepts text-like bytes before the extension is ever consulted. Records the probe **method** (a local `markitdown[all]==0.1.5` harness **calibrated against the known production result on a control payload**, with the discard rule fixed before it ran) ahead of its outcome; the replacement fixture (2048 null bytes, `md5 c99a74c555371a433d121f551d6c6398`, chosen over random bytes for reproducibility); the `corrupt2.pdf` filename deviation and its effect on Q6a; a **binding stop rule** forbidding a third fixture; and a product finding in which the repository owner's "damaged file shown READY with garbage" framing is **disproved by measurement** — a structurally destroyed PDF raises as designed, so the hole is type-mismatch, not damage. |
 | 2026-08-08 | **§2.6 added by PR B, before the V6–V10 run.** Records: "Confirm email" is now ENABLED, so §5.1 step 1's justification is false (§2.6.1); the `/login` consequence, corrected, scoped to the form-submit step and labelled an **unobserved code reading** (§2.6.2); the throwaway account's off-protocol creation on production and the precise one-runtime-file argument that legitimises it (§2.6.3); **the load-bearing upload order**, with the three `route.ts` branches that would otherwise produce a false V9 PASS (§2.6.4); the `profiles` precondition and why confirmation-enabled signup made it load-bearing (§2.6.5); and that V6–V10 will be **`owner-attested`**, not `machine-verified` (§2.6.6). A pointer to §2.6 was added at §5.1 step 1; the step's own text is unedited. |
 | 2026-07-26 | Created by PR A. Eight points pinned verbatim from PR #70; §1.2 preamble struck; item 6's `VOYAGE_API_KEY` method struck; Q7-BEFORE and the `QORVANTHIL` step made mandatory; N1-N9 added; §7 accepted-untested recorded. Pre-creation review also added §2.4/§2.5 (the two places §1.1 is superseded), **N9** (register #45 auth probe), TRIGGER 3 (production Ask), the §10 Deployment column, and pinned items 3-7 to **PR B's** preview deployment. |
