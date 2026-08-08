@@ -144,6 +144,122 @@ N1, N3 and N9: §6.4 rules those are **left in place**, because hand-deleting ro
 account to tidy a test is a larger risk than one extra document. **Do not run §6.3 against the real
 account.**
 
+### 2.6 The throwaway account, the upload ORDER, and what V6–V10 will be worth — recorded 2026-08-08, BEFORE the run
+
+**Written before the V6–V10 run, not after it.** This section exists so that these things are on the
+record while they can still be read as conditions rather than as post-hoc justification. §5.1 is not
+edited; the deviations are recorded here, per this file's convention.
+
+#### 2.6.1 "Confirm email" is now ENABLED — §5.1 step 1's justification is FALSE
+
+§5.1 step 1 reads: *"Signup routes straight to `/dashboard` with an active session because 'Confirm
+email' is disabled (`docs/supabase-migration-runbook.md:122-125`)."* **That sentence no longer
+describes the system.** Confirmation is enabled, established by evidence on 2026-08-08: a
+confirmation email was delivered for a new signup and its link was consumed successfully.
+
+Background, because it explains why nobody noticed: Supabase SMTP was pointed at a Resend account
+that had been deleted when the domain moved to Brevo, so the stored key was dead and **no
+confirmation mail had been leaving the system at all**. DNS was never implicated — Resend's records
+were on the domain throughout. The repair went via Brevo, which surfaced a second finding (Starter
+plan expired 2026-05-19, zero credits, no free downgrade path, hence *"Email not sent: Your account
+has insufficient credits"*), and then via a new Resend account with `tryknowflow.com` verified in the
+EU region so the surviving SPF and MX records stayed valid and only DKIM was replaced. Supabase SMTP
+is now `smtp.resend.com:465`, username `resend`, sender `noreply@tryknowflow.com`.
+
+#### 2.6.2 The consequent `/login` claim — UNOBSERVED CODE READING, recorded as such
+
+With confirmation enabled, `signUp` returns a `user` with a **null session**, and
+`src/app/[locale]/signup/page.tsx:53` pushes to `/<locale>/dashboard` **unconditionally**, without
+consulting whether a session exists. `src/lib/supabase/middleware.ts:29-34` then redirects any
+`/<locale>/dashboard*` request with no user to `/<locale>/login` — no query parameter, no message,
+no explanation of any kind.
+
+**This is a reading of the code and nothing more. It has never been observed.** Nobody has recorded
+what that page did in the seconds after the signup form was submitted. It is written here so that it
+can be tested, not so that it can be cited.
+
+**It is scoped to the form-submit step only.** An earlier, unscoped version of this claim — that
+repairing the mailer would leave the user bounced to `/login` — **was wrong as stated**, and is
+corrected here rather than quietly narrowed. What happens after the confirmation link is followed is
+**observed**: the link lands on the dashboard with a live session. The two steps are different, and
+the claim only ever applied to the first.
+
+#### 2.6.3 The account was created off-protocol, and the precise reason that is acceptable
+
+The (b1) throwaway account `tornido.maroc2024+b1verify2@gmail.com` was created on **production**,
+through the real signup form, while verifying the SMTP repair. §5.1 step 1 asks for PR B's preview.
+
+**The precise claim that legitimises it — stated precisely, because a loose version of it would not
+survive review:** `git diff main...HEAD --stat` on this branch shows that **the only file differing
+between `main` and PR B that Next compiles or serves is `src/app/api/ingest/route.ts`.** The commit
+that adds this section changes documentation only and introduces **no runtime file**. Therefore
+`src/app/[locale]/signup/page.tsx` is byte-identical on both, and an account created through
+production's signup form is indistinguishable from one created through the preview's. The account
+itself is a row in the **shared Supabase auth project**, not a per-deployment artifact.
+Corroborating, and independent of which commit production happens to serve: `signup/page.tsx` has
+not changed since `48ac550`, **2026-07-03**.
+
+**The limit of that claim, stated rather than left to be discovered:** it compares `main` to this
+branch. It does not independently verify that production Vercel serves `main`'s head. The 2026-07-03
+date is what makes the conclusion hold anyway.
+
+**What this does NOT license.** Items 3–7 and V6–V10 still run against **PR B's preview and only
+that one**. §5.1's substantive requirement — that the uploads traverse the `route.ts` which calls
+`/ingest` — is untouched by any of the above.
+
+#### 2.6.4 THE UPLOAD ORDER IS LOAD-BEARING: `QORVANTHIL` FIRST, `corrupt.pdf` SECOND
+
+**Do not reorder these two uploads. They look interchangeable and they are not.**
+
+**V9's pass condition is satisfied by nearly every post-insert failure path in
+`src/app/api/ingest/route.ts` — not only by a conversion failure inside the service.** Three
+branches write a non-null `error_message`, leave zero chunk rows, and move the document to
+`status='error'` / `embedding_status='error'` **without `/ingest` ever having processed anything**:
+
+- **`:218-221`** — an authenticated session carrying no access token: `error_message` = *"no access
+  token on an authenticated session"*.
+- **`:255`** — the ingestion service unreachable: `error_message` = *"ingestion service unreachable:
+  …"*. This is what a wrong or unreachable service URL on the preview looks like.
+- **`:292`** — a non-2xx from the service: `error_message` = *"ingestion service returned 404: …"*.
+  **This is what a version-skewed or missing `/ingest` looks like**, and V9 alone cannot tell it
+  apart from MarkItDown correctly rejecting a bad file.
+
+So: run `corrupt.pdf` first against a misconfigured preview and **V9 goes green while `/ingest` has
+never once been exercised**. The `QORVANTHIL` upload is the discriminator — it can only satisfy V6
+and V7 if the request genuinely reached `/ingest` and the service persisted chunks under this user's
+RLS. Ordering it first converts V9 from *"an error row appeared"* into *"an error row appeared on a
+path already proven to reach the service."*
+
+**One branch is the exception, and it is recorded because naming it as the example would have been
+wrong.** The unset-`INGESTION_TOKEN` branch at **`:196-200`** writes `status='error'` and
+`embedding_status='error'` but **no `error_message`**, so the column stays null from the insert at
+`:141-147` and such a row **fails** V9 rather than faking a pass. It is not the hazard. The three
+branches above are.
+
+#### 2.6.5 The `profiles` precondition is kept even though the answer looks obvious
+
+Before the item-3 upload, and alongside Q7-BEFORE, confirm the throwaway account has a `profiles`
+row. Register **#23**: a written migration is never an applied one, and the row's existence depends
+on the `on_auth_user_created` trigger (`001_initial_schema.sql:23-25`) actually being live. If it is
+not, `knowledge_bases.user_id references profiles(id)` (`001_initial_schema.sql:30`) makes **subject
+creation fail with a foreign-key violation** — after the signup has already been spent.
+
+**This check became less redundant, not more, on 2026-08-08.** With confirmation enabled, the
+client-side `profiles` upsert at `signup/page.tsx:42` runs with **no session**, so the policy
+`auth.uid() = id` (`001_initial_schema.sql:11`) rejects it with **`42501`** — and the guard at `:48`
+only swallows `23505`, routing it to `console.error` and nowhere else. **The `profiles` row now
+rests entirely on the trigger**, where it previously had a second writer. Nothing surfaces the
+difference.
+
+#### 2.6.6 V6–V10 will be `owner-attested`, not `machine-verified`
+
+Recorded now, so that §10's Provenance column is not decided at write-up time. No agent in the
+executing session holds a database credential. Every query in §4 runs in the **Supabase SQL editor by
+the repository owner** — as §3 already requires — and its output is pasted back for adjudication
+against the pass conditions. That is the **same epistemic class as V3 and V5**, and it is not weaker
+for being stated. `machine-verified` (§10) means an agent ran the query itself; that will not be true
+of these rows, and they must not carry the mark.
+
 ---
 
 ## 3. Gate table
@@ -372,6 +488,11 @@ look green and none of them would mean anything.
    session because "Confirm email" is disabled (`docs/supabase-migration-runbook.md:122-125`), and
    `signUp` (`src/app/[locale]/signup/page.tsx:29`) never sets `emailRedirectTo` before routing to
    `/dashboard` (`:53`) — so the preview's `*.vercel.app` domain is not a blocker.
+   **→ READ §2.6 BEFORE EXECUTING THIS STEP. The "Confirm email is disabled" justification above is
+   FALSE as of 2026-08-08 (§2.6.1), and the account this protocol uses was created on production
+   rather than here, for the reason stated in §2.6.3.** The sentence is left unedited because this
+   file records corrections in §2 rather than by rewriting the step; the pointer is added because a
+   reader executing §5.1 as a runbook would otherwise act on it.
 2. Create **one** subject named `zz-b1-verify-delete-me`.
 3. Record `<UID>` immediately:
    ```sql
@@ -932,4 +1053,5 @@ PASS on the claim as stated and no wider.
 
 | Date | Change |
 |------|--------|
+| 2026-08-08 | **§2.6 added by PR B, before the V6–V10 run.** Records: "Confirm email" is now ENABLED, so §5.1 step 1's justification is false (§2.6.1); the `/login` consequence, corrected, scoped to the form-submit step and labelled an **unobserved code reading** (§2.6.2); the throwaway account's off-protocol creation on production and the precise one-runtime-file argument that legitimises it (§2.6.3); **the load-bearing upload order**, with the three `route.ts` branches that would otherwise produce a false V9 PASS (§2.6.4); the `profiles` precondition and why confirmation-enabled signup made it load-bearing (§2.6.5); and that V6–V10 will be **`owner-attested`**, not `machine-verified` (§2.6.6). A pointer to §2.6 was added at §5.1 step 1; the step's own text is unedited. |
 | 2026-07-26 | Created by PR A. Eight points pinned verbatim from PR #70; §1.2 preamble struck; item 6's `VOYAGE_API_KEY` method struck; Q7-BEFORE and the `QORVANTHIL` step made mandatory; N1-N9 added; §7 accepted-untested recorded. Pre-creation review also added §2.4/§2.5 (the two places §1.1 is superseded), **N9** (register #45 auth probe), TRIGGER 3 (production Ask), the §10 Deployment column, and pinned items 3-7 to **PR B's** preview deployment. |
