@@ -144,6 +144,242 @@ N1, N3 and N9: §6.4 rules those are **left in place**, because hand-deleting ro
 account to tidy a test is a larger risk than one extra document. **Do not run §6.3 against the real
 account.**
 
+### 2.6 The throwaway account, the upload ORDER, and what V6–V10 will be worth — recorded 2026-08-08, BEFORE the run
+
+**Written before the V6–V10 run, not after it.** This section exists so that these things are on the
+record while they can still be read as conditions rather than as post-hoc justification. §5.1 is not
+edited; the deviations are recorded here, per this file's convention.
+
+#### 2.6.1 "Confirm email" is now ENABLED — §5.1 step 1's justification is FALSE
+
+§5.1 step 1 reads: *"Signup routes straight to `/dashboard` with an active session because 'Confirm
+email' is disabled (`docs/supabase-migration-runbook.md:122-125`)."* **That sentence no longer
+describes the system.** Confirmation is enabled, established by evidence on 2026-08-08: a
+confirmation email was delivered for a new signup and its link was consumed successfully.
+
+Background, because it explains why nobody noticed: Supabase SMTP was pointed at a Resend account
+that had been deleted when the domain moved to Brevo, so the stored key was dead and **no
+confirmation mail had been leaving the system at all**. DNS was never implicated — Resend's records
+were on the domain throughout. The repair went via Brevo, which surfaced a second finding (Starter
+plan expired 2026-05-19, zero credits, no free downgrade path, hence *"Email not sent: Your account
+has insufficient credits"*), and then via a new Resend account with `tryknowflow.com` verified in the
+EU region so the surviving SPF and MX records stayed valid and only DKIM was replaced. Supabase SMTP
+is now `smtp.resend.com:465`, username `resend`, sender `noreply@tryknowflow.com`.
+
+#### 2.6.2 The consequent `/login` claim — UNOBSERVED CODE READING, recorded as such
+
+With confirmation enabled, `signUp` returns a `user` with a **null session**, and
+`src/app/[locale]/signup/page.tsx:53` pushes to `/<locale>/dashboard` **unconditionally**, without
+consulting whether a session exists. `src/lib/supabase/middleware.ts:29-34` then redirects any
+`/<locale>/dashboard*` request with no user to `/<locale>/login` — no query parameter, no message,
+no explanation of any kind.
+
+**This is a reading of the code and nothing more. It has never been observed.** Nobody has recorded
+what that page did in the seconds after the signup form was submitted. It is written here so that it
+can be tested, not so that it can be cited.
+
+**It is scoped to the form-submit step only.** An earlier, unscoped version of this claim — that
+repairing the mailer would leave the user bounced to `/login` — **was wrong as stated**, and is
+corrected here rather than quietly narrowed. What happens after the confirmation link is followed is
+**observed**: the link lands on the dashboard with a live session. The two steps are different, and
+the claim only ever applied to the first.
+
+#### 2.6.3 The account was created off-protocol, and the precise reason that is acceptable
+
+The (b1) throwaway account `tornido.maroc2024+b1verify2@gmail.com` was created on **production**,
+through the real signup form, while verifying the SMTP repair. §5.1 step 1 asks for PR B's preview.
+
+**The precise claim that legitimises it — stated precisely, because a loose version of it would not
+survive review:** `git diff main...HEAD --stat` on this branch shows that **the only file differing
+between `main` and PR B that Next compiles or serves is `src/app/api/ingest/route.ts`.** The commit
+that adds this section changes documentation only and introduces **no runtime file**. Therefore
+`src/app/[locale]/signup/page.tsx` is byte-identical on both, and an account created through
+production's signup form is indistinguishable from one created through the preview's. The account
+itself is a row in the **shared Supabase auth project**, not a per-deployment artifact.
+Corroborating, and independent of which commit production happens to serve: `signup/page.tsx` has
+not changed since `48ac550`, **2026-07-03**.
+
+**The limit of that claim, stated rather than left to be discovered:** it compares `main` to this
+branch. It does not independently verify that production Vercel serves `main`'s head. The 2026-07-03
+date is what makes the conclusion hold anyway.
+
+**What this does NOT license.** Items 3–7 and V6–V10 still run against **PR B's preview and only
+that one**. §5.1's substantive requirement — that the uploads traverse the `route.ts` which calls
+`/ingest` — is untouched by any of the above.
+
+#### 2.6.4 THE UPLOAD ORDER IS LOAD-BEARING: `QORVANTHIL` FIRST, `corrupt.pdf` SECOND
+
+**Do not reorder these two uploads. They look interchangeable and they are not.**
+
+**V9's pass condition is satisfied by nearly every post-insert failure path in
+`src/app/api/ingest/route.ts` — not only by a conversion failure inside the service.** Three
+branches write a non-null `error_message`, leave zero chunk rows, and move the document to
+`status='error'` / `embedding_status='error'` **without `/ingest` ever having processed anything**:
+
+- **`:218-221`** — an authenticated session carrying no access token: `error_message` = *"no access
+  token on an authenticated session"*.
+- **`:255`** — the ingestion service unreachable: `error_message` = *"ingestion service unreachable:
+  …"*. This is what a wrong or unreachable service URL on the preview looks like.
+- **`:292`** — a non-2xx from the service: `error_message` = *"ingestion service returned 404: …"*.
+  **This is what a version-skewed or missing `/ingest` looks like**, and V9 alone cannot tell it
+  apart from MarkItDown correctly rejecting a bad file.
+
+So: run `corrupt.pdf` first against a misconfigured preview and **V9 goes green while `/ingest` has
+never once been exercised**. The `QORVANTHIL` upload is the discriminator — it can only satisfy V6
+and V7 if the request genuinely reached `/ingest` and the service persisted chunks under this user's
+RLS. Ordering it first converts V9 from *"an error row appeared"* into *"an error row appeared on a
+path already proven to reach the service."*
+
+**One branch is the exception, and it is recorded because naming it as the example would have been
+wrong.** The unset-`INGESTION_TOKEN` branch at **`:196-200`** writes `status='error'` and
+`embedding_status='error'` but **no `error_message`**, so the column stays null from the insert at
+`:141-147` and such a row **fails** V9 rather than faking a pass. It is not the hazard. The three
+branches above are.
+
+#### 2.6.5 The `profiles` precondition is kept even though the answer looks obvious
+
+Before the item-3 upload, and alongside Q7-BEFORE, confirm the throwaway account has a `profiles`
+row. Register **#23**: a written migration is never an applied one, and the row's existence depends
+on the `on_auth_user_created` trigger (`001_initial_schema.sql:23-25`) actually being live. If it is
+not, `knowledge_bases.user_id references profiles(id)` (`001_initial_schema.sql:30`) makes **subject
+creation fail with a foreign-key violation** — after the signup has already been spent.
+
+**This check became less redundant, not more, on 2026-08-08.** With confirmation enabled, the
+client-side `profiles` upsert at `signup/page.tsx:42` runs with **no session**, so the policy
+`auth.uid() = id` (`001_initial_schema.sql:11`) rejects it with **`42501`** — and the guard at `:48`
+only swallows `23505`, routing it to `console.error` and nowhere else. **The `profiles` row now
+rests entirely on the trigger**, where it previously had a second writer. Nothing surfaces the
+difference.
+
+#### 2.6.6 V6–V10 will be `owner-attested`, not `machine-verified`
+
+Recorded now, so that §10's Provenance column is not decided at write-up time. No agent in the
+executing session holds a database credential. Every query in §4 runs in the **Supabase SQL editor by
+the repository owner** — as §3 already requires — and its output is pasted back for adjudication
+against the pass conditions. That is the **same epistemic class as V3 and V5**, and it is not weaker
+for being stated. `machine-verified` (§10) means an agent ran the query itself; that will not be true
+of these rows, and they must not carry the mark.
+
+### 2.7 §2.1's mandated fixture is EMPIRICALLY INVALID — recorded 2026-08-08, after V9 failed to occur
+
+**§2.1's replacement method does not work, and this was established by spending an upload on it.** The
+fixture is replaced below with one whose failure is measured rather than asserted. Written before the
+replacement fixture is uploaded, per the discipline in §2.6.
+
+#### 2.7.1 What §2.1 claims, and the clause that is false
+
+§2.1 mandates *"a plain text file containing the literal text `not a pdf`, renamed to `corrupt.pdf`"*
+and states it *"passes the extension + MIME allowlist … reaches MarkItDown, **which raises** →
+`_convert_to_markdown` raises → caught at `services/ingestion/main.py:409` → `_mark_error` writes the
+terminal error → 500 to the caller."*
+
+**"which raises" is false.** Every link after it was conditional on it, so the whole chain is void.
+
+Observed 2026-08-08T20:5xZ on PR B's preview, throwaway account
+`d52de42c-cf30-4d46-a130-26bbbd925bae`: the 9-byte fixture uploaded as `corrupt.pdf` reached
+`status='ready'`, `embedding_status='ready'`, `error_message` null, `chunk_count=1`, with chunk 0
+holding exactly `not a pdf` (9 chars). Document `e1170dd6-4326-4955-9667-1e2923ca34a6`. **It was
+accepted, converted, chunked and embedded.** V9 did not fail; it did not occur.
+
+**The agent executing this run repeated §2.1's claim as the expected code path and told the owner
+what exception to watch for, without ever having run MarkItDown against that input.** That is
+recorded because the failure is not that a document was wrong — it is that an unverified assertion
+was passed along a second time inside the run whose purpose is to stop exactly that.
+
+#### 2.7.2 THE METHOD, which matters more here than the result: a probe calibrated against a known production outcome
+
+**A future reader should take the method from this section, not just the fixture.** A local probe of
+a library's behaviour is worth nothing on its own — it is a different machine with a different
+dependency resolution, which is §8.1.1's own finding about this very package. What converts it into
+evidence is a **control**.
+
+`markitdown[all]==0.1.5` — the exact pin from `services/ingestion/requirements.txt` — was installed
+in a throwaway local venv on Python 3.12.10, and seven candidate payloads were run through **the same
+call shape as `main.py:294-301`**: a temp file whose suffix preserves the client-supplied filename
+(and therefore its extension), then `MarkItDown().convert(path)`.
+
+**Candidate 1 was the 9-byte fixture whose production result was already known.** The rule fixed
+before the probe ran: *if the harness does not reproduce production on the control, every other
+result is discarded.*
+
+It reproduced it exactly — `CONVERTED, len=9, 'not a pdf'`, the same bytes the database holds.
+
+| Payload (extension as named) | Result |
+|---|---|
+| **CONTROL** — `not a pdf`, 9 bytes, `.pdf` | **CONVERTED, no raise.** `len=9`, `'not a pdf'` — matches production |
+| 2048 random bytes, `.pdf` | **RAISED** `FileConversionException` — `PdfConverter threw PDFSyntaxError: No /Root object! - Is this really a PDF?` |
+| 0 bytes, `.pdf` | **RAISED** — same |
+| `%PDF-1.4\n` + 2048 random bytes, `.pdf` | **RAISED** — same |
+| **2048 null bytes, `.pdf`** | **RAISED** — same |
+| 2048 random bytes, `.docx` | **RAISED** — `DocxConverter threw BadZipFile: File is not a zip file` |
+| 2048 random bytes, `.xlsx` | **RAISED** — `XlsxConverter threw BadZipFile: File is not a zip file` |
+
+**The mechanism, read off which converter threw.** Every raise came from the **extension-driven**
+converter. The control raised nothing because no converter was reached: MarkItDown sniffs content and
+**the plain-text converter is a universal accept for text-like bytes**, so the extension is only
+consulted when sniffing finds nothing text-like. §2.1's fixture was defeated by its own readability
+— it was too plainly text to ever reach the PDF path.
+
+**The limit of this evidence, stated rather than left to be found.** A calibrated local harness is
+not the Railway container. `markitdown[all]==0.1.5` resolves its transitive tree freely and the base
+image is a mutable tag (§8.1.1), so the two dependency sets differ by construction. The control
+agreeing is strong evidence **about the harness** and is **not proof about Railway**.
+
+#### 2.7.3 The replacement fixture — REPRODUCIBLE, which is why it is not the random one
+
+**2048 null bytes, uploaded as `corrupt2.pdf`.**
+
+```sh
+head -c 2048 /dev/zero > corrupt2.pdf
+```
+
+`md5 = c99a74c555371a433d121f551d6c6398`, size 2048, every byte `0x00`.
+
+Random bytes raised identically and were **rejected as the fixture** because they cannot be
+regenerated by a future reader. A fixture nobody can recreate is the class of artifact this document
+exists to prevent. That two maximally different non-text payloads — uniform nulls and high-entropy
+random — both raise through the same `PdfConverter → PDFSyntaxError` path is what makes the mechanism
+robust rather than incidental to one payload.
+
+**FILENAME DEVIATION, and it is not cosmetic.** §2.1 and Q6a pin `filename = 'corrupt.pdf'`. That
+name now identifies the **junk `ready` row** left by the invalid fixture, which is retained as
+evidence and will be removed by §6.3 at PR C. The replacement is therefore named **`corrupt2.pdf`**,
+and **Q6a's target row is identified by `filename = 'corrupt2.pdf'`** for this run. §4's standing
+warning — *"never by position: a retry can put more than one candidate in range"* — anticipated this
+exactly.
+
+#### 2.7.4 THE STOP RULE — binding, not a handshake
+
+**If the `corrupt2.pdf` upload also converts instead of raising, the run STOPS.** No third fixture,
+no adjusted payload, no further attempt in this session. V9 is left unfilled, the remaining upload
+budget is left unspent, and V9 is reopened later with a different method rather than a third guess.
+
+This is written down because the pressure to try one more thing is highest at exactly the moment it
+should be resisted, and because two fixtures have now been proposed on reasoning and one of them was
+wrong.
+
+#### 2.7.5 A product finding, and an owner claim corrected BY MEASUREMENT
+
+The invalid fixture demonstrated a real gap: `src/app/api/ingest/route.ts:70-88` gates uploads on
+**extension and MIME only** — magic-byte verification is B5b and has not landed — while
+`_convert_to_markdown` (`main.py:294-301`) preserves the client-supplied extension into the temp path
+and lets MarkItDown pick a converter by **sniffing content**. So a file whose content does not match
+its declared extension is accepted, converted as its *sniffed* type, and stored `ready` with
+`file_type` recording the *declared* type. The mismatch is flagged nowhere. **This is pre-existing and
+identical on `main`; PR B neither causes nor worsens it.** Severity is data integrity, not security:
+the content is the uploader's own and RLS-scoped, and the extension allowlist still applies.
+
+**The repository owner's framing of this finding was that "a user can upload a damaged file and be
+shown a READY material whose content is garbage, with no signal anywhere." The probe disproved it,
+and it is recorded as disproved rather than softened.** A structurally destroyed PDF — real
+`%PDF-1.4` header, garbage body — **RAISED**, landing on the error path exactly as designed. The
+silent-acceptance path requires the payload to **sniff as text** (or as another convertible type), not
+merely to be damaged. The true claim is narrower than the one made: it is a **type-mismatch** hole,
+not a **damaged-file** hole, and a renamed `.txt` is its shape rather than a corrupted document.
+
+Untested and not claimed either way: a **structurally valid** PDF with corrupted content streams,
+which might extract garbage without raising.
+
 ---
 
 ## 3. Gate table
@@ -180,6 +416,52 @@ and **V11** respectively (§8). They appear here because §3 is organised by *wh
 | **N8** Watch Paths does not orphan PR C | **after C** — *re-sequenced 2026-08-02, see §9.1* | See §9 and **§9.1**, which supersedes the "between B and C" placement and specifies the two-direction empirical test | **Yes.** |
 | **N9** `/convert` still requires authentication | **A** post-merge | Unauthenticated `POST /convert` returns **401** | **Yes** — no UI, no SQL. |
 | **N10** base image digest-pinned and dependencies hash-locked — **HARD GATE on PR C** | **C** **pre**-merge | `services/ingestion/Dockerfile` reads `FROM python:3.11-slim@sha256:…` and a `--generate-hashes` lock is present. **Added 2026-08-02; see §8.1.1.** Without it PR C ships the one change in this sequence whose abort path is known broken. | **Yes** — repo-side, greppable; no UI, no SQL, no dashboard. |
+
+| **N11** | **One production upload through `/ingest` passes Q3.** **POST-MERGE OBSERVATION — NOT A MERGE GATE.** See §3.1 | **B** post-merge, immediately | Production UI upload + Q3 against the real account | Trigger: **no** (production UI). Proof: **yes** (SQL). |
+
+### 3.1 N11 — the post-merge production check. IT IS NOT AN ACCEPTANCE CRITERION.
+
+**READ THIS PARAGRAPH BEFORE CITING N11 ANYWHERE.** N11 is a **post-merge observation with a
+rollback condition**, in the same class as N1, N4 and N9. **It is NOT one of PR B's acceptance
+criteria and must never be read as an eleventh.** §8's binary is **V1–V12, unchanged**, and PR B
+merges on that list and nothing else. A future reader who finds N11 and retroactively treats it as a
+gate will have inverted the sequence: N11 cannot gate a merge it is defined to run *after*.
+
+**Added 2026-08-08, before PR B merged, and recorded as a GAP IN THIS PROTOCOL rather than as a new
+idea.** Had it been thought of at pin time it would have been in §3 from the start.
+
+**What it checks.** Immediately after PR B merges and the production Vercel deployment carries the
+merge commit: one upload through the **production** UI, into the real account, must satisfy **Q3** in
+full (§4, with the real account's `user_id` substituted for `<UID>` — the same substitution N1 uses).
+
+**Why it exists, and the argument is asymmetry rather than mere absence.** Every other transition in
+this sequence has a check attached to it: PR A's image going live has V1, V2, V4, V5, N4 and N9; PR
+C's shim deletion has N5 and N6. **PR B's transition has none** — and PR B is the merge at which
+**production changes which endpoint it calls**. The next production upload check in this document is
+**N6, at PR C post-merge**, so between PR B and PR C the production upload path is verified only by
+inference from a preview. **`production-monitor` does not close this**: it probes `/health` and
+`/convert`'s auth posture, and never performs an upload. A break here is TRIGGER 2's exact harm —
+production uploads failing — with nothing scheduled to notice it.
+
+**THE REMEDY, NAMED CONCRETELY. Do not route this through TRIGGER 2.** TRIGGER 2's remedy is
+Railway-shaped: it rolls back an ingestion-service image, which §8.1.1 established is a rebuild from
+source and not a return to a known artifact. **None of that applies to PR B.** PR B changes
+`src/app/api/ingest/route.ts`, which is a **Vercel** deployment, and **Vercel retains its
+deployments** (§8.1.1).
+
+> **If N11 fails: roll back in the Vercel dashboard to the immediately preceding production
+> deployment — the last one built before PR B's merge commit — which is retained and is the exact
+> artifact that was serving production beforehand. Then re-run N11 against it.**
+>
+> This is a genuine return to a known-good artifact, which is precisely what the Railway rollback is
+> **not**. No rebuild, no dependency re-resolution, no fidelity loss.
+>
+> **A dashboard rollback leaves live ≠ `main`** — register **#39**'s hazard — so it must be followed
+> by a `git revert` PR and a §7 entry. Leaving it as a quiet dashboard fact is not an option.
+
+**Cost.** One upload on the founder's real account, creating a real `documents` row, its chunks and a
+real `material_uploaded` event. Precedented by **N1**, and **left in place** under §6.4 — do not run
+§6.3 against the real account.
 
 ---
 
@@ -372,6 +654,11 @@ look green and none of them would mean anything.
    session because "Confirm email" is disabled (`docs/supabase-migration-runbook.md:122-125`), and
    `signUp` (`src/app/[locale]/signup/page.tsx:29`) never sets `emailRedirectTo` before routing to
    `/dashboard` (`:53`) — so the preview's `*.vercel.app` domain is not a blocker.
+   **→ READ §2.6 BEFORE EXECUTING THIS STEP. The "Confirm email is disabled" justification above is
+   FALSE as of 2026-08-08 (§2.6.1), and the account this protocol uses was created on production
+   rather than here, for the reason stated in §2.6.3.** The sentence is left unedited because this
+   file records corrections in §2 rather than by rewriting the step; the pointer is added because a
+   reader executing §5.1 as a runbook would otherwise act on it.
 2. Create **one** subject named `zz-b1-verify-delete-me`.
 3. Record `<UID>` immediately:
    ```sql
@@ -562,6 +849,33 @@ runs it automatically. Every other row depends on a person running a query and r
 correctly. That is
 inherent to verifying a live system. It is why **V12 (committed results) is load-bearing**: it is the
 only thing that makes a skipped check visible afterwards.
+
+### 7.4 Most of PR B's failure surface is still unexercised — recorded 2026-08-08, after V9 passed
+
+**V9 exercised exactly one of `route.ts`'s failure branches, and it is important that nobody reads a
+green V9 as covering the rest.** The `corrupt2.pdf` run reached `:292` (the non-2xx branch) and
+proved the guarded write **stands down** when the service has already written a terminal status.
+
+**Still never executed, in any environment:**
+
+- **The RESCUE half of the same guard.** `failIfStillProcessing` has two behaviours: stand down when
+  the row has moved off `processing`, and **rescue the row when the service never wrote anything**.
+  Only the first has run. The rescue half is **the orphan-stuck-at-`processing` killer this whole
+  change exists for**, and it remains proven by code reading alone.
+- **`:255`** — the ingestion service unreachable (fetch throws).
+- **`:310`** — a 200 carrying an unrecognised ack shape.
+- **`:196-200`** — `INGESTION_TOKEN` unset.
+- **`:218-221`** — an authenticated session carrying no access token.
+
+**Ruling 2026-08-08: accepted as untested, and PR B is not held on it.** Each of these requires
+inducing an infrastructure fault — killing the service mid-request, desynchronising a token,
+deploying a mismatched image — against the service being stabilised, which is the same class of
+deliberately induced outage that §2.1 struck the `VOYAGE_API_KEY` method for. The cost is real and
+immediate; the coverage gained is a branch whose correctness the successful stand-down already makes
+credible.
+
+**This is an accepted risk, not a solved one**, and it is recorded here for the same reason as §7.1:
+so that a future reader cannot mistake V1–V12 for more than they are.
 
 ---
 
@@ -830,8 +1144,10 @@ So the column records, in this order:
 
 **`⟨FILL-IN⟩` marks a value not yet read off the dashboard.** It is a populated, honest cell — not a
 settled one. **V12 is checked when PR B merges, not when this table is drafted**, so a `⟨FILL-IN⟩`
-does not block drafting; it must be resolved before PR B moves. **Both of this table's `⟨FILL-IN⟩`
-markers were resolved 2026-08-02 before PR B moved**; the convention is kept for future rows.
+does not block drafting; it must be resolved before PR B moves. **Four `⟨FILL-IN⟩` markers have been
+raised in this table and all four were resolved before PR B moved: two on 2026-08-02 (B8's
+`16ea983d` and `d7fb32b5`) and two on 2026-08-09 (V6 and V9, both naming `6e03e8bd`).** No
+`⟨FILL-IN⟩` remains. The convention is kept for future rows.
 
 ### Why the ID must be labelled with what kind of thing it is
 
@@ -906,17 +1222,49 @@ Nothing can.
 | V5 | Production Ask returns a grounded answer | **owner-attested** | 2026-08-01 | **PASS** | The summarize action on document `6c0ff12c` returned a substantive **Arabic summary drawn from the PDF's real content**, not the "can't find that in your materials" response. **Attested by the repository owner, not machine-verified — the same epistemic class as V3.** No artifact, log or transcript survives behind it. | built from `ee45958` · observed 2026-08-01 · **ARTIFACT REAPED** (Railway status: *Removed*) · dep `16ea983d` — an 8-hex **deployment-ID prefix, NOT a commit SHA** · created 2026-08-01T15:38Z; its deploy log carries the authenticated `/convert` 200 at 15:45:03Z and the restoration upload at 16:00:48Z |
 | N4 | All-accounts Q6b (§4) returns 0, `created_at` bounded at PR A's merge | machine-verified | 2026-08-02 14:2x | **PASS** — 0, both bounded and unbounded | `documents where status='processing' and created_at > 2026-07-29T19:20:36Z` (PR A's merge) across **all accounts** → **0**. Re-run with the date bound removed → also **0**, so nothing is stranded anywhere at any time, which is stronger than the row requires. | **Not attributable to a single deployment.** This row asserts a **global invariant across every document ever written**, not the behaviour of one artifact. Observed 2026-08-02T14:2xZ. |
 | N9 | Unauthenticated `POST /convert` returns 401 | machine-verified + **CI-observed** | 2026-08-02 14:0x | **PASS** — `401 {"detail":"Missing bearer token"}` | **TRIGGER 4 does not fire.** Probed before any other work this session, precisely because it is a rollback trigger. **The multipart file part is load-bearing:** FastAPI validates the body *before* the bearer check, so an unauthenticated POST with **no** file returns **422 `"Field required"`** — proven by direct probe, not inferred. With a file part and no `Authorization`: **401**. Re-asserted every 15 min by `production-monitor`. | built from `9e31c22` · observed 2026-08-02T14:0xZ · **ARTIFACT REAPED** (Railway status: *Removed*) · dep `d7fb32b5` — an 8-hex **deployment-ID prefix, NOT a commit SHA** · deployment live 2026-08-02T14:02Z → 14:59:24Z, so the observation falls inside its lifetime |
-| V6 | Preview upload via `/ingest` satisfies Q3 | — *(PR B fills)* | | | | |
-| V7 | Q4 all six conditions | — *(PR B fills)* | | | | |
-| V8 | Preview Ask contains `QORVANTHIL`; Q5 returns rows | — *(PR B fills)* | | | | |
-| V9 | `corrupt.pdf` reaches `error`, 0 chunks; Q6b = 0 | — *(PR B fills)* | | | | |
-| V10 | `material_uploaded` = Q7-BEFORE + 1 | — *(PR B fills)* | | | | |
-| V12 | This table committed with no blanks above | — *(PR B fills)* | | | | |
+| V6 | Preview upload via `/ingest` satisfies Q3 | **owner-attested** (§2.6.6) | 2026-08-08 20:33 | **PASS** — all five Q3 conditions | Q3 on `9b422ed4-77f7-4673-a02d-1969d1aa4eed` (`qorvanthil-b1b-20260803.md`, throwaway `d52de42c-cf30-4d46-a130-26bbbd925bae`): `status=ready`, `embedding_status=ready`, `chunk_count=1` = `actual_chunk_rows=1`, `has_markdown=true` (1169 chars), `error_message` null. Document `created_at` 2026-08-08T20:33:29.224554Z. **SUBSTITUTED ARTIFACT — see the note below this table.** | Vercel preview built from `295e1b4` · observed 2026-08-08T20:33Z · **RETAINED** — Vercel does not reap its deployments (§8.1.1) · Railway ingestion service: `main` head was `365ac24`; the serving deployment is **`dep 6e03e8bd`** — a Railway **deployment-ID prefix, not a commit**, per the labelling rule below this table — service `knowflow`, project `athletic-miracle`, environment `production`, **built from `365ac24`**, created **2026-08-03T13:17Z** (14:17 GMT+1). **READ `ACTIVE` ON 2026-08-09**: "Deployment successful", 1 replica, US East, with **every deployment below it in HISTORY reading `REMOVED`**. **ARTIFACT REAPED — SCHEDULED, NOT YET TRUE AT TIME OF WRITING.** This is the only cell in §10 written against a **live** artifact, and it is written that way deliberately: PR **#78**'s own merge rebuilds and swaps this image (empty Watch Paths — register **#55**), so **a later reader who finds `6e03e8bd` marked `REMOVED` is seeing the predicted end state, not a falsified record.** The marker is stated in the future tense because stating it in the past tense would have been the lie. **THE IDENTIFICATION IS REPO-ENTAILED, NOT MERELY ATTESTED, and that is stronger than a dashboard read alone:** `365ac24`'s own commit timestamp is **2026-08-03T13:17:54Z** — the same minute as the deployment's creation — and `365ac24` **is still `main`'s head**, so **no commit has landed on `main` between the build and the 2026-08-08 run**. With Watch Paths empty every push rebuilds; there was no push, therefore no supersession was possible and **exactly one deployment could have served this row**. **LIMIT, STATED SO THIS IS NOT READ AS MORE THAN IT IS:** the monitor's paired probes (`GET /health` → 200, `POST /convert` → 401) repeat in this deployment's live log and corroborate **continuous serving** across the window; **the log was NOT read for the V6–V10 upload events themselves.** This cell therefore does **not** make the claim the `16ea983d` cell makes, where the deploy log carried the very events the row asserts |
+| V7 | Q4 all six conditions | **owner-attested** (§2.6.6) | 2026-08-08 20:3x | **PASS** — all six | Q4 on `9b422ed4`: `rows=1` (>0), `null_embeddings=0`, `wrong_dims=0`, `min_idx=0`, `max_idx=0` = `rows-1`, `distinct_idx=1` = `rows`. The embeddings crossed into Postgres as real `vector(1024)`, not as null or text. | Same as V6 |
+| V8 | Preview Ask contains `QORVANTHIL`; Q5 returns rows | **owner-attested** (§2.6.6) | 2026-08-08 20:3x–21:0x | **PASS** — both halves | Q5 returned **1 row, no error** (`chunk_index 0`), so the persisted values are `vector(1024)` data the cosine operator and HNSW index accept. Preview Ask, asked verbatim *"What is QORVANTHIL?"*, returned an answer containing the literal string `QORVANTHIL` and the fact defined alongside it; citation chip read `qorvanthil-b1b-20260803.md`. **STRONGER THAN THE BAR, and this is why:** the answer reproduced the ingested document's *distinguishing* account of the 50 — chunk rows per insert call, chosen to stay under the REST interface's request-size ceiling **rather than for throughput** — which **contradicts** the substitute document authored for this run and never ingested (which called the 50 an embedding-provider batch). The answer could therefore only have come from the artifact actually in the database. | Same as V6 |
+| V9 | `corrupt2.pdf` reaches `error`, 0 chunks; Q6b = 0 | **owner-attested** (§2.6.6) | 2026-08-08 22:1x | **PASS** — all four Q6a conditions and Q6b | **FIXTURE SUBSTITUTED UNDER §2.7 — §2.1's mandated fixture is empirically invalid and this row was NOT obtained with it.** Q6a on `d23154de-9909-4a01-b890-99147b5618d5` (`corrupt2.pdf`, 2048 null bytes, `md5 c99a74c555371a433d121f551d6c6398`): `status='error'`, `embedding_status='error'`, `chunk_rows=0`, `error_message` = *"File conversion failed after 1 attempts: - PdfConverter threw PDFSyntaxError with message: No /Root object!"*. Q6b `stuck_processing=0`. UI showed *"Error — Ingestion failed"*; `POST /api/ingest` → **500**; the file never entered the materials list. Both pre-existing rows survived untouched at `ready`/1 chunk. **WHO OWNS TERMINAL STATUS — OBSERVED, NOT READ:** that `error_message` is the **service's own** string from `_mark_error` (`main.py:257-275`, called at `:409-410`) and is **none of `route.ts`'s** strings. An unconditional post-forward write would have replaced it with *"ingestion service returned 500: …"*. It did not. So the guarded `.eq('status','processing')` write (`route.ts:179-189`, called at `:292`) **stood down as designed** — the premise of this entire PR, proved on the wire. The zero-row UPDATE is not directly observable; its **effect** is, and that is what this cell claims. | Vercel preview built from `5bc850e` · observed 2026-08-08T22:1xZ · **RETAINED** (§8.1.1) · Railway ingestion service: `main` head was `365ac24`; serving deployment **`dep 6e03e8bd`** — **the same deployment as V6**, identified, corroborated and qualified in full there, including its **`ARTIFACT REAPED — SCHEDULED`** status and the limit on what its deploy log was actually read for. The repo-entailed argument in V6 covers this row unchanged: `main`'s head did not move between the build and either observation. **`route.ts` is byte-identical between `295e1b4` and `5bc850e`** — the only commit between them is docs-only — so V6–V8 and V9 exercised the same runtime code |
+| V10 | `material_uploaded` = Q7-BEFORE + 1 | **owner-attested** (§2.6.6) | 2026-08-08 20:3x | **PASS** — in its absolute form | Q7-BEFORE, run before the item-3 upload while the account was empty and **read rather than assumed** (§2.2): `before_count = 0`. Q7-AFTER: `material_uploaded` **`n = 1`**, `first_at = last_at = 2026-08-08T20:33:31.348123Z`. Equal timestamps mean one emit instant, not two events collapsed by the grouping. **EMIT-TIMING CORROBORATION:** that occurred_at is **2.124 s after** the document's `created_at` (20:33:29.224554Z), consistent with the emit firing after the service's ack at `route.ts:329` rather than at row insert — evidence for the gating this PR claims, which the row's own condition does not cover. **Not claimed:** Q7-AFTER was run *before* the two failed uploads and has **not** been re-read since, so this table does not assert that a failed upload emits nothing. | Same as V6 |
+| V12 | This table committed with no blanks above | **owner-attested** (§2.6.6) | 2026-08-08 22:3x | **CONDITIONAL — the PR-A/PR-B rows are filled, no `⟨FILL-IN⟩` remains, and the merge itself is the only condition left** | V6–V10 filled by commit **`1fed6e5783febfcfeb94f74247144bf976ff4785`**; this V12 row filled by the immediately following commit, since it cannot precede itself. **V12's condition is "committed to `main`", and this is a branch** — it resolves when PR **#78** merges and not before. **This row listed TWO blockers inside its own terms; ONE IS NOW GONE and the count is corrected here rather than left to step 4.** The Railway serving-deployment IDs on V6–V10 were `⟨FILL-IN: dashboard⟩`; they were resolved 2026-08-09 to `6e03e8bd` (see V6), so §10's rule that a `⟨FILL-IN⟩` "must be resolved before PR B moves" is **satisfied**. **THIS IS NOT V12 BEING RESOLVED.** V12's condition is "committed to `main`" and this is still a branch; the row stays **CONDITIONAL** and resolves at the merge, not here. Only the enumeration of what remains has been corrected, because a row that keeps asserting a blocker the same commit removed is the exact defect this table exists to prevent. | Branch `feat/b1-repoint-route-to-ingest` at `1fed6e5` + this commit · not yet on `main` |
+| **N11** | **Production upload via `/ingest` passes Q3** — **post-merge OBSERVATION, not a merge gate (§3.1)** | — *(fills immediately **after** PR B merges)* | | | | |
 | N5 | Nothing calls `/convert`; production Next at or after PR B's merge SHA | — *(PR C fills, pre-merge)* | | | | |
 | N6 | `POST /convert` returns 404; production upload still passes Q3 | — *(PR C fills, post-merge)* | | | | |
 | N8 | Watch Paths pattern empirically confirmed to fire **in both directions** (§9.1) | — *(fills **after** C; re-sequenced 2026-08-02)* | | | | |
 | **N10** | **HARD GATE (§8.1.1)** — `services/ingestion/Dockerfile` pins the base **by digest** and a **hash-pinned** dependency lock is in place | — *(PR C fills, **pre**-merge)* | | | | |
 | — | Throwaway account cleanup (§6.3) executed and §6.2 re-run all-zero | — *(PR C fills)* | | | | |
+
+### Two artifacts in the throwaway account that a future reader will misread
+
+**1. `qorvanthil-b1b-20260803.md` is NOT the file §2.3's step authored for this run.** The document
+that satisfied V6, V7 and V8 was authored in an **earlier session** for this same purpose. A
+different `qorvanthil.md` was written at the start of this run specifically to remove ambiguity about
+the fixture, and it was **not** the one uploaded. The substitution was caught at STOP 2 and
+adjudicated before any row was recorded: §2.3 mandates **properties** (a `.txt`/`.md` authored for
+the purpose, containing `QORVANTHIL`, defined as something specific and checkable, unique within the
+subject), **not exact bytes**, and the ingested file satisfies every clause. V8 was then adjudicated
+against `documents.markdown_content` read from the database — the artifact actually ingested — and
+against nothing else. **Had §2.3 pinned exact bytes, this would have cost a re-upload.** It did not,
+and that is luck rather than design.
+
+**2. There is a `corrupt.pdf` row sitting at `status='ready'` with nine bytes of content, and it is
+EVIDENCE, not a malfunction.** Document `e1170dd6-4326-4955-9667-1e2923ca34a6`, `file_type='pdf'`,
+`chunk_count=1`, chunk 0 holding exactly `not a pdf`. **This is §2.1's mandated V9 fixture failing to
+fail** — the run that proved §2.1 empirically invalid (§2.7.1). It is deliberately **retained** so
+the finding is inspectable rather than merely described, and it is why the working fixture had to be
+named `corrupt2.pdf` (§2.7.3): Q6a selects by filename, and two rows called `corrupt.pdf` would be
+exactly the ambiguity §4 warns about. It is removed by §6.3 at PR C along with the rest of the
+account. **A reader who finds it and concludes the pipeline is broken has the story backwards** — it
+records that the pipeline accepted something it should have rejected, which is register-worthy
+(§2.7.5) and is not what V9 measured.
+
+### Line-reference drift in §2.1 — no substantive change
+
+§2.1 cites `src/app/api/ingest/route.ts:59-76` for the extension + MIME allowlist and `:71` for the
+tolerance of empty and generic MIME. In PR B those moved to **`:59-88`** and **`:83`**. The gating
+logic is unchanged; only the line numbers drifted. Recorded so a future reader who follows the
+citations and finds different code does not conclude the behaviour changed.
 
 **V3 rests on two dependencies that this PASS does not discharge.** First, the absence half is a
 **dashboard read performed by the repository owner, not by the agent recording this row** — no
@@ -932,4 +1280,8 @@ PASS on the claim as stated and no wider.
 
 | Date | Change |
 |------|--------|
+| 2026-08-09 | **§10's last two `⟨FILL-IN⟩` cells resolved — V6 and V9 both name Railway deployment `6e03e8bd`, and the §10 preamble's tally is corrected from two markers to four.** V7, V8 and V10 read "Same as V6" and are resolved by the same edit. **This is the first cell in §10 written against a LIVE artifact**, so the mandatory `ARTIFACT REAPED` marker is recorded as **`SCHEDULED, NOT YET TRUE AT TIME OF WRITING`** rather than asserted in the past tense — PR #78's own merge is what reaps it (empty Watch Paths, register #55), and the cell says so explicitly **so a later reader who finds the deployment `REMOVED` reads the predicted end state rather than concluding the record was false.** **The identification does not rest on the dashboard read alone:** `365ac24` is still `main`'s head and its commit timestamp (2026-08-03T13:17:54Z) falls in the same minute as the deployment's creation, so with Watch Paths empty **no push occurred that could have superseded it** and exactly one deployment could have served the 2026-08-08 run — a repo-checkable entailment, not an attestation. **The limit is stated in the cell:** the monitor's paired probes corroborate continuous serving, but the deploy log was **not** read for the V6–V10 upload events, so this cell claims less than the `16ea983d` cell does. **Build duration and trigger label were not captured and are not recorded** — §10 names the deployment ID as the only handle on both, and after the merge they are no longer readable from a live deployment. Scope: this file only. V12 is deliberately **not** resolved here; it resolves at merge. |
+| 2026-08-08 | **§10 filled by PR B for V6, V7, V8, V9, V10 — all PASS — and §7.4 added.** V8 recorded as stronger than its bar: the Ask reproduced the ingested document's distinguishing account of the batch size, which contradicts the never-ingested substitute, so retrieval is proved against the artifact actually in the database. V9 records **who owns terminal status, observed on the wire** — the `error_message` is `_mark_error`'s own string and none of `route.ts`'s, so the guarded `.eq('status','processing')` write demonstrably stood down; the cell states that the guard's *effect* is observed and the zero-row UPDATE itself is not. V10 carries the emit-timing corroboration (2.124 s after the document's `created_at`) and explicitly declines to claim anything about failed uploads, which were never re-read. Two throwaway-account artifacts are documented against misreading: the **substituted** QORVANTHIL file, and the **retained `corrupt.pdf` junk `ready` row** that is evidence of §2.1's invalid fixture rather than a malfunction. §2.1's line references recorded as drifted (`:59-76`→`:59-88`, `:71`→`:83`), no substantive change. **§7.4 records that V9 exercised ONE failure branch and that the guard's RESCUE half — the orphan killer — plus `:255`, `:310`, `:196-200` and `:218-221` remain unexercised in every environment; accepted as untested, PR B not held on it.** Provenance for all five rows is **`owner-attested`** per §2.6.6. Two Railway deployment IDs left as `⟨FILL-IN: dashboard⟩`. |
+| 2026-08-08 | **§2.7 added by PR B, after V9 failed to occur and before the replacement fixture was uploaded.** §2.1's mandated fixture is empirically INVALID — the 9-byte `not a pdf` file reached `status='ready'` with 1 chunk, because MarkItDown sniffs content and the plain-text converter accepts text-like bytes before the extension is ever consulted. Records the probe **method** (a local `markitdown[all]==0.1.5` harness **calibrated against the known production result on a control payload**, with the discard rule fixed before it ran) ahead of its outcome; the replacement fixture (2048 null bytes, `md5 c99a74c555371a433d121f551d6c6398`, chosen over random bytes for reproducibility); the `corrupt2.pdf` filename deviation and its effect on Q6a; a **binding stop rule** forbidding a third fixture; and a product finding in which the repository owner's "damaged file shown READY with garbage" framing is **disproved by measurement** — a structurally destroyed PDF raises as designed, so the hole is type-mismatch, not damage. |
+| 2026-08-08 | **§2.6 added by PR B, before the V6–V10 run.** Records: "Confirm email" is now ENABLED, so §5.1 step 1's justification is false (§2.6.1); the `/login` consequence, corrected, scoped to the form-submit step and labelled an **unobserved code reading** (§2.6.2); the throwaway account's off-protocol creation on production and the precise one-runtime-file argument that legitimises it (§2.6.3); **the load-bearing upload order**, with the three `route.ts` branches that would otherwise produce a false V9 PASS (§2.6.4); the `profiles` precondition and why confirmation-enabled signup made it load-bearing (§2.6.5); and that V6–V10 will be **`owner-attested`**, not `machine-verified` (§2.6.6). A pointer to §2.6 was added at §5.1 step 1; the step's own text is unedited. |
 | 2026-07-26 | Created by PR A. Eight points pinned verbatim from PR #70; §1.2 preamble struck; item 6's `VOYAGE_API_KEY` method struck; Q7-BEFORE and the `QORVANTHIL` step made mandatory; N1-N9 added; §7 accepted-untested recorded. Pre-creation review also added §2.4/§2.5 (the two places §1.1 is superseded), **N9** (register #45 auth probe), TRIGGER 3 (production Ask), the §10 Deployment column, and pinned items 3-7 to **PR B's** preview deployment. |
