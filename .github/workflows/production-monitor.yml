@@ -123,6 +123,32 @@ jobs:
           jq -e '.embed_dim == 1024' /tmp/health.json > /dev/null || {
             echo "::error::embed_dim is not 1024 (got $(jq -c '.embed_dim' /tmp/health.json)). chunks.embedding is vector(1024); this breaks every new embedding."; exit 1; }
 
+          # THE DIMENSION CHECK ABOVE DOES NOT COVER A MODEL SWAP, AND THAT IS THE
+          # HAZARD THESE TWO LINES EXIST FOR (B9-4 in docs/b9-queue.md). Register #56
+          # leaves `FROM python:3.11-slim` a MUTABLE tag with no transitive pins,
+          # and register #55 rebuilds the image on every push to `main`. A
+          # dependency resolution that changed the embedding MODEL while keeping
+          # the dimension at 1024 would write vectors from a different model into
+          # the same vector(1024) column, PASS ALL THREE of the other assertions
+          # here, and silently degrade retrieval against every chunk already
+          # stored. The dimension check catches a dimension change; until now
+          # NOTHING caught a model swap.
+          #
+          # N11's pre-upload read compared these two fields BY HAND against the
+          # pre-merge capture -- a human diffing two strings in a chat window,
+          # which is not a standing check and does not survive the session. These
+          # two lines are that check made standing. The literals are grounded in
+          # three independent /health reads on three successive deployments
+          # (6e03e8bd, 35cbf150, 6e740a39), all byte-identical.
+          #
+          # If Voyage is ever deliberately changed, THIS IS THE LINE THAT MUST
+          # MOVE FIRST, before the deploy -- not relaxed after it reds.
+          jq -e '.embed_provider == "voyage"' /tmp/health.json > /dev/null || {
+            echo "::error::embed_provider is not \"voyage\" (got $(jq -c '.embed_provider' /tmp/health.json)). The embedding provider changed underneath a vector(1024) column that already holds voyage-3-large vectors. Retrieval is degrading silently against every stored chunk. Do not relax this assertion."; exit 1; }
+
+          jq -e '.embed_model == "voyage-3-large"' /tmp/health.json > /dev/null || {
+            echo "::error::embed_model is not \"voyage-3-large\" (got $(jq -c '.embed_model' /tmp/health.json)). embed_dim can still be 1024 and every other assertion here can still pass while this is wrong -- that is exactly the gap this line closes. New chunks are being embedded by a DIFFERENT model than the stored ones. Do not relax this assertion."; exit 1; }
+
           # NOT a rollback trigger -- docs/b1-verification-protocol.md section 8.2
           # is explicit that a booted process with supabase_configured=false is a
           # config repair, not a rollback. It still fails this job, because it is
