@@ -33,20 +33,58 @@ on:
     # three overnight intervals. Not one interval came within 45 minutes of the
     # 15 requested.
     #
-    # THIS LINE IS NOW AN EMPIRICAL ROUND, NOT A SETTING. The hypothesis is that
-    # GitHub sheds high-frequency schedules on public repos and that asking for
-    # less gets more. It may be wrong. The read-back criteria are stated in the
-    # commit that made this change (and are repeated in docs/b9-queue.md so they
-    # are not buried in git history); the result is recorded either way.
+    # THE */30 ROUND HAS BEEN READ -- 2026-08-17, B9-3. 248 scheduled runs over
+    # 329.8 hours, 247 intervals, cron line unchanged since 2026-08-03T13:17Z.
+    #
+    # FINDING 1: PR #77'S READ-BACK CRITERIA ARE VOID, AND THAT IS RECORDED
+    # RATHER THAN RE-FITTED. Their NO CHANGE band required a full-cycle mean of
+    # 95.7-129.5 min WHILE the daytime mean sat at 57.7-78.1 -- a full/daytime
+    # ratio of 1.23-2.24. The measured ratio is 1.10 over the whole */30 record
+    # (1.17 counting only runs that actually probed) and 1.10-1.17 in every
+    # sub-window on either series, so the band was unreachable unless
+    # overnight delivery stayed as bad as it was on the single night that set
+    # the baseline. It encoded that night's 1.66 ratio as a structural property.
+    # Ten intervals were not a baseline. Every candidate read window -- 24h,
+    # 48h, 72h, 96h, 120h, 168h and the full record -- lands in NO bucket.
+    #
+    # FINDING 2, WHICH SURVIVES THE FIRST AND IS THE ANSWER THE ROUND WAS FOR:
+    # the requested rate is not the binding variable. With this line UNCHANGED,
+    # delivery ran a 146.1 min mean over Aug 3-6, 79.4 over Aug 7-14 and 48.2
+    # over the last 48 hours. A threefold swing with no input moved dwarfs the
+    # 112.6 -> 80.1 difference the round was built to detect, so no comparison
+    # of */15 against */30 can be read out of this record at all. Repo activity
+    # does not explain it either: five commits landed in the whole window and
+    # none on Aug 14-16, across the step change. Delivery is set inside GitHub
+    # and is not stationary. THE QUESTION IS RETIRED -- do not re-run it against
+    # a third cron value; a third round would measure the drift, not the value.
+    #
+    # NOT REVERTED TO */15, though Aug 3-6 alone read 146.1 and tripped PR #77's
+    # WORSE threshold. Reverting on a window that later regressed to 48.2 would
+    # be reacting to a regime rather than to the setting, and would forfeit the
+    # only constant-input series there is.
     #
     # */30 rather than hourly, deliberately: hourly's predicted-if-honoured
-    # cadence (~60 min) is indistinguishable from the ~68 min already being
-    # delivered, so an hourly round could not tell "the scheduler started obeying
-    # us" from "nothing changed". */30 also keeps the same minute alignment
-    # (:00/:30) as */15, so requested RATE is the only variable that moves.
+    # cadence (~60 min) was indistinguishable from the ~68 min being delivered
+    # when this was chosen, so an hourly round could not tell "the scheduler
+    # started obeying us" from "nothing changed". */30 also keeps the same
+    # minute alignment (:00/:30) as */15, so requested RATE was the only
+    # variable that moved.
     #
-    # Either way the bar this has to clear is nine days, and even the overnight
-    # 3.5-hour worst case clears it by two orders of magnitude.
+    # THE WORST OBSERVED BLIND WINDOW IS 596 MINUTES -- 9.9 HOURS, 2026-08-06
+    # 14:29Z to 2026-08-07 00:25Z -- and it is NOT just GitHub being slow. Two
+    # scheduled runs inside it, 31119684416 (16:23Z) and 31125404749 (18:12Z),
+    # were CANCELLED BEFORE THEY STARTED: job `probe` cancelled, ZERO steps, no
+    # probe performed. `cancel-in-progress: false` does NOT stop GitHub
+    # cancelling an ALREADY-QUEUED run when a newer one enters the same
+    # concurrency group, and on a day when delivery bunched that is what
+    # happened, twice. The concurrency block below says a cancelled probe
+    # "reports nothing, and reported nothing is indistinguishable from was
+    # never scheduled". THAT HAZARD IS NOT HYPOTHETICAL -- it came true here and
+    # it produced the worst gap on record. Counting scheduled runs regardless of
+    # outcome HIDES it: that series reads 372.6 min for the same window. 596 min
+    # is the honest number, and it, not any mean, is the figure to use when
+    # asking how long drift can sit unseen. The bar is still nine days; even
+    # 9.9 hours clears it by a factor of 22.
     - cron: '*/30 * * * *'
   # So a human can force a probe during an incident without waiting for the tick,
   # and so this file can be exercised on its own PR before it is trusted.
