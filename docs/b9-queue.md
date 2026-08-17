@@ -10,6 +10,28 @@ Nothing in this file is a claim about production. Nothing here is evidence for a
 
 ---
 
+## How read-back criteria are written here — EARNED 2026-08-17, NOT ABSTRACT
+
+B9-3 below was an empirical round with pre-declared criteria, and **the criteria turned out to be
+unsatisfiable by any outcome.** Voiding them retires that round; it does nothing to stop the next set
+being written the same way. These three rules are the cost of that, written where the next person to
+open an empirical round will hit them. They are deliberately short and checkable — this is a rule,
+not a methodology.
+
+1. **Every bucket must be reachable, and the buckets must be exhaustive.** Before the round starts,
+   construct one concrete outcome that lands in each bucket, and confirm no possible outcome lands in
+   none of them. B9-3's criteria failed both halves: every candidate read window fell in NO bucket.
+2. **Do not require two coupled statistics to hold simultaneously without a stated tie-break.** A
+   full-cycle mean and a daytime mean are not independent — the first is a mixture containing the
+   second. B9-3's NO CHANGE band pinned both, which silently fixed their *ratio* at a value that was
+   an artifact of one night's data. If a round genuinely needs two statistics, name which one decides
+   when they disagree.
+3. **A band inherits the authority of the sample it came from.** Figures computed over ten intervals
+   are criteria for a comparison of about ten intervals. Applying them to hundreds asserts a
+   stability the sample never demonstrated.
+
+---
+
 ## B9-1 — Set Railway **Watch Paths** to `services/ingestion/**`, AFTER PR C merges
 
 **Ruled** 2026-08-02, `docs/b1-verification-protocol.md` §9.1 (which supersedes §9's "between B and
@@ -59,7 +81,56 @@ that made it false. That comment was corrected in place.
 
 ---
 
-## B9-3 — Read back the `*/30` empirical round and record the result, whichever way it goes
+## B9-3 ✅ CLOSED 2026-08-17 — the `*/30` round is read; its criteria were void and the honest result is recorded
+
+**READ 2026-08-17** against 248 scheduled runs over 329.8 hours (247 intervals), `*/30` unchanged
+since the PR #77 merge at 2026-08-03T13:17Z. The four `workflow_dispatch` runs are excluded from
+every interval computation. Full detail and the arithmetic are in the workflow's own cron comment and
+in the commit that wrote it (`ab11810`, superseded by this branch's final SHA if it is rebased).
+
+**FINDING 1 — the criteria could not have been satisfied by any outcome, and that is recorded as a
+defect rather than re-fitted.** The NO CHANGE band required a full-cycle mean of 95.7–129.5 min
+*while* the daytime mean sat at 57.7–78.1 — a full/daytime ratio of **1.23–2.24**. The measured ratio
+is **1.10** across all scheduled runs, **1.17** across runs that actually probed, and 1.10–1.17 in
+every sub-window on either series. The band was reachable only if overnight delivery stayed as bad as
+it was on the single night that produced the baseline, whose three intervals (210.8, 218.7, 225.7)
+forced a 1.66 ratio out of ten samples. **Every candidate read window — 24h, 48h, 72h, 96h, 120h,
+168h and the full record — landed in NO bucket.** The methodology was validated by reproducing the
+documented baseline first: the 16:08:47–22:56:08Z window recomputes to 7 runs, 6 intervals, **67.9
+min**, and the full pre-change record to 10 intervals, **112.6 min**. Same code, same answers. The
+three rules at the top of this file are what that cost bought.
+
+**FINDING 2 — the answer the round was for, which survives the first.** *The requested rate is not
+the binding variable.* With the cron line unchanged, delivery ran **146.1 min** mean over Aug 3–6,
+**79.4 min** over Aug 7–14, and **48.2 min** over the final 48 hours — from 10–23% of the requested
+48 runs/day to 63–65%. A threefold swing with no input moved dwarfs the 112.6 → 80.1 difference the
+round was built to detect, so **no comparison of `*/15` against `*/30` can be read out of this record
+at all.** Repo activity does not explain it: five commits landed in the whole window and none on
+Aug 14–16, across the step change. Delivery is set inside GitHub and is **not stationary**. **The
+question is retired** — a third cron value would measure the drift, not the value.
+
+**NOT REVERTED to `*/15`,** though Aug 3–6 alone read 146.1 and tripped the WORSE threshold below.
+Reverting on a window that later regressed to 48.2 would react to a regime rather than to the
+setting, and would forfeit the only constant-input series there is.
+
+**FINDING 3 — the worst blind window is 596 min (9.93 h), not any mean, and it is partly self-inflicted.**
+2026-08-06T14:29Z → 2026-08-07T00:25Z. Two scheduled runs inside it, `31119684416` (16:23:58Z) and
+`31125404749` (18:12:55Z), were **cancelled before they started** — job `probe` cancelled, zero steps,
+no probe, no assertion evaluated. They are the only two non-successful scheduled runs in the entire
+`*/30` record. **Counting scheduled runs regardless of outcome hides this**: that series reads 372.6
+min for the same window, a 60% understatement. **This is now register #60**, because the fix is a
+behaviour change to the workflow's concurrency block and not a docs correction — see §4 of
+`PROGRESS.md`.
+
+**THE FIGURE THAT REPLACES `15` IN THE B9-2 SITES IS A WORST CASE, NOT A MEAN.** Those four sites were
+corrected on 2026-08-10 to `~68 min daytime / ~113 min full-cycle`, which were the *baseline* numbers
+and are now superseded. Because delivery is non-stationary, no single mean is durable and quoting one
+is what produced two rounds of false claims already. All four now carry **"worst observed blind
+window 9.9 h (2026-08-06); typical 50–80 min; non-stationary"**.
+
+---
+
+## B9-3 (original text, retained — this is what was ruled on 2026-08-03)
 
 **Opened** 2026-08-03 with B9-2. The baseline is B9-2's table. Compare **like windows** — the
 diurnal effect (≈68 min daytime vs ≈220 min overnight) is larger than the effect being tested, so a
@@ -87,9 +158,61 @@ the BASELINE figures, not the `*/30` result**, because the result does not exist
 whichever way it goes, those same four sites take the final number. Recorded here rather than silently
 left, because a deferral that is not visible is indistinguishable from a decision.
 
+**⚠ RESOLVED 2026-08-17 — read 13 days after it became readable, and 7 days after this row recorded
+that it was already overdue.** The round was not lost, but the visible-deferral note above is the only
+reason it was not: it survived two intervening sessions as a written row rather than as an intention.
+That is the mechanism working, and it is also the second time in this file that "the one thing that
+must not happen" nearly happened. The result is in the CLOSED block at the top of this item.
+
 ---
 
-## B9-4 — `production-monitor` does not assert `embed_provider` or `embed_model`
+## B9-4 ✅ CLOSED 2026-08-17 — the two assertions ship, and they are negative-tested
+
+**CLOSED** by the `ci/b9-4-monitor-embed-model-guard` branch. `embed_provider == "voyage"` and
+`embed_model == "voyage-3-large"` now sit beside the existing three assertions in
+`.github/workflows/production-monitor.yml`.
+
+**⚠ THE RATIONALE BELOW IS WRONG, AND IT IS CORRECTED RATHER THAN QUIETLY DROPPED — the guard it
+justified is still worth keeping.** This row argued that register #56's mutable `FROM python:3.11-slim`
+tag plus register #55's rebuild-on-every-push meant *"a dependency resolution that changed the
+embedding model while keeping the dimension at 1024"*. **That mechanism does not exist.** The model
+is `VOYAGE_MODEL = os.environ.get("VOYAGE_MODEL", "voyage-3-large")` (`services/ingestion/main.py:19`)
+and it is sent explicitly as `"model": VOYAGE_MODEL` in a raw `httpx` POST (`:141`). There is no SDK
+whose default could shift; **`pip` cannot move that string, and neither can a base-image rebuild.**
+
+**What the guard actually catches, which is real and worth the two lines:** a `VOYAGE_MODEL` or
+`EMBEDDING_PROVIDER` environment-variable change on Railway, or an edit to `main.py:19`/`:43` that
+ships without the workflow literal moving. Those are config-and-code drift, not dependency drift.
+
+**What nothing catches — now register #59:** `/health` reports a *self-declared string*. If Voyage
+repoints `voyage-3-large` server-side, the string is unchanged, `/health` is unchanged, and the
+monitor stays green. A per-row model column on `chunks` would not help either — it would record
+`voyage-3-large` for both the old and the new weights. See §4 of `PROGRESS.md`.
+
+**A WRONG RATIONALE THAT PRODUCED A CORRECT GUARD IS STILL A RECORD DEFECT.** The claim survived into
+a shipped commit message (`d82905d`, immutable), this row, and the workflow's own comment block. Two
+of the three are corrected; the commit message cannot be. **A reader who finds the dependency-resolution
+argument in `d82905d` should read it against this paragraph.** The lesson is not "the guard was
+unnecessary" — it is that the hazard was reasoned about at the wrong layer, and nobody checked the
+twenty lines of `main.py` that would have settled it in a minute.
+
+**NEGATIVE-TESTED 2026-08-17 — both assertions proven to fail the job against live production,** on a
+scratch branch cut from `d82905d`, one literal flipped per dispatch, branch deleted afterwards. Run
+**32019016890** (`embed_model` flipped) and run **32019111049** (`embed_provider` flipped) both FAILED
+with `Probe /health` red and the convert probe skipped. **Two dispatches were required, not one:** the
+assertions are sequential statements in one `run:` block and a red exits the step, so flipping
+`embed_provider` alone would have meant `embed_model` never executed. **The verbatim `::error::` output
+of both runs is transcribed in this branch's second commit message, because GitHub deletes these logs
+on or about 2026-11-15 and git is the only store that outlives that.**
+
+**WHAT THE NEGATIVE TEST DOES NOT PROVE:** the literal was flipped, not `/health`'s output. It
+establishes that the assertions execute, that a false comparison exits non-zero, that the `exit 1`
+fires and the annotation renders. It does **not** establish that Railway can produce the
+disagreement — no deployment served a wrong model, and none was made to.
+
+---
+
+## B9-4 (original text, retained — this is what was ruled on 2026-08-10, rationale and all)
 
 **Opened** 2026-08-10 while preparing N11's pre-upload drift check.
 

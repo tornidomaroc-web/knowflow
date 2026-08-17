@@ -162,15 +162,32 @@ jobs:
             echo "::error::embed_dim is not 1024 (got $(jq -c '.embed_dim' /tmp/health.json)). chunks.embedding is vector(1024); this breaks every new embedding."; exit 1; }
 
           # THE DIMENSION CHECK ABOVE DOES NOT COVER A MODEL SWAP, AND THAT IS THE
-          # HAZARD THESE TWO LINES EXIST FOR (B9-4 in docs/b9-queue.md). Register #56
-          # leaves `FROM python:3.11-slim` a MUTABLE tag with no transitive pins,
-          # and register #55 rebuilds the image on every push to `main`. A
-          # dependency resolution that changed the embedding MODEL while keeping
-          # the dimension at 1024 would write vectors from a different model into
-          # the same vector(1024) column, PASS ALL THREE of the other assertions
-          # here, and silently degrade retrieval against every chunk already
-          # stored. The dimension check catches a dimension change; until now
-          # NOTHING caught a model swap.
+          # HAZARD THESE TWO LINES EXIST FOR (B9-4 in docs/b9-queue.md). A model
+          # that changed while the dimension stayed at 1024 would write vectors
+          # from a different model into the same vector(1024) column, PASS ALL
+          # THREE of the other assertions here, and silently degrade retrieval
+          # against every chunk already stored. The dimension check catches a
+          # dimension change; nothing else catches a model swap.
+          #
+          # CORRECTED 2026-08-17 -- THIS BLOCK USED TO NAME THE WRONG MECHANISM,
+          # and it is corrected rather than dropped because the guard is still
+          # worth keeping. It said register #56's mutable `FROM python:3.11-slim`
+          # tag plus register #55's rebuild-on-push meant a DEPENDENCY RESOLUTION
+          # could change the model. IT CANNOT. The model is
+          # `os.environ.get("VOYAGE_MODEL", "voyage-3-large")` at
+          # services/ingestion/main.py:19, sent explicitly as `"model":
+          # VOYAGE_MODEL` in a raw httpx POST at :141. No SDK default is
+          # involved, so pip cannot move that string and neither can a base-image
+          # rebuild. WHAT THESE LINES ACTUALLY CATCH is a VOYAGE_MODEL or
+          # EMBEDDING_PROVIDER env-var change on Railway, or an edit to main.py
+          # :19/:43 that ships without these literals moving. Both are real.
+          # The same false rationale is in d82905d's commit message, which is
+          # immutable -- read it against this block and against b9-queue.md B9-4.
+          #
+          # WHAT THESE LINES DO NOT CATCH, register #59: /health reports a
+          # SELF-DECLARED STRING. If Voyage repoints voyage-3-large server-side,
+          # the string never changes and this job stays green. The closure is an
+          # embedding canary, not a tighter assertion here.
           #
           # N11's pre-upload read compared these two fields BY HAND against the
           # pre-merge capture -- a human diffing two strings in a chat window,
