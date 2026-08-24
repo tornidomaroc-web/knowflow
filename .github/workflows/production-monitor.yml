@@ -33,20 +33,58 @@ on:
     # three overnight intervals. Not one interval came within 45 minutes of the
     # 15 requested.
     #
-    # THIS LINE IS NOW AN EMPIRICAL ROUND, NOT A SETTING. The hypothesis is that
-    # GitHub sheds high-frequency schedules on public repos and that asking for
-    # less gets more. It may be wrong. The read-back criteria are stated in the
-    # commit that made this change (and are repeated in docs/b9-queue.md so they
-    # are not buried in git history); the result is recorded either way.
+    # THE */30 ROUND HAS BEEN READ -- 2026-08-17, B9-3. 248 scheduled runs over
+    # 329.8 hours, 247 intervals, cron line unchanged since 2026-08-03T13:17Z.
+    #
+    # FINDING 1: PR #77'S READ-BACK CRITERIA ARE VOID, AND THAT IS RECORDED
+    # RATHER THAN RE-FITTED. Their NO CHANGE band required a full-cycle mean of
+    # 95.7-129.5 min WHILE the daytime mean sat at 57.7-78.1 -- a full/daytime
+    # ratio of 1.23-2.24. The measured ratio is 1.10 over the whole */30 record
+    # (1.17 counting only runs that actually probed) and 1.10-1.17 in every
+    # sub-window on either series, so the band was unreachable unless
+    # overnight delivery stayed as bad as it was on the single night that set
+    # the baseline. It encoded that night's 1.66 ratio as a structural property.
+    # Ten intervals were not a baseline. Every candidate read window -- 24h,
+    # 48h, 72h, 96h, 120h, 168h and the full record -- lands in NO bucket.
+    #
+    # FINDING 2, WHICH SURVIVES THE FIRST AND IS THE ANSWER THE ROUND WAS FOR:
+    # the requested rate is not the binding variable. With this line UNCHANGED,
+    # delivery ran a 146.1 min mean over Aug 3-6, 79.4 over Aug 7-14 and 48.2
+    # over the last 48 hours. A threefold swing with no input moved dwarfs the
+    # 112.6 -> 80.1 difference the round was built to detect, so no comparison
+    # of */15 against */30 can be read out of this record at all. Repo activity
+    # does not explain it either: five commits landed in the whole window and
+    # none on Aug 14-16, across the step change. Delivery is set inside GitHub
+    # and is not stationary. THE QUESTION IS RETIRED -- do not re-run it against
+    # a third cron value; a third round would measure the drift, not the value.
+    #
+    # NOT REVERTED TO */15, though Aug 3-6 alone read 146.1 and tripped PR #77's
+    # WORSE threshold. Reverting on a window that later regressed to 48.2 would
+    # be reacting to a regime rather than to the setting, and would forfeit the
+    # only constant-input series there is.
     #
     # */30 rather than hourly, deliberately: hourly's predicted-if-honoured
-    # cadence (~60 min) is indistinguishable from the ~68 min already being
-    # delivered, so an hourly round could not tell "the scheduler started obeying
-    # us" from "nothing changed". */30 also keeps the same minute alignment
-    # (:00/:30) as */15, so requested RATE is the only variable that moves.
+    # cadence (~60 min) was indistinguishable from the ~68 min being delivered
+    # when this was chosen, so an hourly round could not tell "the scheduler
+    # started obeying us" from "nothing changed". */30 also keeps the same
+    # minute alignment (:00/:30) as */15, so requested RATE was the only
+    # variable that moved.
     #
-    # Either way the bar this has to clear is nine days, and even the overnight
-    # 3.5-hour worst case clears it by two orders of magnitude.
+    # THE WORST OBSERVED BLIND WINDOW IS 596 MINUTES -- 9.9 HOURS, 2026-08-06
+    # 14:29Z to 2026-08-07 00:25Z -- and it is NOT just GitHub being slow. Two
+    # scheduled runs inside it, 31119684416 (16:23Z) and 31125404749 (18:12Z),
+    # were CANCELLED BEFORE THEY STARTED: job `probe` cancelled, ZERO steps, no
+    # probe performed. `cancel-in-progress: false` does NOT stop GitHub
+    # cancelling an ALREADY-QUEUED run when a newer one enters the same
+    # concurrency group, and on a day when delivery bunched that is what
+    # happened, twice. The concurrency block below says a cancelled probe
+    # "reports nothing, and reported nothing is indistinguishable from was
+    # never scheduled". THAT HAZARD IS NOT HYPOTHETICAL -- it came true here and
+    # it produced the worst gap on record. Counting scheduled runs regardless of
+    # outcome HIDES it: that series reads 372.6 min for the same window. 596 min
+    # is the honest number, and it, not any mean, is the figure to use when
+    # asking how long drift can sit unseen. The bar is still nine days; even
+    # 9.9 hours clears it by a factor of 22.
     - cron: '*/30 * * * *'
   # So a human can force a probe during an incident without waiting for the tick,
   # and so this file can be exercised on its own PR before it is trusted.
@@ -122,6 +160,49 @@ jobs:
           # a document someone happened to inspect.
           jq -e '.embed_dim == 1024' /tmp/health.json > /dev/null || {
             echo "::error::embed_dim is not 1024 (got $(jq -c '.embed_dim' /tmp/health.json)). chunks.embedding is vector(1024); this breaks every new embedding."; exit 1; }
+
+          # THE DIMENSION CHECK ABOVE DOES NOT COVER A MODEL SWAP, AND THAT IS THE
+          # HAZARD THESE TWO LINES EXIST FOR (B9-4 in docs/b9-queue.md). A model
+          # that changed while the dimension stayed at 1024 would write vectors
+          # from a different model into the same vector(1024) column, PASS ALL
+          # THREE of the other assertions here, and silently degrade retrieval
+          # against every chunk already stored. The dimension check catches a
+          # dimension change; nothing else catches a model swap.
+          #
+          # CORRECTED 2026-08-17 -- THIS BLOCK USED TO NAME THE WRONG MECHANISM,
+          # and it is corrected rather than dropped because the guard is still
+          # worth keeping. It said register #56's mutable `FROM python:3.11-slim`
+          # tag plus register #55's rebuild-on-push meant a DEPENDENCY RESOLUTION
+          # could change the model. IT CANNOT. The model is
+          # `os.environ.get("VOYAGE_MODEL", "voyage-3-large")` at
+          # services/ingestion/main.py:19, sent explicitly as `"model":
+          # VOYAGE_MODEL` in a raw httpx POST at :141. No SDK default is
+          # involved, so pip cannot move that string and neither can a base-image
+          # rebuild. WHAT THESE LINES ACTUALLY CATCH is a VOYAGE_MODEL or
+          # EMBEDDING_PROVIDER env-var change on Railway, or an edit to main.py
+          # :19/:43 that ships without these literals moving. Both are real.
+          # The same false rationale is in d82905d's commit message, which is
+          # immutable -- read it against this block and against b9-queue.md B9-4.
+          #
+          # WHAT THESE LINES DO NOT CATCH, register #59: /health reports a
+          # SELF-DECLARED STRING. If Voyage repoints voyage-3-large server-side,
+          # the string never changes and this job stays green. The closure is an
+          # embedding canary, not a tighter assertion here.
+          #
+          # N11's pre-upload read compared these two fields BY HAND against the
+          # pre-merge capture -- a human diffing two strings in a chat window,
+          # which is not a standing check and does not survive the session. These
+          # two lines are that check made standing. The literals are grounded in
+          # three independent /health reads on three successive deployments
+          # (6e03e8bd, 35cbf150, 6e740a39), all byte-identical.
+          #
+          # If Voyage is ever deliberately changed, THIS IS THE LINE THAT MUST
+          # MOVE FIRST, before the deploy -- not relaxed after it reds.
+          jq -e '.embed_provider == "voyage"' /tmp/health.json > /dev/null || {
+            echo "::error::embed_provider is not \"voyage\" (got $(jq -c '.embed_provider' /tmp/health.json)). The embedding provider changed underneath a vector(1024) column that already holds voyage-3-large vectors. Retrieval is degrading silently against every stored chunk. Do not relax this assertion."; exit 1; }
+
+          jq -e '.embed_model == "voyage-3-large"' /tmp/health.json > /dev/null || {
+            echo "::error::embed_model is not \"voyage-3-large\" (got $(jq -c '.embed_model' /tmp/health.json)). embed_dim can still be 1024 and every other assertion here can still pass while this is wrong -- that is exactly the gap this line closes. New chunks are being embedded by a DIFFERENT model than the stored ones. Do not relax this assertion."; exit 1; }
 
           # NOT a rollback trigger -- docs/b1-verification-protocol.md section 8.2
           # is explicit that a booted process with supabase_configured=false is a
