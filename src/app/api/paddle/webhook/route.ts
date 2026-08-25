@@ -19,6 +19,19 @@ function getSupabaseAdmin() {
  */
 const ENTITLING_STATUSES = new Set(['active', 'trialing', 'past_due']);
 
+/**
+ * Postgres `foreign_key_violation`. `subscriptions.user_id` references
+ * `auth.users(id)` ON DELETE CASCADE, so this SQLSTATE means exactly one thing
+ * here: the user this event belongs to no longer exists. That is TERMINAL, not
+ * transient — no number of retries brings the user back — so it is acknowledged
+ * with 200 and logged, never retried.
+ *
+ * Every OTHER write failure is transient by assumption (the database was
+ * unreachable, a pool was exhausted) and MUST be retried, which means returning
+ * a non-2xx so Paddle redelivers.
+ */
+const FK_VIOLATION = '23503';
+
 export async function POST(request: NextRequest) {
   const supabase = getSupabaseAdmin();
   const rawBody = await request.text();
@@ -81,18 +94,64 @@ export async function POST(request: NextRequest) {
           // first event for this subscription, updates it thereafter. user_id
           // (NOT NULL) comes from customData, which Paddle persists on the
           // subscription and replays on every subsequent event.
-          await supabase.from('subscriptions').upsert(
+          const { error: upsertError } = await supabase.from('subscriptions').upsert(
             { user_id: userId, paddle_subscription_id: sub.id, ...row },
             { onConflict: 'paddle_subscription_id' }
           );
+
+          // The result of this write was previously discarded. A failure
+          // therefore returned 200, Paddle recorded successful delivery, and the
+          // subscription row silently kept a stale status FOREVER — a cancelled
+          // user staying Pro, or a paying user staying free, with nothing
+          // anywhere recording that it happened. Paddle does not redeliver an
+          // event it believes was accepted.
+          if (upsertError && upsertError.code !== FK_VIOLATION) {
+            console.error('Paddle webhook: subscription upsert failed', {
+              subscriptionId: sub.id,
+              eventType: event.eventType,
+              code: upsertError.code,
+              message: upsertError.message,
+            });
+            return NextResponse.json(
+              { error: 'subscription write failed' },
+              { status: 500 }
+            );
+          }
+
+          if (upsertError) {
+            // FK_VIOLATION: the user is gone. Acknowledge so Paddle stops
+            // redelivering, and log loudly — this is the only record that a
+            // billing event outlived its account.
+            console.warn(
+              'Paddle webhook: event for a deleted user; acknowledged without write',
+              { subscriptionId: sub.id, eventType: event.eventType, userId }
+            );
+          }
         } else {
           // No customData (not expected for subscriptions we create): update an
           // existing row by subscription id rather than inserting one we cannot
           // attribute to a user (user_id is NOT NULL).
-          await supabase
+          const { error: updateError } = await supabase
             .from('subscriptions')
             .update(row)
             .eq('paddle_subscription_id', sub.id);
+
+          // Same unchecked-write defect as the branch above. Note this path
+          // cannot raise FK_VIOLATION: it never supplies user_id, and an UPDATE
+          // matching zero rows is not an error. A deleted user's row is simply
+          // absent and this is a no-op, which is correct.
+          if (updateError) {
+            console.error('Paddle webhook: subscription update failed', {
+              subscriptionId: sub.id,
+              eventType: event.eventType,
+              code: updateError.code,
+              message: updateError.message,
+            });
+            return NextResponse.json(
+              { error: 'subscription write failed' },
+              { status: 500 }
+            );
+          }
         }
         break;
       }
