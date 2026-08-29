@@ -123,30 +123,73 @@ commit;
 -- Deliberately not part of the migration. PROGRESS.md §5 requires the live
 -- database be checked rather than the file trusted, and a check that runs
 -- inside the transaction it is checking proves nothing about committed state.
--- Expect exactly six rows, every `ok` true.
+-- Expect exactly ELEVEN rows, every `ok` true.
 --
---   select 'nullability' as check_name,
---          table_name || '.' || column_name as target,
---          is_nullable as observed,
---          (is_nullable = 'NO') as ok
---     from information_schema.columns
---    where table_schema = 'public'
---      and (table_name, column_name) in (
---            ('knowledge_bases', 'user_id'),
---            ('documents',       'kb_id'),
---            ('conversations',   'kb_id'),
---            ('conversations',   'user_id'),
---            ('messages',        'conversation_id'))
---   union all
---   select 'delete_rule',
---          conname,
---          confdeltype::text,
---          (confdeltype = 'c')
---     from pg_constraint
---    where conname = 'conversations_user_id_fkey'
---      and connamespace = 'public'::regnamespace
---    order by 1, 2;
+-- IT CHECKS ALL SIX SPINE FOREIGN KEYS, NOT THE ONE THIS FILE REBUILDS. That is
+-- deliberate and it is the correction of an earlier, narrower version of this
+-- query. The migration changes one delete rule, but the property the migration
+-- EXISTS for -- that deleting an account cascades cleanly from auth.users down
+-- to messages -- rests on a chain of six links. Verifying the one link this
+-- file touched and carrying the other five from a read taken at some earlier
+-- hour would leave six fresh facts and five remembered ones interleaved in one
+-- dependency chain with nothing marking which is which. That is register #62 in
+-- miniature, and it is what produced the near-miss the register was opened for.
+-- Re-reading all six costs one query.
 --
--- confdeltype 'c' is CASCADE; 'a' is NO ACTION. Paste the result into register
--- #62. Until that result exists, this file is a plan and #62's spine item is
--- OPEN -- merging this PR does not close it and must not be read as closing it.
+-- It is written to FAIL CLOSED. The expected set drives the result and the
+-- database is LEFT JOINed onto it, so a constraint that is absent -- a DROP
+-- whose ADD never ran -- renders as `MISSING` / `ok = false` rather than
+-- vanishing from the output. A shorter result set that a reader has to notice
+-- by counting is exactly the wrong-result-passing-as-green shape this repo has
+-- closed twice (registers #40, #52).
+--
+--   with expected(kind, target) as (
+--     values ('nullability'::text, 'knowledge_bases.user_id'::text),
+--            ('nullability', 'documents.kb_id'),
+--            ('nullability', 'conversations.kb_id'),
+--            ('nullability', 'conversations.user_id'),
+--            ('nullability', 'messages.conversation_id'),
+--            ('delete_rule', 'profiles_id_fkey'),
+--            ('delete_rule', 'knowledge_bases_user_id_fkey'),
+--            ('delete_rule', 'documents_kb_id_fkey'),
+--            ('delete_rule', 'conversations_kb_id_fkey'),
+--            ('delete_rule', 'conversations_user_id_fkey'),
+--            ('delete_rule', 'messages_conversation_id_fkey')
+--   ),
+--   observed(kind, target, value) as (
+--     select 'nullability'::text,
+--            (table_name || '.' || column_name)::text,
+--            is_nullable::text
+--       from information_schema.columns
+--      where table_schema = 'public'
+--     union all
+--     select 'delete_rule'::text,
+--            conname::text,
+--            confdeltype::text
+--       from pg_constraint
+--      where connamespace = 'public'::regnamespace
+--        and contype = 'f'
+--   )
+--   select e.kind,
+--          e.target,
+--          coalesce(o.value, 'MISSING') as observed,
+--          case e.kind
+--            when 'nullability' then coalesce(o.value, '') = 'NO'
+--            else                    coalesce(o.value, '') = 'c'
+--          end as ok
+--     from expected e
+--     left join observed o
+--       on o.kind = e.kind and o.target = e.target
+--    order by e.kind, e.target;
+--
+-- confdeltype 'c' is CASCADE, 'a' is NO ACTION. Five of the six delete rules
+-- were already CASCADE before this migration and are re-read here rather than
+-- assumed; only `conversations_user_id_fkey` is changed by the file above.
+--
+-- Paste the result into register #62 TOGETHER WITH THE COMMIT SHA IT WAS RUN
+-- FROM. This branch is squash-merged, so the commit whose bytes were executed
+-- does not appear in main's ancestry and "which SQL did I actually run" should
+-- not have to be inferred later.
+--
+-- Until that result exists, this file is a plan and #62's spine item is OPEN.
+-- Merging the PR does not close it and must not be read as closing it.
