@@ -67,3 +67,9 @@
 20260709_study_events.sql           apply
 20260710_current_streak.sql         apply
 20260711_quizzes_lang.sql           apply
+
+# 20260829 is a PRODUCTION REPAIR (register #62): applied to a database built
+# from this folder it is a no-op, because 001 already declares those columns
+# `not null`. It is `apply` anyway, and not `skip:`, because applying it is a
+# real check -- the unguarded DROP CONSTRAINT proves the name it assumes.
+20260829_spine_constraints.sql      apply
