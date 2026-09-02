@@ -244,6 +244,16 @@ on the `on_auth_user_created` trigger (`001_initial_schema.sql:23-25`) actually 
 not, `knowledge_bases.user_id references profiles(id)` (`001_initial_schema.sql:30`) makes **subject
 creation fail with a foreign-key violation** — after the signup has already been spent.
 
+**THE TRIGGER IS LIVE — MEASURED 2026-09-02, NO LONGER ASSUMED.** A `pg_trigger` read against
+`wnpqdafdkbuvwecksrjj` at **2026-09-02T22:50:37Z** returned `on_auth_user_created` on
+`auth.users`, `AFTER INSERT`, executing `handle_new_user` (`SECURITY DEFINER`), `tgenabled = 'O'`
+— and it was the **only** non-internal trigger in `public` or `auth`. Query and expectations:
+`docs/deletion-preflight-read.md` Run 1. Result: `docs/PROGRESS.md` register **#62**.
+
+**The precondition check above is KEPT, not deleted.** A catalog read proves the trigger exists;
+it does not prove that *this* throwaway account got *its* `profiles` row. Those are different
+assertions, and only the second one protects a signup that has already been spent.
+
 **This check became less redundant, not more, on 2026-08-08.** With confirmation enabled, the
 client-side `profiles` upsert at `signup/page.tsx:42` runs with **no session**, so the policy
 `auth.uid() = id` (`001_initial_schema.sql:11`) rejects it with **`42501`** — and the guard at `:48`
