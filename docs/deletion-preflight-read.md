@@ -162,8 +162,10 @@ select 'event trigger'::text,
 ```
 
 **Expected:** **six** project functions in `public` — `current_streak`, `handle_new_user`,
-`increment_usage`, `match_chunks`, `record_study_event`, `rls_auto_enable` — each present
-in `supabase/migrations/`; plus seven event triggers: `ensure_rls` (owner `postgres`,
+`increment_usage`, `match_chunks`, `record_study_event`, `rls_auto_enable` — of which **five
+are declared in `supabase/migrations/` and `rls_auto_enable` is NOT**, because it exists only in
+the database; that is register #62's divergence class (4), and this read reviews its body
+without repairing it; plus seven event triggers: `ensure_rls` (owner `postgres`,
 executes `rls_auto_enable`) and six `supabase_admin`-owned Supabase platform triggers
 (`issue_graphql_placeholder`, `issue_pg_cron_access`, `issue_pg_graphql_access`,
 `issue_pg_net_access`, `pgrst_ddl_watch`, `pgrst_drop_watch`).
