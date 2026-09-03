@@ -1,5 +1,13 @@
-.env.local
-.env
+# Environment files. GLOB, NOT TWO LITERAL NAMES -- the previous `.env.local`
+# and `.env` pair ignored exactly two filenames and left every other variant
+# Next.js loads committable in a PUBLIC repository: `.env.development.local`,
+# `.env.production.local`, `.env.development`, `.env.production`, and any
+# ad-hoc `.env.sandbox`. `.env.development.local` is the standard file for a
+# local override and OUTRANKS `.env.local`, so it is the one a developer
+# reaches for precisely when they are handling credentials they do not want in
+# their main env file. `.env.example` is the tracked template and is exempted.
+.env*
+!.env.example
 node_modules/
 .next/
 __pycache__/
