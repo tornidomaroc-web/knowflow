@@ -45,6 +45,18 @@ export function DeleteAccountCard({ labels, homeHref }: DeleteAccountCardProps) 
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Latched by the billing-cancelled-account-intact response and NEVER cleared.
+   *
+   * `busy` is the wrong mechanism for this and `open` is not a mechanism at all:
+   * both are transient, and collapsing the panel merely returns the user to an
+   * enabled "delete account" button with the typed address still in state. That
+   * left the retry path two clicks away, directly beneath a message telling the
+   * user not to retry -- the one outcome this branch exists to prevent. There is
+   * no recovery action the browser can offer for that state, so the control is
+   * latched off for the life of the mount rather than re-armed.
+   */
+  const [billingLocked, setBillingLocked] = useState(false);
 
   async function onConfirm() {
     setBusy(true);
@@ -86,6 +98,7 @@ export function DeleteAccountCard({ labels, homeHref }: DeleteAccountCardProps) 
       setError(labels.errorBillingCanceled);
       setOpen(false);
       setBusy(false);
+      setBillingLocked(true);
       return;
     }
 
@@ -111,7 +124,7 @@ export function DeleteAccountCard({ labels, homeHref }: DeleteAccountCardProps) 
       )}
 
       {!open ? (
-        <Button variant="danger" onClick={() => setOpen(true)}>
+        <Button variant="danger" disabled={billingLocked} onClick={() => setOpen(true)}>
           {labels.openButton}
         </Button>
       ) : (
