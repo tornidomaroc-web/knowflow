@@ -2,7 +2,7 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { initializePaddle, Paddle } from '@paddle/paddle-js';
+import { initializePaddle, Paddle, Environments } from '@paddle/paddle-js';
 import { useTranslation, Locale } from '@/lib/i18n';
 
 export default function PricingPage({ params }: { params: Promise<{ locale: Locale }> }) {
@@ -16,12 +16,60 @@ export default function PricingPage({ params }: { params: Promise<{ locale: Loca
 
   const supabase = createClient();
 
+  /**
+   * The BROWSER half of the Paddle environment. `src/lib/paddle.ts` made the
+   * server half configuration-driven; this literal was left at 'production',
+   * which meant a sandbox token asked PRODUCTION Paddle to open a checkout for
+   * a transaction that only exists in sandbox. The server succeeded, the
+   * overlay rendered "Something went wrong", the console said nothing, and the
+   * server log knew nothing -- the failure was invisible from every side.
+   *
+   * PRODUCTION REMAINS THE DEFAULT, exactly as on the server: only the literal
+   * string `sandbox` switches, so unset, empty, misspelled or differently-cased
+   * values all resolve to production and no existing deployment moves.
+   *
+   * `NEXT_PUBLIC_` is required, not stylistic -- this runs in the browser, and
+   * a bare `PADDLE_ENV` is not inlined into the client bundle. That is also why
+   * this cannot read the server's variable: the two halves are configured
+   * separately by construction, which is the whole reason this defect existed.
+   */
+  const paddleEnvironment: Environments =
+    process.env.NEXT_PUBLIC_PADDLE_ENV === 'sandbox' ? 'sandbox' : 'production';
+
   useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
+
+    /**
+     * WARNS, AND DELIBERATELY DOES NOT THROW. The server-side guard in
+     * `src/lib/paddle.ts` refuses to start on a key/environment mismatch, and
+     * that is right there: it fails three API routes closed. The same mechanism
+     * here would be a WORSE trade, because this is a public marketing page --
+     * throwing would blank /pricing for every visitor to prevent a checkout
+     * error that only affects someone who clicks. So the mismatch is named
+     * loudly and the page still renders.
+     *
+     * This exists because its absence cost a full diagnostic round: Paddle's
+     * overlay reports a generic white box, our console was silent, and nothing
+     * anywhere named the actual cause.
+     */
+    if (token) {
+      const tokenIsSandbox = token.startsWith('test_');
+      if (tokenIsSandbox !== (paddleEnvironment === 'sandbox')) {
+        console.error(
+          `[paddle] environment/token mismatch: NEXT_PUBLIC_PADDLE_ENV resolves to ` +
+            `'${paddleEnvironment}' but the client token ` +
+            `${tokenIsSandbox ? 'is' : 'is not'} a sandbox token ` +
+            `(sandbox tokens start with 'test_'). Checkout will fail with a generic ` +
+            `"Something went wrong" overlay until these agree.`
+        );
+      }
+    }
+
     initializePaddle({
-      environment: 'production',
-      token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN!
+      environment: paddleEnvironment,
+      token: token!
     }).then(setPaddle);
-  }, []);
+  }, [paddleEnvironment]);
 
   return (
     <div className="min-h-screen font-sans py-24" dir={isRtl ? "rtl" : "ltr"}>
