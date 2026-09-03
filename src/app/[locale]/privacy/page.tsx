@@ -21,8 +21,8 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Your Rights</h2>
         <p className="mb-6">You can view the documents you have uploaded, and the email address on your account, from your dashboard.</p>
-        <p className="mb-6"><strong>Self-service deletion is not available yet.</strong> The dashboard does not currently provide a way to delete your account or your documents, or to change your account details. We are building a self-service deletion path. No release date has been set, and we will not state one here until there is one.</p>
-        <p className="mb-6">Until then, you can request deletion of your account and its associated data by emailing <a className="underline" href="mailto:privacy@knowflow.ai">privacy@knowflow.ai</a> from the address you registered with.</p>
+        <p className="mb-6"><strong>You can delete your account yourself, from Settings in your dashboard.</strong> Deleting your account permanently removes your subjects, materials, conversations, quizzes and study history, together with every file you have uploaded, and immediately cancels any active subscription. It cannot be undone, and nothing can be restored afterwards. Changing your account details is still not available.</p>
+        <p className="mb-6">If you cannot reach your dashboard, you can still request deletion of your account and its associated data by emailing <a className="underline" href="mailto:privacy@knowflow.ai">privacy@knowflow.ai</a> from the address you registered with.</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Contact Us</h2>
         <p className="mb-6">If you have any questions about this Privacy Policy, please contact us at privacy@knowflow.ai.</p>

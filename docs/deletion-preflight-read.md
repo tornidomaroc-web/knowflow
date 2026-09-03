@@ -280,3 +280,48 @@ work, which is why this run is last.
 `pg_constraint.contype = 'c'` is CHECK only. From PostgreSQL 17, `NOT NULL` constraints also
 appear in `pg_constraint`, as `contype = 'n'` — they do not pollute Run 4, but do not widen
 that filter without re-reading this line. Production read `17.6` on 2026-09-02.
+---
+
+## Run 5 — standing reconciliation: files that outlived their owner
+
+**A backstop, not the primary guard.** `src/lib/account-deletion/orchestrate.ts`
+sweeps storage as a *precondition* and aborts the whole deletion if the sweep
+cannot be verified, so the normal flow cannot produce an orphan. This run exists
+for what the flow cannot cover: an object uploaded in the window between the
+precondition sweep and the account delete, a deletion performed by hand, or an
+orphan predating the feature.
+
+Every row is a file that outlived the account it belonged to. The first path
+segment of `storage.objects.name` is the owner's UUID — it is the only handle
+anything has on these objects, which is why the sweep runs before the delete.
+
+```sql
+select split_part(o.name, '/', 1)::text as orphan_user_id,
+       count(*)                          as objects,
+       min(o.created_at)                 as oldest,
+       max(o.created_at)                 as newest
+  from storage.objects o
+ where o.bucket_id = 'documents'
+   and split_part(o.name, '/', 1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+   and not exists (
+     select 1 from auth.users u
+      where u.id::text = split_part(o.name, '/', 1)
+   )
+ group by 1
+ order by objects desc, orphan_user_id;
+```
+
+**Expected: zero rows.**
+
+**Finding — record and act, do not stop anything.** Each row is personal data
+belonging to someone who asked to be forgotten. Delete the objects under that
+prefix, then record what was found and why the flow missed it. A non-empty
+result is not an emergency, but it is a broken promise and it should not sit.
+
+**Why this is a query and not an alert.** The state is self-describing in data
+that already exists, so it needs no table, no endpoint and no new credential.
+The sibling state — billing cancelled with the account intact — is a divergence
+between Postgres and Paddle that no SQL query can see, and detecting *that* needs
+machinery. That machinery is register **#54**'s durable half, deliberately not
+built here. The asymmetry is the reason one of these two is a query in this file
+and the other is a deferred arc.

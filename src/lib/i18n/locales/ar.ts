@@ -234,7 +234,23 @@ export const ar: Translation = {
       pro: "احترافي",
       renews: "تتجدد في",
       upgrade: "الترقية إلى الاحترافي",
-      activeSubscription: "اشتراك نشط"
+      activeSubscription: "اشتراك نشط",
+      deleteAccount: {
+        heading: "حذف الحساب",
+        description: "احذف حسابك وكل ما فيه نهائيًا.",
+        permanentWarning: "لا يمكن التراجع عن هذا الإجراء. لا توجد فترة سماح، ولا يمكن استرجاع أي شيء بعده.",
+        whatIsRemoved: "تُحذف موضوعاتك وموادك ومحادثاتك واختباراتك وسجل دراستك، مع كل ملف رفعته.",
+        billingNote: "إذا كان لديك اشتراك نشط فسيتم إلغاؤه فورًا.",
+        openButton: "حذف الحساب",
+        confirmPrompt: "اكتب بريدك الإلكتروني للتأكيد:",
+        confirmPlaceholder: "بريدك الإلكتروني",
+        confirmButton: "احذف حسابي نهائيًا",
+        cancelButton: "إلغاء",
+        deleting: "جارٍ الحذف\u2026",
+        errorMismatch: "لا يطابق هذا بريدك الإلكتروني.",
+        errorFailed: "فشل الحذف ولم يتغير أي شيء. يمكنك المحاولة مرة أخرى.",
+        errorBillingCanceled: "تم إلغاء اشتراكك، لكن لم يُحذف حسابك ولم تفقد أي شيء من بياناتك. يرجى التواصل معنا لإتمام العملية \u2014 لا تحاول مرة أخرى."
+      }
     },
     agent: {
       chatWith: "تسأل عن",
