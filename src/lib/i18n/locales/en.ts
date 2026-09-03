@@ -247,7 +247,7 @@ export const en = {
         deleting: "Deleting\u2026",
         errorMismatch: "That does not match your email address.",
         errorFailed: "Deletion failed and nothing was changed. You can try again.",
-        errorBillingCanceled: "Your subscription has been cancelled, but your account was NOT deleted and nothing of yours has been lost. Please contact us so we can finish this for you \u2014 do not try again."
+        errorBillingCanceled: "Nothing was lost. Your account and everything in it is still here. Your subscription was cancelled, but the deletion did not finish. Please try again. If it fails again, contact us and we will finish it for you."
       }
     },
     agent: {
