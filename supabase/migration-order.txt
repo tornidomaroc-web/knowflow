@@ -73,3 +73,16 @@
 # `not null`. It is `apply` anyway, and not `skip:`, because applying it is a
 # real check -- the unguarded DROP CONSTRAINT proves the name it assumes.
 20260829_spine_constraints.sql      apply
+
+# 20260904 is register #54's durable half. It is `apply`, not `skip:`, and skip
+# was never available: `verify-skipped-migrations.awk` admits only statements
+# explicitly qualified to the allowlisted `auth`/`storage` schemas, and every
+# statement in this file targets `public`.
+#
+# Applying it is also a real check rather than a formality. Production received
+# this file BY HAND (the nine-row read-back in register #54), so nothing has yet
+# executed it against a database built from this folder. The ephemeral image is
+# `supabase/postgres`, which ships the `anon`, `authenticated` and `service_role`
+# roles, so its `revoke ... from anon, authenticated` and
+# `grant execute ... to anon` execute rather than error.
+20260904_account_deletion_orphans.sql  apply
