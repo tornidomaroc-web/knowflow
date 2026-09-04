@@ -14,6 +14,16 @@
     "skipLibCheck": true,
     "strict": false,
     "noEmit": true,
+    // Permits `import ... from '../src/.../x.ts'` in
+    // scripts/verify-deletion-orphan-recorder.ts, which Node's type-stripping
+    // requires and which is what makes that harness run the SHIPPED source
+    // rather than a compiled copy of it. Legal only alongside `noEmit`, above.
+    // Inert for every other file: it permits an import form, it does not change
+    // resolution, emit, or checking anywhere else. The alternative was moving
+    // the harness outside `**/*.ts` and out of the `typecheck` gate, which
+    // would leave the thing that verifies the recorder less checked than the
+    // recorder.
+    "allowImportingTsExtensions": true,
     "incremental": true,
     "module": "esnext",
     "esModuleInterop": true,
