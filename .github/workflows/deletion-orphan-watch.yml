@@ -1,0 +1,200 @@
+name: deletion-orphan-watch
+
+# Register #54's SIGNAL half, and the last of its three parts.
+#
+#   store   supabase/migrations/20260904_account_deletion_orphans.sql
+#   writer  src/lib/account-deletion/orphan-record.ts  (called from orchestrate.ts)
+#   signal  THIS FILE
+#
+# An account-deletion orphan is a user whose billing was cancelled and whose
+# account still exists: they keep every byte of their data and lose what they
+# paid for. Nothing recovers it automatically and nothing is going to. The only
+# question this workflow answers is whether one is sitting there unread.
+#
+# THREE OUTCOMES, NOT TWO. The obvious watcher is "if the bit is true, open an
+# issue". That watcher says NOTHING when the project is paused, when PostgREST
+# errors, when the key is wrong, or when the network fails -- and nothing is
+# exactly what it says when there are no orphans. Silence would mean two
+# opposite things. That is register #54's founding sentence, a failure invisible
+# at every layer at once, rebuilt inside the last component of #54's own fix.
+# This is not hypothetical here: commit 6513cb2 records that this Supabase
+# project auto-paused and nothing detected it. So `unreadable` is its own
+# outcome with its own issue.
+#
+# STATE LIVES IN ISSUES, NOT IN RUN HISTORY. An operator looking at issues sees
+# an artifact. An operator looking at run history sees an absence, and an
+# absence is what a broken watcher also produces.
+#
+# WHY THE KEY IS IN THIS FILE IN PLAINTEXT, AND WHY THAT IS NOT A LEAK.
+# It is the Supabase ANON key, which already ships inside the browser bundle of
+# the public site -- publishing it here discloses nothing new. It buys exactly
+# one bit: `has_unresolved_deletion_orphan()` returns a boolean and the table
+# itself is unreadable to anon (RLS with no policies, plus a revoked grant, both
+# machine-checked). The SERVICE-ROLE key was rejected outright: it bypasses RLS
+# on all twelve tables, and spending that to learn one bit is a grotesque trade.
+# production-monitor.yml states the invariant this copies -- no secret grants
+# access here. An Actions secret was also rejected: it would move a value that
+# is not secret into a place where it can silently expire, rotate, or go
+# missing, and register #54's own row already condemns configuration that
+# "live[s] only in a dashboard, unreviewable and undiffable". Inline is
+# diffable, reviewable, and rotated by a reviewed commit.
+#
+# ACCEPTED RESIDUAL, NAMED RATHER THAN DISCOVERED. GitHub DISABLES scheduled
+# workflows in a public repository after 60 days with no commit activity. If
+# that happens this watcher stops running and its silence looks exactly like
+# health -- the failure mode register #54 was opened for, in the component built
+# to close it. There is no fix inside this file that is not a monitor for the
+# monitor, so it is recorded in register #54 as an accepted risk WITH ITS
+# TRIGGER STATED: 60 days without a commit to this repository. THE REGISTER ROW
+# DOES NOT CLOSE ON THIS FILE.
+
+on:
+  schedule:
+    # Every six hours, at :17 rather than :00 -- the top of the hour is the
+    # busiest slot on shared runners and scheduled jobs are delayed there.
+    # Six hours is chosen against the harm: the user is already not being
+    # billed, so the cost of latency is how long they hold data they asked to
+    # have destroyed, not money.
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+# Least privilege. `issues: write` is the whole point; nothing else is granted,
+# and in particular there is no `contents: write` -- this workflow never commits.
+permissions:
+  contents: read
+  issues: write
+
+# Never cancel: a cancelled run leaves the issue state stale, which is the one
+# thing this workflow exists to keep accurate.
+concurrency:
+  group: deletion-orphan-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22.23.1
+
+      # No `npm ci`, deliberately: scripts/orphan-watch.ts imports nothing but
+      # `node:path` and uses the built-in fetch. A dependency install here would
+      # add a way for the watcher to fail that has nothing to do with what it
+      # watches, and a watcher that breaks for unrelated reasons gets ignored.
+      - name: Read the one bit
+        id: read
+        env:
+          ORPHAN_WATCH_URL: https://wnpqdafdkbuvwecksrjj.supabase.co
+          ORPHAN_WATCH_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InducHFkYWZka2J1dndlY2tzcmpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5NDM1NjEsImV4cCI6MjA5MTUxOTU2MX0.r4mqlQeiLg1YcFrevne1HyQBRM_kEluY2Oxn4MBmSWw
+        run: node scripts/orphan-watch.ts
+
+      # Values are passed through `env:` and never interpolated into the script
+      # body with `${{ }}`. `reason` is built from an HTTP response body, so
+      # interpolating it would be script injection; as an environment variable it
+      # is data. orphan-watch.ts also collapses it to a single line, because
+      # GITHUB_OUTPUT is line-oriented and a newline in a value forges outputs.
+      - name: Act on the result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATE: ${{ steps.read.outputs.state }}
+          REASON: ${{ steps.read.outputs.reason }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          # Two DISTINCT labels, and every lookup is by label alone. The first
+          # draft of this file identified issues with `gh issue list --search
+          # "<title> in:title"`, which is GitHub's fuzzy text search: both titles
+          # begin "Account-deletion orphan", so a `clear` run could have matched
+          # and closed the "cannot read production" issue while reporting that it
+          # had closed the orphan one -- silently resolving the alarm that says
+          # the signal is unknown. A label is an exact key; a search phrase is not.
+          gh label create orphan-watch:unresolved \
+            --color B60205 \
+            --description "An account-deletion orphan is unresolved in production (register #54)" \
+            --force
+          gh label create orphan-watch:unreadable \
+            --color D93F0B \
+            --description "The account-deletion orphan signal could not be read (register #54)" \
+            --force
+
+          ORPHAN_LABEL="orphan-watch:unresolved"
+          UNREADABLE_LABEL="orphan-watch:unreadable"
+          ORPHAN_TITLE="Account-deletion orphan: unresolved incident in production"
+          UNREADABLE_TITLE="Account-deletion orphan watch: cannot read production"
+
+          find_open () {
+            gh issue list --state open --label "$1" --json number --jq '.[0].number // empty'
+          }
+
+          open_if_absent () {
+            local existing
+            existing="$(find_open "$1")"
+            if [ -n "$existing" ]; then
+              echo "already open as #$existing; not opening a duplicate"
+            else
+              gh issue create --title "$2" --label "$1" --body "$3"
+            fi
+          }
+
+          close_if_open () {
+            local n
+            n="$(find_open "$1")"
+            if [ -n "$n" ]; then
+              gh issue close "$n" --comment "$2"
+            fi
+          }
+
+          case "$STATE" in
+            present)
+              open_if_absent "$ORPHAN_LABEL" "$ORPHAN_TITLE" "$(printf '%s\n' \
+                'At least one row in public.account_deletion_orphans has resolved_at IS NULL.' \
+                '' \
+                'WHAT THIS MEANS. A user asked for their account to be deleted, their billing' \
+                'was cancelled, and the deletion did not complete. They still hold their data' \
+                'and have lost what they paid for. This does not resolve itself.' \
+                '' \
+                'WHAT TO DO. Read the table with the SERVICE-ROLE key -- anon cannot see it,' \
+                'by design. Finish or reverse the deletion by hand. Then set resolved_at AND' \
+                'SET email TO NULL IN THE SAME STATEMENT: once the erasure has actually' \
+                'completed there is no longer any basis to hold the address.' \
+                '' \
+                'This issue closes itself on the next run once nothing is unresolved.' \
+                '' \
+                "Run: ${RUN_URL}")"
+              close_if_open "$UNREADABLE_LABEL" "Production is readable again as of ${RUN_URL}."
+              ;;
+            clear)
+              close_if_open "$ORPHAN_LABEL" "No unresolved orphans as of ${RUN_URL}."
+              close_if_open "$UNREADABLE_LABEL" "Production is readable again as of ${RUN_URL}."
+              ;;
+            unreadable)
+              # NOTE the orphan issue is deliberately NOT closed here. We do not
+              # know whether an orphan exists; claiming it is clear would be the
+              # false green this whole design exists to prevent.
+              open_if_absent "$UNREADABLE_LABEL" "$UNREADABLE_TITLE" "$(printf '%s\n' \
+                'The orphan watcher could not read production, so the orphan signal is' \
+                'UNKNOWN -- not clear. Until this is fixed, an unresolved orphan would go' \
+                'unreported.' \
+                '' \
+                'Most likely causes, in order: the Supabase project is paused (it has' \
+                'auto-paused undetected before, see commit 6513cb2); the anon key in' \
+                '.github/workflows/deletion-orphan-watch.yml is stale; the execute grant on' \
+                'has_unresolved_deletion_orphan() was dropped.' \
+                '' \
+                "Reason: ${REASON}" \
+                "Run: ${RUN_URL}")"
+              ;;
+            *)
+              # An unrecognised state means orphan-watch.ts changed, not that
+              # production is unhealthy. Fail the run so it reads as a broken
+              # workflow rather than as a finding.
+              echo "unrecognised state from orphan-watch.ts: '${STATE}'" >&2
+              exit 1
+              ;;
+          esac
