@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getEntitlement } from '@/lib/entitlement'
 import { redirect } from 'next/navigation'
 import { SettingsPanel } from '@/components/dashboard/SettingsPanel'
+import { DeleteAccountCard } from '@/components/dashboard/DeleteAccountCard'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 
 // Thin server wrapper: auth + entitlement only. Presentation lives in the dumb
@@ -47,6 +48,11 @@ export default async function SettingsPage({
         upgrade: t.dashboard.settings.upgrade,
         activeSubscription: t.dashboard.settings.activeSubscription,
       }}
-    />
+    >
+      <DeleteAccountCard
+        homeHref={`/${safeLocale}`}
+        labels={t.dashboard.settings.deleteAccount}
+      />
+    </SettingsPanel>
   )
 }

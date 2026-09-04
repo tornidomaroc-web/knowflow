@@ -232,7 +232,23 @@ export const en = {
       pro: "Pro",
       renews: "Renews",
       upgrade: "Upgrade to Pro",
-      activeSubscription: "Active subscription"
+      activeSubscription: "Active subscription",
+      deleteAccount: {
+        heading: "Delete account",
+        description: "Permanently delete your account and everything in it.",
+        permanentWarning: "This cannot be undone. There is no grace period, and nothing can be restored afterwards.",
+        whatIsRemoved: "Your subjects, materials, conversations, quizzes and study history are deleted, along with every file you have uploaded.",
+        billingNote: "If you have an active subscription, it is cancelled immediately.",
+        openButton: "Delete account",
+        confirmPrompt: "Type your email address to confirm:",
+        confirmPlaceholder: "your email address",
+        confirmButton: "Delete my account permanently",
+        cancelButton: "Cancel",
+        deleting: "Deleting\u2026",
+        errorMismatch: "That does not match your email address.",
+        errorFailed: "Deletion failed and nothing was changed. You can try again.",
+        errorBillingCanceled: "Nothing was lost. Your account and everything in it is still here. Your subscription was cancelled, but the deletion did not finish. Please try again. If it fails again, contact us and we will finish it for you."
+      }
     },
     agent: {
       chatWith: "Asking about",

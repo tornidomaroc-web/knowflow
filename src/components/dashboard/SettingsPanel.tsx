@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { Badge, Card, buttonVariants } from '@/components/ui';
 
 interface SettingsPanelLabels {
@@ -20,6 +21,13 @@ export interface SettingsPanelProps {
   renewsOn: string | null;
   upgradeHref: string;
   labels: SettingsPanelLabels;
+  /**
+   * Extra cards rendered below the plan card, inside the same column so they
+   * inherit its width and spacing. The delete-account affordance arrives this
+   * way rather than as a prop bundle: it is interactive and stateful, and this
+   * component stays dumb.
+   */
+  children?: ReactNode;
 }
 
 /**
@@ -27,7 +35,7 @@ export interface SettingsPanelProps {
  * the server wrapper (which is the sole caller of getEntitlement). Pure content:
  * the dashboard `<main>` (P2.7) owns the light canvas + padding.
  */
-export function SettingsPanel({ email, isPro, renewsOn, upgradeHref, labels }: SettingsPanelProps) {
+export function SettingsPanel({ email, isPro, renewsOn, upgradeHref, labels, children }: SettingsPanelProps) {
   return (
     <div>
       <div className="mx-auto max-w-2xl space-y-6">
@@ -66,6 +74,8 @@ export function SettingsPanel({ email, isPro, renewsOn, upgradeHref, labels }: S
             )}
           </div>
         </Card>
+
+        {children}
       </div>
     </div>
   );
