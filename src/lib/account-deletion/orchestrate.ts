@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Paddle } from '@paddle/paddle-node-sdk';
 import { sweepUserStorage, type SweepResult } from './storage';
 import { cancelUserSubscriptions, type CancelResult } from './paddle';
+import { recordDeletionOrphan } from './orphan-record';
 
 /**
  * Account deletion, ordered so that everything that can fail happens BEFORE the
@@ -39,11 +40,26 @@ import { cancelUserSubscriptions, type CancelResult } from './paddle';
  *
  * This is deliberate and it is the smaller harm. It is also why the window is
  * one statement wide: after the cancel there is exactly one call left, and it is
- * atomic. There is no durable, alertable trace of this state yet -- that is
- * register #54's durable half, which is a different arc. What exists today is
- * the `[account-deletion-orphan]` log line below and a response that names the
- * state to the user precisely, in their own language, so the report that reaches
- * the operator is a work order rather than a mystery.
+ * atomic. Both arms below now leave THREE traces, in this order and for these
+ * reasons: the `[account-deletion-orphan]` log line, which fires FIRST and
+ * unconditionally so that nothing can regress what was already there; then an
+ * awaited `recordDeletionOrphan`, which writes the durable row register #54 was
+ * opened for and CANNOT throw or hang, so the trace can never damage the
+ * handling; then a response that names the state to the user precisely, in their
+ * own language, so the report reaching the operator is a work order rather than a
+ * mystery.
+ *
+ * THE AWAIT IS LOAD-BEARING. A floating promise here would be dropped when the
+ * serverless invocation is frozen or torn down at the end of the handler -- this
+ * project has already recorded that outcome once (P5.2: an agent emit lost on
+ * teardown). `orphan-record.ts` bounds the write at five seconds precisely so
+ * that awaiting it is affordable on a path that is already returning a 409.
+ *
+ * WHAT IS NOT VERIFIED HERE, STATED SO NOBODY HAS TO INFER IT. Reaching either
+ * arm requires fault injection, which was refused. The recorder is proven against
+ * the live table; that THESE TWO LINES call it is verified by inspection and by
+ * `scripts/verify-orphan-call-sites.py`, which is a static check and executes
+ * nothing. Neither closes the gap.
  */
 
 /** Discriminated the same way as `SweepResult` and `CancelResult`, deliberately. */
@@ -132,6 +148,13 @@ export async function deleteAccount(
         `[account-deletion-orphan] user=${userId} email=${email} stage=billing-partial ` +
           `canceled=${cancel.canceled} reason=${cancel.reason}`
       );
+      await recordDeletionOrphan(admin, {
+        userId,
+        email,
+        stage: 'billing-partial',
+        subscriptionsCanceled: cancel.canceled,
+        reason: cancel.reason,
+      });
       return {
         ok: false,
         stage: 'orphaned',
@@ -156,6 +179,13 @@ export async function deleteAccount(
       `[account-deletion-orphan] user=${userId} email=${email} stage=account-delete ` +
         `canceled=${cancel.canceled} outcome=${cancel.outcome} reason=${deleteError.message}`
     );
+    await recordDeletionOrphan(admin, {
+      userId,
+      email,
+      stage: 'account-delete',
+      subscriptionsCanceled: cancel.canceled,
+      reason: deleteError.message,
+    });
     return {
       ok: false,
       stage: 'orphaned',
