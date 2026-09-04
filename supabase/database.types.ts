@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      account_deletion_orphans: {
+        Row: {
+          email: string | null
+          id: string
+          occurred_at: string
+          reason: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          stage: string | null
+          subscriptions_canceled: number | null
+          user_id: string | null
+        }
+        Insert: {
+          email?: string | null
+          id?: string
+          occurred_at?: string
+          reason?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          stage?: string | null
+          subscriptions_canceled?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          email?: string | null
+          id?: string
+          occurred_at?: string
+          reason?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          stage?: string | null
+          subscriptions_canceled?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       chunks: {
         Row: {
           chunk_index: number
@@ -427,6 +463,7 @@ export type Database = {
     }
     Functions: {
       current_streak: { Args: { p_time_zone: string }; Returns: number }
+      has_unresolved_deletion_orphan: { Args: never; Returns: boolean }
       increment_usage: { Args: { p_kind: string }; Returns: number }
       match_chunks: {
         Args: {

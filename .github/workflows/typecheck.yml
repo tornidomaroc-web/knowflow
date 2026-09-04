@@ -59,3 +59,21 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      # Register #54. The two account-deletion orphan arms cannot be exercised --
+      # reaching either needs fault injection, refused at both ends of the arc --
+      # so the call sites are machine-checked statically instead. This does NOT
+      # shrink that gap: the gap is that the arms never execute, and a static
+      # check executes nothing either. What it removes is silent drift and
+      # omission, which the gap never covered and which is the likelier failure:
+      # a future third arm added by someone who does not remember the argument.
+      # Precedent: scripts/verify-skipped-migrations.awk (register #40, PR #62).
+      #
+      # It rides in THIS workflow rather than a new one on purpose. Register #65
+      # is that an absent run is as silent as a failed one; a new workflow is a
+      # new thing that can be absent, while a step inside an already-required
+      # check cannot be skipped without the check itself going missing. For the
+      # same reason the workflow keeps its name -- renaming it would break the
+      # required status check that branch protection is configured against.
+      - name: Verify the orphan call sites (register #54)
+        run: python3 scripts/verify-orphan-call-sites.py
