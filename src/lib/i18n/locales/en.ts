@@ -233,6 +233,21 @@ export const en = {
       renews: "Renews",
       upgrade: "Upgrade to Pro",
       activeSubscription: "Active subscription",
+      cancels: "Cancels on",
+      cancelSubscription: {
+        heading: "Subscription",
+        description: "Stop your subscription from renewing.",
+        keepsAccess: "You keep Pro until",
+        noRefund: "The period you have already paid for is not refunded.",
+        canResubscribe: "You can subscribe again at any time, and nothing is deleted.",
+        openButton: "Cancel subscription",
+        confirmPrompt: "Cancel your subscription? Your account and everything in it stays exactly as it is.",
+        confirmButton: "Yes, cancel it",
+        keepButton: "Keep my subscription",
+        working: "Cancelling…",
+        done: "Your subscription is cancelled. You keep Pro until",
+        errorFailed: "That did not work and nothing was changed. You can try again."
+      },
       deleteAccount: {
         heading: "Delete account",
         description: "Permanently delete your account and everything in it.",
