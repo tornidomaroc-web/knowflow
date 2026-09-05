@@ -39,6 +39,17 @@ name: deletion-orphan-watch
 # "live[s] only in a dashboard, unreviewable and undiffable". Inline is
 # diffable, reviewable, and rotated by a reviewed commit.
 #
+# LIVENESS, AND EXACTLY WHAT IT BUYS. Every run rewrites a single permanently
+# open issue (label `orphan-watch:liveness`) with the run's timestamp, state and
+# URL. IT CANNOT MAKE ANYONE LOOK. It does not close the residual below. What it
+# changes is the shape of the failure: an absence with no evidence either way
+# becomes a DATED ARTIFACT THAT VISIBLY GOES STALE. This is a measured need --
+# the 00:17Z window on 2026-09-05 produced no scheduled run, and that was only
+# discovered because a poller was stood up by hand; nothing in the system said
+# so. The state of this watcher belongs where an operator sees an artifact
+# rather than an absence, which is the same argument that gave the orphan signal
+# three outcomes instead of two, applied one level up to the watcher itself.
+#
 # ACCEPTED RESIDUAL, NAMED RATHER THAN DISCOVERED. GitHub DISABLES scheduled
 # workflows in a public repository after 60 days with no commit activity. If
 # that happens this watcher stops running and its silence looks exactly like
@@ -57,6 +68,25 @@ on:
     # have destroyed, not money.
     - cron: '17 */6 * * *'
   workflow_dispatch:
+    inputs:
+      # VERIFICATION ONLY, and dispatch-only by construction: `inputs` does not
+      # exist for a `schedule` event, so a scheduled run can never be forced.
+      #
+      # A fixed `choice`, never free text: the value is compared against a
+      # literal and selects between two hardcoded URLs, so there is no string
+      # from a caller reaching a shell or a request. `unreadable` points the
+      # read at a port nothing listens on, which exercises the third branch
+      # WITHOUT touching production at all.
+      #
+      # An issue opened by a forced run self-closes on the next `clear` run,
+      # which is at most six hours away.
+      force_state:
+        description: 'Force a classification (verification only; scheduled runs are unaffected)'
+        type: choice
+        default: 'off'
+        options:
+          - 'off'
+          - 'unreadable'
 
 # Least privilege. `issues: write` is the whole point; nothing else is granted,
 # and in particular there is no `contents: write` -- this workflow never commits.
@@ -89,7 +119,10 @@ jobs:
       - name: Read the one bit
         id: read
         env:
-          ORPHAN_WATCH_URL: https://wnpqdafdkbuvwecksrjj.supabase.co
+          # `inputs` is empty for a scheduled run, so the comparison is false and
+          # the real URL is used. Only a dispatch that explicitly selects
+          # `unreadable` gets the dead address.
+          ORPHAN_WATCH_URL: ${{ inputs.force_state == 'unreadable' && 'http://127.0.0.1:1' || 'https://wnpqdafdkbuvwecksrjj.supabase.co' }}
           ORPHAN_WATCH_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InducHFkYWZka2J1dndlY2tzcmpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5NDM1NjEsImV4cCI6MjA5MTUxOTU2MX0.r4mqlQeiLg1YcFrevne1HyQBRM_kEluY2Oxn4MBmSWw
         run: node scripts/orphan-watch.ts
 
@@ -104,6 +137,8 @@ jobs:
           STATE: ${{ steps.read.outputs.state }}
           REASON: ${{ steps.read.outputs.reason }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EVENT: ${{ github.event_name }}
+          FORCED: ${{ inputs.force_state || 'off' }}
         run: |
           set -euo pipefail
 
@@ -121,6 +156,10 @@ jobs:
           gh label create orphan-watch:unreadable \
             --color D93F0B \
             --description "The account-deletion orphan signal could not be read (register #54)" \
+            --force
+          gh label create orphan-watch:liveness \
+            --color 0E8A16 \
+            --description "Dated proof that the orphan watcher ran (register #54)" \
             --force
 
           ORPHAN_LABEL="orphan-watch:unresolved"
@@ -198,3 +237,46 @@ jobs:
               exit 1
               ;;
           esac
+
+          # ---- LIVENESS -------------------------------------------------------
+          # DELIBERATELY AFTER THE CASE. This is bookkeeping; the alarm above is
+          # the point. Under `set -e` a failure here would abort the step, so if
+          # it ran first a broken `gh issue edit` could SUPPRESS the orphan
+          # alarm. Secondary signals must never be able to silence primary ones.
+          # A persistent failure here still shows as a red run, which is itself
+          # a signal.
+          #
+          # WHAT THIS BUYS, AND NOTHING MORE. It CANNOT MAKE ANYONE LOOK, so the
+          # 60-day scheduled-workflow disablement (register #54) STAYS OPEN AND
+          # STAYS NAMED. What changes is the shape of the failure: an absence
+          # with no evidence either way becomes a DATED ARTIFACT THAT VISIBLY
+          # GOES STALE. Measured need, not a hypothesis -- the 00:17Z window on
+          # 2026-09-05 produced no scheduled run, and that was only discovered
+          # because a poller was stood up by hand and looked. Nothing in the
+          # system reported it.
+          LIVENESS_LABEL="orphan-watch:liveness"
+          LIVENESS_TITLE="Orphan watch liveness - last run"
+          LIVENESS_BODY="$(printf '%s\n' \
+            "Last run:  $(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+            "State:     ${STATE}" \
+            "Reason:    ${REASON}" \
+            "Trigger:   ${EVENT} (force_state=${FORCED})" \
+            "Run:       ${RUN_URL}" \
+            '' \
+            'This issue is rewritten by EVERY run of deletion-orphan-watch. It is' \
+            'meant to be STALE-CHECKED, not read: the schedule is `17 */6 * * *`, so' \
+            '"Last run" should never be more than about six hours old. If it is days' \
+            'old, the watcher is not running and the orphan signal is UNKNOWN.' \
+            '' \
+            'IT CANNOT MAKE ANYONE LOOK. It does not close register #54, and it does' \
+            'not close the 60-day scheduled-workflow disablement, which stays open and' \
+            'stays named. What it changes is that an absence with no evidence either' \
+            'way becomes a dated artifact that visibly goes stale.')"
+
+          LIVENESS_N="$(find_open "$LIVENESS_LABEL")"
+          if [ -n "$LIVENESS_N" ]; then
+            gh issue edit "$LIVENESS_N" --body "$LIVENESS_BODY" >/dev/null
+            echo "liveness updated on #${LIVENESS_N}"
+          else
+            gh issue create --title "$LIVENESS_TITLE" --label "$LIVENESS_LABEL" --body "$LIVENESS_BODY"
+          fi
