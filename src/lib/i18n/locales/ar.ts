@@ -235,6 +235,21 @@ export const ar: Translation = {
       renews: "تتجدد في",
       upgrade: "الترقية إلى الاحترافي",
       activeSubscription: "اشتراك نشط",
+      cancels: "ينتهي في",
+      cancelSubscription: {
+        heading: "الاشتراك",
+        description: "أوقف تجديد اشتراكك.",
+        keepsAccess: "تحتفظ بالباقة الاحترافية حتى",
+        noRefund: "لا تُسترد قيمة الفترة التي دفعت ثمنها بالفعل.",
+        canResubscribe: "يمكنك الاشتراك مرة أخرى في أي وقت، ولا يُحذف أي شيء.",
+        openButton: "إلغاء الاشتراك",
+        confirmPrompt: "هل تريد إلغاء اشتراكك؟ يبقى حسابك وكل ما فيه كما هو تمامًا.",
+        confirmButton: "نعم، ألغِ الاشتراك",
+        keepButton: "الاحتفاظ بالاشتراك",
+        working: "جارٍ الإلغاء…",
+        done: "تم إلغاء اشتراكك. تحتفظ بالباقة الاحترافية حتى",
+        errorFailed: "لم تنجح العملية ولم يتغير أي شيء. يمكنك المحاولة مرة أخرى."
+      },
       deleteAccount: {
         heading: "حذف الحساب",
         description: "احذف حسابك وكل ما فيه نهائيًا.",
