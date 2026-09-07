@@ -254,7 +254,8 @@ export const en = {
         done: "Your subscription is cancelled. You keep Pro until",
         errorFailed: "That did not work and nothing was changed. You can try again.",
         errorPartial: "Only part of it worked. {scheduled} of {total} subscriptions are now set to end, but {failed} could not be cancelled and is still billing. Please try again to cancel the rest. If it fails again, contact support with the reference below.",
-        reference: "Reference:"
+        reference: "Reference:",
+        errorElsewhere: "Part of your subscription was purchased outside this app, so it cannot be cancelled here. Please cancel it where you bought it. Anything we could cancel here has already been set to end."
       },
       deleteAccount: {
         heading: "Delete account",
@@ -270,7 +271,8 @@ export const en = {
         deleting: "Deleting\u2026",
         errorMismatch: "That does not match your email address.",
         errorFailed: "Deletion failed and nothing was changed. You can try again.",
-        errorBillingCanceled: "Nothing was lost. Your account and everything in it is still here. Your subscription was cancelled, but the deletion did not finish. Please try again. If it fails again, contact us and we will finish it for you."
+        errorBillingCanceled: "Nothing was lost. Your account and everything in it is still here. Your subscription was cancelled, but the deletion did not finish. Please try again. If it fails again, contact us and we will finish it for you.",
+        errorSubscriptionElsewhere: "Your account was not deleted, and nothing was changed. You still have a subscription that was purchased outside this app, and we cannot cancel it for you from here. Cancel it where you bought it first, then delete your account. We stopped rather than delete your account while something was still charging you."
       }
     },
     agent: {

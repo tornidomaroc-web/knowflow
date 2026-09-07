@@ -79,6 +79,18 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
+  // PERMANENT, NOT TRANSIENT, SO "TRY AGAIN" WOULD BE FALSE ADVICE. Billing we
+  // cannot reach will still be unreachable on the next attempt. 409 rather than
+  // 500 for the same reason the orphan arm uses one: this is a state, not a
+  // fault. The account is untouched and the customer holds the control that
+  // clears it.
+  if (result.stage === 'billing-unverifiable') {
+    return NextResponse.json(
+      { error: 'SubscriptionNotCancellableHere', stage: result.stage },
+      { status: 409, headers: { 'Cache-Control': 'no-store' } }
+    );
+  }
+
   // Every other stage aborted before anything irreversible was attempted, so
   // retrying is safe and is the right advice.
   return NextResponse.json(

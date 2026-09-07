@@ -1,5 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Paddle, Subscription } from '@paddle/paddle-node-sdk';
+import {
+  countUnaccountedBillingRows,
+  unaccountedReason,
+  type BillingRow,
+} from '@/lib/subscription/unaccounted';
 
 /**
  * Account deletion, step 1 of 3: cancel every Paddle subscription the user has,
@@ -82,7 +87,19 @@ export type CancelOutcome = 'no-billing-record' | 'no-paddle-subscription' | 'ca
  */
 export type CancelResult =
   | { ok: true; outcome: CancelOutcome; canceled: number }
-  | { ok: false; reason: string; canceled: number };
+  | {
+      ok: false;
+      reason: string;
+      canceled: number;
+      /**
+       * How many rows grant Pro but carry NO paddle_subscription_id -- billing
+       * this module cannot reach. NON-ZERO HERE MUST NEVER PASS THE
+       * IRREVERSIBLE BOUNDARY: deleting the account would cascade the row away
+       * and destroy the only record that something is still charging a real
+       * person. See @/lib/subscription/unaccounted.
+       */
+      unverifiable: number;
+    };
 
 /** The only end state we accept. See `verifiablyCanceled`. */
 const CANCELED: Subscription['status'] = 'canceled';
@@ -209,18 +226,23 @@ export async function cancelUserSubscriptions(
       ok: false,
       reason: 'refusing to cancel: userId is not a UUID, so a zero-row result would prove nothing',
       canceled: 0,
+      unverifiable: 0,
     };
   }
 
+  // WIDENED from `paddle_subscription_id` alone. The comment below used to say a
+  // null id IS the free-default row; that is true only while Paddle is the sole
+  // billing source, so the three columns are now read together and the claim is
+  // TESTED rather than assumed. See @/lib/subscription/unaccounted.
   const { data, error } = await admin
     .from(TABLE)
-    .select('paddle_subscription_id')
+    .select('paddle_subscription_id, status, current_period_end')
     .eq('user_id', userId);
 
   // Checked before `data` is looked at: a failed read must never be mistaken for
   // an empty one.
   if (error) {
-    return { ok: false, reason: `subscription read failed: ${error.message}`, canceled: 0 };
+    return { ok: false, reason: `subscription read failed: ${error.message}`, canceled: 0, unverifiable: 0 };
   }
 
   const rows = data ?? [];
@@ -228,12 +250,25 @@ export async function cancelUserSubscriptions(
     return { ok: true, outcome: 'no-billing-record', canceled: 0 };
   }
 
-  // A row with a null `paddle_subscription_id` is the `status='free'` default:
-  // real in our table, absent from Paddle, nothing to cancel. Deleting the row
-  // is the cascade's job, not this module's.
+  // A row with a null `paddle_subscription_id` is USUALLY the `status='free'`
+  // default: real in our table, absent from Paddle, nothing to cancel, and
+  // deleting it is the cascade's job. THAT WAS ONCE UNCONDITIONALLY TRUE AND IS
+  // NOT ANYMORE -- it holds only while Paddle is the sole billing source. A row
+  // that grants Pro with no Paddle id is billing this customer through something
+  // this module cannot reach, and the old code returned it as SUCCESS: deletion
+  // walked past the irreversible boundary and the cascade erased the only record
+  // that a live subscription was still charging them.
+  const unverifiable = countUnaccountedBillingRows(rows as BillingRow[]);
+
   const subscriptionIds = rows
     .map((row) => row.paddle_subscription_id)
     .filter((id): id is string => typeof id === 'string' && id.length > 0);
+
+  // FAIL CLOSED, AND BEFORE ANYTHING IRREVERSIBLE. The caller aborts the whole
+  // deletion on `ok: false`, which is exactly what must happen here.
+  if (unverifiable > 0) {
+    return { ok: false, reason: unaccountedReason(unverifiable), canceled: 0, unverifiable };
+  }
 
   if (subscriptionIds.length === 0) {
     return { ok: true, outcome: 'no-paddle-subscription', canceled: 0 };
@@ -246,7 +281,7 @@ export async function cancelUserSubscriptions(
   for (const subscriptionId of subscriptionIds) {
     const failure = await cancelAndVerify(paddle, subscriptionId);
     if (failure) {
-      return { ok: false, reason: failure, canceled };
+      return { ok: false, reason: failure, canceled, unverifiable: 0 };
     }
     canceled += 1;
   }

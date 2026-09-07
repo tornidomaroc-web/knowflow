@@ -1,5 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Paddle, Subscription } from '@paddle/paddle-node-sdk';
+import {
+  countUnaccountedBillingRows,
+  unaccountedReason,
+  type BillingRow,
+} from './unaccounted';
 
 /**
  * Cancelling a subscription WITHOUT destroying the account. Register #70,
@@ -108,6 +113,12 @@ export type CancelScheduleResult =
        * -- those are total failures with nothing known about the list.
        */
       failed: number;
+      /**
+       * How many rows grant Pro but carry NO paddle_subscription_id -- billing
+       * we cannot reach, let alone cancel. Non-zero here can NEVER be reported
+       * to a customer as success. See ./unaccounted.ts.
+       */
+      unverifiable: number;
       /** How many the customer owns in total, so a caller can say "1 of 3". */
       total: number;
       /**
@@ -246,13 +257,17 @@ export async function scheduleSubscriptionCancellation(
       scheduled: 0,
       failed: 0,
       total: 0,
+      unverifiable: 0,
       effectiveAt: null,
     };
   }
 
+  // WIDENED from `paddle_subscription_id` alone. Those three columns together
+  // are what separate "this row was never billing" from "this row is billing
+  // through a source I cannot see" -- see ./unaccounted.ts.
   const { data, error } = await admin
     .from(TABLE)
-    .select('paddle_subscription_id')
+    .select('paddle_subscription_id, status, current_period_end')
     .eq('user_id', userId);
 
   // Checked before `data`: "there is nothing to cancel" and "I could not find
@@ -265,15 +280,26 @@ export async function scheduleSubscriptionCancellation(
       scheduled: 0,
       failed: 0,
       total: 0,
+      unverifiable: 0,
       effectiveAt: null,
     };
   }
 
-  const subscriptionIds = (data ?? [])
+  const rows = (data ?? []) as BillingRow[];
+
+  // Counted BEFORE the ids are filtered, because the filter is exactly what used
+  // to throw this information away.
+  const unverifiable = countUnaccountedBillingRows(rows);
+
+  const subscriptionIds = rows
     .map((row) => row.paddle_subscription_id)
     .filter((id): id is string => typeof id === 'string' && id.length > 0);
 
-  if (subscriptionIds.length === 0) {
+  // `nothing-to-cancel` is a success and must stay one -- but ONLY when there is
+  // genuinely nothing. With an unaccounted row present, "nothing to cancel" is
+  // false and telling the customer their subscription is cancelled would be the
+  // same lie in a new place.
+  if (subscriptionIds.length === 0 && unverifiable === 0) {
     return { ok: true, outcome: 'nothing-to-cancel', scheduled: 0, effectiveAt: null };
   }
 
@@ -295,15 +321,20 @@ export async function scheduleSubscriptionCancellation(
     if (!effectiveAt || attempt.effectiveAt < effectiveAt) effectiveAt = attempt.effectiveAt;
   }
 
-  if (reasons.length > 0) {
+  if (reasons.length > 0 || unverifiable > 0) {
+    const all = unverifiable > 0 ? [...reasons, unaccountedReason(unverifiable)] : reasons;
     return {
       ok: false,
       // Joined rather than nested: this string is for an operator's log line and
       // is NEVER returned to the browser -- it carries Paddle subscription ids.
-      reason: reasons.join(' | '),
+      reason: all.join(' | '),
       scheduled,
       failed: reasons.length,
-      total: subscriptionIds.length,
+      // Everything that is billing, reachable or not. A customer with one Paddle
+      // subscription and one we cannot see owns TWO, and saying "1 of 1" would
+      // understate what is still charging them.
+      total: subscriptionIds.length + unverifiable,
+      unverifiable,
       effectiveAt,
     };
   }

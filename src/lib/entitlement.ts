@@ -100,21 +100,9 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { computeTier } from '@/lib/entitlement-core';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Entitlement, Tier } from '@/types';
-
-/**
- * Subscription statuses that grant Pro access.
- *
- * Includes both the legacy value the current webhook writes (`'pro'`) and the
- * faithful Paddle statuses introduced in S4 (`active`/`trialing`/`past_due`), so
- * this helper is correct before and after the webhook hardening.
- *
- * `past_due` is intentionally entitled: access continues through the grace
- * window until `current_period_end`, which the time check below enforces. This
- * is what prevents a single failed charge from causing instant lockout.
- */
-const ENTITLED_STATUSES = new Set(['pro', 'active', 'trialing', 'past_due']);
 
 const TABLE = 'subscriptions';
 
@@ -128,22 +116,17 @@ export interface EntitlementRow {
 const FREE: Entitlement = { tier: 'free', adsEnabled: true, expiresAt: null };
 
 /**
- * Pure tier derivation for ONE row, separated from the DB read so it can be
- * reasoned about and tested without a database.
- *
- * Rule (per plan §3): Pro iff the status is entitling AND the current period has
- * not yet ended. A missing `current_period_end` resolves to `free` — we never
- * grant Pro without a known, future expiry, so a stale/incomplete row can't leak
- * unbounded access. S4 must always persist `current_period_end` on entitling rows.
+ * MOVED, NOT CHANGED. `computeTier` and the entitling-status set now live in
+ * `@/lib/entitlement-core` and are re-exported here unchanged, so every existing
+ * import site is untouched. They had to leave this file because it imports
+ * `@/lib/supabase/server`, and two modules that must NOT take a Next.js
+ * dependency need the same rule: `subscription/cancel.ts` and
+ * `account-deletion/paddle.ts`, both written to receive their clients as
+ * parameters so they can run outside a request. The alternative was a second
+ * copy of the status list, whose drift would be silent and would destroy
+ * evidence. See that file.
  */
-export function computeTier(
-  status: string | null,
-  currentPeriodEnd: string | null
-): Tier {
-  if (!status || !ENTITLED_STATUSES.has(status)) return 'free';
-  if (!currentPeriodEnd) return 'free';
-  return new Date(currentPeriodEnd).getTime() > Date.now() ? 'pro' : 'free';
-}
+export { computeTier };
 
 /**
  * Reduce EVERY row a user owns to one entitlement. Pure: no client, no clock

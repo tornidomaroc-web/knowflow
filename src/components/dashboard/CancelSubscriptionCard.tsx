@@ -22,6 +22,12 @@ export interface CancelSubscriptionLabels {
   errorPartial: string;
   /** Label before the support reference on a failure. */
   reference: string;
+  /**
+   * Shown when a subscription exists that this app cannot cancel, because it was
+   * bought through another billing source. Never tell the customer it is
+   * cancelled: it is not, and only they can end it, where they bought it.
+   */
+  errorElsewhere: string;
 }
 
 export interface CancelSubscriptionCardProps {
@@ -107,7 +113,11 @@ export function CancelSubscriptionCard({
       // failure as far as anything we can honestly claim goes.
     }
 
-    if (body.error === 'CancelPartial') {
+    if (body.error === 'CancelElsewhere') {
+      // Checked FIRST. This is the only one of the three the customer has to act
+      // on somewhere else, and it must not be flattened into "try again".
+      setError(labels.errorElsewhere);
+    } else if (body.error === 'CancelPartial') {
       setError(
         labels.errorPartial
           .replace('{scheduled}', String(body.scheduled ?? 0))

@@ -71,19 +71,32 @@ export async function POST() {
     // (#110): a STABLE CODE to the browser, the DETAIL to the log, and a short
     // reference the customer can quote to support. This was the last
     // undifferentiated Paddle failure in the codebase.
+    // Ordered deliberately: billing we cannot reach outranks a partial, because
+    // it is the only one of the three the customer must act on somewhere else.
+    const elsewhere = result.unverifiable > 0;
     const partial = result.scheduled > 0;
-    const code = partial ? 'CancelPartial' : 'CancelFailed';
+    const code = elsewhere ? 'CancelElsewhere' : partial ? 'CancelPartial' : 'CancelFailed';
     const reference = 'KF-' + Math.random().toString(16).slice(2, 10);
 
     console.error(
-      `[subscription-cancel-${partial ? 'partial' : 'failed'}] ref=${reference} ` +
-        `user=${user.id} scheduled=${result.scheduled} failed=${result.failed} ` +
+      `[subscription-cancel-${elsewhere ? 'elsewhere' : partial ? 'partial' : 'failed'}] ` +
+        `ref=${reference} user=${user.id} scheduled=${result.scheduled} ` +
+        `failed=${result.failed} unverifiable=${result.unverifiable} ` +
         `total=${result.total} reason=${result.reason}`
     );
 
     return NextResponse.json(
-      { error: code, scheduled: result.scheduled, failed: result.failed, total: result.total, reference },
-      { status: 500, headers: { 'Cache-Control': 'no-store' } }
+      {
+        error: code,
+        scheduled: result.scheduled,
+        failed: result.failed,
+        unverifiable: result.unverifiable,
+        total: result.total,
+        reference,
+      },
+      // 409 for the unreachable case: it is a state the customer resolves
+      // elsewhere, not a fault to retry.
+      { status: elsewhere ? 409 : 500, headers: { 'Cache-Control': 'no-store' } }
     );
   }
 

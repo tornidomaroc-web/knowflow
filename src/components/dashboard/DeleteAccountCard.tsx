@@ -18,6 +18,12 @@ export interface DeleteAccountLabels {
   errorMismatch: string;
   errorFailed: string;
   errorBillingCanceled: string;
+  /**
+   * Shown when deletion stopped because a subscription exists that this app
+   * cannot cancel. PERMANENT until the customer cancels it where they bought it,
+   * so the copy must not say "try again" -- retrying fails identically forever.
+   */
+  errorSubscriptionElsewhere: string;
 }
 
 export interface DeleteAccountCardProps {
@@ -96,6 +102,18 @@ export function DeleteAccountCard({ labels, homeHref }: DeleteAccountCardProps) 
     // on at least one. The panel is collapsed so the destructive control is not
     // left armed under an error, but the button remains enabled -- the user must
     // be able to finish what they asked for.
+    // PERMANENT, NOT TRANSIENT. Billing this app cannot reach will be just as
+    // unreachable on the next attempt, so the retry advice that is right for
+    // every other failure here is wrong for this one. The panel closes and the
+    // customer is told what to do and where, because they hold the only control
+    // that clears it. Nothing was deleted and nothing was changed.
+    if (code === 'SubscriptionNotCancellableHere') {
+      setError(labels.errorSubscriptionElsewhere);
+      setOpen(false);
+      setBusy(false);
+      return;
+    }
+
     if (code === 'BillingCanceledAccountIntact') {
       setError(labels.errorBillingCanceled);
       setOpen(false);
