@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { paddleClient } from '@/lib/paddle';
 import { createClient } from '@supabase/supabase-js';
+import {
+  classifyWebhookFailure,
+  inspectSignatureHeader,
+} from '@/lib/paddle-webhook-errors';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -33,16 +37,30 @@ const ENTITLING_STATUSES = new Set(['active', 'trialing', 'past_due']);
 const FK_VIOLATION = '23503';
 
 export async function POST(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
-  const rawBody = await request.text();
-  const signature = request.headers.get('paddle-signature') ?? '';
+  // Read WITHOUT the secret and before anything can throw, so the failure path
+  // can say whether the timestamp was stale. See paddle-webhook-errors.ts: a
+  // slow handler fails verification with a perfectly correct secret, and that
+  // was indistinguishable from a forgery.
+  const signature = request.headers.get('paddle-signature');
+  const signatureFacts = inspectSignatureHeader(signature, Date.now());
 
   try {
+    // Both of these used to sit OUTSIDE the try. An unset SUPABASE_URL or a
+    // failed body read threw past every handler here, producing a framework 500
+    // with nothing of ours in the log.
+    const supabase = getSupabaseAdmin();
+    const rawBody = await request.text();
+
     const event = await paddleClient.webhooks.unmarshal(
       rawBody,
       process.env.PADDLE_WEBHOOK_SECRET!,
-      signature
+      signature ?? ''
     );
+
+    // Logged on every failure below: `notificationId` is the handle
+    // `paddle.notifications.replay()` takes, which is how a lost event is
+    // recovered without us storing anything ourselves.
+    const eventIds = { eventId: event.eventId, notificationId: event.notificationId };
 
     switch (event.eventType) {
       // One faithful sync for every subscription lifecycle event. Rather than
@@ -74,7 +92,7 @@ export async function POST(request: NextRequest) {
         if (ENTITLING_STATUSES.has(status) && !periodEnd) {
           console.error(
             'Paddle webhook: refusing entitling subscription row without current_period_end',
-            { subscriptionId: sub.id, eventType: event.eventType, status }
+            { ...eventIds, subscriptionId: sub.id, eventType: event.eventType, status }
           );
           return NextResponse.json(
             { error: 'Entitling subscription missing current_period_end' },
@@ -107,10 +125,12 @@ export async function POST(request: NextRequest) {
           // event it believes was accepted.
           if (upsertError && upsertError.code !== FK_VIOLATION) {
             console.error('Paddle webhook: subscription upsert failed', {
+              ...eventIds,
               subscriptionId: sub.id,
               eventType: event.eventType,
               code: upsertError.code,
               message: upsertError.message,
+              hint: 'Answered 500 so Paddle redelivers. If attempts are exhausted, replay with paddle.notifications.replay(notificationId).',
             });
             return NextResponse.json(
               { error: 'subscription write failed' },
@@ -124,7 +144,7 @@ export async function POST(request: NextRequest) {
             // billing event outlived its account.
             console.warn(
               'Paddle webhook: event for a deleted user; acknowledged without write',
-              { subscriptionId: sub.id, eventType: event.eventType, userId }
+              { ...eventIds, subscriptionId: sub.id, eventType: event.eventType, userId }
             );
           }
         } else {
@@ -142,10 +162,12 @@ export async function POST(request: NextRequest) {
           // absent and this is a no-op, which is correct.
           if (updateError) {
             console.error('Paddle webhook: subscription update failed', {
+              ...eventIds,
               subscriptionId: sub.id,
               eventType: event.eventType,
               code: updateError.code,
               message: updateError.message,
+              hint: 'Answered 500 so Paddle redelivers. If attempts are exhausted, replay with paddle.notifications.replay(notificationId).',
             });
             return NextResponse.json(
               { error: 'subscription write failed' },
@@ -159,7 +181,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Webhook error:', error);
-    return NextResponse.json({ error: 'Webhook verification failed' }, { status: 400 });
+    const failure = classifyWebhookFailure(error, signatureFacts);
+    console.error('Paddle webhook failed', failure.log);
+    return NextResponse.json(
+      { error: failure.code, redeliveryCanHelp: failure.redeliveryCanHelp },
+      { status: failure.status }
+    );
   }
 }
