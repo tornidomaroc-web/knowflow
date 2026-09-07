@@ -35,6 +35,27 @@ change."* In the SDK this is
 **This is what makes one subscription reusable.** A period-end cancel can be
 applied and undone as many times as we like.
 
+**EXECUTED 2026-09-07 — this is no longer read, it is run.** Two full passes
+against `sub_01m1yqapt1zxhjvamk4hzjmsfr`, an invoice-minted subscription, four
+reads each pass, values identical across both:
+
+| read | value |
+|---|---|
+| `cancel({effectiveFrom:'next_billing_period'})` returns | `status=active  scheduledChange=cancel@2026-10-07T20:00:38.204Z` |
+| `get()` after cancel | `status=active  scheduledChange=cancel@2026-10-07T20:00:38.204Z` |
+| `update({scheduledChange:null})` returns | `status=active  scheduledChange=null` |
+| `get()` after reset | `status=active  scheduledChange=null` |
+
+**2 of 2 clean.** Repeatability is the load-bearing part and it is now measured,
+not inferred: a loop that worked once and failed the second time would be worse
+than one that never worked, because this whole ordering assumes the subscription
+can be reset and handed back.
+
+**MEASURED, AND IT IS PR #106's DESIGN ASSERTION:**
+`scheduledChange.effectiveAt` equalled `currentBillingPeriod.endsAt` **exactly**
+— both `2026-10-07T20:00:38.204Z`. "Period end, never immediately" has now been
+executed against Paddle rather than argued from the SDK's types.
+
 **2. `canceled` is terminal and irreversible.**
 Paddle's cancel-subscription reference: *"You can't reinstate a canceled
 subscription."* There is no `subscriptions.uncancel`, and `activate()` is for
@@ -62,6 +83,11 @@ proven. The correction was not free: it cost four blocked attempts against the
 sandbox, each returning a different Paddle error code.
 
 **4. A subscription created from an issued-but-unpaid invoice is `active`.**
+**MEASURED 2026-09-07**, no longer read: the invoice was issued and never paid,
+and Paddle minted `sub_01m1yqapt1zxhjvamk4hzjmsfr` with `status: active`,
+`collectionMode: manual`, `startedAt: 2026-09-07T20:00:38.204Z` and
+`currentBillingPeriod.endsAt: 2026-10-07T20:00:38.204Z` — 30 days, matching the
+30-day payment terms set on the transaction.
 It becomes `past_due` only once the payment terms elapse. Both `active` and
 `past_due` are in `ENTITLED_STATUSES` in `src/lib/entitlement.ts`, so entitlement
 behaves correctly on either side of that line. Choosing generous payment terms
@@ -71,12 +97,22 @@ buys a long-lived `active` subscription that nobody ever has to pay for.
 From `supabase/migrations/20260414_subscriptions.sql`. A second row pointing at
 the *same* Paddle subscription id is impossible at the database level.
 
-**6. `getEntitlement` discards the read error.**
-`src/lib/entitlement.ts` does `const { data } = await supabase...maybeSingle()`
-and never inspects `error`. With two rows for one `user_id`, `maybeSingle()`
-errors, `data` is null, and `computeTier(null, null)` returns `free` — a paying
-customer is silently downgraded. This is item 72, and **it never touches Paddle
-at all.**
+**6. `getEntitlement` discarded the read error. FIXED — this fact is now
+HISTORY, not a live defect.**
+It *did* read `const { data } = await supabase...maybeSingle()` and never inspect
+`error`. With two rows for one `user_id`, `maybeSingle()` errored, `data` was
+null, and `computeTier(null, null)` returned `free` — a paying customer silently
+downgraded. It never touched Paddle at all, which is why it was Tier 0.
+
+**Closed by [#108](https://github.com/tornidomaroc-web/knowflow/pull/108)
+(`4e52171`).** `.maybeSingle()` is gone; `readEntitlement` reads
+`.eq('user_id', userId)` with no row-count assumption, checks `error` **before**
+`data`, and resolves through a pure `entitlementFromRows` that takes the furthest
+`current_period_end` among entitling rows. 15/15 cases against a real Postgres
+and PostgREST. Register **#72** is PARTIALLY CLOSED — the read half fixed, the
+`UNIQUE(user_id)` constraint REFUSED, with register **#9** closed alongside it.
+Corrected here because this document is read as a plan, and a plan that
+describes deleted code sends someone to reproduce a bug that no longer exists.
 
 ---
 
@@ -90,10 +126,12 @@ it has passed, because lower tiers destroy what upper tiers need.
 Run these first. They cost nothing and cannot consume anything, so there is no
 excuse for them to be waiting on a checkout.
 
-- **Item 72, the two-row entitlement bug.** Purely a database read.
-  `getEntitlement` never calls Paddle. Produce it by inserting a second
-  `subscriptions` row for the same `user_id` with a *different* (or `NULL`)
-  `paddle_subscription_id`. See the note under Q4 below.
+- ~~**Item 72, the two-row entitlement bug.**~~ **DONE — shipped in #108,
+  2026-09-06.** Was: purely a database read; `getEntitlement` never calls Paddle;
+  reproduce by inserting a second `subscriptions` row for the same `user_id` with
+  a different (or `NULL`) `paddle_subscription_id`. Kept rather than deleted
+  because the reproduction recipe is still how the two-row case is built for any
+  future test. See fact 6.
 - **`computeTier` boundary cases.** An exported pure function. No client of any
   kind.
 - **The swallowed Paddle error in the checkout path.**
@@ -185,17 +223,23 @@ new one.**
    A customer created through `customers.create` was accepted. Do not expect to
    reuse the customer from a previous checkout-minted subscription.
 
-   **(d) THE ADDRESS MUST ALSO BE SUITABLE, AND THIS IS WHERE THE PATH IS STILL
-   BLOCKED.** An address created with only `countryCode: 'MA'` and a
-   `description` was rejected:
+   **(d) THE ADDRESS MUST ALSO BE SUITABLE, AND "SUITABLE" MEANS A REAL POSTAL
+   ADDRESS. ESTABLISHED BY EXECUTION 2026-09-07 — both halves.**
+
+   **Refused.** An address carrying only `countryCode: 'MA'` and a `description`:
 
    > `transaction_address_not_suitable_for_collection_mode` —
    > *"Address entity must be suitable for the transactions current collection mode"*
 
-   What Paddle counts as "suitable" here is **not yet established** — the
-   plausible reading is that an invoice needs a full postal address (first line,
-   city, postal code, region) rather than a bare country, but that has NOT been
-   executed and must not be written down as fact until it has been.
+   **Accepted.** The *same* address, completed in place with
+   `addresses.update(customerId, addressId, ...)` — `firstLine`, `city`,
+   `postalCode`, `region` alongside the country. The attach then returned `ready`
+   immediately, and `status: 'billed'` succeeded on the next call.
+
+   An invoice has to be addressed somewhere, and a bare country is nowhere. Give
+   the address real postal detail before attaching it. Note the fix is an
+   `update` on the existing address, not a second `create` — Paddle is happy to
+   complete one in place, which keeps the sandbox object count flat.
 4. **A test that needs no Paddle subscription must never be scheduled behind one
    that does.** Most of our billing queue is Tier 0.
 5. **Re-read `list` before and after every session** so the sandbox's state is
@@ -205,20 +249,37 @@ new one.**
 
 ## Known unverified
 
-- **Whether manual collection / invoicing is enabled on our sandbox account.
-  STILL OPEN, and the "cheap probe" named here does NOT answer it.** Executed
-  2026-09-07: creating a manually-collected transaction and leaving it at
-  `draft` **SUCCEEDED** — `txn_01m1yn6mf9axdyqta3w4fwce0k`, `status: draft`,
-  `collectionMode: manual`, 30-day payment terms, no subscription, no invoice
-  number, sandbox subscription count unchanged. **That is necessary but not
-  sufficient**, and the sentence *"Only if that succeeds is rule 3 available to
-  us"* reads the implication backwards: a successful draft does not make rule 3
-  available, it only fails to rule it out. The account-level question is settled
-  by the `status: 'billed'` call, and **we have never reached one**, because the
-  attempt is blocked earlier — see rule 3(d). Nothing here may be described as
-  "invoicing is enabled" or "invoicing is disabled".
-- **What makes an address "suitable" for manual collection.** Rule 3(d). This is
-  the live blocker on the invoice path.
+- ~~**Whether manual collection / invoicing is enabled on our sandbox
+  account.**~~ **ANSWERED 2026-09-07: IT IS ENABLED.** A `status: 'billed'` call
+  was reached and succeeded, minting **`sub_01m1yqapt1zxhjvamk4hzjmsfr`** —
+  `active`, `collectionMode: manual`, period end `2026-10-07T20:00:38.204Z`. The
+  full sequence, end to end and with no browser checkout anywhere in it:
+  `transactions.create` (manual, draft) → `customers.create` →
+  `addresses.create` + `addresses.update` (full postal detail) →
+  `transactions.update({customerId, addressId})` → `ready` →
+  `transactions.update({status:'billed'})` → Paddle mints the subscription.
+  **Rule 3 is real and available.** Keep the caution that replaced this entry
+  though: the draft probe alone never answered this, and a future account or key
+  can fail at any of the four gates in rule 3 without the draft noticing.
+- ~~**What makes an address "suitable" for manual collection.**~~ **ANSWERED —
+  see rule 3(d).** Full postal detail, not a bare country.
+- **Whether `subscriptions.update` REQUIRES the subscription to be `active`.
+  STILL OPEN, and deliberately not rounded up.** The 2026-09-07 loop called
+  `update({scheduledChange:null})` twice and both succeeded — but the
+  subscription was `active` on both occasions, so what was shown is that update
+  **works while** active, never that active is **required**. Settling it needs a
+  non-`active` subscription carrying a scheduled change, which we do not have and
+  cannot cheaply manufacture (`past_due` arrives only when the payment terms
+  elapse). Treat the reset as proven for the `active` case only.
+- **OBSERVED BUT NOT MEASURED: the billed response carried `invoiceNumber: null`
+  and `invoiceId: null`.** Fact 3 above, quoting Paddle's reference, says setting
+  the status to `billed` is *"essentially issuing an invoice"* and assigns an
+  invoice number. The subscription was minted regardless, so nothing downstream
+  depended on it. **Only the immediate response was read** — whether those fields
+  populate asynchronously was never checked, so this is recorded as an
+  observation and explicitly NOT as a correction to fact 3. Anyone who needs the
+  invoice number should re-read the transaction rather than trust the create
+  response.
 - **The sandbox API host is `sandbox-api.paddle.com`, NOT
   `api.sandbox.paddle.com`.** The latter does not resolve, and the `ENOTFOUND`
   it produces looks exactly like "the sandbox is unreachable" or "the network is
