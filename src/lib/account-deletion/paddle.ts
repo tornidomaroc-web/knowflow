@@ -113,7 +113,7 @@ const CANCELED: Subscription['status'] = 'canceled';
  * Asserting the end state is what makes the five-value status enum
  * (`active | canceled | past_due | paused | trialing`) irrelevant on the way in.
  */
-function verifiablyCanceled(sub: Subscription): boolean {
+export function verifiablyCanceled(sub: Subscription): boolean {
   return sub.status === CANCELED && !sub.scheduledChange;
 }
 
