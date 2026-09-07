@@ -191,13 +191,69 @@ before starting the next one.
   that function. **The predicate whose misuse PR #106 exists to prevent is not
   reachable by any test.** Exporting it is a one-line change and would close
   this.
-- **The double-click path.** Call `scheduleSubscriptionCancellation` twice
-  without resetting in between. This is the one that exercises the
-  catch-then-re-read arm in `scheduleAndVerify`, and it is otherwise very hard to
-  trigger.
-- **The two-subscription path (register #9).** Inject a stub `admin` client
-  returning two ids. The second id may be a deliberately invalid one when the
-  goal is to prove the `scheduled` count is honest on the failure arm.
+- **The double-click path. DONE 2026-09-07 — and the module's own comment was
+  VINDICATED, not wrong.** `scheduleSubscriptionCancellation` called twice with
+  no reset in between. The comment said an already-scheduled subscription
+  *"plausibly throws rather than returning cleanly"*; `plausibly` was doing real
+  work there and nobody had checked. **It throws:**
+
+  > `subscription_locked_pending_changes` — *"cannot update subscription, pending
+  > scheduled changes"*
+
+  So the **catch-then-`get()` re-read arm in `scheduleAndVerify` executed for the
+  first time.** How that was established, since `scheduleAndVerify` is
+  module-private: the happy path calls `cancel` only, the catch path calls
+  `cancel` and then `get`. First click logged one SDK call; second click logged
+  two, the second being the `get`. That is the arm's fingerprint.
+
+  **What the customer is told, which is the part that matters commercially:**
+  `{ ok: true, outcome: 'scheduled', scheduled: 1, effectiveAt: '2026-10-07T20:00:38.204Z' }`.
+  A customer who clicks twice is told the cancellation is in place, **and it is**.
+  Paddle, read independently afterwards, still held exactly one `cancel` change
+  at the same `effectiveAt`: the second click changed nothing.
+
+  **A nuance worth keeping:** that error says the subscription is *locked* for
+  updates while a change is pending — yet `update({scheduledChange: null})` still
+  clears it. Paddle special-cases removing a scheduled change, exactly as fact 1
+  quotes. **The reset is the escape hatch from the lock**, which is what makes
+  this whole tier repeatable.
+- **The two-subscription path (register #9). DONE 2026-09-07 — and it turns the
+  `CancelFailed` defect from a code-reading claim into executed evidence.** Stub
+  returning the real id first and a deliberately invalid one second. Returned,
+  verbatim:
+
+  ```
+  { ok: false,
+    reason: 'cancel failed (Invalid request.) and state could not be re-read
+             (Invalid request.) for sub_01knowflowbogus000000000000',
+    scheduled: 1 }
+  ```
+
+  **The `scheduled` count is honest**, and the partial success is **real, not
+  merely reported**: Paddle read independently held
+  `scheduledChange=cancel@2026-10-07T20:00:38.204Z` on the first subscription
+  while the call reported `ok: false`.
+
+  **THE DEFECT, DEMONSTRATED.** `POST /api/account/subscription/cancel` was
+  asserted against its own source: it branches on `cancelScheduleFailed(result)`,
+  it **logs** `scheduled=${result.scheduled}` for an operator, and it returns
+  `{ error: 'CancelFailed' }` — a body that was checked and does **not** carry
+  `scheduled`. The card then renders `labels.errorFailed`, which is verbatim:
+
+  > en — *"That did not work and nothing was changed. You can try again."*
+  > ar — *"لم تنجح العملية ولم يتغير أي شيء. يمكنك المحاولة مرة أخرى."*
+
+  So the customer is told **nothing changed** while one of their subscriptions is
+  genuinely scheduled to cancel. The sentence is false, the library computed the
+  honest number, and the route throws it away.
+
+  **AND THE LOOP STOPS AT THE FIRST FAILURE**, proven by a control with two
+  bogus ids that touched nothing real: `scheduled: 0`, and the **second id was
+  never attempted** — only one `cancel`/`get` pair was issued. For a user with
+  **three** subscriptions whose second fails, the third is never attempted, keeps
+  billing, and the customer is told nothing changed. **The blast radius of this
+  defect grows with the number of subscriptions a user owns**, which is exactly
+  the population register #9 is about.
 
 ### Tier 2 — consumes the subscription permanently
 
