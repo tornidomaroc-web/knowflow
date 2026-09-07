@@ -10,9 +10,14 @@ The defect was not the deletion test. The defect was running it **first**. A
 single sandbox subscription can serve almost every billing test we have, but only
 if the irreversible one runs last. Ordering is the whole deliverable here.
 
-`scratchpad/paddle-witness.cjs list` currently reports exactly one subscription,
-`canceled`, `scheduledChange: null`, `currentBillingPeriod.endsAt: null`. That is
-the wreckage of the mistake, and it is unusable for anything.
+`scratchpad/paddle-witness.cjs list` reported, when this was written, exactly one
+subscription — `canceled`, `scheduledChange: null`,
+`currentBillingPeriod.endsAt: null`. That was the wreckage of the mistake, and it
+was unusable for anything. **UPDATED 2026-09-08: it now reports TWO, both
+`canceled`** — that original one, and the invoice-minted
+`sub_01m1yqapt1zxhjvamk4hzjmsfr` spent by Tier 2. Nothing in the sandbox is live.
+Re-read `list` rather than trusting this paragraph; rule 5 exists because a
+sentence like this one goes stale the moment anybody runs a test.
 
 ---
 
@@ -304,11 +309,65 @@ before starting the next one.
 **Run last. Once this runs, the subscription is gone and the next test needs a
 new one.**
 
-- **Account deletion.** `src/lib/account-deletion/paddle.ts` calls
-  `cancel(subscriptionId, { effectiveFrom: 'immediately' })` and asserts
+- **Account deletion. EXECUTED 2026-09-08 — and it ran to answer a DIFFERENT
+  question than the one this tier was written for.** `src/lib/account-deletion/paddle.ts`
+  calls `cancel(subscriptionId, { effectiveFrom: 'immediately' })` and asserts
   `status === 'canceled' && !scheduledChange`. Terminal by design and correctly
   so — the account is being destroyed, and billing to period end would charge for
   a service that no longer exists.
+
+  **THE SEQUENCE, AS HISTORY, BECAUSE THE WRONG STEP IS THE INSTRUCTIVE ONE.**
+
+  **(1) THE INFERENCE.** PR #106 shipped a period-end cancel, which made a state
+  reachable that had never existed before: a subscription carrying a pending
+  `scheduledChange`. Account deletion demands `status === 'canceled' &&
+  !scheduledChange`. Earlier the same day we had **measured** Paddle throwing
+  `subscription_locked_pending_changes` — *"cannot update subscription, pending
+  scheduled changes"* — when a cancel was issued against an already-scheduled
+  subscription. The reading was that a customer who cancels and then deletes
+  their account would hit the same lock, fail the predicate on both terms, and be
+  **unable to delete their account** — which is an Apple **5.1.1(v)** hard
+  requirement. It was recorded as **INFERRED, not measured**: the lock had been
+  observed for `next_billing_period`, never for `immediately`.
+
+  **(2) THE MEASUREMENT OVERTURNED IT.** A cancel was scheduled through our own
+  shipped code, then `cancelUserSubscriptions` was called against that exact
+  state. `cancel(id, { effectiveFrom: 'immediately' })` **RESOLVED**:
+
+  ```
+  { call: 'cancel', effectiveFrom: 'immediately', outcome: 'RESOLVED',
+    status: 'canceled', scheduled: null }
+  ```
+
+  **An immediate cancel OVERRIDES a pending scheduled change.** It is not a
+  conflicting update, so the lock does not apply: Paddle cleared
+  `scheduledChange` and set `canceled` in one step. The catch-then-re-read arm
+  never executed — no `get()` was issued — so `cancelAndVerify` took its happy
+  path. `cancelUserSubscriptions` returned
+  `{ ok: true, outcome: 'canceled', canceled: 1 }`, so deletion proceeds past the
+  irreversible boundary to `auth.admin.deleteUser` and the account deletes
+  normally (**HTTP 200**, never the 409 or the 500). **There is no defect, and
+  Apple 5.1.1(v) is not at risk.** The inference generalised a lock measured on
+  one call shape to a call with different semantics.
+
+  **(3) SO TIER 2 IS NOW EXECUTED IN SUBSTANCE**, though it was reached
+  sideways: the immediate cancel, issued **through our own deletion code**
+  against a real subscription, consuming it. That is exactly what this tier
+  specifies, and it passed.
+
+  **(4) `verifiablyCanceled` IS NOW EXPORTED, AND BOTH ITS CASES ARE REAL
+  EXECUTIONS.** It was module-private, so Tier 1 could only **transcribe** its
+  expression to show it returns **false** on a period-end success state. It is
+  exported as of this work and returned **true** here against a genuinely
+  `canceled` subscription — both terms true. The last transcription in this arc
+  is gone.
+
+  **(5) THE SANDBOX NOW HOLDS TWO CANCELED SUBSCRIPTIONS AND NOTHING LIVE.**
+  `sub_01m1yqapt1zxhjvamk4hzjmsfr` (invoice-minted, spent here) and
+  `sub_01m1mrte7wdpfewsbvmbztkwwg` (the older checkout-minted one). **Every
+  further billing experiment now costs the full re-mint sequence in rule 3** —
+  an API-created customer, an address with real postal detail, a draft, and two
+  updates. Budget it before planning one; it is no longer a free precondition.
 
 ---
 
