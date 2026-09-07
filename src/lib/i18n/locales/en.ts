@@ -80,6 +80,12 @@ export const en = {
         "Priority support"
       ],
       button: "Upgrade to Pro"
+    },
+    checkout: {
+      unavailable: "We could not reach the payment provider. Please try again in a moment.",
+      misconfigured: "Checkout is not available right now. This is a problem on our side, and our team has been notified.",
+      failed: "Something went wrong starting checkout. Please try again.",
+      reference: "Reference:"
     }
   },
   auth: {

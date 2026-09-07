@@ -39,6 +39,16 @@ name: deletion-orphan-watch
 # "live[s] only in a dashboard, unreviewable and undiffable". Inline is
 # diffable, reviewable, and rotated by a reviewed commit.
 #
+# THE CADENCE IS MEASURED, NOT NOMINAL, AND SO IS THE STALENESS THRESHOLD. The
+# first version of this file paired `17 */6 * * *` with a liveness note saying
+# "Last run" should never be more than about six hours old. That threshold was
+# taken from what the cron REQUESTS, and this repository does not deliver what
+# it requests: ~82% of scheduled invocations are dropped here. A 6-hourly cron
+# would therefore have gone quiet for a day at a time while working perfectly,
+# and the artifact built to stop an alarm being trained-to-ignore would have
+# cried wolf on its first quiet day. Caught by measuring the control, four hours
+# after it merged -- register #71, on this file's own author.
+#
 # LIVENESS, AND EXACTLY WHAT IT BUYS. Every run rewrites a single permanently
 # open issue (label `orphan-watch:liveness`) with the run's timestamp, state and
 # URL. IT CANNOT MAKE ANYONE LOOK. It does not close the residual below. What it
@@ -61,12 +71,33 @@ name: deletion-orphan-watch
 
 on:
   schedule:
-    # Every six hours, at :17 rather than :00 -- the top of the hour is the
-    # busiest slot on shared runners and scheduled jobs are delayed there.
-    # Six hours is chosen against the harm: the user is already not being
-    # billed, so the cost of latency is how long they hold data they asked to
-    # have destroyed, not money.
-    - cron: '17 */6 * * *'
+    # `*/30`, COPIED FROM production-monitor.yml RATHER THAN CHOSEN -- that
+    # workflow has 100 measured scheduled runs behind this exact value in this
+    # exact repository.
+    #
+    # THIS REPLACED `17 */6 * * *`, AND THE REASON IS A MEASUREMENT, NOT A
+    # PREFERENCE. The first `17 */6` window (00:17Z, 2026-09-05) produced no
+    # run. Measuring the control rather than guessing: production-monitor, also
+    # schedule-triggered, fired at 00:18:35Z -- ONE MINUTE LATER -- so scheduled
+    # delivery reaches this repository and a repo- or account-wide fault is
+    # excluded. What the control also shows is that delivery here is heavily
+    # LOSSY: 100 scheduled runs between 2026-08-24T11:36Z and 2026-09-05T00:18Z,
+    # 276.7 hours, is one run per 2.77 hours against a requested one per 0.5 --
+    # roughly four invocations in five are dropped. The twelve most recent gaps
+    # were 120, 148, 168, 213, 266, 282, 261, 124, 147, 185, 280 and 314 minutes.
+    #
+    # A cron with FOUR fixed opportunities a day, in an environment dropping
+    # ~82% of them, has an expected yield below one run per day -- for a watcher
+    # whose whole purpose is to notice an orphan within hours. `17 */6` was not
+    # broken; it was MIS-SPECIFIED for this delivery environment. `*/30` does not
+    # ask GitHub to work harder, it asks more often so that lossy delivery still
+    # produces a run every few hours.
+    #
+    # ACCEPTED COST, NAMED: ~48 requested runs a day yielding ~9 real ones, each
+    # rewriting the liveness issue. Actions minutes are not billed on a public
+    # repository (production-monitor.yml records the same), and the issue's edit
+    # history grows -- noise, not harm.
+    - cron: '*/30 * * * *'
   workflow_dispatch:
     inputs:
       # VERIFICATION ONLY, and dispatch-only by construction: `inputs` does not
@@ -78,8 +109,10 @@ on:
       # read at a port nothing listens on, which exercises the third branch
       # WITHOUT touching production at all.
       #
-      # An issue opened by a forced run self-closes on the next `clear` run,
-      # which is at most six hours away.
+      # An issue opened by a forced run self-closes on the next `clear` run.
+      # At the measured delivery rate above that is typically a few hours, not
+      # the nominal 30 minutes -- stated as what arrives rather than what is
+      # requested.
       force_state:
         description: 'Force a classification (verification only; scheduled runs are unaffected)'
         type: choice
@@ -264,9 +297,18 @@ jobs:
             "Run:       ${RUN_URL}" \
             '' \
             'This issue is rewritten by EVERY run of deletion-orphan-watch. It is' \
-            'meant to be STALE-CHECKED, not read: the schedule is `17 */6 * * *`, so' \
-            '"Last run" should never be more than about six hours old. If it is days' \
-            'old, the watcher is not running and the orphan signal is UNKNOWN.' \
+            'meant to be STALE-CHECKED, not read.' \
+            '' \
+            'THE THRESHOLD BELOW IS MEASURED, NOT NOMINAL. The cron asks for every 30' \
+            'minutes; that is not what arrives. GitHub drops roughly four scheduled' \
+            'invocations in five in this repository -- measured on the control,' \
+            'production-monitor.yml: 100 runs in 276.7 hours to 2026-09-05, a mean gap' \
+            'of 2.8 hours, with observed gaps up to 5.2 hours.' \
+            '' \
+            'So: expect "Last run" to advance every few hours, and do NOT treat a gap' \
+            'of several hours as a fault. If it is more than about 12 HOURS old,' \
+            'something is wrong. If it is DAYS old, the watcher is not running and the' \
+            'orphan signal is UNKNOWN.' \
             '' \
             'IT CANNOT MAKE ANYONE LOOK. It does not close register #54, and it does' \
             'not close the 60-day scheduled-workflow disablement, which stays open and' \

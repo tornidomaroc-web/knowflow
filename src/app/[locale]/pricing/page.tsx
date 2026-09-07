@@ -12,6 +12,10 @@ export default function PricingPage({ params }: { params: Promise<{ locale: Loca
 
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  /** The reference the checkout API logged alongside the real cause, so a user
+   *  report can be joined to the exact server log line. Null when the request
+   *  never reached the server. */
+  const [errorRef, setErrorRef] = useState<string | null>(null);
   const [paddle, setPaddle] = useState<Paddle | undefined>();
 
   const supabase = createClient();
@@ -114,14 +118,36 @@ export default function PricingPage({ params }: { params: Promise<{ locale: Loca
                 try {
                   const res = await fetch('/api/paddle/checkout', { method: 'POST' });
                   const data = await res.json();
+
                   if (data.transactionId) {
                     paddle?.Checkout.open({ transactionId: data.transactionId });
                     setStatus('idle');
-                  } else {
-                    throw new Error(data.error || 'Failed to start checkout');
+                    return;
                   }
-                } catch (err: any) {
-                  setErrorMsg(err.message);
+
+                  // The session lapsed between the check above and this call.
+                  if (res.status === 401) {
+                    window.location.href = `/${locale}/login`;
+                    return;
+                  }
+
+                  // The API answers with a STABLE CODE, never prose. The
+                  // sentence the user reads is chosen here, from their own
+                  // locale bundle. This is what stopped an Arabic user being
+                  // shown the literal English string 'Internal Server Error'.
+                  const messages: Record<string, string> = {
+                    checkout_unavailable: t.pricing.checkout.unavailable,
+                    checkout_misconfigured: t.pricing.checkout.misconfigured,
+                  };
+                  setErrorMsg(messages[data.error] ?? t.pricing.checkout.failed);
+                  setErrorRef(typeof data.reference === 'string' ? data.reference : null);
+                  setStatus('error');
+                } catch {
+                  // The request never completed, so there is no code to
+                  // translate and no reference to quote. Retrying is the right
+                  // advice, which is what `unavailable` says.
+                  setErrorMsg(t.pricing.checkout.unavailable);
+                  setErrorRef(null);
                   setStatus('error');
                 }
               }}
@@ -133,7 +159,14 @@ export default function PricingPage({ params }: { params: Promise<{ locale: Loca
               ) : t.pricing.pro.button}
             </button>
             {status === 'error' && (
-              <p className="text-red-700 text-xs text-center mt-2">{errorMsg}</p>
+              <p className="text-red-700 text-xs text-center mt-2">
+                {errorMsg}
+                {errorRef && (
+                  <span className="block opacity-70 mt-1">
+                    {t.pricing.checkout.reference} {errorRef}
+                  </span>
+                )}
+              </p>
             )}
           </div>
         </div>
