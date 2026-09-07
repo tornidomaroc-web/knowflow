@@ -252,7 +252,9 @@ export const en = {
         keepButton: "Keep my subscription",
         working: "Cancelling…",
         done: "Your subscription is cancelled. You keep Pro until",
-        errorFailed: "That did not work and nothing was changed. You can try again."
+        errorFailed: "That did not work and nothing was changed. You can try again.",
+        errorPartial: "Only part of it worked. {scheduled} of {total} subscriptions are now set to end, but {failed} could not be cancelled and is still billing. Please try again to cancel the rest. If it fails again, contact support with the reference below.",
+        reference: "Reference:"
       },
       deleteAccount: {
         heading: "Delete account",

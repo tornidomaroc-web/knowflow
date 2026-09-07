@@ -16,6 +16,12 @@ export interface CancelSubscriptionLabels {
   working: string;
   done: string;
   errorFailed: string;
+  /** Shown when SOME subscriptions were scheduled and some were not. Carries
+   *  {scheduled}, {failed} and {total} placeholders. Never say "nothing was
+   *  changed" when something was. */
+  errorPartial: string;
+  /** Label before the support reference on a failure. */
+  reference: string;
 }
 
 export interface CancelSubscriptionCardProps {
@@ -60,6 +66,7 @@ export function CancelSubscriptionCard({
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reference, setReference] = useState<string | null>(null);
 
   async function onConfirm() {
     setBusy(true);
@@ -74,6 +81,8 @@ export function CancelSubscriptionCard({
       return;
     }
 
+    setReference(null);
+
     if (response.ok) {
       // No navigation and no reload: unlike deletion, the session is still
       // valid and the page is still theirs. The card simply states what now
@@ -85,7 +94,30 @@ export function CancelSubscriptionCard({
       return;
     }
 
-    setError(labels.errorFailed);
+    // A PARTIAL CANCELLATION MUST NOT BE REPORTED AS A FAILED ONE. The route
+    // now sends the counts (#106 fix): `CancelPartial` means some of the
+    // customer's subscriptions ARE scheduled to end, and telling them nothing
+    // changed would be false — they would also not know that the rest are still
+    // billing, which is the thing they need to act on.
+    let body: { error?: string; scheduled?: number; failed?: number; total?: number; reference?: string } = {};
+    try {
+      body = await response.json();
+    } catch {
+      // Fall through to the generic message: an unreadable body is a total
+      // failure as far as anything we can honestly claim goes.
+    }
+
+    if (body.error === 'CancelPartial') {
+      setError(
+        labels.errorPartial
+          .replace('{scheduled}', String(body.scheduled ?? 0))
+          .replace('{failed}', String(body.failed ?? 0))
+          .replace('{total}', String(body.total ?? 0))
+      );
+    } else {
+      setError(labels.errorFailed);
+    }
+    setReference(body.reference ?? null);
     setBusy(false);
   }
 
@@ -115,6 +147,16 @@ export function CancelSubscriptionCard({
           {error && (
             <p role="alert" className="mb-4 text-sm font-medium text-red-600">
               {error}
+              {/* The reference is what makes "contact support" actionable: it is
+                  the only handle a customer has on the log line that explains
+                  what actually failed. Same pattern as the checkout route
+                  (#109). Not a security boundary — it identifies a log entry,
+                  never a subscription. */}
+              {reference && (
+                <span className="mt-1 block font-normal text-muted-foreground">
+                  {labels.reference} {reference}
+                </span>
+              )}
             </p>
           )}
 

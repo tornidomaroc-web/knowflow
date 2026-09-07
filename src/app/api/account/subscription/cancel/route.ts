@@ -57,15 +57,32 @@ export async function POST() {
   const result = await scheduleSubscriptionCancellation(admin, paddleClient, user.id);
 
   if (cancelScheduleFailed(result)) {
-    // A failure here costs nothing irreversible — no account was destroyed and
-    // no data was touched — so this is a plain retryable error, not the
-    // deletion route's carefully distinguished 409. The reason is logged for an
-    // operator and NOT returned: it carries Paddle subscription ids.
+    // A PARTIAL CANCELLATION IS NOT A FAILED ONE, AND SAYING SO WAS A DEFECT.
+    // This used to return a flat `CancelFailed` and throw `result.scheduled`
+    // away, so the card rendered "nothing was changed" while one of the
+    // customer's subscriptions was genuinely scheduled to cancel in Paddle.
+    // Executed 2026-09-07 against the sandbox: the library returned
+    // `{ ok: false, scheduled: 1 }` against a real scheduled change, and the
+    // customer would have been told the opposite. The counts now reach the
+    // browser; only the reason string, which carries Paddle subscription ids,
+    // stays in the log.
+    //
+    // The shape follows `paddle-errors.ts` (#109) and `paddle-webhook-errors.ts`
+    // (#110): a STABLE CODE to the browser, the DETAIL to the log, and a short
+    // reference the customer can quote to support. This was the last
+    // undifferentiated Paddle failure in the codebase.
+    const partial = result.scheduled > 0;
+    const code = partial ? 'CancelPartial' : 'CancelFailed';
+    const reference = 'KF-' + Math.random().toString(16).slice(2, 10);
+
     console.error(
-      `[subscription-cancel-failed] user=${user.id} scheduled=${result.scheduled} reason=${result.reason}`
+      `[subscription-cancel-${partial ? 'partial' : 'failed'}] ref=${reference} ` +
+        `user=${user.id} scheduled=${result.scheduled} failed=${result.failed} ` +
+        `total=${result.total} reason=${result.reason}`
     );
+
     return NextResponse.json(
-      { error: 'CancelFailed' },
+      { error: code, scheduled: result.scheduled, failed: result.failed, total: result.total, reference },
       { status: 500, headers: { 'Cache-Control': 'no-store' } }
     );
   }

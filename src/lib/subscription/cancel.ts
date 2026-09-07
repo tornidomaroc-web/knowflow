@@ -97,7 +97,26 @@ export type CancelScheduleOutcome = 'nothing-to-cancel' | 'scheduled';
 
 export type CancelScheduleResult =
   | { ok: true; outcome: CancelScheduleOutcome; scheduled: number; effectiveAt: string | null }
-  | { ok: false; reason: string; scheduled: number };
+  | {
+      ok: false;
+      reason: string;
+      /** How many WERE scheduled before/after the failures. May be > 0. */
+      scheduled: number;
+      /**
+       * How many ATTEMPTS failed. Zero on the two pre-flight refusals above
+       * (a bad userId, an unreadable table), where nothing was ever attempted
+       * -- those are total failures with nothing known about the list.
+       */
+      failed: number;
+      /** How many the customer owns in total, so a caller can say "1 of 3". */
+      total: number;
+      /**
+       * The soonest effective date among the ones that DID schedule, or null if
+       * none did. A partial failure still has a real date to show the customer
+       * for the part that worked.
+       */
+      effectiveAt: string | null;
+    };
 
 /**
  * Explicit type predicate rather than `if (!result.ok)`, for the reason
@@ -192,8 +211,25 @@ async function scheduleAndVerify(
  * demanding an abort protocol -- the asymmetry is the whole point of having a
  * cancel path separate from deletion.
  *
- * Sequential, and the count is returned on both arms: with two subscriptions, a
- * failure on the second must not be reported as if neither had been scheduled.
+ * SEQUENTIAL, AND IT DOES NOT STOP AT THE FIRST FAILURE. Every id in the list
+ * is this user's OWN subscription and they have asked for all of them to end, so
+ * the only thing an early return buys is a live subscription still drawing money
+ * from someone who explicitly asked to stop -- the worst outcome available here.
+ * There is no opposing risk to weigh: continuing cannot cancel anything the
+ * customer did not ask to cancel. So every id is attempted, the failures are
+ * collected, and the result reports the truth about what was scheduled AND what
+ * was not.
+ *
+ * MEASURED, NOT ASSUMED, 2026-09-07: the earlier early-return was executed
+ * against the sandbox with a stub returning two ids. The second id was NEVER
+ * attempted. For a customer with three subscriptions whose second one fails, the
+ * third was never touched, kept billing, and the UI told them nothing had
+ * changed.
+ *
+ * The counts are returned on BOTH arms: with two subscriptions, a failure on the
+ * second must not be reported as if neither had been scheduled. `scheduled`,
+ * `failed` and `total` exist so the caller can tell "nothing worked" apart from
+ * "some worked", which are different things to say to a person.
  */
 export async function scheduleSubscriptionCancellation(
   admin: SupabaseClient,
@@ -201,10 +237,16 @@ export async function scheduleSubscriptionCancellation(
   userId: string
 ): Promise<CancelScheduleResult> {
   if (!UUID_RE.test(userId)) {
+    // Nothing was attempted, so nothing failed and nothing is known about how
+    // many exist. Zeroes here are honest; the caller reads `scheduled === 0` and
+    // reports a total failure, which is what this is.
     return {
       ok: false,
       reason: 'refusing to cancel: userId is not a UUID, so a zero-row result would prove nothing',
       scheduled: 0,
+      failed: 0,
+      total: 0,
+      effectiveAt: null,
     };
   }
 
@@ -217,7 +259,14 @@ export async function scheduleSubscriptionCancellation(
   // out whether there is anything to cancel" are different facts, and only one
   // of them may be reported to a customer as success.
   if (error) {
-    return { ok: false, reason: `subscription read failed: ${error.message}`, scheduled: 0 };
+    return {
+      ok: false,
+      reason: `subscription read failed: ${error.message}`,
+      scheduled: 0,
+      failed: 0,
+      total: 0,
+      effectiveAt: null,
+    };
   }
 
   const subscriptionIds = (data ?? [])
@@ -230,16 +279,33 @@ export async function scheduleSubscriptionCancellation(
 
   let scheduled = 0;
   let effectiveAt: string | null = null;
+  const reasons: string[] = [];
 
   for (const subscriptionId of subscriptionIds) {
     const attempt = await scheduleAndVerify(paddle, subscriptionId);
     if ('reason' in attempt) {
-      return { ok: false, reason: attempt.reason, scheduled };
+      // CONTINUE, do not return. See the note above: stopping here leaves the
+      // customer's remaining subscriptions billing after they asked to stop.
+      reasons.push(attempt.reason);
+      continue;
     }
     scheduled += 1;
     // The soonest date is the one the customer cares about: it is when their
     // access actually starts lapsing.
     if (!effectiveAt || attempt.effectiveAt < effectiveAt) effectiveAt = attempt.effectiveAt;
+  }
+
+  if (reasons.length > 0) {
+    return {
+      ok: false,
+      // Joined rather than nested: this string is for an operator's log line and
+      // is NEVER returned to the browser -- it carries Paddle subscription ids.
+      reason: reasons.join(' | '),
+      scheduled,
+      failed: reasons.length,
+      total: subscriptionIds.length,
+      effectiveAt,
+    };
   }
 
   return { ok: true, outcome: 'scheduled', scheduled, effectiveAt };
