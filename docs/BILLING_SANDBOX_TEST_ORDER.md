@@ -234,26 +234,70 @@ before starting the next one.
   `scheduledChange=cancel@2026-10-07T20:00:38.204Z` on the first subscription
   while the call reported `ok: false`.
 
-  **THE DEFECT, DEMONSTRATED.** `POST /api/account/subscription/cancel` was
-  asserted against its own source: it branches on `cancelScheduleFailed(result)`,
-  it **logs** `scheduled=${result.scheduled}` for an operator, and it returns
-  `{ error: 'CancelFailed' }` — a body that was checked and does **not** carry
-  `scheduled`. The card then renders `labels.errorFailed`, which is verbatim:
+  **THE DEFECT, DEMONSTRATED — AND THEN FIXED THE SAME DAY. THE SEQUENCE BELOW IS
+  THE POINT; IT IS WRITTEN AS HISTORY BECAUSE THE ORDER IN WHICH THESE FACTS
+  ARRIVED IS WORTH MORE THAN THE END STATE.**
+
+  **(1) WHAT WAS MEASURED, 2026-09-07.**
+  `POST /api/account/subscription/cancel` was asserted against its own source: it
+  branched on `cancelScheduleFailed(result)`, it **logged**
+  `scheduled=${result.scheduled}` for an operator, and it returned
+  `{ error: 'CancelFailed' }` — a body that was checked and did **not** carry
+  `scheduled`. The card then rendered `labels.errorFailed`:
 
   > en — *"That did not work and nothing was changed. You can try again."*
   > ar — *"لم تنجح العملية ولم يتغير أي شيء. يمكنك المحاولة مرة أخرى."*
 
-  So the customer is told **nothing changed** while one of their subscriptions is
-  genuinely scheduled to cancel. The sentence is false, the library computed the
-  honest number, and the route throws it away.
+  **(2) THE CUSTOMER-FACING FALSEHOOD THAT PRODUCED.** With `scheduled: 1` and
+  Paddle genuinely holding `scheduledChange=cancel@2026-10-07T20:00:38.204Z` on
+  the first subscription, the customer was told **nothing changed** while one of
+  their subscriptions was on its way out. The library computed the honest number
+  and the route threw it away.
 
-  **AND THE LOOP STOPS AT THE FIRST FAILURE**, proven by a control with two
+  **(3) AND THE LOOP STOPPED AT THE FIRST FAILURE**, proven by a control with two
   bogus ids that touched nothing real: `scheduled: 0`, and the **second id was
   never attempted** — only one `cancel`/`get` pair was issued. For a user with
-  **three** subscriptions whose second fails, the third is never attempted, keeps
-  billing, and the customer is told nothing changed. **The blast radius of this
-  defect grows with the number of subscriptions a user owns**, which is exactly
-  the population register #9 is about.
+  **three** subscriptions whose second failed, the third was never attempted,
+  kept billing, and the customer was told nothing had changed. **The blast radius
+  grew with the number of subscriptions a user owned**, which is exactly the
+  population register #9 is about.
+
+  **(4) THE OWNER RULED THAT THE LOOP CONTINUES.** The customer's goal is to stop
+  being billed, and stopping early leaves live subscriptions drawing money from
+  someone who explicitly asked to stop — the worst outcome available. There is no
+  opposing risk to weigh against it: every id in that list is the customer's own
+  subscription, read with `.eq('user_id', userId)`, and they asked for all of
+  them to end, so continuing cannot cancel anything they did not ask to cancel.
+  Attempt every one, collect the failures, report the truth about what was
+  scheduled and what was not.
+
+  **(5) FIXED IN `8262dd7`, inside PR #106, PROVEN BY EXECUTION ON BOTH CASES.**
+  The failure arm now carries `failed`, `total` and `effectiveAt`; the route
+  sends a stable code plus the counts and a short support reference, keeping the
+  reason string — which carries Paddle subscription ids — in the log, following
+  `paddle-errors.ts` (#109) and `paddle-webhook-errors.ts` (#110). Executed:
+
+  - **all fail** → `{ ok: false, scheduled: 0, failed: 2, total: 2 }`, and **all
+    four SDK calls were issued** — the second id IS attempted now, which is the
+    ruling executed. Code `CancelFailed`, and *"nothing was changed"* is shown,
+    which is **true** in that case.
+  - **partial** → `{ ok: false, scheduled: 1, failed: 1, total: 2 }` against a
+    real scheduled change. Code `CancelPartial`, and the customer reads *"Only
+    part of it worked. 1 of 2 subscriptions are now set to end, but 1 could not
+    be cancelled and is still billing. Please try again to cancel the rest. If it
+    fails again, contact support with the reference below."* — with an Arabic
+    equivalent, and no placeholder left unfilled in either language.
+
+  **(6) THE DEAD-ID CONSEQUENCE, WHICH IS WHY THE COPY ESCALATES.** A permanently
+  invalid id in a customer's rows makes **every** retry report partial, forever.
+  That is why the string does not merely say "try again": it says try again **and
+  contact support with the reference**, so a customer cannot be looped
+  indefinitely by an id that will never succeed.
+
+  **WHERE THIS CODE LIVES.** All of it — `src/lib/subscription/cancel.ts`, the
+  route and the card — is on **PR #106's branch (`feat/70-cancel-subscription`)
+  and NOT on `main`**. A reader on `main` will not find `cancel.ts` there at all.
+  Everything in this entry describes code that has not yet merged.
 
 ### Tier 2 — consumes the subscription permanently
 
