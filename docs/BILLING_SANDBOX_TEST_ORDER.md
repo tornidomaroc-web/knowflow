@@ -48,10 +48,18 @@ Paddle automatically creates subscriptions for you when customers pay for
 recurring items using the checkout, **or when you create and issue an invoice
 using a manually-collected transaction**."*
 
-The second path is entirely API-driven. Confirmed against the update-transaction
-reference: the status *"may only be set to `billed` or `canceled`"*, and setting
-it to `billed` is *"essentially issuing an invoice"* — at which point Paddle
-assigns an invoice number and **creates an associated subscription**.
+The second path is API-driven **only if the API key carries the right
+permissions, and only as a multi-step sequence.** Confirmed against the
+update-transaction reference: the status *"may only be set to `billed` or
+`canceled`"*, and setting it to `billed` is *"essentially issuing an invoice"* —
+at which point Paddle assigns an invoice number and **creates an associated
+subscription**.
+
+**CORRECTED 2026-09-07 BY EXECUTION.** The sentence "entirely API-driven" was
+written from the docs and is wrong as an unqualified claim. See rule 3 for what
+the API actually demands, and "Known unverified" for the part that is still not
+proven. The correction was not free: it cost four blocked attempts against the
+sandbox, each returning a different Paddle error code.
 
 **4. A subscription created from an issued-but-unpaid invoice is `active`.**
 It becomes `past_due` only once the payment terms elapse. Both `active` and
@@ -136,10 +144,58 @@ new one.**
    outstanding.** This is the rule that was broken.
 2. **Reset, don't re-mint.** After any period-end cancel test, restore with
    `update(id, { scheduledChange: null })` and verify with `get`.
-3. **Mint by invoice, not by checkout.** Create a manually-collected transaction
-   and mark it `billed`. It needs `customer_id`, `address_id`, `items`, and
+3. **Mint by invoice, not by checkout — but it is NOT one call, and NOT free of
+   account setup.** Create a manually-collected transaction and bring it to
+   `billed`. It needs `customer_id`, `address_id`, `items`, and
    `billing_details.payment_terms`. Set long payment terms so the subscription
    stays `active` rather than drifting to `past_due` mid-suite.
+
+   **The four things this rule got wrong, each corrected by an executed Paddle
+   error on 2026-09-07. Read them before planning a session around this path.**
+
+   **(a) IT IS AT LEAST TWO UPDATES, NEVER ONE.** Paddle validates the status
+   transition against the **pre-update** state, so you cannot attach the missing
+   fields and bill in the same call.
+   `update({ customerId, status: 'billed' })` on a `draft` returns:
+
+   > `bad_request` — *"transaction needs to have ready status"*
+
+   The sequence is: `update({ customerId, addressId })` → transaction becomes
+   `ready` → `update({ status: 'billed' })`.
+
+   **(b) IT IS NOT PURELY API-DRIVEN WITHOUT AN `Addresses` GRANT.** A billed
+   transaction needs an `address_id`, and a Paddle API key does not necessarily
+   have permission to make one. Ours did not:
+
+   > `forbidden` — *"not authorized to create customer-address"*
+   > `forbidden` — *"not authorized to read customer-address"*
+
+   Both verbs were denied, so no existing address could be reused either. This
+   is a **credential scope** problem and is fixed in the Paddle dashboard
+   (Developer Tools → Authentication → API keys → permissions), not in code.
+   Check it **before** planning a session around this path: a draft that
+   succeeds tells you nothing about whether you can finish.
+
+   **(c) THE CUSTOMER MUST BE SUITABLE FOR MANUAL COLLECTION.** A customer
+   created by an earlier **checkout** was rejected:
+
+   > `transaction_customer_not_suitable_for_collection_mode` —
+   > *"Customer entity must be suitable for the transactions current collection mode"*
+
+   A customer created through `customers.create` was accepted. Do not expect to
+   reuse the customer from a previous checkout-minted subscription.
+
+   **(d) THE ADDRESS MUST ALSO BE SUITABLE, AND THIS IS WHERE THE PATH IS STILL
+   BLOCKED.** An address created with only `countryCode: 'MA'` and a
+   `description` was rejected:
+
+   > `transaction_address_not_suitable_for_collection_mode` —
+   > *"Address entity must be suitable for the transactions current collection mode"*
+
+   What Paddle counts as "suitable" here is **not yet established** — the
+   plausible reading is that an invoice needs a full postal address (first line,
+   city, postal code, region) rather than a bare country, but that has NOT been
+   executed and must not be written down as fact until it has been.
 4. **A test that needs no Paddle subscription must never be scheduled behind one
    that does.** Most of our billing queue is Tier 0.
 5. **Re-read `list` before and after every session** so the sandbox's state is
@@ -149,11 +205,25 @@ new one.**
 
 ## Known unverified
 
-- **Whether manual collection / invoicing is enabled on our sandbox account.**
-  Paddle gates invoicing on live accounts; whether our sandbox permits it has not
-  been tested. The cheap probe is to create a manually-collected transaction and
-  leave it at `draft` — a draft creates no subscription, bills nobody, and can be
-  cancelled. Only if that succeeds is rule 3 available to us.
+- **Whether manual collection / invoicing is enabled on our sandbox account.
+  STILL OPEN, and the "cheap probe" named here does NOT answer it.** Executed
+  2026-09-07: creating a manually-collected transaction and leaving it at
+  `draft` **SUCCEEDED** — `txn_01m1yn6mf9axdyqta3w4fwce0k`, `status: draft`,
+  `collectionMode: manual`, 30-day payment terms, no subscription, no invoice
+  number, sandbox subscription count unchanged. **That is necessary but not
+  sufficient**, and the sentence *"Only if that succeeds is rule 3 available to
+  us"* reads the implication backwards: a successful draft does not make rule 3
+  available, it only fails to rule it out. The account-level question is settled
+  by the `status: 'billed'` call, and **we have never reached one**, because the
+  attempt is blocked earlier — see rule 3(d). Nothing here may be described as
+  "invoicing is enabled" or "invoicing is disabled".
+- **What makes an address "suitable" for manual collection.** Rule 3(d). This is
+  the live blocker on the invoice path.
+- **The sandbox API host is `sandbox-api.paddle.com`, NOT
+  `api.sandbox.paddle.com`.** The latter does not resolve, and the `ENOTFOUND`
+  it produces looks exactly like "the sandbox is unreachable" or "the network is
+  blocked" — which would send someone to a browser checkout for no reason. Read
+  the SDK's own `Environment` constants rather than guessing the hostname.
 - **Any upper bound Paddle enforces on `payment_terms`.** Not checked.
 - **Whether `update` on a subscription carrying a `scheduledChange` requires the
   subscription to be `active`.** The docs do not restrict update by status, but
