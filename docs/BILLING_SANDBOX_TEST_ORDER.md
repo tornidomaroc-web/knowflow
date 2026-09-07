@@ -149,12 +149,48 @@ Every test here is reversible. Reset with
 re-assert with `subscriptions.get(id)` that `scheduledChange` is null again
 before starting the next one.
 
-- **PR #106 `scheduleSubscriptionCancellation`.** Schedules a cancel at period
-  end. Leaves the subscription `active` with a `scheduledChange` attached. Fully
-  undoable.
-- **PR #106 `readScheduledCancellation`.** Needs a scheduled change present, so
-  it pairs naturally with the test above — run it while the change is attached,
-  then again after the reset to confirm it returns `null`.
+- **PR #106 `scheduleSubscriptionCancellation`. DONE 2026-09-07 — and this was
+  the first time ANY line of our own code executed against Paddle.** Everything
+  before it proved the SDK. Run against `sub_01m1yqapt1zxhjvamk4hzjmsfr` through
+  a stub Supabase client, so no database was touched and no `subscriptions` row
+  was created. Returned, by value:
+
+  ```
+  { ok: true, outcome: 'scheduled', scheduled: 1,
+    effectiveAt: '2026-10-07T20:00:38.204Z' }
+  ```
+
+  Paddle then held `status=active`, `scheduledChange=cancel@2026-10-07T20:00:38.204Z`,
+  `periodEnds=2026-10-07T20:00:38.204Z`. **`effectiveAt` equalled `endsAt`
+  exactly**, and the `effectiveAt` our code returned is the one Paddle holds.
+  Two further witnesses came free: our code issued
+  `from(subscriptions).select('paddle_subscription_id').eq('user_id', …)` —
+  **plural, no `.single()` or `.maybeSingle()`**, register #9's whole point — and
+  the harness wrapped `cancel` so that anything but `next_billing_period` would
+  throw. It never fired.
+- **PR #106 `readScheduledCancellation`. DONE 2026-09-07.** Both halves, same
+  run: with the change attached it returned `'2026-10-07T20:00:38.204Z'`, the
+  exact value Paddle held; after `update({scheduledChange: null})` it returned
+  `null`. It did not throw at any point, which is the degradation rule the module
+  documents.
+- **THE PREDICATE PAIR, PROVEN AGAINST ONE LIVE OBJECT — register #70 / PR #106's
+  central finding, measured rather than argued.** Against the same live
+  subscription carrying `status=active` and a `cancel` scheduled change:
+  `verifiablyScheduledToCancel` (imported and genuinely executing) returned
+  **true**; the deletion module's `verifiablyCanceled` expression returned
+  **false on BOTH of its terms** — status is `active` not `canceled`, and a
+  scheduled change IS attached. Reusing it here would have reported **failure on
+  every success**.
+
+  **BUT NOTE HOW THAT SECOND HALF HAD TO BE OBTAINED, because it is a real gap:**
+  `verifiablyCanceled` at `src/lib/account-deletion/paddle.ts:116` is
+  **module-private**. It cannot be imported, and the only exported path that
+  reaches it is `cancelUserSubscriptions`, which performs an **immediate** cancel
+  — terminal, Tier 2. So its expression was **transcribed** and applied to the
+  live object. That is strong evidence and it is not the same thing as executing
+  that function. **The predicate whose misuse PR #106 exists to prevent is not
+  reachable by any test.** Exporting it is a one-line change and would close
+  this.
 - **The double-click path.** Call `scheduleSubscriptionCancellation` twice
   without resetting in between. This is the one that exercises the
   catch-then-re-read arm in `scheduleAndVerify`, and it is otherwise very hard to
@@ -271,15 +307,31 @@ new one.**
   non-`active` subscription carrying a scheduled change, which we do not have and
   cannot cheaply manufacture (`past_due` arrives only when the payment terms
   elapse). Treat the reset as proven for the `active` case only.
-- **OBSERVED BUT NOT MEASURED: the billed response carried `invoiceNumber: null`
-  and `invoiceId: null`.** Fact 3 above, quoting Paddle's reference, says setting
-  the status to `billed` is *"essentially issuing an invoice"* and assigns an
-  invoice number. The subscription was minted regardless, so nothing downstream
-  depended on it. **Only the immediate response was read** — whether those fields
-  populate asynchronously was never checked, so this is recorded as an
-  observation and explicitly NOT as a correction to fact 3. Anyone who needs the
-  invoice number should re-read the transaction rather than trust the create
-  response.
+- **INVOICE NUMBERS ARE GENERATED, JUST NOT SYNCHRONOUSLY. Resolved 2026-09-07
+  from outside the run.** The `billed` response carried `invoiceNumber: null` and
+  `invoiceId: null`, which looked like it contradicted fact 3's quotation of
+  Paddle's reference. It does not. Paddle subsequently emailed a real invoice for
+  this transaction, **numbered `125643-10002`**, with the subject prefixed
+  `[TEST]`. So fact 3 is correct and the original observation was right about the
+  **moment**, not about the **field**: the number is assigned asynchronously and
+  is simply absent from the immediate create response. **Do not conclude that
+  invoice numbers are absent.** Anyone who needs one must re-read the transaction
+  (or wait for the notification) rather than trust the create response. The
+  invoice is deliberately left **unopened and unpaid** — paying it would move the
+  subscription off the clean reset state that Tier 1 depends on.
+- **THE SANDBOX OBJECTS ARE TEST DATA. Do not mistake either customer for a live
+  one.** `ctm_01m1ynnm32kjrw80m8dggxry5y` — named *"KNOWFLOW TIER1 TEST - sandbox
+  only"* — was created by API for the invoice path and carries an `example.com`
+  address; its address `add_01m1ypjxntjwhjff94bf5y68ag` holds a placeholder
+  Casablanca postal address. `ctm_01m1mrp2tw9xh6dymcccmkpdcr` is older, was
+  created by a **browser checkout**, and carries a **real personal mailbox** — it
+  is the customer behind the `canceled` subscription, and Paddle **rejected** it
+  for manual collection (`transaction_customer_not_suitable_for_collection_mode`),
+  so it is not on the billed transaction. **Unverified:** the `[TEST]` invoice
+  mail reached a real inbox even though the billed transaction belongs to the
+  `example.com` customer; the likely explanation is that Paddle routes sandbox
+  notifications to the **account owner** rather than to the customer on the
+  transaction, but that was not tested and must not be written down as fact.
 - **The sandbox API host is `sandbox-api.paddle.com`, NOT
   `api.sandbox.paddle.com`.** The latter does not resolve, and the `ENOTFOUND`
   it produces looks exactly like "the sandbox is unreachable" or "the network is
