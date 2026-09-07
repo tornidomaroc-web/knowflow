@@ -1,0 +1,98 @@
+import { NextResponse } from 'next/server';
+import { createClient as createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
+import { paddleClient } from '@/lib/paddle';
+import {
+  scheduleSubscriptionCancellation,
+  cancelScheduleFailed,
+} from '@/lib/subscription/cancel';
+
+/**
+ * POST /api/account/subscription/cancel — stop billing at the end of the period
+ * the customer has already paid for. Register #70, issue #96.
+ *
+ * WHAT THIS IS NOT. It is not account deletion and it must never be confused
+ * with it: nothing is destroyed, no data is touched, and the customer keeps
+ * everything they have. Until this route existed, `DELETE /api/account` was the
+ * ONLY way to stop being billed — a customer who wanted to keep their work had
+ * no exit at all.
+ *
+ * WHY THERE IS NO TYPED CONFIRMATION, unlike the deletion route. That route
+ * demands the session's own email typed back because deletion is unrecoverable:
+ * there is no soft-delete, no grace period, no restore. Cancelling is
+ * recoverable by resubscribing and destroys nothing, so the same ceremony would
+ * MISLABEL A REVERSIBLE ACT AS AN IRREVERSIBLE ONE. Weight is a signal; spending
+ * it here would devalue it there.
+ *
+ * The user id still comes from the session and NEVER from the body — the same
+ * rule the deletion route states, for the same reason: a body-supplied id would
+ * make this a "cancel anyone's subscription" endpoint behind a typo.
+ *
+ * THE SERVICE-ROLE CLIENT IS DELIBERATE. `subscriptions` grants exactly one RLS
+ * policy, `FOR SELECT`, so a user-scoped client can read the row but the Paddle
+ * key must never reach a browser regardless. The read is scoped to the session's
+ * OWN id, which is why that id must not be attacker-controlled.
+ *
+ * NOTHING IS WRITTEN TO THE DATABASE HERE OR ANYWHERE DOWNSTREAM, AND THAT IS
+ * THE DESIGN. `src/lib/subscription/cancel.ts` explains why at length: the row
+ * already says `active` with a future `current_period_end`, which is exactly
+ * what `getEntitlement` needs to keep the customer Pro for the time they paid
+ * for, and to lapse them by the clock afterwards.
+ */
+export async function POST() {
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const result = await scheduleSubscriptionCancellation(admin, paddleClient, user.id);
+
+  if (cancelScheduleFailed(result)) {
+    // A PARTIAL CANCELLATION IS NOT A FAILED ONE, AND SAYING SO WAS A DEFECT.
+    // This used to return a flat `CancelFailed` and throw `result.scheduled`
+    // away, so the card rendered "nothing was changed" while one of the
+    // customer's subscriptions was genuinely scheduled to cancel in Paddle.
+    // Executed 2026-09-07 against the sandbox: the library returned
+    // `{ ok: false, scheduled: 1 }` against a real scheduled change, and the
+    // customer would have been told the opposite. The counts now reach the
+    // browser; only the reason string, which carries Paddle subscription ids,
+    // stays in the log.
+    //
+    // The shape follows `paddle-errors.ts` (#109) and `paddle-webhook-errors.ts`
+    // (#110): a STABLE CODE to the browser, the DETAIL to the log, and a short
+    // reference the customer can quote to support. This was the last
+    // undifferentiated Paddle failure in the codebase.
+    const partial = result.scheduled > 0;
+    const code = partial ? 'CancelPartial' : 'CancelFailed';
+    const reference = 'KF-' + Math.random().toString(16).slice(2, 10);
+
+    console.error(
+      `[subscription-cancel-${partial ? 'partial' : 'failed'}] ref=${reference} ` +
+        `user=${user.id} scheduled=${result.scheduled} failed=${result.failed} ` +
+        `total=${result.total} reason=${result.reason}`
+    );
+
+    return NextResponse.json(
+      { error: code, scheduled: result.scheduled, failed: result.failed, total: result.total, reference },
+      { status: 500, headers: { 'Cache-Control': 'no-store' } }
+    );
+  }
+
+  // `nothing-to-cancel` is a success, not an error: it is the state of every
+  // free user. The card is only rendered for Pro, so reaching it means the row
+  // changed between render and click — the customer is not billed either way,
+  // which is what they asked for.
+  return NextResponse.json(
+    { canceled: true, outcome: result.outcome, effectiveAt: result.effectiveAt },
+    { headers: { 'Cache-Control': 'no-store' } }
+  );
+}

@@ -10,6 +10,8 @@ interface SettingsPanelLabels {
   free: string;
   pro: string;
   renews: string;
+  /** Shown INSTEAD of `renews` once a cancellation is scheduled. */
+  cancels: string;
   upgrade: string;
   activeSubscription: string;
 }
@@ -19,6 +21,16 @@ export interface SettingsPanelProps {
   isPro: boolean;
   /** Formatted renewal date, or null when not applicable. Shown only for Pro. */
   renewsOn: string | null;
+  /**
+   * Formatted date the subscription runs until once a cancellation is
+   * SCHEDULED, or null. Non-null replaces the renewal line: telling a customer
+   * who has just cancelled that their plan "renews" on that date would be
+   * exactly backwards, and it is the same date.
+   *
+   * Null also covers "we could not ask Paddle" - see readScheduledCancellation.
+   * The page degrades to the plain entitlement rather than to an error.
+   */
+  cancelsOn: string | null;
   upgradeHref: string;
   labels: SettingsPanelLabels;
   /**
@@ -35,7 +47,15 @@ export interface SettingsPanelProps {
  * the server wrapper (which is the sole caller of getEntitlement). Pure content:
  * the dashboard `<main>` (P2.7) owns the light canvas + padding.
  */
-export function SettingsPanel({ email, isPro, renewsOn, upgradeHref, labels, children }: SettingsPanelProps) {
+export function SettingsPanel({
+  email,
+  isPro,
+  renewsOn,
+  cancelsOn,
+  upgradeHref,
+  labels,
+  children,
+}: SettingsPanelProps) {
   return (
     <div>
       <div className="mx-auto max-w-2xl space-y-6">
@@ -56,7 +76,12 @@ export function SettingsPanel({ email, isPro, renewsOn, upgradeHref, labels, chi
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
               <Badge variant={isPro ? 'primary' : 'neutral'}>{isPro ? labels.pro : labels.free}</Badge>
-              {isPro && renewsOn && (
+              {isPro && cancelsOn && (
+                <span className="text-xs text-muted-foreground">
+                  {labels.cancels} {cancelsOn}
+                </span>
+              )}
+              {isPro && !cancelsOn && renewsOn && (
                 <span className="text-xs text-muted-foreground">
                   {labels.renews} {renewsOn}
                 </span>
@@ -67,7 +92,11 @@ export function SettingsPanel({ email, isPro, renewsOn, upgradeHref, labels, chi
                 {labels.upgrade}
               </Link>
             )}
-            {isPro && (
+            {/* Suppressed once a cancellation is scheduled: the subscription is
+                still active, but "Active subscription" beside "Cancels on" reads
+                as a contradiction, and the cancel card below already says
+                plainly what happens next. */}
+            {isPro && !cancelsOn && (
               <span className="text-xs uppercase tracking-wide text-muted-foreground">
                 {labels.activeSubscription}
               </span>
