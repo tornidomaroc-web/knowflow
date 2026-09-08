@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -19,6 +19,20 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [noticeCode, setNoticeCode] = useState<string | null>(null);
+
+  // Read on the client rather than with useSearchParams: this page is a client
+  // component with no Suspense boundary, and useSearchParams would opt the whole
+  // route out of prerendering at build time. Storing the CODE and resolving the
+  // copy during render keeps the effect free of the dictionary.
+  useEffect(() => {
+    setNoticeCode(new URLSearchParams(window.location.search).get('notice'));
+  }, []);
+
+  const notice =
+    noticeCode === 'signin_required' ? t.auth.noticeSigninRequired
+    : noticeCode === 'link_expired' ? t.auth.noticeLinkExpired
+    : null;
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -64,6 +78,10 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
           <p className="mb-8 text-sm text-muted-foreground">{t.auth.loginSubtitle}</p>
 
           {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+          {notice && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground">{notice}</div>
+          )}
 
           <div className="space-y-4">
             <div className="flex flex-col gap-2">

@@ -105,7 +105,11 @@ export const ar: Translation = {
     hasAccount: "لديك حساب بالفعل؟ سجل الدخول",
     name: "الاسم الكامل",
     createBtn: "إنشاء الحساب",
-    creating: "جاري الإنشاء..."
+    creating: "جاري الإنشاء...",
+    checkInboxTitle: "تفقد بريدك الإلكتروني",
+    checkInboxBody: "أرسلنا رابط تأكيد إلى بريدك الإلكتروني. افتحه لتفعيل حسابك.",
+    noticeSigninRequired: "سجل الدخول للمتابعة.",
+    noticeLinkExpired: "رابط التأكيد لم يعد صالحاً. أنشئ حساباً جديداً للحصول على رابط جديد."
   },
   about: {
     title: "نؤمن بأن المذاكرة يجب أن تكون أبسط.",

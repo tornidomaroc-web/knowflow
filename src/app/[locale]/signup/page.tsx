@@ -19,17 +19,25 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setNotice(null);
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } }
+      options: {
+        data: { full_name: fullName },
+        // Send the mail link back to our own callback instead of letting it
+        // default to the bare Site URL, which is where it used to drop people:
+        // on the marketing page, still signed out, left to find Sign In alone.
+        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+      }
     });
 
     if (authError) {
@@ -38,6 +46,19 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
       return;
     }
 
+    // Confirm email is ON for this project, so GoTrue withholds the session
+    // until the address is proven. The session field was always on this object.
+    // Nothing read it, so signup pushed at a dashboard the middleware then
+    // bounced, and the user landed on Sign In with no idea why.
+    if (!authData.session) {
+      setNotice(t.auth.checkInboxBody);
+      setLoading(false);
+      return;
+    }
+
+    // Only reachable holding a session. The upsert needs one: profiles is
+    // guarded by `using (auth.uid() = id)`, so without a session this write was
+    // always refused, and its error was logged to a console nobody reads.
     if (authData.user) {
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: authData.user.id,
@@ -83,6 +104,13 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
           <p className="mb-8 text-sm text-muted-foreground">{t.auth.signupSubtitle}</p>
 
           {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+          {notice && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+              <p className="font-medium text-foreground">{t.auth.checkInboxTitle}</p>
+              <p className="mt-1 text-muted-foreground">{notice}</p>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
