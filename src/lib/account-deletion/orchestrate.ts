@@ -68,6 +68,16 @@ export type DeletionResult =
   /** Nothing irreversible was attempted. The account is exactly as it was. */
   | { ok: false; stage: 'storage' | 'waitlist' | 'billing'; reason: string }
   /**
+   * Billing exists that this code CANNOT REACH -- a row granting Pro with no
+   * `paddle_subscription_id`. Distinct from `billing` because that one is
+   * transient and retrying is the right advice, and this one is PERMANENT:
+   * retrying will fail identically forever. The customer is not trapped, and
+   * that is what keeps this compatible with Apple 5.1.1(v): the block lifts the
+   * moment they cancel the subscription where they bought it, which is a control
+   * THEY hold. Telling them that is the only honest answer.
+   */
+  | { ok: false; stage: 'billing-unverifiable'; reason: string }
+  /**
    * THE ACCEPTED STATE. Billing is cancelled and the account still exists.
    * Callers MUST surface this distinctly -- it is not a generic failure and the
    * user must not be told to simply try again as though nothing had happened.
@@ -161,6 +171,15 @@ export async function deleteAccount(
         reason: cancel.reason,
         subscriptionsCanceled: cancel.canceled,
       };
+    }
+    // Checked AFTER the orphan arm above: if something was actually cancelled,
+    // that is the more urgent state and keeps its own reporting.
+    if (cancel.unverifiable > 0) {
+      console.error(
+        `[account-deletion-blocked] user=${userId} email=${email} stage=billing-unverifiable ` +
+          `unverifiable=${cancel.unverifiable} reason=${cancel.reason}`
+      );
+      return { ok: false, stage: 'billing-unverifiable', reason: cancel.reason };
     }
     return { ok: false, stage: 'billing', reason: cancel.reason };
   }
