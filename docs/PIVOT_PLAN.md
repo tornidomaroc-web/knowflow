@@ -189,6 +189,16 @@ sentence and its cost premise are both void, and they are recorded separately be
 because only one of the two was overtaken by a ruling — **the other was overtaken by
 a fact.**
 
+**TARGET MARKET — OWNER RULING 2026-09-08, STANDING: MOROCCO AND THE GULF.**
+Europe is **deferred, not cancelled.** This is a scoping ruling and it has teeth in
+two places already on the record. **(1)** It puts the product **outside the United
+States storefront**, which is the only storefront where Apple's 3.1.1(a) carve-out
+permits buttons or links to a purchasing mechanism other than in-app purchase — so
+the in-app billing surface constraint is **binding, not theoretical**, and register
+**#73**'s in-app-purchase reading stands. **(2)** It makes the **EU trader-status**
+banner a deferred item rather than a blocker (see §9), because it gates EU
+distribution only.
+
 **Decision:** **publishing to BOTH the Google Play Store and the Apple App Store is
 THE PRIMARY GOAL of this project.** It is not a phase, not a later revisit, and not a
 milestone that Android reaches first. Every phase below is preparation or repair
@@ -197,11 +207,33 @@ it must be; where it cannot, the store constraint is named in the row rather tha
 discovered at submission. **The demand premise is untouched** — the target market
 does skew Android, and that is a *sequencing* argument, never a reason to defer.
 
-**Superseded reason 1 — the "$99/yr, no free path".** The **Apple Developer Program
-fee is PAID and the account is complete, awaiting approval.** Provenance:
+**Superseded reason 1 — the "$99/yr, no free path".** ~~The **Apple Developer Program
+fee is PAID and the account is complete, awaiting approval.**~~ Provenance:
 **owner-attested** (`b1-verification-protocol.md` §2.6.6) — no agent here holds Apple
 credentials and none read App Store Connect. Recorded with that label rather than as
 machine-verified, and **not weaker for being stated.**
+
+**CORRECTED 2026-09-08 — THE ACCOUNT IS APPROVED AND ACTIVE, AND HAS BEEN FOR SOME
+UNKNOWN TIME.** The owner signed into App Store Connect under his own name and read
+**Apps, Business, and Users and Access all available, with the Add Apps button
+live.** *"Awaiting approval"* was true when written and this file went on asserting
+it; **the label that made that possible is exactly the one the sentence carried.**
+`owner-attested` marks a fact no agent verified — which is honest — but it does not
+expire, and nothing in this repository was ever going to notice when the underlying
+state changed. **Two sessions sequenced work around a pending enrollment that was
+not pending**, deferring Sign in with Apple behind it. **The provenance discipline
+is not at fault; the absence of a re-read is.** An owner-attested fact about an
+external system that can change needs a re-read date, not just a label.
+
+**WHAT THIS UNBLOCKS, IMMEDIATELY.** App ID, **Services ID**, private key and Team
+ID are all reachable today, so **Sign in with Apple is no longer blocked and ships
+alongside Google rather than behind it.** Apple guideline **4.8** requires a
+qualifying alternative the moment a third-party login such as Google is offered in
+the app, so shipping the two together removes a submission-blocking debt instead of
+creating one.
+
+**STILL ACCURATE, AND READ THE SAME DAY: no app is registered.** App Store Connect
+shows **No Apps**. Registering one is unblocked and simply not done.
 
 **Superseded reason 2 — the implied Mac purchase.** A Mac build host is **not a
 purchase.** GitHub Actions provides **macOS runners** and this repository is
@@ -377,7 +409,8 @@ I accept and record the pushback so there are no false expectations.
 | **Claude generation per "ask"** (Haiku 4.5) | **Yes.** Every question is a paid LLM call, and it is the **bigger** of the two paid calls — larger than embeddings. | Hard **per-user daily query cap** (Phase 0) bounds it; keep Haiku (cheap tier), tight `max_tokens`, prompt caching on the static system block (already in place). Ads revenue must cover residual. There is **no free hosted LLM** at consumer scale. |
 | **Voyage embeddings per query/upload** | Not at first — covered by free allowance. | Stay on Voyage now; switch to self-hosted **bge-m3 on Oracle Always Free** at the §4 trigger to drive this to $0. |
 | **Vercel commercial use** | **Yes if hosting on Vercel.** Hobby tier is **non-commercial per ToS**; a monetized app needs Pro (~$20/mo). | Either budget Vercel Pro, or self-host the Next.js app (e.g. on the same Oracle Always Free box / a free-tier-capable host). Decide before public launch (around Phase 7/10). |
-| **Apple Developer Program ($99/yr)** | **CLOSED 2026-08-24 — PAID, not deferred.** Account complete, **awaiting approval**. Provenance **owner-attested** (§2.6.6). | No action. **Supersedes *"deferred, not incurred now"***, which is void. |
+| **Apple Developer Program ($99/yr)** | **CLOSED 2026-08-24 — PAID, not deferred.** ~~Account complete, **awaiting approval**.~~ **CORRECTED 2026-09-08: APPROVED AND ACTIVE**, read by the owner in App Store Connect (Apps, Business, Users and Access all available; Add Apps live). Provenance **owner-attested** (§2.6.6) — and the stale half is why an owner-attested fact about an external system needs a **re-read date**. | No action. **Supersedes *"deferred, not incurred now"***, which is void. **Consequence: Sign in with Apple is UNBLOCKED** — App ID, Services ID, key and Team ID are all reachable. |
+| **EU trader status (DSA)** | **DEFERRED, not blocking — 2026-09-08 owner ruling.** App Store Connect shows the trader-status banner; it gates **EU distribution only**. It does **not** gate registering an app, obtaining sign-in keys, or submitting to non-EU storefronts. | **No action, and do NOT sequence around it.** The target market is **Morocco and the Gulf**; Europe is **deferred, not cancelled**, so this becomes real only when EU distribution does. |
 | **Mac build host for iOS** | **No — CLOSED 2026-08-24, and it was never a purchase.** | **MACHINE-VERIFIED:** standard GitHub-hosted macOS runners are *"free and unlimited on public repositories"* and this repo is public. **RULE: use a standard `macos-*` label; NEVER a larger runner** — larger runners bill even on public repos. **Cost verified; per-plan macOS CONCURRENCY was not read** — it can queue a build, never bill one. |
 | **Google Play ($25 one-time)** | **Already handled.** | Existing verified Play Console account; no action, no risk. |
 
