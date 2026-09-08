@@ -28,6 +28,13 @@ const OTP_TYPES: readonly EmailOtpType[] = [
   'email',
 ];
 
+// Written by the forgot-password page just before it asks for the mail. Its
+// only job is to tell a SUCCESSFUL landing apart from a signup or provider
+// one, so recovery goes to the set-a-password form instead of the dashboard.
+// It rides the browser that requested the link, which is the only browser the
+// PKCE exchange can succeed in, so its absence never costs a working case.
+const RECOVERY_COOKIE = 'kf_recovery';
+
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
 
@@ -71,7 +78,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(loginWith(origin, 'link_expired'));
     }
     console.log('[auth/callback] verifyOtp ok', { type: rawType });
-    return applyCookies(NextResponse.redirect(`${origin}/dashboard`));
+    return applyCookies(landing(request, origin));
   }
 
   // 3. PKCE code: a provider return, or a mail link opened on the same device.
@@ -106,7 +113,27 @@ export async function GET(request: NextRequest) {
   // No locale prefix on purpose: this route never sees one, and /dashboard
   // bounces through the i18n hop, which picks the locale from the same
   // Accept-Language rule every other entry point uses.
-  return applyCookies(NextResponse.redirect(`${origin}/dashboard`));
+  return applyCookies(landing(request, origin));
+}
+
+/**
+ * Where a successful landing goes.
+ *
+ * Recovery cannot go to the dashboard. The session is already live by the time
+ * we get here (that is how Supabase recovery works, and `updateUser` needs it),
+ * so dropping the user on the dashboard would leave an account open behind a
+ * password its owner has forgotten and not yet replaced. Sending them straight
+ * to the form that ends that window is the mitigation.
+ */
+function landing(request: NextRequest, origin: string) {
+  const recovering = request.cookies.get(RECOVERY_COOKIE)?.value === '1';
+  const response = NextResponse.redirect(
+    recovering ? `${origin}/reset-password` : `${origin}/dashboard`
+  );
+  if (recovering) {
+    response.cookies.set(RECOVERY_COOKIE, '', { path: '/', maxAge: 0 });
+  }
+  return response;
 }
 
 function loginWith(
