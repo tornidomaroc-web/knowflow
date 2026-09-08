@@ -103,7 +103,11 @@ export const en = {
     hasAccount: "Already have an account? Sign in",
     name: "Full Name",
     createBtn: "Create Account",
-    creating: "Creating..."
+    creating: "Creating...",
+    checkInboxTitle: "Check your inbox",
+    checkInboxBody: "We sent a confirmation link to your email address. Open it to activate your account.",
+    noticeSigninRequired: "Please sign in to continue.",
+    noticeLinkExpired: "That confirmation link is no longer valid. Sign up again to get a new one."
   },
   about: {
     title: "We believe studying should feel simpler.",
