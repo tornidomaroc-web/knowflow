@@ -106,6 +106,8 @@ export const en = {
     creating: "Creating...",
     checkInboxTitle: "Check your inbox",
     checkInboxBody: "We sent a confirmation link to your email address. Open it to activate your account.",
+    signupRepeatPassword: "Signing up again with an email you already used sends a new confirmation link, but keeps your first password.",
+    signupRepeatPasswordLink: "Forgot it? Reset your password",
     noticeSigninRequired: "We could not finish that link. Please sign in below.",
     noticeLinkExpired: "That confirmation link is no longer valid. Sign up again to get a new one.",
     forgotLink: "Forgot your password?",

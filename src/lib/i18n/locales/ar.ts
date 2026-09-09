@@ -108,6 +108,8 @@ export const ar: Translation = {
     creating: "جاري الإنشاء...",
     checkInboxTitle: "تفقد بريدك الإلكتروني",
     checkInboxBody: "أرسلنا رابط تأكيد إلى بريدك الإلكتروني. افتحه لتفعيل حسابك.",
+    signupRepeatPassword: "التسجيل مرة أخرى ببريد استخدمته من قبل يرسل رابط تأكيد جديداً، لكنه يبقي كلمة المرور الأولى.",
+    signupRepeatPasswordLink: "نسيتها؟ استعد كلمة المرور",
     noticeSigninRequired: "لم نتمكن من إتمام هذا الرابط. سجل الدخول بالأسفل.",
     noticeLinkExpired: "رابط التأكيد لم يعد صالحاً. أنشئ حساباً جديداً للحصول على رابط جديد.",
     forgotLink: "نسيت كلمة المرور؟",
