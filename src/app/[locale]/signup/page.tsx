@@ -124,6 +124,40 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-foreground">{t.auth.password}</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className={fieldClass} />
+              {/*
+                Register #77. A repeat signup on an address that is registered but
+                UNCONFIRMED does not update the password: GoTrue reaches
+                `signup.go:197` with the existing user in hand and deliberately
+                leaves it alone ("do not update the user because we can't be sure
+                of their claimed identity"), re-sending only the confirmation
+                mail. So a second signup with a DIFFERENT password succeeds, the
+                mail works, the address confirms, and the password that signs
+                them in is the FIRST one. Nothing on screen would contradict them.
+
+                Our own copy is what sends people here: `noticeLinkExpired` tells
+                them to sign up again, and this form asks for a password.
+
+                UNCONDITIONAL ON PURPOSE, and this is the load-bearing decision.
+                The case IS detectable: the repeat response is not sanitized
+                (`sanitizeUser`, signup.go:349, is applied only to the CONFIRMED
+                collision), so the real user comes back carrying its ORIGINAL
+                created_at and the same age gap used for register #74 would
+                identify it exactly. Doing that would tell whoever typed the
+                address that it is already registered, and the person filling in
+                a signup form is not necessarily its owner. That is precisely the
+                leak `sanitizeUser` exists to prevent, which upstream has left
+                open on this path. So the line is shown to everyone and reveals
+                nothing about anyone.
+              */}
+              <p className="text-xs text-muted-foreground">
+                {t.auth.signupRepeatPassword}{' '}
+                <Link
+                  href={`/${locale}/forgot-password`}
+                  className="underline transition-colors hover:text-primary"
+                >
+                  {t.auth.signupRepeatPasswordLink}
+                </Link>
+              </p>
             </div>
           </div>
 
