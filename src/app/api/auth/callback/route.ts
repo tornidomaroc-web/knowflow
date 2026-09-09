@@ -41,6 +41,21 @@ export async function GET(request: NextRequest) {
   //    expired MAIL link: /verify drops those on the Site URL with the reason in
   //    a hash fragment, which is never sent to a server. Measured, not assumed.
   const providerError = searchParams.get('error');
+
+  // Backing out of Google's account chooser is not a failure, and it is the
+  // most common thing that will ever happen on this arm. The provider reports
+  // it as `access_denied`, and the honest response is to put the person back on
+  // the login page with NOTHING said: they know what they did, and every notice
+  // this route can render would be describing a fault that did not occur.
+  // `signin_required` in particular would read as "we could not sign you in",
+  // which blames the app for the user's own decision.
+  if (providerError === 'access_denied') {
+    console.log('[auth/callback] provider cancelled by user', {
+      error_code: searchParams.get('error_code'),
+    });
+    return NextResponse.redirect(new URL('/login', origin));
+  }
+
   if (providerError) {
     const detail = {
       stage: 'provider',

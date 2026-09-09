@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
+import { GoogleButton } from '@/components/auth/GoogleButton';
 import { useTranslation, Locale } from '@/lib/i18n';
 
 export default function SignupPage({ params }: { params: Promise<{ locale: Locale }> }) {
@@ -111,6 +112,25 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
               <p className="mt-1 text-muted-foreground">{notice}</p>
             </div>
           )}
+
+          {/*
+            "Continue with Google" here, "Sign in with Google" on /login, and the
+            difference is not cosmetic. On /login the person is asserting they
+            already have an account, so "sign in" is what they are doing. Here
+            the outcome is genuinely ambiguous and we know exactly why: GoTrue
+            either creates an account or links this identity onto an existing
+            user with the same address, and register #74 is the case where that
+            existing user is unconfirmed and loses their password to it.
+            "Sign up with Google" would be a plain lie to that person, who is not
+            signing up. "Continue" is the only word true of every outcome.
+          */}
+          <GoogleButton label={t.auth.googleSignup} errorLabel={t.auth.googleFailed} />
+
+          <div className="flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">{t.auth.orDivider}</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
 
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
