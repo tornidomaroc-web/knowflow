@@ -109,9 +109,22 @@ export async function GET(request: NextRequest) {
   // the mechanism and why the test is an age gap rather than provider absence.
   const passwordReplaced = detectPasswordReplaced(data.user);
 
+  // The two timestamps are logged BESIDE the verdict because without them the
+  // verdict cannot be read. `detectPasswordReplaced` fails closed on anything it
+  // cannot parse, so an absent or epoch-shaped `created_at` returns false for
+  // EVERY user, including a genuinely harmed one. That is indistinguishable from
+  // the healthy steady state, where false is also what every ordinary Google
+  // sign-in produces. An unbroken run of `password_replaced: false` therefore
+  // proves nothing on its own: it is equally the signature of a detector that is
+  // armed and waiting, and of one that is silently broken on the only two values
+  // it decides on. Logging the raw strings is what separates them, and both are
+  // read straight off the response rather than re-derived, so what appears here
+  // is what the discriminator actually saw.
   console.log('[auth/callback] exchange ok', {
     user_id: data.user?.id,
     identities: data.user?.identities?.map((i) => i.provider),
+    user_created_at: data.user?.created_at,
+    identity_created_at: data.user?.identities?.map((i) => i.created_at),
     password_replaced: passwordReplaced,
   });
 
