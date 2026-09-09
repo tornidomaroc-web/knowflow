@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
 import { createRouteClient } from '@/lib/supabase/route';
+import { RECOVERY_COOKIE, resolveLandingPath } from '@/lib/auth/recovery-landing';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,12 +29,6 @@ const OTP_TYPES: readonly EmailOtpType[] = [
   'email',
 ];
 
-// Written by the forgot-password page just before it asks for the mail. Its
-// only job is to tell a SUCCESSFUL landing apart from a signup or provider
-// one, so recovery goes to the set-a-password form instead of the dashboard.
-// It rides the browser that requested the link, which is the only browser the
-// PKCE exchange can succeed in, so its absence never costs a working case.
-const RECOVERY_COOKIE = 'kf_recovery';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -78,7 +73,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(loginWith(origin, 'link_expired'));
     }
     console.log('[auth/callback] verifyOtp ok', { type: rawType });
-    return applyCookies(landing(request, origin));
+    return applyCookies(landing(request, origin, rawType));
   }
 
   // 3. PKCE code: a provider return, or a mail link opened on the same device.
@@ -125,14 +120,16 @@ export async function GET(request: NextRequest) {
  * password its owner has forgotten and not yet replaced. Sending them straight
  * to the form that ends that window is the mitigation.
  */
-function landing(request: NextRequest, origin: string) {
-  const recovering = request.cookies.get(RECOVERY_COOKIE)?.value === '1';
-  const response = NextResponse.redirect(
-    recovering ? `${origin}/reset-password` : `${origin}/dashboard`
-  );
-  if (recovering) {
+function landing(request: NextRequest, origin: string, otpType?: string | null) {
+  const path = resolveLandingPath({
+    otpType,
+    hasRecoveryCookie: request.cookies.get(RECOVERY_COOKIE)?.value === '1',
+  });
+  const response = NextResponse.redirect(`${origin}${path}`);
+  if (path === '/reset-password') {
     response.cookies.set(RECOVERY_COOKIE, '', { path: '/', maxAge: 0 });
   }
+  console.log('[auth/callback] landing', { otpType: otpType ?? null, path });
   return response;
 }
 
