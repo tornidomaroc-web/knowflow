@@ -81,7 +81,7 @@ export default function ForgotPasswordPage({ params }: { params: Promise<{ local
           {sent ? (
             <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
               <p className="font-medium text-foreground">{t.auth.forgotSent}</p>
-              <p className="mt-1 text-muted-foreground">{t.auth.forgotSameDevice}</p>
+              <p className="mt-1 text-muted-foreground">{t.auth.forgotAnyDevice}</p>
             </div>
           ) : (
             <>
@@ -89,7 +89,6 @@ export default function ForgotPasswordPage({ params }: { params: Promise<{ local
                 <label className="text-sm font-medium text-foreground">{t.auth.email}</label>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={fieldClass} />
               </div>
-              <p className="text-xs text-muted-foreground">{t.auth.forgotSameDevice}</p>
               <button type="submit" disabled={loading} className={cn(buttonVariants({ variant: 'primary' }), 'mt-2 w-full')}>
                 {loading ? t.auth.forgotSending : t.auth.forgotSubmit}
               </button>
