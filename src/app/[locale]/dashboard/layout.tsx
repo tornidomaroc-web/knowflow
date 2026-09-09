@@ -1,8 +1,11 @@
 import { ReactNode } from 'react';
+import { cookies } from 'next/headers';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
+import { PasswordReplacedNotice } from '@/components/dashboard/PasswordReplacedNotice';
 import { createClient } from '@/lib/supabase/server';
 import { getEntitlement } from '@/lib/entitlement';
+import { PASSWORD_REPLACED_COOKIE } from '@/lib/auth/password-replaced';
 import { redirect } from 'next/navigation';
 import { Locale, locales, useTranslation } from '@/lib/i18n';
 
@@ -32,6 +35,15 @@ export default async function DashboardLayout({
   const { tier } = await getEntitlement(user.id);
   const isPro = tier === 'pro';
 
+  // Set by /api/auth/callback when Google sign-in has just taken over an
+  // unconfirmed password account. It lives in the LAYOUT rather than the home
+  // page so the notice still reaches a user whose landing resolved to any other
+  // dashboard screen. <PasswordReplacedNotice/> clears it on mount, which is
+  // what makes it one-shot; a Server Component cannot clear a cookie itself.
+  const cookieStore = await cookies();
+  const passwordReplaced =
+    cookieStore.get(PASSWORD_REPLACED_COOKIE)?.value === '1';
+
   const labels = {
     dashboard: t.dashboard.nav.dashboard,
     knowledge: t.dashboard.nav.knowledge,
@@ -52,6 +64,12 @@ export default async function DashboardLayout({
         under RTL); the mobile top/bottom padding clears the fixed bars.
       */}
       <main className="min-h-screen bg-background p-4 pb-24 pt-[4.5rem] text-foreground md:ms-60 md:p-8">
+        {passwordReplaced && (
+          <PasswordReplacedNotice
+            locale={safeLocale}
+            labels={t.dashboard.passwordReplaced}
+          />
+        )}
         {children}
       </main>
     </div>

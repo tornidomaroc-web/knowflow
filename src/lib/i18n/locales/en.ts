@@ -156,6 +156,12 @@ export const en = {
       settings: "Settings",
       signOut: "Sign Out"
     },
+    passwordReplaced: {
+      title: "You are now signing in with Google",
+      body: "Your email address was never confirmed, so signing in with Google took over this account. Everything you saved is still here, but the password you chose earlier no longer works. You can set a new one whenever you like.",
+      action: "Set a password",
+      dismiss: "Dismiss"
+    },
     home: {
       welcome: "Welcome back.",
       knowledgeBases: "Subjects",

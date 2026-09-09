@@ -2,6 +2,10 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
 import { createRouteClient } from '@/lib/supabase/route';
 import { RECOVERY_COOKIE, resolveLandingPath } from '@/lib/auth/recovery-landing';
+import {
+  PASSWORD_REPLACED_COOKIE,
+  detectPasswordReplaced,
+} from '@/lib/auth/password-replaced';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,15 +104,36 @@ export async function GET(request: NextRequest) {
     return applyCookies(NextResponse.redirect(loginWith(origin, 'signin_required')));
   }
 
+  // An unconfirmed password user who arrives here via Google has just had their
+  // password destroyed by GoTrue, silently. `detectPasswordReplaced` explains
+  // the mechanism and why the test is an age gap rather than provider absence.
+  const passwordReplaced = detectPasswordReplaced(data.user);
+
   console.log('[auth/callback] exchange ok', {
     user_id: data.user?.id,
     identities: data.user?.identities?.map((i) => i.provider),
+    password_replaced: passwordReplaced,
   });
 
   // No locale prefix on purpose: this route never sees one, and /dashboard
   // bounces through the i18n hop, which picks the locale from the same
   // Accept-Language rule every other entry point uses.
-  return applyCookies(landing(request, origin));
+  const response = applyCookies(landing(request, origin));
+
+  if (passwordReplaced) {
+    // Not `httpOnly`: the banner clears this from the browser once it has been
+    // seen, which is what makes it one-shot. It carries no secret and grants no
+    // authority, and the worst a forged one can do is show its owner a notice
+    // about their own account. `SameSite=Lax` so it survives the redirect chain
+    // (provider -> here -> /dashboard -> the i18n hop) that follows.
+    response.cookies.set(PASSWORD_REPLACED_COOKIE, '1', {
+      path: '/',
+      maxAge: 600,
+      sameSite: 'lax',
+    });
+  }
+
+  return response;
 }
 
 /**
