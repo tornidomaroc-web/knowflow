@@ -151,11 +151,28 @@ const naiveConflates = naiveHarmed === true && naiveFresh === true;
 if (naiveConflates) pass += 1;
 else failures.push('the naive check no longer conflates the two shapes, so this proves nothing');
 
+// ---------------------------------------------------------------------------
+// Register #78. "Fails closed" is true of every wrong shape GoTrue can emit,
+// and NOT true of our parser in general. This asserts the one input that makes
+// it throw, so the reason `route.ts` wraps the call is EXECUTABLE rather than
+// argued. If this ever stops throwing, the guard may be redundant, and someone
+// should find out from here rather than from a 500 on a successful sign-in.
+// ---------------------------------------------------------------------------
+let threw = false;
+try {
+  detectPasswordReplaced({ created_at: iso(T0), identities: [null] });
+} catch {
+  threw = true;
+}
+if (threw) pass += 1;
+else failures.push('a null identity element no longer throws, so #78 needs re-reading');
+
 console.log('  ' + '-'.repeat(76));
+console.log(`  ${threw ? 'OK  ' : 'FAIL'}  ${'#78: null identity element THROWS (guarded)'.padEnd(52)} -> ${threw}`);
 console.log(`  ${separated ? 'OK  ' : 'FAIL'}  ${'age gap separates the two shapes'.padEnd(52)} -> harmed=${detectPasswordReplaced(harmed)} fresh=${detectPasswordReplaced(fresh)}`);
 console.log(`  ${naiveConflates ? 'OK  ' : 'FAIL'}  ${'provider absence alone CONFLATES them'.padEnd(52)} -> harmed=${naiveHarmed} fresh=${naiveFresh}`);
 console.log('');
-console.log(`  ${pass} passed, ${failures.length} failed, ${CASES.length + 2} total`);
+console.log(`  ${pass} passed, ${failures.length} failed, ${CASES.length + 3} total`);
 for (const f of failures) console.log('  ! ' + f);
 console.log('');
 

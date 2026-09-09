@@ -122,7 +122,33 @@ export async function GET(request: NextRequest) {
   // An unconfirmed password user who arrives here via Google has just had their
   // password destroyed by GoTrue, silently. `detectPasswordReplaced` explains
   // the mechanism and why the test is an age gap rather than provider absence.
-  const passwordReplaced = detectPasswordReplaced(data.user);
+  //
+  // GUARDED, per register #78. The detector fails closed on every wrong shape
+  // GoTrue can actually emit, but "fails closed" is a claim about the PRODUCER,
+  // not a property of our parser: a `null` element inside `identities` would
+  // make `i.provider` raise, and this call sits on the success path of a sign
+  // in that has ALREADY completed. Unguarded, that answers a person who just
+  // signed in correctly with a 500, which is the worst outcome in this whole
+  // route and the only catastrophic one.
+  //
+  // Today it is unreachable, and only because `Identities []Identity`
+  // (`internal/models/user.go:68`) is a VALUE slice, so JSON elements are
+  // always objects and a nil slice marshals as `null` for the whole array,
+  // which the detector already handles. That is an incidental property of a Go
+  // struct in a dependency we do not control and have not been promised. Four
+  // lines is a cheap price for not depending on it.
+  //
+  // The catch degrades to the same silent no-fire every other wrong shape
+  // produces: no notice, and the landing proceeds untouched. Losing a notice is
+  // the failure this whole feature already accepts; losing the sign-in is not.
+  let passwordReplaced = false;
+  try {
+    passwordReplaced = detectPasswordReplaced(data.user);
+  } catch (detectError) {
+    console.error('[auth/callback] password-replaced detector threw', {
+      error: detectError instanceof Error ? detectError.message : String(detectError),
+    });
+  }
 
   // The two timestamps are logged BESIDE the verdict because without them the
   // verdict cannot be read. `detectPasswordReplaced` fails closed on anything it
