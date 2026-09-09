@@ -233,6 +233,41 @@ AdMob account verification/payout (before Phase 9) · final free-tier limit numb
   verification matrix and no caveat while its PR body carried the one open
   claim; it was passed explicitly and survives in `b26ad57`. Caught again on
   **#95**, whose PR body alone held the register-#84 note.
+- **Before squash-merging, prove the content is not already on `main` — with
+  `git diff --stat origin/main <commit>`, never with `git branch --contains`.**
+  An empty diff means the work is already there, whatever `--contains` says.
+  **What was believed, 2026-09-09:** that `ab6ab5c` was unmerged and would ride
+  into an unrelated PR. **The command that produced the belief:**
+  `git branch -r --contains ab6ab5c`, which returned the two feature branches and
+  never `origin/main`. **What that command cannot see:** a squash mints a NEW
+  SHA, so the original commit is contained *nowhere*, permanently. PR **#130**
+  had already squashed exactly that content into **`8401fad`** — the very commit
+  the corrective rebase was cut onto. `--contains` answers *"is this SHA an
+  ancestor"*, which is not the question; the question is *"is this work on
+  `main`"*. **This is register #71's class: an absence of evidence asserted as a
+  fact.** **What it cost:** PR **#132** merged as **`936db26`** and changed
+  nothing — `git diff --stat 45d4707 936db26` is **empty**. An unremovable empty
+  commit sits on a protected branch duplicating #130's subject. **What it would
+  have cost had `ab6ab5c` diverged from what #130 squashed:** stale content
+  re-applied on top of `main` under a subject asserting it was new work, with
+  **every check green**, because each PR is only ever green against its own base.
+  The API did not contradict any of this: it reported `mergeable: true` and
+  `changed_files: 4` because that diff is computed against the merge base
+  `93aa90c`, the **parent of the squash**, not against current `main`.
+- **Two PRs that are green individually are not a tested combination — merge them
+  locally and run the gates BEFORE the combination exists on `main`.**
+  `required_status_checks.strict` is **`false`** (read 2026-09-09 via the API), so
+  a PR is never rebuilt against work that merged after its own checks ran, and
+  nothing on the protected branch ever tests the union. The sibling of the rule
+  above and of register #23's: **the merge is the record, the run is the fact.**
+  Instance, 2026-09-09: **#131** and **#132** both edited `en.ts` and `ar.ts`, and
+  neither one's `tsc` run had seen the other's tree. With #131 already on `main`,
+  #132 was merged onto it **locally** first and the full set run on the result —
+  `tsc` clean, dash scan clean, `verify-recovery-landing` 7/7,
+  `verify-password-replaced-notice` 14/14. **It passed, which is exactly why this
+  is a standing rule and not a register row:** the check that finds nothing is the
+  one worth keeping, because the run is what makes the combination a fact rather
+  than an inference from two unrelated green ticks.
 - **Pass `--subject` explicitly when squash-merging.**
   `squash_merge_commit_title` is `COMMIT_OR_PR_TITLE` (verified 2026-08-29 via the
   API), so the permanent subject is chosen by the branch's **commit count** — the
