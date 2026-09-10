@@ -162,14 +162,27 @@ const UPGRADE_MATERIALS: Record<Locale, string> = {
 };
 
 /**
- * The only remedy we may offer for a full subject. There is NO delete path for a
- * document or a subject in the product (the sole DELETE handler is /api/account,
- * register #80(c)), so "remove one" would be telling the student to use something
- * that does not exist. Another subject always exists: free holds 5, Pro 50.
+ * WHAT A FULL SUBJECT MAY SAY, AND WHY IT IS A WARNING RATHER THAN ADVICE.
+ *
+ * An earlier draft said "You can add it to another subject." That was the obvious
+ * remedy and it was HARMFUL, because Ask cannot span subjects: `match_chunks`
+ * filters `where c.kb_id = match_kb_id` (`20260501_rag_pgvector.sql`), `/api/agent`
+ * takes one `kb_id` and 400s without it, and the Ask page makes the student pick a
+ * single subject through `KBSelector`. Splitting one course across two subjects
+ * therefore puts half of it permanently out of reach of every question — and it is
+ * IRREVERSIBLE, because there is no delete path and no move path for a document or
+ * a subject (the sole DELETE handler is `/api/account`, register #80(c)). Steering
+ * a blocked student into that is worse than telling them nothing.
+ *
+ * So the line names no action. It states the constraint that makes the obvious
+ * workaround a trap, at the one moment the student is about to take it. Free users
+ * additionally get the upgrade line, which is a real remedy. A Pro user at 200 has
+ * NO remedy, and the copy does not invent one — per the standing rule, the app
+ * never names something it cannot do.
  */
-const ANOTHER_SUBJECT: Record<Locale, string> = {
-  en: 'You can add it to another subject.',
-  ar: 'يمكنك إضافته إلى مادة أخرى.',
+const ASK_IS_SINGLE_SUBJECT: Record<Locale, string> = {
+  en: 'Ask works inside one subject at a time, so splitting a course in two puts half of it out of reach.',
+  ar: 'تجيب صفحة اسأل من مادة واحدة فقط، لذا فإن تقسيم المقرر على مادتين يجعل نصفه خارج نطاق السؤال.',
 };
 
 function join(parts: string[]): string {
@@ -233,7 +246,8 @@ export function monthlyConversationMessage(
 
 /**
  * The one limit with NO clock in it. A subject's shelf never empties on a timer,
- * so there is no reset clause to write — only what the student can actually do.
+ * so there is no reset clause to write. Nor is there a remedy to offer a Pro user
+ * — see ASK_IS_SINGLE_SUBJECT for why the obvious one is a trap.
  */
 export function subjectMaterialsMessage(
   locale: Locale,
@@ -246,7 +260,7 @@ export function subjectMaterialsMessage(
       : `This subject already holds its limit of ${cap} materials.`;
   return join([
     head,
-    ANOTHER_SUBJECT[locale],
+    ASK_IS_SINGLE_SUBJECT[locale],
     tier === 'pro' ? '' : UPGRADE_MATERIALS[locale],
   ]);
 }
