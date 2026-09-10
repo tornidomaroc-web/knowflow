@@ -35,6 +35,7 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('kb_id', kbId);
+    formData.append('locale', safeLocale);
 
     try {
       const res = await fetch('/api/ingest', { method: 'POST', body: formData });

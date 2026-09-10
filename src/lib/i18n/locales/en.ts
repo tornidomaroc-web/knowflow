@@ -232,7 +232,7 @@ export const en = {
         notFound: "This material could not be found.",
         processing: "This material is still processing. Wait until it's ready, then try again.",
         notEnoughText: "There isn't enough text in this material to summarize.",
-        limit: "You've reached your daily summary limit. Please try again tomorrow.",
+        limit: "You've reached today's summary limit. It resets at 00:00 UTC.",
         temporary: "Couldn't create the summary right now. Please try again shortly.",
         connection: "Connection failed. Check your connection and try again."
       }
@@ -253,7 +253,7 @@ export const en = {
         notFound: "This material could not be found.",
         processing: "This material is still processing. Wait until it's ready, then try again.",
         notEnoughText: "There isn't enough text in this material to make a quiz.",
-        limit: "You've reached your daily quiz limit. Please try again tomorrow.",
+        limit: "You've reached today's quiz limit. It resets at 00:00 UTC.",
         badRequest: "Something went wrong with that request. Please refresh the page and try again.",
         incomplete: "This quiz is incomplete and can't be graded.",
         temporary: "Couldn't do that right now. Please try again shortly.",

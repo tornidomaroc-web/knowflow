@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { getServiceUrl } from '@/lib/ingestion';
 import { checkDocumentLimit } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
+import type { Locale } from '@/lib/i18n';
+import { subjectMaterialsMessage } from '@/lib/limit-messages';
 import { recordStudyEvent } from '@/lib/study-events';
 import { ALLOWED_FILE_TYPES, type FileType } from '@/types';
 
@@ -55,6 +57,9 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const kbId = formData.get('kb_id') as string;
+    // Whitelisted server-side, as /api/summarize does (register #27). A multipart
+    // field rather than a JSON key because this route takes formData.
+    const safeLocale: Locale = formData.get('locale') === 'ar' ? 'ar' : 'en';
 
     if (!file || !kbId) {
       return NextResponse.json({ success: false, error: 'Missing file or kb_id' }, { status: 400 });
@@ -101,9 +106,9 @@ export async function POST(request: Request) {
     if (!docLimit.allowed) {
       // Tier-correct: state the tier's actual limit and only offer the upgrade
       // path to free users (a Pro user has no higher tier to upsell).
-      const tail = docLimit.tier === 'pro' ? '' : ' Upgrade to Pro for a higher limit.';
+      
       return NextResponse.json(
-        { error: `You've reached this subject's limit of ${docLimit.limit} materials.${tail}` },
+        { error: subjectMaterialsMessage(safeLocale, docLimit.limit, docLimit.tier) },
         { status: 403 }
       );
     }
@@ -111,7 +116,7 @@ export async function POST(request: Request) {
     // B7 cost guard: daily upload cap, in front of the expensive storage +
     // ingestion/embedding work. Placed after the per-KB document check so the
     // counter only increments for uploads that actually proceed.
-    const limit = await enforceLimit(user.id, 'upload');
+    const limit = await enforceLimit(user.id, 'upload', safeLocale);
     if (!limit.allowed) {
       return NextResponse.json({ error: limit.error }, { status: limit.status });
     }

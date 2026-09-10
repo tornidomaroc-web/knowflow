@@ -242,7 +242,7 @@ export async function POST(request: Request) {
     //    drains the query or summary caps. The atomic increment happens before
     //    the paid work — the fail-closed cost ceiling is preferred pre-revenue
     //    over a decrement race (register #24).
-    const limit = await enforceLimit(user.id, 'quiz');
+    const limit = await enforceLimit(user.id, 'quiz', lang);
     if (!limit.allowed) {
       return NextResponse.json({ error: limit.error }, { status: limit.status });
     }

@@ -13,8 +13,18 @@
 import { getEntitlement } from '@/lib/entitlement';
 import { createClient } from '@/lib/supabase/server';
 import type { Tier } from '@/types';
+import type { Locale } from '@/lib/i18n';
+import type { LimitKind } from '@/lib/limit-messages';
+import {
+  dailyLimitMessage,
+  TOO_FAST,
+  TEMPORARILY_UNAVAILABLE,
+} from '@/lib/limit-messages';
 
-export type UsageKind = 'query' | 'upload' | 'summary' | 'quiz';
+// Single source of truth: the kind list lives with the copy it must stay in step
+// with (src/lib/limit-messages.ts). Aliased, not restated, so a new kind cannot be
+// added to one list and forgotten in the other. Re-exported: callers import it here.
+export type UsageKind = LimitKind;
 
 /**
  * Daily caps per tier. Pro is high but FINITE on purpose — we never allow
@@ -32,19 +42,6 @@ const DAILY_CAPS: Record<Tier, Record<UsageKind, number>> = {
   pro: { query: 2000, upload: 500, summary: 100, quiz: 100 },
 };
 
-/**
- * User-facing plural noun per usage kind, for the daily-limit denial message.
- * Typed `Record<UsageKind, string>` on purpose: a future UsageKind added without
- * a noun here is a COMPILE error, not a silent mislabel — the same exhaustiveness
- * guarantee DAILY_CAPS has. (Replaces a ternary chain whose terminal else would
- * have silently labelled any new kind as the last arm.)
- */
-const KIND_NOUN: Record<UsageKind, string> = {
-  query: 'questions',
-  upload: 'uploads',
-  summary: 'summaries',
-  quiz: 'quizzes',
-};
 
 /**
  * Burst guard: minimum spacing between a user's queries. Best-effort and
@@ -74,7 +71,8 @@ export interface LimitResult {
  */
 export async function enforceLimit(
   userId: string,
-  kind: UsageKind
+  kind: UsageKind,
+  locale: Locale
 ): Promise<LimitResult> {
   // Layer 1: burst guard (queries only). Returns before any DB write, so a
   // burst-denied request is not counted against the daily cap.
@@ -85,7 +83,7 @@ export async function enforceLimit(
       return {
         allowed: false,
         status: 429,
-        error: 'You are sending requests too quickly. Please wait a moment and try again.',
+        error: TOO_FAST[locale],
       };
     }
     lastQueryAt.set(userId, now);
@@ -107,20 +105,15 @@ export async function enforceLimit(
     return {
       allowed: false,
       status: 503,
-      error: 'Service is temporarily unavailable. Please try again shortly.',
+      error: TEMPORARILY_UNAVAILABLE[locale],
     };
   }
 
   if (data > cap) {
-    const noun = KIND_NOUN[kind];
-    const tail =
-      tier === 'pro'
-        ? 'Please try again tomorrow.'
-        : 'Upgrade to Pro for a higher limit, or try again tomorrow.';
     return {
       allowed: false,
       status: 429,
-      error: `You've reached your daily limit of ${cap} ${noun}. ${tail}`,
+      error: dailyLimitMessage(locale, kind, cap, tier),
     };
   }
 
