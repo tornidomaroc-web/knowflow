@@ -28,7 +28,7 @@ export type UsageKind = 'query' | 'upload' | 'summary' | 'quiz';
  * expensive; `quiz` mirrors `summary`.
  */
 const DAILY_CAPS: Record<Tier, Record<UsageKind, number>> = {
-  free: { query: 30, upload: 5, summary: 5, quiz: 5 },
+  free: { query: 10, upload: 5, summary: 5, quiz: 5 },
   pro: { query: 2000, upload: 500, summary: 100, quiz: 100 },
 };
 
