@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { buttonVariants } from '@/components/ui';
 import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { readServerLimitMessage } from '@/lib/limit-messages';
 
 // Only the fields this section needs from a document, mirroring SummarySection's
 // SummaryDoc rather than accepting a whole `Document`.
@@ -133,7 +134,12 @@ export function QuizSection({ doc }: { doc: QuizDoc }) {
       });
 
       if (!res.ok) {
-        setError(generateError(res.status));
+        // On a 429 the route returns enforceLimit's own message, already in this
+        // student's locale AND carrying how long until the cap resets — which the
+        // dictionary line cannot say, having no clock. Prefer it; q.errors.limit
+        // stays the fallback for an unreadable body.
+        const fromServer = res.status === 429 ? await readServerLimitMessage(res) : null;
+        setError(fromServer ?? generateError(res.status));
         setPhase('idle');
         return;
       }

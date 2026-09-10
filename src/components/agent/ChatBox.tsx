@@ -59,7 +59,7 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
       const res = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg.content, kb_id: kbId, conversation_id: conversationId }),
+        body: JSON.stringify({ message: userMsg.content, kb_id: kbId, conversation_id: conversationId, locale: safeLocale }),
       });
 
       // Surface the server's own message on a non-OK response — notably the

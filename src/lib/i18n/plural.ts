@@ -80,9 +80,13 @@ function rulesFor(locale: string): Intl.PluralRules | null {
 /**
  * Select the correct form of a counted noun for `count` in `locale`.
  *
- * Returns the NOUN only, never the number — the streak card styles the numeral and
- * the unit differently, so joining them here would flatten the design. Callers
- * render `{count} {pluralize(...)}`.
+ * Returns whichever string the caller DECLARED for the selected category, and never
+ * the number itself. For the streak card that string is a bare noun, because the
+ * card styles the numeral and the unit differently and joining them here would
+ * flatten the design; it renders `{count} {pluralize(...)}`. A caller writing flat
+ * prose may instead declare whole phrases carrying their own numeral slot — see
+ * `limit-messages.ts`, where Arabic must DROP the numeral at `one` and `two`
+ * (ساعة already means "an hour") and only a phrase can express that.
  *
  * Note for a future reviewer: CLDR's own Arabic unit patterns DROP the numeral for
  * `one` and `two` (يوم / يومان already mean "one day" / "two days", so "2 يومان" is

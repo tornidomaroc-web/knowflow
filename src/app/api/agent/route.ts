@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { checkConversationLimit } from '@/lib/limits-server';
+import { checkConversationLimit, conversationMonthWindow } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
+import type { Locale } from '@/lib/i18n';
+import { monthlyConversationMessage } from '@/lib/limit-messages';
 import { embedQuery } from '@/lib/ingestion';
 import { recordStudyEvent } from '@/lib/study-events';
 
@@ -35,7 +37,10 @@ const MATCH_COUNT = 8;
 
 export async function POST(request: Request) {
   try {
-    const { message, kb_id, conversation_id } = await request.json();
+    const { message, kb_id, conversation_id, locale } = await request.json();
+    // Whitelisted server-side, exactly as /api/summarize does (register #27):
+    // the value is never interpolated, only used to pick a locale key.
+    const safeLocale: Locale = locale === 'ar' ? 'ar' : 'en';
     if (!message || !kb_id) {
       return NextResponse.json({ error: 'Missing message or kb_id' }, { status: 400 });
     }
@@ -47,7 +52,7 @@ export async function POST(request: Request) {
     // B7 cost guard: burst + daily query cap, in front of the expensive
     // embed/retrieve/Claude work. Returned as text/plain (not JSON) so the
     // streaming client renders the message cleanly while the status is a real 429.
-    const limit = await enforceLimit(user.id, 'query');
+    const limit = await enforceLimit(user.id, 'query', safeLocale);
     if (!limit.allowed) {
       return new Response(limit.error, {
         status: limit.status,
@@ -59,8 +64,12 @@ export async function POST(request: Request) {
     if (!convoLimit.allowed) {
       // Tier-correct: real per-tier monthly limit; only free users get the
       // upgrade prompt (a Pro user is already on the top tier).
-      const tail = convoLimit.tier === 'pro' ? '' : ' Upgrade to Pro for a higher limit.';
-      const message = `You've reached your monthly limit of ${convoLimit.limit} conversations.${tail}`;
+      const message = monthlyConversationMessage(
+        safeLocale,
+        convoLimit.limit,
+        convoLimit.tier,
+        conversationMonthWindow().nextStart
+      );
       const encoder = new TextEncoder();
       const readable = new ReadableStream({
         start(controller) {
