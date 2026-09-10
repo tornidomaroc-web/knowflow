@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { buttonVariants } from '@/components/ui';
 import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { readServerLimitMessage } from '@/lib/limit-messages';
 
 // Only the fields this section needs from a document. The subject page already
 // fetches these via `select('*')`, so a cached summary renders with NO API call
@@ -52,7 +53,12 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
           res.status === 422 ? s.errors.notEnoughText :
           res.status === 429 ? s.errors.limit :
           s.errors.temporary; // 500 / 502 / 503 / anything else — retryable
-        setError(msg);
+        // On a 429 the route returns enforceLimit's own message, already in this
+        // student's locale AND carrying how long until the cap resets — which the
+        // dictionary line cannot say, having no clock. Prefer it; s.errors.limit
+        // stays the fallback for an unreadable body.
+        const fromServer = res.status === 429 ? await readServerLimitMessage(res) : null;
+        setError(fromServer ?? msg);
         setIsLoading(false);
         return;
       }

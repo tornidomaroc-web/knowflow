@@ -17,6 +17,7 @@ import type { Locale } from '@/lib/i18n';
 import type { LimitKind } from '@/lib/limit-messages';
 import {
   dailyLimitMessage,
+  nextDailyReset,
   TOO_FAST,
   TEMPORARILY_UNAVAILABLE,
 } from '@/lib/limit-messages';
@@ -113,7 +114,7 @@ export async function enforceLimit(
     return {
       allowed: false,
       status: 429,
-      error: dailyLimitMessage(locale, kind, cap, tier),
+      error: dailyLimitMessage(locale, kind, cap, tier, nextDailyReset()),
     };
   }
 

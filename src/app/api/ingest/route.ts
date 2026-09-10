@@ -104,9 +104,8 @@ export async function POST(request: Request) {
     // unauthenticated request).
     const docLimit = await checkDocumentLimit(kbId, user.id);
     if (!docLimit.allowed) {
-      // Tier-correct: state the tier's actual limit and only offer the upgrade
-      // path to free users (a Pro user has no higher tier to upsell).
-      
+      // Tier-correct: states the tier's actual per-subject cap (publishable in
+      // both tiers) and offers the upgrade line to free users only.
       return NextResponse.json(
         { error: subjectMaterialsMessage(safeLocale, docLimit.limit, docLimit.tier) },
         { status: 403 }

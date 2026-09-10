@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { checkConversationLimit } from '@/lib/limits-server';
+import { checkConversationLimit, conversationMonthWindow } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
 import type { Locale } from '@/lib/i18n';
 import { monthlyConversationMessage } from '@/lib/limit-messages';
@@ -64,7 +64,12 @@ export async function POST(request: Request) {
     if (!convoLimit.allowed) {
       // Tier-correct: real per-tier monthly limit; only free users get the
       // upgrade prompt (a Pro user is already on the top tier).
-      const message = monthlyConversationMessage(safeLocale, convoLimit.limit, convoLimit.tier);
+      const message = monthlyConversationMessage(
+        safeLocale,
+        convoLimit.limit,
+        convoLimit.tier,
+        conversationMonthWindow().nextStart
+      );
       const encoder = new TextEncoder();
       const readable = new ReadableStream({
         start(controller) {
