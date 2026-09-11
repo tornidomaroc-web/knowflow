@@ -69,7 +69,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
               </div>
               <div className="p-6 space-y-4 text-foreground" dir="ltr">
                 <p><span className="text-muted-foreground">&gt;</span> upload ./biology-notes.pdf</p>
-                <p className="text-muted-foreground">[OK] Ready in 0.4s.</p>
+                <p className="text-muted-foreground">[OK]</p>
                 <p><span className="text-muted-foreground">&gt;</span> ask &quot;ما الفرق بين الانقسام المتساوي والمنصّف؟&quot;</p>
                 <p className="animate-pulse text-primary">▋</p>
               </div>
