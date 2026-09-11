@@ -63,7 +63,7 @@ export const en = {
       period: "/month",
       features: [
         "5 Subjects",
-        "10 materials",
+        "10 materials per subject",
         "100 conversations/month",
         "Arabic & English"
       ],
@@ -74,10 +74,9 @@ export const en = {
       price: "$49",
       period: "/month",
       features: [
-        "10 Subjects",
+        "Many more subjects",
         "Generous material limits",
-        "High daily limits",
-        "Priority support"
+        "High daily limits"
       ],
       button: "Upgrade to Pro"
     },
