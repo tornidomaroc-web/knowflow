@@ -8,7 +8,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
     <div className="min-h-screen font-sans py-24" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="max-w-3xl mx-auto px-6 text-muted-foreground text-start">
         <h1 className="text-5xl font-bold mb-4 text-foreground">Terms of Service</h1>
-        <p className="text-sm uppercase tracking-wide font-medium text-primary mb-12">Last updated: April 2026</p>
+        <p className="text-sm uppercase tracking-wide font-medium text-primary mb-12">Last updated: September 2026</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Acceptance of Terms</h2>
         <p className="mb-6">By accessing or using KnowFlow, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our platform.</p>
@@ -29,7 +29,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
         <p className="mb-6">We reserve the right to modify these terms at any time. We will notify you of any significant changes via email or an alert on the dashboard.</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Contact</h2>
-        <p className="mb-6">For legal inquiries regarding these terms, please contact legal@knowflow.ai.</p>
+        <p className="mb-6">For legal inquiries regarding these terms, please contact support@tryknowflow.com.</p>
       </div>
     </div>
   );

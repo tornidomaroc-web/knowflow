@@ -14,7 +14,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
         <div className="grid grid-cols-1 gap-6 mb-12 text-sm">
           <div className="rounded-xl border border-border bg-surface shadow-soft p-6 text-center">
             <h2 className="text-muted-foreground uppercase tracking-wide mb-2 text-xs font-medium">{t.contact.general}</h2>
-            <a href="mailto:hello@tryknowflow.com" className="text-primary hover:underline">hello@tryknowflow.com</a>
+            <a href="mailto:support@tryknowflow.com" className="text-primary hover:underline">support@tryknowflow.com</a>
           </div>
         </div>
 
