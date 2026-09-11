@@ -15,7 +15,7 @@ export const en = {
     note: "Made for students who'd rather understand than dig through PDFs.",
     cta1: "Start free",
     cta2: "See how it works",
-    disclaimer: "No credit card · Free to start · Ready in seconds"
+    disclaimer: "No credit card · Free to start"
   },
   features: {
     title: "Why KnowFlow",
@@ -39,13 +39,13 @@ export const en = {
     steps: [
       { step: "Step 1", title: "Upload your materials", desc: "Add a subject and upload its notes, slides, or PDFs in any format you already have." },
       { step: "Step 2", title: "Ask in Arabic or English", desc: "Type your question naturally. No keywords, no searching." },
-      { step: "Step 3", title: "Get a clear answer", desc: "KnowFlow reads that subject's materials and answers with the right information, instantly." }
+      { step: "Step 3", title: "Get a clear answer", desc: "KnowFlow reads that subject's materials and answers with the right information, in seconds." }
     ]
   },
   cta: {
     title: "Ready to study smarter?",
     button: "Start free",
-    note: "Free plan · No credit card · Set up in a minute"
+    note: "Free plan · No credit card"
   },
   footer: {
     privacy: "Privacy",
