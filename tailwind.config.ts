@@ -30,6 +30,21 @@ const config: Config = {
           hover: 'var(--primary-hover)',
           subtle: 'var(--primary-subtle)',
         },
+        // Added for the #85 dark system. Only what the student home needs:
+        // a THIRD surface level (page -> surface -> raised), the gold accent,
+        // a third text level, and the two STATE colours. Every one resolves to
+        // a CSS variable like the tokens above, so the light half of the toggle
+        // is a value swap in globals.css and never a change here.
+        raised: 'var(--raised)',
+        faint: 'var(--faint)',
+        accent: {
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
+          hover: 'var(--accent-hover)',
+          subtle: 'var(--accent-subtle)',
+        },
+        success: 'var(--success)',
+        danger: 'var(--danger)',
       },
       fontFamily: {
         // Rubik covers Latin + Arabic in one family (see src/app/[locale]/layout.tsx).

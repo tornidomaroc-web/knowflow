@@ -38,7 +38,10 @@ export type UsageKind = LimitKind;
  * Phase 3 / Phase 4 in docs/PROGRESS.md). Free is deliberately low because each is
  * expensive; `quiz` mirrors `summary`.
  */
-const DAILY_CAPS: Record<Tier, Record<UsageKind, number>> = {
+// EXPORTED so the student home can print the same ceilings this limiter
+// enforces. Restating the numbers in the UI is how copy and enforcement drift
+// apart — register #1 records that exact failure for the limit messages.
+export const DAILY_CAPS: Record<Tier, Record<UsageKind, number>> = {
   free: { query: 10, upload: 5, summary: 5, quiz: 5 },
   pro: { query: 2000, upload: 500, summary: 100, quiz: 100 },
 };
