@@ -95,8 +95,8 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
       {state === 'ready' && <p className="text-sm font-medium text-primary">{t.dashboard.upload.ready}</p>}
       {state === 'error' && (
         <>
-          <p className="text-sm font-medium text-red-700">{t.dashboard.upload.error}</p>
-          <p className="mt-1 text-xs text-red-700">{errorMsg}</p>
+          <p className="text-sm font-medium text-danger">{t.dashboard.upload.error}</p>
+          <p className="mt-1 text-xs text-danger">{errorMsg}</p>
         </>
       )}
     </div>

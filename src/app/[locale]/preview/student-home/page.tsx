@@ -49,7 +49,7 @@ export default async function StudentHomePreview({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ state?: string }>
+  searchParams: Promise<{ state?: string; theme?: string }>
 }) {
   const { locale } = await params
   if (!locales.includes(locale as Locale)) notFound()
@@ -57,9 +57,13 @@ export default async function StudentHomePreview({
   const t = useTranslation(safeLocale)
   const home = t.dashboard.home
 
-  const { state: rawState } = await searchParams
+  const { state: rawState, theme: rawTheme } = await searchParams
   const state: State = rawState === 'full' ? 'full' : 'zero'
   const full = state === 'full'
+  // The light half of the toggle has no UI control yet, so without this there is
+  // no way to LOOK at it - only to measure it by forcing the attribute in a
+  // console. Dark stays the default because dark is the base.
+  const theme: 'dark' | 'light' = rawTheme === 'light' ? 'light' : 'dark'
 
   const caps = DAILY_CAPS.free
   const counts = full
@@ -98,27 +102,36 @@ export default async function StudentHomePreview({
 
   const other: State = full ? 'zero' : 'full'
   const otherLocale: Locale = safeLocale === 'ar' ? 'en' : 'ar'
+  const otherTheme = theme === 'dark' ? 'light' : 'dark'
+  const qs = (o: Record<string, string>) =>
+    new URLSearchParams({ state, theme, ...o }).toString()
 
   return (
-    <div data-theme="dark" className="min-h-screen">
+    <div data-theme={theme} className="min-h-screen">
       {/* Preview chrome. Deliberately plain and clearly not part of the product,
           so it cannot be mistaken for a design decision. */}
       <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
         <span className="font-semibold text-foreground">student home · preview</span>
         <span className="text-faint">
-          {state} · {safeLocale}
+          {state} · {safeLocale} · {theme}
         </span>
         <Link
-          href={`/${safeLocale}/preview/student-home?state=${other}`}
+          href={`/${safeLocale}/preview/student-home?${qs({ state: other })}`}
           className="rounded-full border border-accent px-3 py-1 font-semibold text-accent"
         >
           {other} data
         </Link>
         <Link
-          href={`/${otherLocale}/preview/student-home?state=${state}`}
+          href={`/${otherLocale}/preview/student-home?${qs({})}`}
           className="rounded-full border border-border px-3 py-1 font-semibold text-muted-foreground"
         >
           {otherLocale}
+        </Link>
+        <Link
+          href={`/${safeLocale}/preview/student-home?${qs({ theme: otherTheme })}`}
+          className="rounded-full border border-border px-3 py-1 font-semibold text-muted-foreground"
+        >
+          {otherTheme}
         </Link>
       </div>
 

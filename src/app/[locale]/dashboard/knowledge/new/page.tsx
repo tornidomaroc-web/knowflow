@@ -93,7 +93,7 @@ export default function NewKnowledgeBasePage({
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">
               {error}
             </div>
           )}

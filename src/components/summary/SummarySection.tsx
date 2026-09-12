@@ -105,7 +105,7 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
       >
         {isLoading ? s.generating : s.generate}
       </button>
-      {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
+      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
     </div>
   );
 }

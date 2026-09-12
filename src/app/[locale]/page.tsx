@@ -61,6 +61,11 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           </div>
           <div className="flex-1 w-full max-w-lg lg:max-w-none mx-auto">
             <div className="rounded-2xl border border-border bg-surface font-mono text-sm overflow-hidden shadow-card">
+              {/* LEFT OFF THE TOKEN SWEEP DELIBERATELY (#93). These three dots are a
+                  PICTURE of a terminal title bar, not state and not identity. Tokenising
+                  them would make all three gold and destroy the thing they depict, and
+                  they sit on bg-muted in both themes where they stay legible. The rule
+                  "green and red are state only" is about MEANING; these mean nothing. */}
               <div className="flex items-center px-4 py-3 border-b border-border bg-muted gap-2">
                 <div className="w-3 h-3 rounded-full bg-red-400"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-400"></div>

@@ -238,7 +238,7 @@ export function QuizSection({ doc }: { doc: QuizDoc }) {
         >
           {phase === 'loading' ? q.starting : q.start}
         </button>
-        {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
+        {error && <p className="mt-2 text-xs text-danger">{error}</p>}
       </div>
     );
   }
@@ -305,7 +305,7 @@ export function QuizSection({ doc }: { doc: QuizDoc }) {
                   if (showingResults && isRevealedCorrect) {
                     tone = 'border-primary bg-primary-subtle font-medium text-primary';
                   } else if (isWrongChoice) {
-                    tone = 'border-red-700 bg-red-50 text-red-700';
+                    tone = 'border-danger bg-danger-subtle text-danger';
                   } else if (chosen) {
                     tone = 'border-primary bg-primary-subtle text-foreground';
                   }
@@ -344,7 +344,7 @@ export function QuizSection({ doc }: { doc: QuizDoc }) {
         })}
       </ol>
 
-      {error && <p className="mt-3 text-xs text-red-700">{error}</p>}
+      {error && <p className="mt-3 text-xs text-danger">{error}</p>}
 
       <div className="mt-4">
         {showingResults ? (

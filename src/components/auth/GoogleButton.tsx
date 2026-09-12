@@ -81,7 +81,7 @@ export function GoogleButton({
         <span>{label}</span>
       </button>
       {failed && (
-        <p className="text-xs text-red-600" role="alert">
+        <p className="text-xs text-danger" role="alert">
           {errorLabel}
         </p>
       )}
