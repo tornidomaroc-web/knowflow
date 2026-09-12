@@ -202,7 +202,36 @@ export const ar: Translation = {
       conversation: "محادثة",
       showLess: "عرض أقل",
       viewAll: "عرض الكل",
-      unknownKb: "مادة غير معروفة"
+      unknownKb: "مادة غير معروفة",
+      // ── #85 student home. 23 keys, added to BOTH files in one pass from a
+      //    single declaration so they cannot drift. `tsc` proves KEY parity only,
+      //    so the STRINGS were counted by hand: 23 here, 23 in the other file.
+      //    NO KEY HERE IS A COUNTED NOUN. That is deliberate: every quota renders
+      //    as a large numeral with a caption beside it, so nothing has to agree
+      //    with a number, and no Arabic plural category is involved.
+      planTitle: "خطتك",
+      planFree: "مجاني",
+      planPro: "الاحترافي",
+      questionsLeft: "الأسئلة المتبقية",
+      uploadsLeft: "الرفعات المتبقية",
+      ofWord: "من",
+      subjectsUsed: "المواد المستخدمة",
+      allSubjects: "كل المواد",
+      materialsWord: "ملخّص",
+      noSubjects: "لا توجد مواد بعد",
+      noSubjectsDesc: "المادة هي مقرر واحد. أضف مادة، ثم ارفع ملفاتها.",
+      startTitle: "ابدأ من هنا",
+      step1Title: "أنشئ مادة",
+      step1Desc: "مادة واحدة لكل مقرر.",
+      step2Title: "ارفع ملفاتك",
+      step2Desc: "ملفات PDF والشرائح والملاحظات.",
+      step3Title: "اطرح سؤالًا",
+      step3Desc: "الإجابات تأتي من ملفاتك أنت.",
+      whatTitle: "ماذا يفعل KnowFlow",
+      whatLine1: "يقرأ الملفات التي ترفعها ويحوّلها إلى نص قابل للبحث.",
+      whatLine2: "يكتب ملخصات ويبني اختبارات منها.",
+      whatLine3: "يجيب عن أسئلتك من ملفاتك، لا من الإنترنت.",
+      upgradeCta: "الترقية",
     },
     newKb: {
       title: "إنشاء مادة",

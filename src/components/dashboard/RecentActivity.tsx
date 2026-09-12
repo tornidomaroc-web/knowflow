@@ -26,7 +26,7 @@ export function RecentActivity({ items, labels }: { items: ActivityItem[]; label
 
   if (!items || items.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-surface p-8 text-center text-sm text-muted-foreground">
+      <div className="rounded-xl border border-dashed border-border bg-raised p-8 text-center text-sm text-muted-foreground">
         {labels.noActivity}
       </div>
     );
@@ -34,14 +34,14 @@ export function RecentActivity({ items, labels }: { items: ActivityItem[]; label
 
   return (
     <div>
-      <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface shadow-soft">
+      <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-raised">
         {visible.map((conv) => (
           <div key={conv.id} className="flex items-center justify-between gap-4 p-4">
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-foreground">
                 {conv.knowledge_bases?.name || labels.unknownKb}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-xs text-faint">
                 {conv.platform?.toUpperCase()} · {new Date(conv.created_at).toLocaleDateString('en-GB')}
               </p>
             </div>
@@ -53,7 +53,7 @@ export function RecentActivity({ items, labels }: { items: ActivityItem[]; label
         <div className="mt-2 flex justify-end">
           <button
             onClick={() => setShowAll((v) => !v)}
-            className="text-sm font-medium text-primary transition-colors hover:text-primary-hover"
+            className="text-sm font-semibold text-accent transition-colors hover:text-accent-hover"
           >
             {showAll ? labels.showLess : labels.viewAll}
           </button>

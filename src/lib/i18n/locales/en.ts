@@ -200,7 +200,36 @@ export const en = {
       conversation: "CONVERSATION",
       showLess: "Show less",
       viewAll: "View all",
-      unknownKb: "Unknown subject"
+      unknownKb: "Unknown subject",
+      // ── #85 student home. 23 keys, added to BOTH files in one pass from a
+      //    single declaration so they cannot drift. `tsc` proves KEY parity only,
+      //    so the STRINGS were counted by hand: 23 here, 23 in the other file.
+      //    NO KEY HERE IS A COUNTED NOUN. That is deliberate: every quota renders
+      //    as a large numeral with a caption beside it, so nothing has to agree
+      //    with a number, and no Arabic plural category is involved.
+      planTitle: "Your plan",
+      planFree: "Free",
+      planPro: "Pro",
+      questionsLeft: "Questions left",
+      uploadsLeft: "Uploads left",
+      ofWord: "of",
+      subjectsUsed: "Subjects used",
+      allSubjects: "All subjects",
+      materialsWord: "summarised",
+      noSubjects: "No subjects yet",
+      noSubjectsDesc: "A subject is one course. Add one, then upload its materials.",
+      startTitle: "Get started",
+      step1Title: "Create a subject",
+      step1Desc: "One subject per course.",
+      step2Title: "Upload your materials",
+      step2Desc: "PDFs, slides and notes.",
+      step3Title: "Ask a question",
+      step3Desc: "Answers come from your own materials.",
+      whatTitle: "What KnowFlow does",
+      whatLine1: "Reads the files you upload and turns them into searchable text.",
+      whatLine2: "Writes summaries and builds quizzes from them.",
+      whatLine3: "Answers your questions from your materials, not from the web.",
+      upgradeCta: "Upgrade",
     },
     newKb: {
       title: "Create Subject",

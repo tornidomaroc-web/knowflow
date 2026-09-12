@@ -73,3 +73,126 @@ body { background-color: var(--background); color: var(--foreground); }
    ───────────────────────────────────────────────────────────────────────────── */
 [dir="rtl"] .tracking-tight,
 [dir="rtl"] .tracking-tighter { letter-spacing: normal; }
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   THE TWO PALETTES (register #85). Dark is the BASE; light is a value swap.
+
+   WHY THESE SIT ON [data-theme] AND NOT ON :root — READ THIS BEFORE "FIXING" IT.
+   Every screen in this product paints with the same semantic utilities
+   (bg-background, bg-surface, text-foreground, border-border). Those resolve to
+   the variables above. Putting the dark values on `:root` would therefore flip
+   the LANDING PAGE, LOGIN, PRICING, SETTINGS and every other screen to dark in
+   the same commit — and half of them would be wrong, because 43 colour
+   utilities across 18 files bypass these tokens entirely (see the corrected note
+   at the top of this file). The worst of those is the danger family on the
+   delete-account panel: `bg-red-50` is a near-white block on a dark ground and
+   `text-red-700` is unreadable on it. Shipping that would put an unreadable
+   confirmation in front of an irreversible action.
+
+   So the palette is applied by SUBTREE. An element carrying `data-theme="dark"`
+   redefines the variables for itself and everything beneath it, and the existing
+   utilities resolve to the new values with no class changes anywhere. Today the
+   student home and its preview route carry it. When the rest of the product has
+   been migrated, moving the attribute to <html> in layout.tsx is a ONE-LINE
+   change and this block does not move — which is what "the second palette is a
+   value swap, not a second build" has to mean to be true.
+
+   `:root` keeps today's light values, so every unmigrated screen is untouched.
+
+   THREE SURFACE LEVELS, and depth comes from the STEP plus a hairline border,
+   never from a shadow. A light-theme shadow scale ported onto a dark ground is
+   the single most common way this system is got wrong: shadows are darkness, and
+   there is no darkness to add below near-black, so they read as nothing at all
+   and the layout goes flat. `--border` is therefore translucent WHITE on dark —
+   a catchlight, not an outline — and the surface step does the lifting.
+
+   WARM, NOT BLUE-GREY. The hue sits near 35° at very low saturation, so the dark
+   reads as warm charcoal rather than the blue-black most dark themes default to.
+
+   ONE ACCENT: gold, carried through buttons, focus rings, icon tiles and large
+   figures. Green and red are STATE ONLY and never identity, so nothing in the
+   chrome may use them to mean "KnowFlow".
+   ═════════════════════════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  --background: #14110d;         /* page — warm near-black */
+  --surface: #1c1813;            /* card — one step up */
+  --raised: #26211a;             /* raised — inside a card (meters, tiles) */
+  --muted: #221d17;              /* subtle fill */
+
+  /* Hairline, not an outline. White at low alpha reads as a lit edge on dark and
+     survives on every surface level without needing a per-level value. */
+  --border: rgba(255, 255, 255, 0.09);
+  --input: #1c1813;
+
+  /* THREE TEXT LEVELS, and the gap between 1 and 2 is deliberately wide — that
+     gap is what makes a heading read as bright rather than merely larger.
+     Contrast on --background: foreground ~17:1, muted-foreground ~6.4:1 (AA
+     body), faint ~3.3:1. `--faint` is therefore CAPTION AND DECORATION ONLY and
+     must never carry body copy; the register records that limit. */
+  --foreground: #f5f0e8;
+  --muted-foreground: #a39684;
+  --faint: #6f6455;
+
+  /* Gold. ~8:1 on the page ground both ways, so it works as text AND as a fill
+     with --accent-foreground on top. */
+  --accent: #d4a548;
+  --accent-foreground: #14110d;
+  --accent-hover: #e0b25c;
+  --accent-subtle: rgba(212, 165, 72, 0.12);
+
+  /* STATE ONLY. */
+  --success: #4fb98a;
+  --danger: #e8675f;
+
+  /* `--primary` is kept pointing at the accent so the EXISTING utilities
+     (bg-primary, text-primary, ring) keep working inside a migrated subtree
+     without touching a single component that already uses them. */
+  --primary: #d4a548;
+  --primary-foreground: #14110d;
+  --primary-hover: #e0b25c;
+  --primary-subtle: rgba(212, 165, 72, 0.12);
+
+  --ring: #d4a548;
+}
+
+/* The light half of the toggle. Same token names, different values — no second
+   build. Gold is DARKENED here: #d4a548 on cream is ~1.7:1 and unreadable, which
+   is the "gold goes muddy on light" problem stated as a number. #8a6514 clears
+   AA on both --background and --surface. */
+[data-theme="light"] {
+  --background: #faf7f2;
+  --surface: #ffffff;
+  --raised: #f3ede3;
+  --muted: #f0eae0;
+
+  --border: rgba(26, 22, 17, 0.10);
+  --input: #ffffff;
+
+  --foreground: #1a1611;
+  --muted-foreground: #6b6155;
+  --faint: #948a7c;
+
+  --accent: #8a6514;
+  --accent-foreground: #ffffff;
+  --accent-hover: #6f5010;
+  --accent-subtle: rgba(138, 101, 20, 0.10);
+
+  --success: #1c7a55;
+  --danger: #b3322b;
+
+  --primary: #8a6514;
+  --primary-foreground: #ffffff;
+  --primary-hover: #6f5010;
+  --primary-subtle: rgba(138, 101, 20, 0.10);
+
+  --ring: #8a6514;
+}
+
+/* A migrated subtree paints its own ground, so it renders correctly wherever it
+   is mounted — inside the (still light) dashboard chrome, or alone on the
+   preview route. Without this the tokens would change but the canvas behind them
+   would not, and the screen would read as a dark card floating on a light page. */
+[data-theme] {
+  background-color: var(--background);
+  color: var(--foreground);
+}
