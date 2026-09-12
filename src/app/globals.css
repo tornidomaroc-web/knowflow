@@ -6,8 +6,21 @@
   /* ─────────────────────────────────────────────────────────────────────────
      Phase 2 design tokens — "Calm Focus", light-first, emerald accent.
      Consumed via Tailwind semantic utilities (bg-background, text-foreground,
-     bg-primary, border-border, shadow-soft, …). Dark-ready by design: a future
-     `.dark { … }` block overrides these values with NO utility changes.
+     bg-primary, border-border, shadow-soft, …).
+
+     THE "NO UTILITY CHANGES" CLAIM THAT STOOD HERE WAS FALSE AND IS CORRECTED
+     RATHER THAN LEFT TO BE RE-DERIVED. It read: "Dark-ready by design: a future
+     `.dark { … }` block overrides these values with NO utility changes." Two
+     things break it. (1) 43 colour utilities across 18 files bypass these tokens
+     entirely — text-red-700 ×15, bg-red-50 ×7, text-red-600 ×6, border-red-200
+     ×6, text-amber-700 ×2, plus border-red-700, bg-yellow-400, bg-red-400,
+     bg-green-500, bg-white/15, bg-black/40, bg-black/10 — and 36 of those are the
+     danger/error family, which sits on delete-account confirmation and form
+     validation. On a dark ground bg-red-50 is a near-white block and text-red-700
+     is unreadable, so a dark palette costs a token block PLUS a 43-site sweep.
+     (2) This file is no longer tokens-only: it now carries one utility override,
+     below. Dark is still cheap and still the plan — it is just not free, and the
+     comment must not say it is.
      ───────────────────────────────────────────────────────────────────────── */
   --background: #f7faf9;         /* soft off-white canvas */
   --surface: #ffffff;            /* cards / raised surfaces */
@@ -34,3 +47,29 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body { background-color: var(--background); color: var(--foreground); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   RTL TYPOGRAPHY OVERRIDE — the one place this file touches a utility.
+
+   `tracking-tight` appears 23 times across 15 files (0 × `tracking-tighter`) and
+   every one of them reaches /ar, because all 15 render under the same [locale]
+   segment. The value is Tailwind's stock -0.025em: nobody chose it for this
+   product, and `tailwind.config.ts` extends no `letterSpacing` key. It is a
+   Latin display-type default, and Arabic is a joined script — negative tracking
+   crowds glyphs that are drawn connected.
+
+   Neutralised HERE, once, rather than by editing 23 call sites. `[dir="rtl"]` is
+   on <html> for /ar (layout.tsx:72), so the descendant selector's 0,2,0
+   specificity beats the utility's own 0,1,0 with NO !important and NO component
+   churn — and /en is untouched, so the Latin design is unchanged.
+
+   `tracking-tighter` is listed although it has zero uses today: the selector
+   costs nothing and stops the defect returning through the other utility.
+
+   KNOWN AND ACCEPTED: this also neutralises tracking inside dir="ltr" subtrees
+   on /ar (the landing terminal, the KnowFlow wordmark). Those are Latin runs, so
+   they lose -0.025em on the Arabic locale only. A :not() guard would be more
+   precise and is not worth the selector.
+   ───────────────────────────────────────────────────────────────────────────── */
+[dir="rtl"] .tracking-tight,
+[dir="rtl"] .tracking-tighter { letter-spacing: normal; }

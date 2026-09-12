@@ -70,7 +70,16 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
               <div className="p-6 space-y-4 text-foreground" dir="ltr">
                 <p><span className="text-muted-foreground">&gt;</span> upload ./biology-notes.pdf</p>
                 <p className="text-muted-foreground">[OK]</p>
-                <p><span className="text-muted-foreground">&gt;</span> ask &quot;ما الفرق بين الانقسام المتساوي والمنصّف؟&quot;</p>
+                {/* The container is `font-mono`, and Tailwind's stock mono stack is Latin-only
+                    (ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono,
+                    Courier New) — no face in it carries Arabic, so this question was rendering
+                    in an arbitrary system fallback: the exact defect layout.tsx:9-10 claims to
+                    have fixed. Scoped to `font-sans` (= var(--font-rubik)) rather than adding
+                    Rubik to a theme `mono` stack, because NO ordering of that stack is correct
+                    on every platform: Rubik before the generic costs Latin its monospace on
+                    Android (the Phase-8 target), and Rubik after it lets Windows' Courier New —
+                    which does carry Arabic — win instead of our face. Register #92. */}
+                <p><span className="text-muted-foreground">&gt;</span> ask &quot;<span className="font-sans">ما الفرق بين الانقسام المتساوي والمنصّف؟</span>&quot;</p>
                 <p className="animate-pulse text-primary">▋</p>
               </div>
             </div>

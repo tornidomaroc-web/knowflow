@@ -38,8 +38,15 @@ export function MessageBubble({ role, content, isStreaming, citations }: Message
               ul: ({ children }) => <ul className="mb-2 list-inside list-disc space-y-1">{children}</ul>,
               ol: ({ children }) => <ol className="mb-2 list-inside list-decimal space-y-1">{children}</ol>,
               li: ({ children }) => <li className="text-sm">{children}</li>,
+              // `font-mono` DROPPED, not remapped. Tailwind's stock mono stack is
+              // Latin-only, and this span holds arbitrary model output — in an
+              // Arabic-first product that is frequently Arabic, which would render
+              // in an arbitrary system fallback. Unlike the landing terminal the
+              // content is unknown, so it cannot be scoped; and no theme `mono`
+              // ordering is correct on every platform (see page.tsx). The span keeps
+              // its fill, padding and size, so code still reads as code. Register #92.
               code: ({ children }) => (
-                <code className="rounded bg-black/10 px-1 py-0.5 font-mono text-xs">{children}</code>
+                <code className="rounded bg-black/10 px-1 py-0.5 text-xs">{children}</code>
               ),
               h1: ({ children }) => <h1 className="mb-2 text-lg font-bold">{children}</h1>,
               h2: ({ children }) => <h2 className="mb-2 text-base font-bold">{children}</h2>,
