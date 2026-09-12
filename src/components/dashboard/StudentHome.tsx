@@ -103,9 +103,12 @@ export interface StudentHomeProps {
  * at safely. Prop-driven is what lets `/preview/student-home` render this at any
  * data state with no database anywhere near it.
  *
- * It carries `data-theme="dark"` itself and paints its own ground, so it renders
- * correctly mounted inside the (still light) dashboard chrome or alone on the
- * preview route. See globals.css for why the palette is per-subtree.
+ * It does NOT carry a theme of its own. It briefly did, to paint over a light
+ * dashboard canvas that no longer exists; a hardcoded `data-theme="dark"` here
+ * would make this screen ignore the toggle, so the light half could never
+ * reach it. The dashboard shell and the preview route own the theme, and this
+ * is pure content again - which is also what its "dumb, presentational"
+ * contract above actually requires.
  *
  * ZERO IS THE STATE THAT MATTERS. The live embedding key was last used
  * 2026-08-10 and every existing conversation is months old, so an empty account
@@ -133,7 +136,7 @@ export function StudentHome({
   const stepsLeft = onboarding.filter((s) => !s.done).length;
 
   return (
-    <div data-theme="dark" className="-m-4 min-h-screen p-4 pb-24 pt-[4.5rem] md:-m-8 md:p-8 md:pt-8">
+    <div>
       <div className="mx-auto max-w-5xl space-y-6">
         {/* ── Header. Weight, not letter-spacing, carries the hierarchy: Rubik's
             Arabic subset ships the full 300..900 axis, so font-bold on a large
@@ -159,6 +162,9 @@ export function StudentHome({
             className="group flex items-center justify-between gap-4 rounded-2xl bg-accent p-6 text-accent-foreground transition-colors hover:bg-accent-hover md:col-span-2"
           >
             <div className="min-w-0">
+              {/* bg-black/15 LEFT OFF THE SWEEP (#93): this tile sits ON the gold
+                  accent fill, which is gold in BOTH themes, so a fixed black scrim is
+                  correct in both. It is a shade of the accent, not a palette colour. */}
               <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-black/15">
                 <MessageCircle className="h-5 w-5" />
               </span>

@@ -87,6 +87,9 @@ export function Sheet({ open, onClose, side = 'bottom', className, label, childr
     <div className={cn('fixed inset-0 z-50', !open && 'pointer-events-none')} aria-hidden={!open}>
       <div
         onClick={onClose}
+        // bg-black/40 LEFT OFF THE SWEEP (#93): a modal scrim is black in every
+        // theme by definition - it is absence of light, not a palette colour. A
+        // tokenised scrim would go pale on the light theme and stop dimming.
         className={cn('absolute inset-0 bg-black/40 transition-opacity duration-200', open ? 'opacity-100' : 'opacity-0')}
       />
       <div

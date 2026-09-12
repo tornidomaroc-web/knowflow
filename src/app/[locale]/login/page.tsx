@@ -78,7 +78,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
           <h2 className="text-3xl font-semibold tracking-tight">{t.auth.loginTitle}</h2>
           <p className="mb-8 text-sm text-muted-foreground">{t.auth.loginSubtitle}</p>
 
-          {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+          {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
 
           {notice && (
             <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground">{notice}</div>

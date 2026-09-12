@@ -159,7 +159,7 @@ export default function PricingPage({ params }: { params: Promise<{ locale: Loca
               ) : t.pricing.pro.button}
             </button>
             {status === 'error' && (
-              <p className="text-red-700 text-xs text-center mt-2">
+              <p className="text-danger text-xs text-center mt-2">
                 {errorMsg}
                 {errorRef && (
                   <span className="block opacity-70 mt-1">

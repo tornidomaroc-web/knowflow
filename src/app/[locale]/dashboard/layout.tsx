@@ -52,13 +52,21 @@ export default async function DashboardLayout({
     signOut: t.dashboard.nav.signOut,
   };
 
+  // #85 CHROME REPAINT. ONE attribute themes the entire dashboard shell.
+  // Sidebar, MobileNav and the canvas below paint with semantic utilities ONLY
+  // (bg-surface, border-border, text-muted-foreground, bg-primary-subtle), so
+  // not one of them needed a class change - they resolve to the dark values
+  // purely by sitting inside the subtree. Flipping this attribute to "light"
+  // is the entire light half of the toggle.
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-theme="dark">
       <Sidebar userEmail={user.email || ''} isPro={isPro} locale={safeLocale} labels={labels} />
       <MobileNav userEmail={user.email || ''} isPro={isPro} locale={safeLocale} labels={labels} />
 
       {/*
-        The light content canvas for every dashboard screen (P2.7 flip — all
+        The content canvas for every dashboard screen. WORDING CORRECTED #85:
+        this line read "The light content canvas ..." and is no longer true —
+        the shell above carries data-theme and this canvas follows it. (P2.7 flip — all
         screens are migrated, so this owns the background + padding and screens
         no longer paint their own). `ms-60` offsets the desktop sidebar (mirrors
         under RTL); the mobile top/bottom padding clears the fixed bars.

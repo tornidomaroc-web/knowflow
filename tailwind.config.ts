@@ -44,7 +44,16 @@ const config: Config = {
           subtle: 'var(--accent-subtle)',
         },
         success: 'var(--success)',
-        danger: 'var(--danger)',
+        // `danger` became an object when the sweep landed: the 33 danger-family
+        // utilities it replaced were a text colour, a fill AND a border, so a
+        // single flat colour could not absorb them.
+        danger: {
+          DEFAULT: 'var(--danger)',
+          foreground: 'var(--danger-foreground)',
+          subtle: 'var(--danger-subtle)',
+          border: 'var(--danger-border)',
+        },
+        warning: 'var(--warning)',
       },
       fontFamily: {
         // Rubik covers Latin + Arabic in one family (see src/app/[locale]/layout.tsx).
