@@ -140,9 +140,27 @@ body { background-color: var(--background); color: var(--foreground); }
   --accent-hover: #e0b25c;
   --accent-subtle: rgba(212, 165, 72, 0.12);
 
-  /* STATE ONLY. */
-  --success: #4fb98a;
-  --danger: #e8675f;
+  /* ── STATE ONLY. Never identity: nothing in the chrome may use these to mean
+     "KnowFlow". Every pair below was MEASURED, not chosen by eye, and the
+     figures are in the PR body and register #93.
+
+     --success and --danger are #153's values, KEPT. They were measured here for
+     the first time and already clear AA on every ground they can land on
+     (worst: danger 4.97:1 on --raised, success 6.57:1), so replacing them would
+     have been churn. What #153 lacked was the rest of the FAMILY — a fill, a
+     border and a foreground — which is why the sweep could not land until now:
+     `bg-red-50` and `border-red-200` had nowhere to go.
+
+     THE BORDER IS THE ONE THAT NEEDED SOLVING. WCAG 1.4.11 puts non-text UI at
+     3:1, and the delete-account card's border is not decoration — it is the
+     signal that the card is dangerous. The first candidate (#a4453c) measured
+     2.94:1 on --surface and was REJECTED for missing the bar by 0.06. */
+  --success: #4fb98a;          /* 8.55:1 on surface, 7.73:1 on raised */
+  --danger: #e8675f;           /* 6.20:1 on surface, 4.97:1 on raised, 5.27:1 on danger-subtle */
+  --danger-foreground: #14110d; /* 5.86:1 on the danger fill */
+  --danger-subtle: #2c1714;    /* the bg-red-50 replacement: a tint, not a boundary */
+  --danger-border: #bb554a;    /* 3.79:1 surface / 4.04:1 page / 3.43:1 raised - clears 3:1 everywhere */
+  --warning: #f0c070;          /* 10.49:1 on surface, 9.49:1 on raised */
 
   /* `--primary` is kept pointing at the accent so the EXISTING utilities
      (bg-primary, text-primary, ring) keep working inside a migrated subtree
@@ -177,8 +195,17 @@ body { background-color: var(--background); color: var(--foreground); }
   --accent-hover: #6f5010;
   --accent-subtle: rgba(138, 101, 20, 0.10);
 
-  --success: #1c7a55;
-  --danger: #b3322b;
+  /* Measured on this theme's own grounds, not assumed to mirror the dark set.
+     NOTED RISK, recorded rather than silently accepted: --success measures
+     4.55:1 on --raised, which clears AA by 0.05. It passes today and was left
+     alone on the same no-churn rule as the dark set, but it is the one value
+     here that a future tweak to --raised could push under the bar. */
+  --success: #1c7a55;          /* 6.48:1 on surface, 4.55:1 on raised - thin */
+  --danger: #b3322b;           /* 7.13:1 on surface, 5.29:1 on raised, 5.58:1 on danger-subtle */
+  --danger-foreground: #ffffff; /* 6.16:1 on the danger fill */
+  --danger-subtle: #fdf1f0;
+  --danger-border: #bd6a60;    /* 3.89:1 surface / 3.64:1 page / 3.34:1 raised */
+  --warning: #7a5200;          /* 6.92:1 on surface, 5.94:1 on raised */
 
   --primary: #8a6514;
   --primary-foreground: #ffffff;

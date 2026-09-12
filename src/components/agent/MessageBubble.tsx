@@ -46,7 +46,7 @@ export function MessageBubble({ role, content, isStreaming, citations }: Message
               // ordering is correct on every platform (see page.tsx). The span keeps
               // its fill, padding and size, so code still reads as code. Register #92.
               code: ({ children }) => (
-                <code className="rounded bg-black/10 px-1 py-0.5 text-xs">{children}</code>
+                <code className="rounded bg-muted px-1 py-0.5 text-xs">{children}</code>
               ),
               h1: ({ children }) => <h1 className="mb-2 text-lg font-bold">{children}</h1>,
               h2: ({ children }) => <h2 className="mb-2 text-base font-bold">{children}</h2>,

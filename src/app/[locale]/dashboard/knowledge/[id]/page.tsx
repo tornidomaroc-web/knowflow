@@ -49,8 +49,8 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
 
   const statusColor = (s: string) => {
     if (s === 'ready') return 'text-primary'
-    if (s === 'processing') return 'text-amber-700'
-    if (s === 'error') return 'text-red-700'
+    if (s === 'processing') return 'text-warning'
+    if (s === 'error') return 'text-danger'
     return 'text-muted-foreground'
   }
 

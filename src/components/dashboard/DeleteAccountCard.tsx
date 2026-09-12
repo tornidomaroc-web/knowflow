@@ -126,18 +126,18 @@ export function DeleteAccountCard({ labels, homeHref }: DeleteAccountCardProps) 
   }
 
   return (
-    <Card className="border-red-200 p-6">
-      <h2 className="mb-4 text-xs font-medium uppercase tracking-wide text-red-600">
+    <Card className="border-danger-border p-6">
+      <h2 className="mb-4 text-xs font-medium uppercase tracking-wide text-danger">
         {labels.heading}
       </h2>
 
       <p className="mb-2 text-sm text-foreground">{labels.description}</p>
-      <p className="mb-2 text-sm font-medium text-red-600">{labels.permanentWarning}</p>
+      <p className="mb-2 text-sm font-medium text-danger">{labels.permanentWarning}</p>
       <p className="mb-1 text-xs text-muted-foreground">{labels.whatIsRemoved}</p>
       <p className="mb-4 text-xs text-muted-foreground">{labels.billingNote}</p>
 
       {error && (
-        <p role="alert" className="mb-4 text-sm font-medium text-red-600">
+        <p role="alert" className="mb-4 text-sm font-medium text-danger">
           {error}
         </p>
       )}

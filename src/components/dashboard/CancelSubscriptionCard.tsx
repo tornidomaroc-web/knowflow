@@ -155,7 +155,7 @@ export function CancelSubscriptionCard({
           <p className="mb-4 text-xs text-muted-foreground">{labels.canResubscribe}</p>
 
           {error && (
-            <p role="alert" className="mb-4 text-sm font-medium text-red-600">
+            <p role="alert" className="mb-4 text-sm font-medium text-danger">
               {error}
               {/* The reference is what makes "contact support" actionable: it is
                   the only handle a customer has on the log line that explains
