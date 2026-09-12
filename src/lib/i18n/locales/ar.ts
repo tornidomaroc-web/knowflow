@@ -271,6 +271,7 @@ export const ar: Translation = {
       renews: "تتجدد في",
       upgrade: "الترقية إلى الاحترافي",
       activeSubscription: "اشتراك نشط",
+      privacyPolicy: "سياسة الخصوصية",
       cancels: "ينتهي في",
       cancelSubscription: {
         heading: "الاشتراك",
