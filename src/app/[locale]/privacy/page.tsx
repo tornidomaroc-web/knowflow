@@ -10,6 +10,8 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
         <h1 className="text-5xl font-bold mb-4 text-foreground">Privacy Policy</h1>
         <p className="text-sm uppercase tracking-wide font-medium text-primary mb-12">Last updated: September 2026</p>
 
+        <p className="mb-6">This Privacy Policy applies to KnowFlow, the study service at tryknowflow.com. KnowFlow is operated by an independent developer, and the contact address given below reaches the person responsible for it.</p>
+
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Information We Collect</h2>
         <p className="mb-6">We collect information you provide directly to us when you create an account, upload documents, or communicate with us. This includes your name, email, and the content of documents you upload to your knowledge bases.</p>
 
@@ -21,6 +23,8 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Your Rights</h2>
         <p className="mb-6">You can view the documents you have uploaded, and the email address on your account, from your dashboard.</p>
+
+        <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Deleting Your Account and Data</h2>
         <p className="mb-6"><strong>You can delete your account yourself, from Settings in your dashboard.</strong> Deleting your account permanently removes your subjects, materials, conversations, quizzes and study history, together with every file you have uploaded, and immediately cancels any active subscription. It cannot be undone, and nothing can be restored afterwards. Changing your account details is still not available.</p>
         <p className="mb-6">If you cannot reach your dashboard, you can still request deletion of your account and its associated data by emailing <a className="underline" href="mailto:support@tryknowflow.com">support@tryknowflow.com</a> from the address you registered with.</p>
 
