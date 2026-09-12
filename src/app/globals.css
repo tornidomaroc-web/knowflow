@@ -37,6 +37,34 @@
   --primary-subtle: #ecfdf5;     /* emerald-50 — soft accent fill / badges */
 
   --radius: 0.75rem;             /* rounded-xl baseline (D4) */
+
+  /* ── STATE COLOURS ON :root, AND THIS IS NOT OPTIONAL ─────────────────────
+     CAUGHT BY MEASUREMENT, NOT BY REVIEW, AND IT WOULD HAVE SHIPPED.
+
+     The #93 sweep moved every error box onto `text-danger` / `bg-danger-subtle`
+     / `border-danger-border`. Those tokens were defined ONLY inside the
+     [data-theme] blocks. But the auth and marketing pages - login, signup,
+     forgot-password, reset-password, pricing - are NOT inside a themed subtree:
+     they render on :root. Probing the built login page returned
+     `color: rgb(16,32,26)` (plain body text), `background: rgba(0,0,0,0)` and a
+     border the same colour as the text - i.e. THE ERROR STYLING VANISHED
+     COMPLETELY. Readable, but with nothing left to say it is an error. That is
+     the same class of defect the sweep exists to fix, introduced at the other
+     end of the product.
+
+     Measured against :root's OWN grounds, which are the Phase-2 light ones and
+     differ from [data-theme="light"]'s (#f7faf9 / #ffffff / #eef2f0):
+       --danger        5.87 background / 6.16 surface / 5.46 muted / 5.58 subtle
+       --danger-border 3.71 / 3.89 / 3.45 / 3.53   (WCAG 1.4.11 non-text, 3:1)
+       --warning       6.59 / 6.92 / 6.13 / 6.27
+       white on the danger fill: 6.16:1
+     ─────────────────────────────────────────────────────────────────────── */
+  --success: #1c7a55;
+  --danger: #b3322b;
+  --danger-foreground: #ffffff;
+  --danger-subtle: #fdf1f0;
+  --danger-border: #bd6a60;
+  --warning: #7a5200;
 }
 
 /* Phase 2 complete: the legacy neon/terminal tokens (--bg-color, --accent-color,
