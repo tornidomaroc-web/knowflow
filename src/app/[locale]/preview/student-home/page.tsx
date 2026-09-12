@@ -51,6 +51,23 @@ export default async function StudentHomePreview({
   params: Promise<{ locale: string }>
   searchParams: Promise<{ state?: string; theme?: string }>
 }) {
+  // ── THE GATE. A `noindex` tag is not access control: it asks crawlers not to
+  //    list the path, and does nothing about anyone who has the URL. This route
+  //    carries no user data and opens no Supabase client, so the risk is low -
+  //    but "low" is not "nothing", and a half-finished design with fabricated
+  //    student names should not be a public page on tryknowflow.com.
+  //
+  //    VERCEL_ENV is a SYSTEM variable Vercel sets itself ('production' on the
+  //    production deployment, 'preview' on a PR deployment). Nothing had to be
+  //    added to the project settings and no deploy configuration is touched.
+  //
+  //    FAIL-OPEN BY CHOICE, and the direction is deliberate: if VERCEL_ENV is
+  //    ever absent the route stays reachable, which is exactly today's behaviour
+  //    and no worse. A fail-closed guard would 404 the preview too, taking away
+  //    the only surface on which this product's screens can be looked at without
+  //    pointing a dev server at the production database.
+  if (process.env.VERCEL_ENV === 'production') notFound()
+
   const { locale } = await params
   if (!locales.includes(locale as Locale)) notFound()
   const safeLocale = locale as Locale
