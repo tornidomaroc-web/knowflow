@@ -269,6 +269,7 @@ export const en = {
       renews: "Renews",
       upgrade: "Upgrade to Pro",
       activeSubscription: "Active subscription",
+      privacyPolicy: "Privacy Policy",
       cancels: "Cancels on",
       cancelSubscription: {
         heading: "Subscription",

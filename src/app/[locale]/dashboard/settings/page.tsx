@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getEntitlement } from '@/lib/entitlement'
 import { redirect } from 'next/navigation'
@@ -85,6 +86,17 @@ export default async function SettingsPage({
         homeHref={`/${safeLocale}`}
         labels={t.dashboard.settings.deleteAccount}
       />
+
+      {/* Apple 5.1.1(i): the privacy policy must be linked "within the app in an
+          easily accessible manner", not only from the marketing footer. Before this,
+          the landing footer was the ONLY link to it anywhere in the product, so a
+          signed-in student -- and, at Phase 8, anyone inside the Capacitor shell --
+          had no path to it at all. */}
+      <p className="text-sm text-muted-foreground">
+        <Link href={`/${safeLocale}/privacy`} className="underline hover:text-foreground transition-colors">
+          {t.dashboard.settings.privacyPolicy}
+        </Link>
+      </p>
     </SettingsPanel>
   )
 }
