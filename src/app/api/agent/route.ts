@@ -35,6 +35,67 @@ Rules:
 
 const MATCH_COUNT = 8;
 
+// The answering model, named once. Rates below are the published Haiku 4.5 rates
+// READ ON 2026-09-13 from claude.com/pricing; they are used ONLY to annotate the
+// usage log, never to gate behaviour, so a stale rate mis-labels a log line and
+// breaks nothing. Re-read before quoting them anywhere that money is decided.
+const ANSWER_MODEL = 'claude-haiku-4-5-20251001';
+const USD_PER_INPUT_TOKEN = 1.0 / 1_000_000;
+const USD_PER_OUTPUT_TOKEN = 5.0 / 1_000_000;
+const USD_PER_CACHE_READ_TOKEN = 0.10 / 1_000_000;
+const USD_PER_CACHE_WRITE_TOKEN = 1.25 / 1_000_000;
+
+/**
+ * LEVER 1 - the answer cap, cut 2048 -> 600.
+ *
+ * Output is priced at 5x input ($5 vs $1 per MTok), so the answer cap is the tail
+ * of the cost distribution, not the body of it. Measured against the source
+ * before this change: a question whose answer ran to the old 2048 cap cost
+ * $0.01449, against $0.00575 for the same question with a ~300-token answer -
+ * the cap alone was 2.5x the whole cost of a normal question. SYSTEM_INSTRUCTIONS
+ * already ends with "Be concise. Prefer short, direct answers over long ones", so
+ * this makes the prompt's own instruction enforceable rather than advisory.
+ *
+ * 600 IS AN ASSUMPTION AND THIS PR EXISTS TO TEST IT. Every truncation is logged
+ * with `truncated: true` below. If the truncation rate is material - and it will
+ * be higher in Arabic, which tokenizes to roughly twice as many tokens per
+ * character as English - then 600 was the wrong number and the log will say so.
+ * Tune it on that evidence, not on this comment.
+ */
+const MAX_ANSWER_TOKENS = 600;
+
+/**
+ * LEVER 2 - a token budget on replayed history.
+ *
+ * `.limit(10)` bounds the number of messages and says nothing about their size.
+ * Ten messages at the old 2048 cap carry 10,440 input tokens - more than twice
+ * the 4,096-token retrieved context, and the single largest term in the worst
+ * case ($0.02493/question, of which history was $0.01044).
+ *
+ * WHY THE ESTIMATOR IS SCRIPT-AWARE. There is no tokenizer in the Next runtime,
+ * so this counts characters and converts. A single ratio would be wrong for this
+ * product: Arabic runs to roughly 2 characters per token where English runs to
+ * about 4.4, so a chars/4 rule would under-count Arabic by more than half and
+ * quietly blow the budget for the audience the budget exists to protect. Arabic
+ * codepoints are therefore charged at 2 chars/token and everything else at 4 -
+ * deliberately conservative in both directions, since over-counting only trims
+ * history further and costs nothing but context.
+ *
+ * The true figure is unknowable from here; `input_tokens` in the usage log is the
+ * measurement that will correct this estimator.
+ */
+const HISTORY_TOKEN_BUDGET = 1200;
+
+function estimateTokens(text: string): number {
+  let arabic = 0;
+  for (const ch of text) {
+    const c = ch.codePointAt(0) ?? 0;
+    // Arabic + Arabic Supplement + Extended-A cover what this product actually sees.
+    if ((c >= 0x0600 && c <= 0x06ff) || (c >= 0x0750 && c <= 0x077f) || (c >= 0x08a0 && c <= 0x08ff)) arabic++;
+  }
+  return Math.ceil(arabic / 2 + (text.length - arabic) / 4);
+}
+
 export async function POST(request: Request) {
   try {
     const { message, kb_id, conversation_id, locale } = await request.json();
@@ -139,6 +200,9 @@ export async function POST(request: Request) {
     // 2. Conversation bookkeeping.
     let convoId = conversation_id;
     let history: { role: 'user' | 'assistant'; content: string }[] = [];
+    // Recorded for the usage log so the budget's effect is measurable, not assumed.
+    let historyDropped = 0;
+    let historyTokensEst = 0;
 
     if (convoId) {
       const { data: msgs } = await supabase
@@ -148,7 +212,27 @@ export async function POST(request: Request) {
         .order('created_at', { ascending: false })
         .limit(10);
       if (msgs) {
-        history = msgs
+        // LEVER 2. `msgs` arrives NEWEST-FIRST, which is what makes the walk
+        // correct: spend the budget on the most recent turns and drop the oldest,
+        // because recency is what a follow-up question depends on.
+        //
+        // The budget is respected STRICTLY - if even the newest message exceeds
+        // it, history is empty. That is deliberate: the alternative is truncating
+        // a stored message mid-sentence and replaying a mutilated turn as if the
+        // student had said it. The case is also self-liquidating, because with
+        // MAX_ANSWER_TOKENS at 600 no answer written from now on can approach
+        // HISTORY_TOKEN_BUDGET; only answers stored under the old 2048 cap can.
+        const kept: typeof msgs = [];
+        let remaining = HISTORY_TOKEN_BUDGET;
+        for (const m of msgs) {
+          const cost = estimateTokens(m.content);
+          if (cost > remaining) break;
+          remaining -= cost;
+          kept.push(m);
+        }
+        historyDropped = msgs.length - kept.length;
+        historyTokensEst = HISTORY_TOKEN_BUDGET - remaining;
+        history = kept
           .reverse()
           .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
       }
@@ -166,21 +250,32 @@ export async function POST(request: Request) {
     await supabase.from('messages').insert({ conversation_id: convoId, role: 'user', content: message });
 
     // 3. Compose the user turn so retrieved context is fresh per query.
-    //    Prompt caching applies to the static system instructions only.
+    //
+    // THE `cache_control` MARKER THAT USED TO SIT ON SYSTEM_INSTRUCTIONS IS GONE,
+    // AND IT IS NOT COMING BACK ON THIS MODEL. It read
+    // `cache_control: { type: 'ephemeral' }` and cached NOTHING: Haiku 4.5's
+    // minimum cacheable prefix is 4,096 tokens and SYSTEM_INSTRUCTIONS is 482
+    // characters, roughly 110 tokens. Below the minimum the API does not error -
+    // it returns `cache_creation_input_tokens: 0` and moves on, so the marker
+    // bought nothing while reading as though caching were handled.
+    //
+    // It cannot be "made real" here either, and the reason is worth writing down
+    // so nobody re-adds it. Caching needs a STABLE prefix over the minimum. The
+    // retrieved context changes on every query by construction. The only
+    // growing-stable prefix is the history - and LEVER 2 above caps that at 1,200
+    // tokens, so after this change history can never reach 4,096. The two are in
+    // direct tension and the budget wins by a wide margin: it is worth 37% of the
+    // worst-case question, where caching 1,200 tokens of history would save about
+    // a tenth of a cent. Padding the system prompt to 4,096 tokens to qualify
+    // would mean paying a 1.25x cache WRITE to store filler.
     const userTurn = `Retrieved passages:\n\n${contextBlock}\n\n---\n\nQuestion: ${message}`;
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
 
     const stream = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
-      system: [
-        {
-          type: 'text',
-          text: SYSTEM_INSTRUCTIONS,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
+      model: ANSWER_MODEL,
+      max_tokens: MAX_ANSWER_TOKENS,
+      system: SYSTEM_INSTRUCTIONS,
       messages: [...history, { role: 'user', content: userTurn }],
       stream: true,
     });
@@ -191,9 +286,27 @@ export async function POST(request: Request) {
     const readable = new ReadableStream({
       async start(controller) {
         let assistantMessage = '';
+        // THE MEASUREMENT. Until this line existed the app read `response.usage`
+        // nowhere, so every cost figure this project has ever quoted - including
+        // the ones the price was set on - was derived from source constants and
+        // an assumed answer length. `message_start` carries the input side,
+        // `message_delta` carries the cumulative output and the stop reason.
+        let inputTokens = 0;
+        let outputTokens = 0;
+        let cacheReadTokens = 0;
+        let cacheWriteTokens = 0;
+        let stopReason: string | null = null;
         try {
           for await (const chunk of stream) {
-            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+            if (chunk.type === 'message_start') {
+              const u = chunk.message.usage;
+              inputTokens = u.input_tokens ?? 0;
+              cacheReadTokens = u.cache_read_input_tokens ?? 0;
+              cacheWriteTokens = u.cache_creation_input_tokens ?? 0;
+            } else if (chunk.type === 'message_delta') {
+              outputTokens = chunk.usage.output_tokens ?? outputTokens;
+              stopReason = chunk.delta.stop_reason ?? stopReason;
+            } else if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
               const text = chunk.delta.text;
               assistantMessage += text;
               controller.enqueue(encoder.encode(text));
@@ -228,6 +341,51 @@ export async function POST(request: Request) {
             role: 'assistant',
             content: assistantMessage,
           });
+
+          // ONE STRUCTURED LINE PER ANSWERED QUESTION. JSON so it can be parsed
+          // out of the log sink without matching prose, and tagged so it can be
+          // filtered without matching the route name.
+          //
+          // NO QUESTION TEXT AND NO ANSWER TEXT IS LOGGED - only counts. The
+          // user id IS logged, because the decision this data exists to inform is
+          // the Pro daily cap, and a per-question distribution cannot answer
+          // "what does the heaviest user cost" without it. Vercel is already a
+          // disclosed sub-processor on the privacy page ("hosts the website and
+          // handles every request made to it"), so this adds no recipient.
+          //
+          // RETENTION IS THE OPEN RISK, NOT THE CODE: how long these lines
+          // survive depends on the log retention of the Vercel plan in use, which
+          // was not readable this session. If a week of history does not survive,
+          // this line is correct and still useless, and the durable table
+          // (register #94) is the fix rather than a different log line.
+          const usd =
+            inputTokens * USD_PER_INPUT_TOKEN +
+            outputTokens * USD_PER_OUTPUT_TOKEN +
+            cacheReadTokens * USD_PER_CACHE_READ_TOKEN +
+            cacheWriteTokens * USD_PER_CACHE_WRITE_TOKEN;
+          console.log(
+            JSON.stringify({
+              tag: 'kf-usage',
+              route: 'agent',
+              model: ANSWER_MODEL,
+              user_id: user.id,
+              conversation_id: convoId,
+              locale: safeLocale,
+              input_tokens: inputTokens,
+              output_tokens: outputTokens,
+              cache_read_tokens: cacheReadTokens,
+              cache_write_tokens: cacheWriteTokens,
+              stop_reason: stopReason,
+              // The single number that says whether MAX_ANSWER_TOKENS is too low.
+              truncated: stopReason === 'max_tokens',
+              context_chunks: chunks.length,
+              history_msgs: history.length,
+              history_dropped: historyDropped,
+              history_tokens_est: historyTokensEst,
+              answer_chars: assistantMessage.length,
+              usd: Number(usd.toFixed(6)),
+            })
+          );
         } catch (error) {
           console.error('Stream error:', error);
         } finally {
