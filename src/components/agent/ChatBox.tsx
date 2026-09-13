@@ -116,7 +116,24 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
   };
 
   return (
-    <div className="flex h-[calc(100dvh-100px)] flex-col bg-surface">
+    /*
+      THE MAGIC NUMBER THAT USED TO BE HERE IS GONE AND MUST NOT COME BACK.
+      This read `h-[calc(100dvh-100px)]`. A leaf component cannot know how much
+      chrome sits above and below it, and this one guessed wrong by 135px: the
+      real total is 72px of <main> top padding + 61px of the KBSelector subject
+      bar + 2px of card border + 96px of <main> bottom padding. The card
+      therefore ended 35px past the bottom of the viewport with a fixed 57px nav
+      over it, and `elementFromPoint` at the Send button's centre returned a nav
+      link instead of the button.
+
+      The height now belongs to the page (dashboard/agent/page.tsx), which is the
+      only place that can see the layout it lives in. Here we simply fill what we
+      are given. `min-h-0` is load-bearing, not tidiness: a flex item defaults to
+      `min-height: auto`, which resolves to min-content and would refuse to
+      shrink below the full un-scrolled message list — reintroducing the same
+      overflow from the inside.
+    */
+    <div className="flex min-h-0 flex-1 flex-col bg-surface">
       <div className="border-b border-border bg-surface p-4">
         <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {t.dashboard.agent.chatWith}: <span className="text-foreground">{kbName}</span>
