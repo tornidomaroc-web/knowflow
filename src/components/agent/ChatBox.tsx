@@ -21,10 +21,41 @@ interface ChatBoxProps {
   onConversationCreated?: (id: string) => void;
 }
 
+/**
+ * `atob` ALONE IS NOT A BASE64 DECODER FOR TEXT, AND THAT IS THE WHOLE BUG.
+ *
+ * This line used to read `atob(header)` and hand the result straight to
+ * `JSON.parse`. `atob` returns a BINARY STRING - one character per byte, each in
+ * U+0000..U+00FF - which is Latin-1 by definition. The server encodes with
+ * `Buffer.from(JSON.stringify(citations))` (api/agent/route.ts), and
+ * `Buffer.from(string)` defaults to UTF-8, so every non-ASCII character crossed
+ * the `X-Citations` header as multiple bytes and arrived as that many separate
+ * characters. An Arabic filename rendered as mojibake in the citation pills.
+ *
+ * THE CORRUPTION WAS ONLY EVER IN THIS HOP. Storage, the database and every
+ * normal HTML render of the same filename were always correct - which is why
+ * nothing upstream needs touching, and why the fix is one expression.
+ *
+ * IT WAS BROWSER-ONLY, WHICH IS WHY IT SURVIVED UNTIL SOMEONE LOOKED AT A PHONE.
+ * The `Buffer.from(header, 'base64').toString()` fallback below defaults to UTF-8
+ * and has always been correct, so no server-side test could reproduce this. The
+ * two branches now agree instead of disagreeing.
+ *
+ * AND IT WAS NEVER ONLY ARABIC. UTF-8 and Latin-1 coincide exactly on
+ * U+0000..U+007F, so pure-ASCII filenames were unaffected and are byte-identical
+ * after this change. Everything above U+007F was broken: accented Latin
+ * (`é`, `ñ`), Cyrillic, Hebrew, CJK, and emoji alike.
+ */
 function decodeCitations(header: string | null): Citation[] | undefined {
   if (!header) return undefined;
   try {
-    const json = typeof atob === 'function' ? atob(header) : Buffer.from(header, 'base64').toString();
+    // base64 -> bytes -> UTF-8. `TextDecoder` is the mirror of the `TextEncoder`
+    // the route already uses, and it reconstructs surrogate pairs correctly, so
+    // characters outside the BMP survive the round trip.
+    const json =
+      typeof atob === 'function'
+        ? new TextDecoder().decode(Uint8Array.from(atob(header), (c) => c.charCodeAt(0)))
+        : Buffer.from(header, 'base64').toString();
     const parsed = JSON.parse(json);
     return Array.isArray(parsed) ? parsed : undefined;
   } catch {
