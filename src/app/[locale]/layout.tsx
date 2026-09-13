@@ -44,6 +44,17 @@ export async function generateMetadata({
       siteName: SITE_NAME,
       title,
       description,
+      // `ar_AR` IS CORRECT AND WAS LEFT ALONE ON PURPOSE. It was raised as a bug
+      // on the reading that `AR` is the ISO 3166 code for Argentina, which it is
+      // — but og:locale is not ISO. It is Facebook's own `ll_CC` registry, and
+      // `ar_AR` is one of exactly two deliberate non-ISO entries in it (the
+      // other is `es_LA`), used as the umbrella locale for Arabic; the published
+      // list gives it under the heading "Arabic". Verified 2026-09-13 against
+      // Facebook's locale list rather than from memory. Since the channel this
+      // matters for is a WhatsApp share, the crawler reading this tag is Meta's
+      // own, so Meta's registry is the authority and not a stand-in for one.
+      // Changing this to `ar` (not `ll_CC` at all) or `ar_MA` (not in the list)
+      // would take a working value and make it unrecognised.
       locale: locale === 'ar' ? 'ar_AR' : 'en_US',
       alternateLocale: locales.filter((l) => l !== locale).map((l) => (l === 'ar' ? 'ar_AR' : 'en_US')),
     },
