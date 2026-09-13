@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { SITE_URL } from '@/lib/site';
-import { BRAND, loadBrandFont } from './_brand/brand';
+import { locales } from '@/lib/i18n';
+import { BRAND, loadBrandFont } from '../_brand/brand';
 
 /**
  * THE LINK PREVIEW. This file exists because `twitter:card` already claimed
@@ -30,10 +31,43 @@ import { BRAND, loadBrandFont } from './_brand/brand';
  * nothing readable, and the card cannot break in a way nobody saw.
  *
  * 1200x630 is the standard large-card size; WhatsApp, X and LinkedIn all accept it.
+ *
+ * WHY THIS FILE SITS UNDER `[locale]/` AND NOT AT THE ROOT OF `app/`, WHICH IS
+ * WHERE IT STARTED AND WHERE THE DOCUMENTATION PUTS IT. `og:image` must be an
+ * ABSOLUTE url, and Next builds it from `metadataBase` — which this app sets in
+ * `[locale]/layout.tsx` and nowhere else, because that layout IS the root layout
+ * (there is no `app/layout.tsx`). At the root of `app/` the convention also
+ * applied to `/_not-found`, which renders OUTSIDE `[locale]` and therefore has
+ * no metadataBase, so the build emitted
+ * `<meta property="og:image" content="http://localhost:3000/opengraph-image…">`
+ * into the shipped 404 page. Caught by grepping the built HTML for `localhost`,
+ * not by review. Moving the file one segment down scopes it to the routes that
+ * have a base; the 404 page goes back to carrying no card at all, which is
+ * correct for a page nobody should be sharing. `icon` and `apple-icon` stay at
+ * the root on purpose — their hrefs are relative, so they never needed a base,
+ * and keeping them there is what gives them clean `/icon` and `/apple-icon` URLs
+ * instead of per-locale ones.
  */
 export const alt = 'KnowFlow';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
+
+/**
+ * NOT OPTIONAL, AND THE BUILD OUTPUT IS HOW YOU CHECK IT. Moving this file under
+ * `[locale]/` put it behind a DYNAMIC segment, and the route table immediately
+ * changed from `○ (Static)` to `ƒ (Dynamic)` — meaning the card would be
+ * rendered by a lambda on every crawler hit, and the font read in
+ * `_brand/brand.ts` would be reaching the filesystem from inside a traced
+ * serverless bundle rather than from the build's own working directory. The
+ * layout's `generateStaticParams` does not reach a metadata image route; this
+ * one does, and it puts all three images back to prerendered-at-build.
+ *
+ * If you ever see `ƒ /[locale]/opengraph-image` in the build output again, the
+ * font read is the thing that breaks, not this line.
+ */
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }));
+}
 
 export default async function OpenGraphImage() {
   const fontData = await loadBrandFont();

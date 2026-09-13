@@ -50,16 +50,26 @@ export const BRAND = {
  *     of Arabic — see the note in `opengraph-image.tsx` for why the card is
  *     locale-neutral rather than translated.
  *
- * (3) IT IS LOADED VIA `new URL(…, import.meta.url)` AND NOT `fs.readFileSync`.
- *     That is the pattern Next traces into the serverless bundle; a `fs` read of
- *     a path under `process.cwd()` is not traced and fails at runtime on Vercel
- *     while working perfectly in local dev.
+ * (3) IT IS READ OFF DISK AND NOT FETCHED, AND THE OBVIOUS PATTERN IS THE WRONG
+ *     ONE HERE. Next's own documentation loads a local font for `ImageResponse`
+ *     with `fetch(new URL('./x.ttf', import.meta.url))`. THAT PATTERN FAILS THE
+ *     BUILD in this app, and it fails in a way worth recording because it looks
+ *     like the blessed answer: webpack rewrites the URL to the asset's PUBLIC
+ *     path, so Node is handed the bare string
+ *     `/_next/static/media/Rubik-Bold-latin-subset.<hash>.ttf` and throws
+ *     `ERR_INVALID_URL` — a relative URL has no base to resolve against in a
+ *     Node prerender. (It works in the docs because that example runs on the
+ *     edge runtime, where relative fetches resolve against the deployment.)
+ *     These three routes are PRERENDERED AT BUILD TIME — the build output must
+ *     show them as `○ (Static)`, and if that ever changes to `ƒ (Dynamic)` this
+ *     read moves into a lambda where `process.cwd()` and output-file-tracing
+ *     stop being on our side. Check the route table before making them dynamic.
  *
  * Licensed SIL OFL 1.1; `OFL.txt` sits beside it because redistribution requires
  * the licence to travel with the font.
  */
-export async function loadBrandFont(): Promise<ArrayBuffer> {
-  return fetch(new URL('./Rubik-Bold-latin-subset.ttf', import.meta.url)).then((res) =>
-    res.arrayBuffer(),
-  );
+export async function loadBrandFont(): Promise<Buffer> {
+  const { readFile } = await import('node:fs/promises');
+  const { join } = await import('node:path');
+  return readFile(join(process.cwd(), 'src/app/_brand/Rubik-Bold-latin-subset.ttf'));
 }
