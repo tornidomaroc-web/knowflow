@@ -411,6 +411,26 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-09-13 - the citation header was decoding UTF-8 as Latin-1, one expression fixed it, and the decoder is witnessed in the shipped bundle while the render is not
+
+**Appends, deletes nothing.** Register **#97** is opened in Section 4 in the same PR as this entry - deliberately NOT the #159/#160 shape, where the row already existed and the docs PR corrected it. Here the row IS the docs PR, so splitting the changelog into a third round trip would have bought nothing.
+
+**THE FIRST REAL QUESTION EVER ASKED THROUGH THE NEW ANSWER PATH FOUND A DEFECT THAT WAS NOT IN THE ANSWER PATH.** The answer was correct, the arithmetic was shown, retrieval returned eight citations and the 600-token cap did not truncate. The citation labels were mojibake.
+
+**ONE EXPRESSION, AND THE SERVER WAS NEVER WRONG.** `Buffer.from(JSON.stringify(citations)).toString('base64')` defaults to UTF-8 and always did. The client called `atob(header)` and handed the result to `JSON.parse`. **`atob` returns a BINARY STRING - one character per byte, each in U+0000..U+00FF - which is Latin-1 by definition**, so every non-ASCII character crossed the `X-Citations` header as several bytes and arrived as that many characters. **Storage and the database are innocent**; the corruption lived in exactly one transport hop, which is why the fix is four lines of code and nothing upstream moved.
+
+**IT SURVIVED BECAUSE THE TWO BRANCHES ON THAT LINE DISAGREED WITH EACH OTHER.** The `Buffer.from(header, 'base64').toString()` fallback beside it defaults to UTF-8 and was always correct, so the bug was **browser-only** and no server-side test could have reproduced it. It took a phone.
+
+**THE BUG REPORT UNDERSTATED THE BLAST RADIUS AND THE ROW CORRECTS IT.** It was never only Arabic. UTF-8 and Latin-1 coincide exactly below U+0080, so ASCII was untouched; **everything above it was corrupted** - accented Latin, Cyrillic, Hebrew, CJK and emoji alike.
+
+**PROVED BEFORE THE PR OPENED, WITHOUT THE APP, WITHOUT THE NETWORK AND WITHOUT SPENDING, AND TIED TO THE SHIPPED SOURCE RATHER THAN RETYPED.** The harness asserts both expressions present in the files and the old `atob` decode absent, then round-trips six filename shapes. ASCII came back byte-identical old versus new, so nothing regressed; a filename outside the BMP round-tripped, because the payload carries UTF-8 bytes and `TextDecoder` reconstructs the surrogate pair.
+
+**MERGED `ece215d` 23:31:46 UTC, Vercel Production `6427785115` success, served build id `Nlmv_Qff9W5kw4qbRTfU_` -> `i9sgRK143KxJtUSH57jCz`.**
+
+**AND THE DECODER ITSELF IS WITNESSED ON PRODUCTION WITHOUT ASKING A QUESTION** - a thing worth recording because it was not obvious it could be done. The agent route's client chunk (`page-2cafc0688189a924.js`, the only fetched script containing `X-Citations`) tests POSITIVE for `Uint8Array.from(atob(`, `TextDecoder` and `charCodeAt`, and NEGATIVE for the old `JSON.parse(...atob(` shape. **That is a witness of the shipped CODE, not of the RENDER, and the row does not blur the two.**
+
+**STILL UNWITNESSED, STATED SEPARATELY FROM EVERYTHING ABOVE:** no corrected Arabic pill has been seen on a real answer, because that needs a streamed response - a paid call and a production write. **The cheapest occasion is the next question paid for anyway**, which already owes a `layout-shift` trace for the streaming-instability item; one question discharges both. Also not claimed: the lone-surrogate `U+FFFD` replacement is pre-existing SERVER behaviour, and the 2,232-byte header for eight citations is an observation, not a defect.
+
 ### 2026-09-13 - #159 is MERGED as b4f5654 and all four items are witnessed on the live domain, and the claim that the icons could not be measured before the merge is corrected
 
 **Appends, deletes nothing.** Register **#96** is corrected in place in Section 4 and CLOSED, quoting the sentence it replaces. Three residuals stay named and are explicitly not closed by that row.
