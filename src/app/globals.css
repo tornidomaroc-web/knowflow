@@ -65,6 +65,69 @@
   --danger-subtle: #fdf1f0;
   --danger-border: #bd6a60;
   --warning: #7a5200;
+
+  /* ── THE SIX THEME-ONLY TOKENS, GIVEN AN UNTHEMED GROUND ──────────────────
+     THIS BLOCK EXISTS TO MAKE A SILENT FAILURE IMPOSSIBLE, NOT TO ADD A LOOK.
+
+     `--accent*`, `--faint` and `--raised` were defined ONLY inside the two
+     [data-theme] blocks. An element that uses `bg-accent`, `text-faint` or
+     `bg-raised` while rendering OUTSIDE a themed subtree therefore emitted a
+     declaration referencing an undefined variable — which is invalid at
+     computed-value time and is DROPPED. The build stays green, the page
+     renders, and the styling is simply gone. That is the same failure class
+     this file already records for the danger family on the auth pages.
+
+     Nothing uses them outside a theme TODAY — audited: the only matches are two
+     dashboard components, the themed preview route, and a comment. This is
+     forward cover for the moment landing and login are themed and somebody
+     reaches for `bg-accent` there.
+
+     WHY NOT THE DARK VALUES: `--accent` #d4a548 measures 2.16:1 on this block's
+     own #f7faf9 — unreadable — and `--raised` #26211a is a near-black slab on an
+     off-white page.
+
+     WHY NOT THE [data-theme="light"] VALUES, WHICH IS THE TEMPTING ANSWER: they
+     are the WARM half of the #85 system (hue ~35°) and :root is the COOL Phase-2
+     palette (#f7faf9 background, #10201a green-slate text, emerald primary).
+     Note the rejection does NOT rest on contrast — light `--raised` #f3ede3 sits
+     1.11:1 against #f7faf9, and this palette's own `--muted` step is 1.08:1, so
+     the STEP is comparable. It rests on HUE: warm cream dropped into a cool
+     palette reads as a stain, not as a surface. And light `--accent` #8a6514
+     would put a second identity colour on pages whose identity is emerald.
+
+     SO: THE SIX DEGRADE INTO :root's OWN PALETTE RATHER THAN IMPORTING ANOTHER.
+     The four accent tokens ALIAS the primary family, which is exactly the
+     mirror of what [data-theme="dark"] already does in reverse ("--primary is
+     kept pointing at the accent", below) — so in every scope the two names
+     agree. `--raised` aliases `--muted`: "a step up from the card" has nowhere
+     to go when the card is already #ffffff, and a step AWAY from white is the
+     only move the palette allows.
+
+     MEASURED ON THE REAL UNTHEMED GROUNDS (--background #f7faf9,
+     --surface #ffffff, --muted #eef2f0 — the LAST of which is the worst case,
+     being the darkest):
+       --accent        #047857   5.22 / 5.48 / 4.86      (AA on all three)
+       --accent-hover  #036249   7.02 / 7.38 / 6.53
+       --accent-foreground #ffffff on the accent fill  5.48   (AA)
+       --accent-subtle #ecfdf5   a FILL; --foreground on it 16.03
+       --raised        #eef2f0   a FILL; --foreground 14.95, --muted-foreground 5.06
+       --faint         #7c9086   3.23 / 3.39 / 3.00
+
+     `--faint` is the only NEW value here, and it is derived rather than picked:
+     `--muted-foreground` #566b62 lightened along its own hue (channel spacing
+     G−R 0x15→0x14, G−B 0x09→0x0a). It lands at 3.23:1, between the dark
+     theme's 3.25 and the light theme's 3.18 — the same CAPTION-AND-DECORATION-
+     ONLY intent. IT MUST NEVER CARRY BODY COPY, exactly as in the themes.
+
+     These are `var()` aliases, not copied literals, so they cannot drift from
+     the family they are defined to follow.
+     ─────────────────────────────────────────────────────────────────────── */
+  --accent: var(--primary);
+  --accent-foreground: var(--primary-foreground);
+  --accent-hover: var(--primary-hover);
+  --accent-subtle: var(--primary-subtle);
+  --raised: var(--muted);
+  --faint: #7c9086;
 }
 
 /* Phase 2 complete: the legacy neon/terminal tokens (--bg-color, --accent-color,
