@@ -94,23 +94,10 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
 
   return (
     <div className="flex min-h-screen" dir={isRtl ? 'rtl' : 'ltr'}>
-      <div className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden border-e border-border bg-primary text-primary-foreground lg:flex">
-        <div
-          className="absolute inset-0 z-0 opacity-20"
-          style={{ backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.4) 1px, transparent 1px)', backgroundSize: '40px 40px' }}
-        />
-        <div className="relative z-10 text-center">
-          <h1 className="mb-4 text-6xl font-bold tracking-tight">
-            {t.nav.home.replace('Flow', '')}<span className="opacity-80">Flow</span>
-          </h1>
-          <p className="text-lg uppercase tracking-widest text-primary-foreground/80">
-            Unlock your knowledge
-          </p>
-        </div>
-      </div>
-      <div className="flex w-full items-center justify-center bg-surface p-8 lg:w-1/2">
+      <div className="flex w-full items-center justify-center bg-surface p-8">
         <form onSubmit={handleSignup} className="w-full max-w-sm space-y-6 text-start">
-          <div className="mb-10 text-center lg:hidden">
+          {/* #103: the product name at every width. The gold panel carried it at lg and up and is gone. */}
+          <div className="mb-10 text-center">
             <h1 className="text-4xl font-bold tracking-tight">
               {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
             </h1>
