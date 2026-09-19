@@ -97,9 +97,12 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
       <div className="flex w-full items-center justify-center bg-surface p-8">
         <form onSubmit={handleSignup} className="w-full max-w-sm space-y-6 text-start">
           {/* #103: the product name at every width. The gold panel carried it at lg and up and is gone. */}
+          {/* #105: it links to the landing. These pages had no other way back. */}
           <div className="mb-10 text-center">
             <h1 className="text-4xl font-bold tracking-tight">
-              {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
+              <Link href={`/${locale}`} className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
+              </Link>
             </h1>
           </div>
           <h2 className="text-3xl font-semibold tracking-tight">{t.auth.signupTitle}</h2>
