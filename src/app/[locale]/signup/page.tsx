@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
 import { GoogleButton } from '@/components/auth/GoogleButton';
+import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
 
 export default function SignupPage({ params }: { params: Promise<{ locale: Locale }> }) {
@@ -19,12 +20,28 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // #102. A mistyped password does NOT fail here, and that is why it has to
+    // be caught here. Confirm-email is on, so the mail link lands the student in
+    // the dashboard already signed in (api/auth/callback applies the session
+    // and redirects); the password is never typed again until the next sign-in
+    // on another device or after signing out. That is when the typo surfaces,
+    // days later, on an account that already holds their materials, looking
+    // like nothing they did, with a recovery mail as the only way back in.
+    // Checked before anything leaves the page, so a mismatch sends nothing.
+    if (password !== confirmPassword) {
+      setNotice(null);
+      setError(t.auth.passwordMismatch);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setNotice(null);
@@ -74,9 +91,6 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
 
     router.push(`/${locale}/dashboard`);
   };
-
-  const fieldClass =
-    'w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring';
 
   return (
     <div className="flex min-h-screen" dir={isRtl ? 'rtl' : 'ltr'}>
@@ -133,17 +147,43 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
           </div>
 
           <div className="space-y-4">
+            <AuthField
+              label={t.auth.name}
+              type="text"
+              name="name"
+              autoComplete="name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+            />
+            <AuthField
+              label={t.auth.email}
+              type="email"
+              name="email"
+              autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <PasswordField
+              label={t.auth.password}
+              showLabel={t.auth.showPassword}
+              name="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">{t.auth.name}</label>
-              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required className={fieldClass} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">{t.auth.email}</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={fieldClass} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">{t.auth.password}</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className={fieldClass} />
+              <PasswordField
+                label={t.auth.confirmPassword}
+                showLabel={t.auth.showPassword}
+                name="confirm-password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
               {/*
                 Register #77. A repeat signup on an address that is registered but
                 UNCONFIRMED does not update the password: GoTrue reaches

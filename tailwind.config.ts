@@ -23,6 +23,9 @@ const config: Config = {
         },
         border: 'var(--border)',
         input: 'var(--input)',
+        // A control's boundary (#102), kept apart from `border`, which is a
+        // divider. `border-control-border`. Defined in all three scopes.
+        'control-border': 'var(--control-border)',
         ring: 'var(--ring)',
         primary: {
           DEFAULT: 'var(--primary)',
