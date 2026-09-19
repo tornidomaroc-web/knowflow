@@ -108,7 +108,7 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
           {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
 
           {notice && (
-            <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+            <div className="rounded-xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm">
               <p className="font-medium text-foreground">{t.auth.checkInboxTitle}</p>
               <p className="mt-1 text-muted-foreground">{notice}</p>
             </div>

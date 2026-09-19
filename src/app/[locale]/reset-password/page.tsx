@@ -71,7 +71,7 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ locale
           {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
 
           {hasSession === false ? (
-            <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground">
+            <div className="rounded-xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm text-foreground">
               {t.auth.resetNoSession}
             </div>
           ) : (

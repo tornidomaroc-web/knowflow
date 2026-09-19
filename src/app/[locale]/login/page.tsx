@@ -65,7 +65,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
           {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
 
           {notice && (
-            <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground">{notice}</div>
+            <div className="rounded-xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm text-foreground">{notice}</div>
           )}
 
           {/*

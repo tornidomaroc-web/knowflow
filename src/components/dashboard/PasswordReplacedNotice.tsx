@@ -49,7 +49,7 @@ export function PasswordReplacedNotice({
   if (!visible) return null;
 
   return (
-    <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 px-4 py-4 text-sm text-foreground">
+    <div className="mb-6 rounded-xl border border-primary-border bg-primary-subtle px-4 py-4 text-sm text-foreground">
       <p className="font-semibold">{labels.title}</p>
       <p className="mt-1 text-muted-foreground">{labels.body}</p>
       <div className="mt-3 flex flex-wrap items-center gap-3">
