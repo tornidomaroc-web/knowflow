@@ -97,13 +97,21 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
       <div className="flex w-full items-center justify-center bg-surface p-8">
         <form onSubmit={handleSignup} className="w-full max-w-sm space-y-6 text-start">
           {/* #103: the product name at every width. The gold panel carried it at lg and up and is gone. */}
+          {/* #105: it links to the landing. These pages had no other way back. */}
           <div className="mb-10 text-center">
             <h1 className="text-4xl font-bold tracking-tight">
-              {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
+              <Link href={`/${locale}`} className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
+              </Link>
             </h1>
           </div>
           <h2 className="text-3xl font-semibold tracking-tight">{t.auth.signupTitle}</h2>
-          <p className="mb-8 text-sm text-muted-foreground">{t.auth.signupSubtitle}</p>
+          <p className="mb-8 text-sm text-muted-foreground">
+            {t.auth.signupSubtitle}
+            {/* #105: the free-plan line, reusing the landing's approved `cta.note`
+                in both languages. Nothing on signup said it was free before. */}
+            <span className="mt-1 block">{t.cta.note}</span>
+          </p>
 
           {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
 
@@ -161,51 +169,15 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <div className="flex flex-col gap-2">
-              <PasswordField
-                label={t.auth.confirmPassword}
-                showLabel={t.auth.showPassword}
-                name="confirm-password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-              {/*
-                Register #77. A repeat signup on an address that is registered but
-                UNCONFIRMED does not update the password: GoTrue reaches
-                `signup.go:197` with the existing user in hand and deliberately
-                leaves it alone ("do not update the user because we can't be sure
-                of their claimed identity"), re-sending only the confirmation
-                mail. So a second signup with a DIFFERENT password succeeds, the
-                mail works, the address confirms, and the password that signs
-                them in is the FIRST one. Nothing on screen would contradict them.
-
-                Our own copy is what sends people here: `noticeLinkExpired` tells
-                them to sign up again, and this form asks for a password.
-
-                UNCONDITIONAL ON PURPOSE, and this is the load-bearing decision.
-                The case IS detectable: the repeat response is not sanitized
-                (`sanitizeUser`, signup.go:349, is applied only to the CONFIRMED
-                collision), so the real user comes back carrying its ORIGINAL
-                created_at and the same age gap used for register #74 would
-                identify it exactly. Doing that would tell whoever typed the
-                address that it is already registered, and the person filling in
-                a signup form is not necessarily its owner. That is precisely the
-                leak `sanitizeUser` exists to prevent, which upstream has left
-                open on this path. So the line is shown to everyone and reveals
-                nothing about anyone.
-              */}
-              <p className="text-xs text-muted-foreground">
-                {t.auth.signupRepeatPassword}{' '}
-                <Link
-                  href={`/${locale}/forgot-password`}
-                  className="underline transition-colors hover:text-primary"
-                >
-                  {t.auth.signupRepeatPasswordLink}
-                </Link>
-              </p>
-            </div>
+            <PasswordField
+              label={t.auth.confirmPassword}
+              showLabel={t.auth.showPassword}
+              name="confirm-password"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
           </div>
 
           <button type="submit" disabled={loading} className={cn(buttonVariants({ variant: 'primary' }), 'mt-6 w-full')}>
@@ -216,6 +188,41 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
             <Link href={`/${locale}/login`} className="text-sm text-muted-foreground transition-colors hover:text-primary">
               {t.auth.hasAccount}
             </Link>
+            {/* #105: moved here from under the password fields, unreworded, as ruled. It is a note for a returning student, beside the sign-in line. It is still shown to everyone, so it still reveals nothing about any address. */}
+            {/*
+              Register #77. A repeat signup on an address that is registered but
+              UNCONFIRMED does not update the password: GoTrue reaches
+              `signup.go:197` with the existing user in hand and deliberately
+              leaves it alone ("do not update the user because we can't be sure
+              of their claimed identity"), re-sending only the confirmation
+              mail. So a second signup with a DIFFERENT password succeeds, the
+              mail works, the address confirms, and the password that signs
+              them in is the FIRST one. Nothing on screen would contradict them.
+
+              Our own copy is what sends people here: `noticeLinkExpired` tells
+              them to sign up again, and this form asks for a password.
+
+              UNCONDITIONAL ON PURPOSE, and this is the load-bearing decision.
+              The case IS detectable: the repeat response is not sanitized
+              (`sanitizeUser`, signup.go:349, is applied only to the CONFIRMED
+              collision), so the real user comes back carrying its ORIGINAL
+              created_at and the same age gap used for register #74 would
+              identify it exactly. Doing that would tell whoever typed the
+              address that it is already registered, and the person filling in
+              a signup form is not necessarily its owner. That is precisely the
+              leak `sanitizeUser` exists to prevent, which upstream has left
+              open on this path. So the line is shown to everyone and reveals
+              nothing about anyone.
+            */}
+            <p className="mt-3 text-xs text-muted-foreground">
+              {t.auth.signupRepeatPassword}{' '}
+              <Link
+                href={`/${locale}/forgot-password`}
+                className="underline transition-colors hover:text-primary"
+              >
+                {t.auth.signupRepeatPasswordLink}
+              </Link>
+            </p>
           </div>
         </form>
       </div>
