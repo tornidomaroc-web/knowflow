@@ -9,7 +9,11 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
   return (
     <>
       {/* 1. HERO */}
-      <section className="relative overflow-hidden border-b border-border bg-background pt-24 pb-32">
+      {/* #108: `pt-12` on a phone, `pt-24` from lg. The hero opens directly under a
+          65px sticky header, and 96px of nothing before the first word is a
+          desktop measurement applied to a 390px screen. The 48px this returns
+          goes to the card. */}
+      <section className="relative overflow-hidden border-b border-border bg-background pt-12 lg:pt-24 pb-32">
         <div
           className="absolute inset-0 z-0 opacity-[0.35]"
           style={{ backgroundImage: 'linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)', backgroundSize: '4rem 4rem' }}
@@ -22,7 +26,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
             IS the reading order: copy, card, buttons. From lg the card moves to
             the second column and spans both rows, which is where the terminal it
             replaces used to stand. */}
-        <div className="max-w-7xl mx-auto px-6 relative z-10 grid lg:grid-cols-2 items-center gap-x-16 gap-y-10">
+        <div className="max-w-7xl mx-auto px-6 relative z-10 grid lg:grid-cols-2 items-center gap-x-16 gap-y-6 lg:gap-y-10">
           <div className={`lg:col-start-1 lg:row-start-1 text-center ${isRtl ? 'lg:text-right' : 'lg:text-left'}`} dir={isRtl ? "rtl" : "ltr"}>
             <div className="inline-block rounded-full border border-border bg-surface px-3 py-1 mb-6 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {t.hero.badge}
