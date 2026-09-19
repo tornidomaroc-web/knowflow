@@ -7,8 +7,14 @@ export const ar: Translation = {
     home: "KnowFlow",
     howItWorks: "كيف يعمل",
     pricing: "الأسعار",
-    docs: "المستندات",
-    getStarted: "ابدأ مجاناً"
+    // #107, the owner's wording. `docs` was deleted, not renamed: it read
+    // "المستندات" while pointing at /about, naming a page that does not exist.
+    about: "عن KnowFlow",
+    // The verb phrase already inside `auth.hasAccount`, not a fresh translation.
+    signIn: "سجل الدخول",
+    getStarted: "ابدأ مجاناً",
+    // Screen-reader only: the hamburger's name (#48). Never rendered as text.
+    menu: "القائمة"
   },
   hero: {
     badge: "مصمم للطلاب · بالعربية والإنجليزية",

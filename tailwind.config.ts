@@ -16,6 +16,9 @@ const config: Config = {
       colors: {
         background: 'var(--background)',
         surface: 'var(--surface)',
+        // The sticky site header's own translucent fill (#107), `bg-header`.
+        // `bg-background/80` is never generated for a bare var() colour.
+        header: 'var(--header)',
         foreground: 'var(--foreground)',
         muted: {
           DEFAULT: 'var(--muted)',
