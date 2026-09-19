@@ -81,10 +81,14 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
       </section>
 
       {/* 2. HOW IT WORKS */}
-      {/* #107: the header is sticky, so without a scroll margin the anchor
-          the nav and the hero's second button point at lands UNDER it and the
-          heading is the part that goes missing. The two values are the two
-          header heights, h-16 on a phone and h-20 from md up. */}
+      {/* #107: the header is sticky, so without a scroll margin the anchor the
+          nav and the hero's second button point at scrolls this section's TOP
+          EDGE to y=0 and puts it behind the bar. MEASURED, because the first
+          version of this comment claimed the heading went under and it does
+          not: at 390 the h2 landed at y=96 either way, since the section's own
+          py-24 is taller than the header. What the margin buys is the space
+          above the heading — 96px of clearance instead of 31px. The two values
+          are the two header heights, h-16 on a phone and h-20 from md up. */}
       <section id="how-it-works" className="scroll-mt-16 md:scroll-mt-20 py-24 border-b border-border bg-surface">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
