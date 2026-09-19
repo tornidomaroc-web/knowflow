@@ -26,7 +26,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
       </nav>
 
       {/* 2. HERO */}
-      <section className="relative overflow-hidden border-b border-border pt-24 pb-32">
+      <section className="relative overflow-hidden border-b border-border bg-background pt-24 pb-32">
         <div
           className="absolute inset-0 z-0 opacity-[0.35]"
           style={{ backgroundImage: 'linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)', backgroundSize: '4rem 4rem' }}
@@ -39,6 +39,11 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
             <h1 className="text-5xl lg:text-7xl font-bold tracking-tight mb-8 leading-tight">
               {t.hero.title}
             </h1>
+            {/* #106: carried out of use case 01 before that block was deleted, not retyped.
+                It is the one line on this page written in the student's own voice. */}
+            <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto lg:mx-0">
+              {t.hero.hook}
+            </p>
             <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto lg:mx-0">
               {t.hero.subtitle}
             </p>
@@ -92,42 +97,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
         </div>
       </section>
 
-      {/* 3. WHY KNOWFLOW */}
-      <section className="py-16 border-b border-border bg-surface">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl lg:text-5xl font-bold">{t.features.title}</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border border border-border rounded-2xl overflow-hidden bg-background" dir={isRtl ? "rtl" : "ltr"}>
-            {t.features.items.map((item, idx) => (
-              <div key={idx} className="py-10 px-6 text-center">
-                <h3 className="text-xl font-semibold text-primary mb-4">{item.title}</h3>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 4. USE CASES */}
-      <section className="py-24 border-b border-border relative">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold mb-4">{t.usecases.title}</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border border border-border rounded-2xl overflow-hidden">
-            {t.usecases.items.map((feature) => (
-              <div key={feature.num} className={`bg-background p-12 hover:bg-surface transition-colors ${isRtl ? 'text-right' : 'text-left'}`} dir={isRtl ? "rtl" : "ltr"}>
-                <span className="block text-primary text-sm font-semibold mb-4">{feature.num}</span>
-                <h3 className="text-2xl font-semibold mb-4">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 5. HOW IT WORKS */}
+      {/* 3. HOW IT WORKS */}
       <section id="how-it-works" className="py-24 border-b border-border bg-surface">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -145,8 +115,8 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
         </div>
       </section>
 
-      {/* 6. CTA SECTION */}
-      <section className="py-32 border-b border-border relative">
+      {/* 4. CTA SECTION */}
+      <section className="py-32 border-b border-border bg-raised relative">
         <div className="absolute inset-0 bg-primary opacity-[0.04]"></div>
         <div className="max-w-3xl mx-auto px-6 text-center relative z-10">
           <h2 className="text-5xl font-bold mb-10">{t.cta.title}</h2>
@@ -162,8 +132,8 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
         </div>
       </section>
 
-      {/* 7. FOOTER */}
-      <footer className="py-12 bg-surface">
+      {/* 5. FOOTER */}
+      <footer className="py-12 bg-background">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6" dir={isRtl ? "rtl" : "ltr"}>
           <div className="text-xl font-bold tracking-tight">
             {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
