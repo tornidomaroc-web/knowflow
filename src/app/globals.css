@@ -14,8 +14,9 @@
      it on every route, so :root is where the palette has to change.
 
      MERGED INTO :root, NOT A REPLACEMENT OF IT — READ THIS BEFORE "TIDYING" IT.
-     The 24 colour tokens below are [data-theme="dark"]'s declarations, value
-     for value and in its order. `--radius` is not a colour and is NOT in that
+     The 25 colour tokens below are [data-theme="dark"]'s declarations, value
+     for value and in its order (24 at #101; #102 added --control-border to
+     both, in the same position). `--radius` is not a colour and is NOT in that
      block: it is defined here and nowhere else, and tailwind.config.ts maps
      `borderRadius.xl` to `var(--radius)`. Swap this block for the dark one and
      `--radius` goes with it; every `border-radius: var(--radius)` is then
@@ -34,14 +35,14 @@
      resolve to #221d17, not the dark theme's #26211a.
 
      THE PALETTE NOW EXISTS TWICE — here, and in [data-theme="dark"], which
-     this change leaves byte-for-byte as it was. That kept the change to one
+     #101 left byte-for-byte as it was. That kept the change to one
      block, and it means the two copies can drift: change a value there and it
      must change here. The dark block's per-pair contrast notes apply here too,
      because the values are equal — but three of them do not survive
      re-measurement (2026-09-19): --success is 7.26:1 on --surface and 6.57:1
      on --raised, not 8.55 / 7.73, and --danger is 5.50:1 on --surface, not
      6.20. All three still clear AA. They are corrected here rather than there
-     because this change leaves that block untouched.
+     because #101 left that block untouched.
      ═════════════════════════════════════════════════════════════════════════ */
   --radius: 0.75rem;             /* rounded-xl baseline (D4) */
 
@@ -52,6 +53,7 @@
 
   --border: rgba(255, 255, 255, 0.09);
   --input: #1c1813;
+  --control-border: #7b6f60;
 
   --foreground: #f5f0e8;
   --muted-foreground: #a39684;
@@ -158,6 +160,16 @@ body { background-color: var(--background); color: var(--foreground); }
   --border: rgba(255, 255, 255, 0.09);
   --input: #1c1813;
 
+  /* A CONTROL'S BOUNDARY, NOT A DIVIDER (#102). `--border` is a catchlight and
+     reads at 1.29:1 on --surface — right for a card edge, wrong for an input.
+     An input whose fill equals its card has no other edge, and WCAG 1.4.11
+     puts a control's boundary at 3:1. On the auth pages the three fields read
+     as black rectangles on black. Derived, not picked: the first step along
+     --faint → --muted-foreground (t = 0.225) that clears 3.6:1 on --surface.
+     Measured: 3.60 on --surface and on the input's own fill, 3.84 on the page,
+     3.41 on --muted, 3.26 on --raised. Above 3:1 on every ground here. */
+  --control-border: #7b6f60;
+
   /* THREE TEXT LEVELS, and the gap between 1 and 2 is deliberately wide — that
      gap is what makes a heading read as bright rather than merely larger.
      Contrast on --background: foreground ~17:1, muted-foreground ~6.4:1 (AA
@@ -219,6 +231,10 @@ body { background-color: var(--background); color: var(--foreground); }
 
   --border: rgba(26, 22, 17, 0.10);
   --input: #ffffff;
+  /* Same derivation on this palette (t = 0.11): 3.62 on --surface and the
+     input's fill, 3.39 on the page, 3.11 on --raised, 3.03 on --muted. Above
+     3:1 everywhere; thinnest on --muted. */
+  --control-border: #8f8578;
 
   --foreground: #1a1611;
   --muted-foreground: #6b6155;

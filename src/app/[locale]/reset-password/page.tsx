@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
+import { PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
 
 /**
@@ -54,9 +55,6 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ locale
     router.push(`/${locale}/login`);
   };
 
-  const fieldClass =
-    'w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring';
-
   return (
     <div className="flex min-h-screen" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden border-e border-border bg-primary text-primary-foreground lg:flex">
@@ -83,10 +81,16 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ locale
             </div>
           ) : (
             <>
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-foreground">{t.auth.password}</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className={fieldClass} />
-              </div>
+              <PasswordField
+                label={t.auth.password}
+                showLabel={t.auth.showPassword}
+                name="new-password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
               <button type="submit" disabled={loading || hasSession === null} className={cn(buttonVariants({ variant: 'primary' }), 'mt-2 w-full')}>
                 {loading ? t.auth.resetSaving : t.auth.resetSubmit}
               </button>
