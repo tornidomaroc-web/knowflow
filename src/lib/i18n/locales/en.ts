@@ -11,28 +11,12 @@ export const en = {
   hero: {
     badge: "Made for students · Arabic & English",
     title: "Your notes. Any question. In seconds.",
+    hook: "Stuck on a concept the night before an exam?",
     subtitle: "Upload your lecture notes, slides, and PDFs. Then ask questions and get clear answers in Arabic or English. No searching. No scrolling. Just ask.",
     note: "Made for students who'd rather understand than dig through PDFs.",
     cta1: "Start free",
     cta2: "See how it works",
     disclaimer: "No credit card · Free to start"
-  },
-  features: {
-    title: "Why KnowFlow",
-    items: [
-      { title: "Works in Arabic and English", desc: "natively, not translated" },
-      { title: "Answers from your notes", desc: "not the internet" },
-      { title: "No setup. No coding.", desc: "Upload and start." }
-    ]
-  },
-  usecases: {
-    title: "What you can do with KnowFlow",
-    items: [
-      { num: "01", title: "Understand hard topics fast", desc: "Stuck on a concept the night before an exam? Ask KnowFlow and get a clear explanation drawn straight from your own notes." },
-      { num: "02", title: "Find answers without scrolling", desc: "Stop scrolling through 60 slides to find one definition. Ask KnowFlow and get the exact answer." },
-      { num: "03", title: "Review before exams", desc: "Turn a subject's notes into a study partner. Ask anything about that subject and get grounded answers." },
-      { num: "04", title: "Study in your language", desc: "Ask in Arabic or English, whichever helps you learn. KnowFlow answers from your materials either way." }
-    ]
   },
   howItWorks: {
     title: "How it works",
