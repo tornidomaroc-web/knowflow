@@ -106,7 +106,12 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
             </h1>
           </div>
           <h2 className="text-3xl font-semibold tracking-tight">{t.auth.signupTitle}</h2>
-          <p className="mb-8 text-sm text-muted-foreground">{t.auth.signupSubtitle}</p>
+          <p className="mb-8 text-sm text-muted-foreground">
+            {t.auth.signupSubtitle}
+            {/* #105: the free-plan line, reusing the landing's approved `cta.note`
+                in both languages. Nothing on signup said it was free before. */}
+            <span className="mt-1 block">{t.cta.note}</span>
+          </p>
 
           {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
 
