@@ -32,6 +32,9 @@ const config: Config = {
           foreground: 'var(--primary-foreground)',
           hover: 'var(--primary-hover)',
           subtle: 'var(--primary-subtle)',
+          // The notice box's edge (#104), `border-primary-border`. An opacity
+          // modifier (`border-primary/30`) is never generated for a bare var().
+          border: 'var(--primary-border)',
         },
         // Added for the #85 dark system. Only what the student home needs:
         // a THIRD surface level (page -> surface -> raised), the gold accent,

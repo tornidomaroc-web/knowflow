@@ -72,7 +72,7 @@ export default function ForgotPasswordPage({ params }: { params: Promise<{ local
           )}
 
           {sent ? (
-            <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+            <div className="rounded-xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm">
               <p className="font-medium text-foreground">{t.auth.forgotSent}</p>
               <p className="mt-1 text-muted-foreground">{t.auth.forgotAnyDevice}</p>
             </div>

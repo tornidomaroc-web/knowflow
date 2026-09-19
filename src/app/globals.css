@@ -14,9 +14,10 @@
      it on every route, so :root is where the palette has to change.
 
      MERGED INTO :root, NOT A REPLACEMENT OF IT — READ THIS BEFORE "TIDYING" IT.
-     The 25 colour tokens below are [data-theme="dark"]'s declarations, value
-     for value and in its order (24 at #101; #102 added --control-border to
-     both, in the same position). `--radius` is not a colour and is NOT in that
+     The 26 colour tokens below are [data-theme="dark"]'s declarations, value
+     for value and in its order (24 at #101; #102 added --control-border and
+     #104 added --primary-border, each to both blocks in the same position).
+     `--radius` is not a colour and is NOT in that
      block: it is defined here and nowhere else, and tailwind.config.ts maps
      `borderRadius.xl` to `var(--radius)`. Swap this block for the dark one and
      `--radius` goes with it; every `border-radius: var(--radius)` is then
@@ -75,6 +76,7 @@
   --primary-foreground: #14110d;
   --primary-hover: #e0b25c;
   --primary-subtle: rgba(212, 165, 72, 0.12);
+  --primary-border: rgba(212, 165, 72, 0.21);
 
   --ring: #d4a548;
 }
@@ -215,6 +217,16 @@ body { background-color: var(--background); color: var(--foreground); }
   --primary-foreground: #14110d;
   --primary-hover: #e0b25c;
   --primary-subtle: rgba(212, 165, 72, 0.12);
+  /* THE NOTICE BOX'S EDGE (#104). The info boxes were written
+     `border-primary/30 bg-primary/5`, and Tailwind 3 cannot put an opacity
+     modifier on a bare var() colour, so neither class was ever generated:
+     they rendered preflight's #e5e7eb at 14.26:1 on the card, with no fill.
+     The fill is now --primary-subtle; this is the edge. Derived, not picked:
+     the first alpha that reaches 1.83:1 on --surface OVER THE BOX'S OWN FILL,
+     because a background paints under its border. Measured: 1.85 on --surface
+     (1.50 against the fill inside), 1.83 page, 1.85 raised, 1.86 muted. A
+     gold edge, not a control boundary; that is --control-border's job. */
+  --primary-border: rgba(212, 165, 72, 0.21);
 
   --ring: #d4a548;
 }
@@ -261,6 +273,9 @@ body { background-color: var(--background); color: var(--foreground); }
   --primary-foreground: #ffffff;
   --primary-hover: #6f5010;
   --primary-subtle: rgba(138, 101, 20, 0.10);
+  /* Same derivation over this palette's 10% fill (alpha 0.36): 1.84 on
+     --surface (1.61 inside), 1.80 page, 1.76 raised, 1.74 muted. */
+  --primary-border: rgba(138, 101, 20, 0.36);
 
   --ring: #8a6514;
 }
