@@ -7,25 +7,8 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
   const isRtl = locale === 'ar';
 
   return (
-    <div className="min-h-screen font-sans selection:bg-primary selection:text-primary-foreground">
-      {/* 1. NAV */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="text-2xl font-bold tracking-tight">
-            {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
-          </div>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-            <Link href="#how-it-works" className="transition-colors hover:text-primary">{t.nav.howItWorks}</Link>
-            <Link href={`/${locale}/pricing`} className="transition-colors hover:text-primary">{t.nav.pricing}</Link>
-            <Link href={`/${locale}/about`} className="transition-colors hover:text-primary">{t.nav.docs}</Link>
-          </div>
-          <Link href={`/${locale}/signup`} className="hidden md:inline-flex items-center justify-center rounded-xl border border-primary px-6 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground">
-            {t.nav.getStarted}
-          </Link>
-        </div>
-      </nav>
-
-      {/* 2. HERO */}
+    <>
+      {/* 1. HERO */}
       <section className="relative overflow-hidden border-b border-border bg-background pt-24 pb-32">
         <div
           className="absolute inset-0 z-0 opacity-[0.35]"
@@ -97,8 +80,12 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
         </div>
       </section>
 
-      {/* 3. HOW IT WORKS */}
-      <section id="how-it-works" className="py-24 border-b border-border bg-surface">
+      {/* 2. HOW IT WORKS */}
+      {/* #107: the header is sticky, so without a scroll margin the anchor
+          the nav and the hero's second button point at lands UNDER it and the
+          heading is the part that goes missing. The two values are the two
+          header heights, h-16 on a phone and h-20 from md up. */}
+      <section id="how-it-works" className="scroll-mt-16 md:scroll-mt-20 py-24 border-b border-border bg-surface">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold mb-4">{t.howItWorks.title}</h2>
@@ -115,7 +102,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
         </div>
       </section>
 
-      {/* 4. CTA SECTION */}
+      {/* 3. CTA SECTION */}
       <section className="py-32 border-b border-border bg-raised relative">
         <div className="absolute inset-0 bg-primary opacity-[0.04]"></div>
         <div className="max-w-3xl mx-auto px-6 text-center relative z-10">
@@ -131,25 +118,6 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           </p>
         </div>
       </section>
-
-      {/* 5. FOOTER */}
-      <footer className="py-12 bg-background">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6" dir={isRtl ? "rtl" : "ltr"}>
-          <div className="text-xl font-bold tracking-tight">
-            {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
-          </div>
-          <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-xs font-medium text-muted-foreground">
-            <Link href={`/${locale}/privacy`} className="transition-colors hover:text-foreground">{t.footer.privacy}</Link>
-            <Link href={`/${locale}/terms`} className="transition-colors hover:text-foreground">{t.footer.terms}</Link>
-            <Link href={`/${locale}/refund`} className="transition-colors hover:text-foreground">{t.footer.refund}</Link>
-            <Link href={`/${locale}/contact`} className="transition-colors hover:text-foreground">{t.footer.support}</Link>
-            <Link href="https://github.com/tornidomaroc-web/knowflow" className="transition-colors hover:text-primary">{t.footer.github}</Link>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} {t.footer.copyright}
-          </div>
-        </div>
-      </footer>
-    </div>
+    </>
   );
 }

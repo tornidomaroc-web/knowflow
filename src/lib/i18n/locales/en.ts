@@ -5,8 +5,16 @@ export const en = {
     home: "KnowFlow",
     howItWorks: "How it works",
     pricing: "Pricing",
-    docs: "Docs",
-    getStarted: "Start free"
+    // #107. `docs` was deleted, not renamed: it read "Docs" in English and
+    // "المستندات" in Arabic while pointing at /about, which is a page about the
+    // product and holds no documentation. It named a page that does not exist.
+    about: "About",
+    // Taken from `auth.hasAccount` ("Already have an account? Sign in") rather
+    // than written fresh, so the header and the auth pages say one thing.
+    signIn: "Sign in",
+    getStarted: "Start free",
+    // Screen-reader only: the hamburger's name (#48). Never rendered as text.
+    menu: "Menu"
   },
   hero: {
     badge: "Made for students · Arabic & English",

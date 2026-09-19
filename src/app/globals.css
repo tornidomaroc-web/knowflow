@@ -14,9 +14,10 @@
      it on every route, so :root is where the palette has to change.
 
      MERGED INTO :root, NOT A REPLACEMENT OF IT — READ THIS BEFORE "TIDYING" IT.
-     The 26 colour tokens below are [data-theme="dark"]'s declarations, value
-     for value and in its order (24 at #101; #102 added --control-border and
-     #104 added --primary-border, each to both blocks in the same position).
+     The 27 colour tokens below are [data-theme="dark"]'s declarations, value
+     for value and in its order (24 at #101; #102 added --control-border,
+     #104 added --primary-border and #107 added --header, each to both blocks
+     in the same position).
      `--radius` is not a colour and is NOT in that
      block: it is defined here and nowhere else, and tailwind.config.ts maps
      `borderRadius.xl` to `var(--radius)`. Swap this block for the dark one and
@@ -51,6 +52,7 @@
   --surface: #1c1813;
   --raised: #26211a;
   --muted: #221d17;
+  --header: rgba(20, 17, 13, 0.9);
 
   --border: rgba(255, 255, 255, 0.09);
   --input: #1c1813;
@@ -157,6 +159,22 @@ body { background-color: var(--background); color: var(--foreground); }
   --raised: #26211a;             /* raised — inside a card (meters, tiles) */
   --muted: #221d17;              /* subtle fill */
 
+  /* THE STICKY HEADER'S OWN FILL (#107), and it is a token because it cannot be
+     a utility: the header was written `bg-background/80`, and Tailwind 3 does
+     not generate an opacity modifier on a bare var() colour, so that class was
+     never emitted — measured as 0 occurrences in production's own served CSS,
+     where `backdrop-blur-md` IS present. The header has been fully transparent
+     since it was written, with a working blur behind nothing.
+     THE 0.80 IT ASKED FOR WOULD ALSO HAVE FAILED. Content scrolls under this
+     bar, so its effective ground is the header's fill composited over whatever
+     is passing beneath. Over a --foreground headline at 0.80, --muted-foreground
+     reads 3.68:1 — under AA. Derived, not picked: 0.86 is the first hundredth
+     that clears 4.5:1 on this palette and 0.89 on the light one, so 0.90 is the
+     first tenth that clears both. Measured here: nav link 6.50:1 over the bare
+     page, 5.13 under a 7xl headline, 5.57 under the gold CTA; the CTA's own
+     gold edge 8.31 / 6.56 / 7.12, all far above the 3:1 non-text bar. */
+  --header: rgba(20, 17, 13, 0.9);
+
   /* Hairline, not an outline. White at low alpha reads as a lit edge on dark and
      survives on every surface level without needing a per-level value. */
   --border: rgba(255, 255, 255, 0.09);
@@ -240,6 +258,10 @@ body { background-color: var(--background); color: var(--foreground); }
   --surface: #ffffff;
   --raised: #f3ede3;
   --muted: #f0eae0;
+  /* Same 0.90 over this palette's page: nav link 5.67:1 bare, 4.61 under a 7xl
+     headline, 4.98 under the gold CTA. This is the half that set the value —
+     it needed 0.89 where the dark palette needed 0.86. */
+  --header: rgba(250, 247, 242, 0.9);
 
   --border: rgba(26, 22, 17, 0.10);
   --input: #ffffff;
