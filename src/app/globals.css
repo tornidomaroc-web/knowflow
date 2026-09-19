@@ -3,131 +3,78 @@
 @tailwind utilities;
 
 :root {
-  /* ─────────────────────────────────────────────────────────────────────────
-     Phase 2 design tokens — "Calm Focus", light-first, emerald accent.
-     Consumed via Tailwind semantic utilities (bg-background, text-foreground,
-     bg-primary, border-border, shadow-soft, …).
+  /* ═════════════════════════════════════════════════════════════════════════
+     THE PRODUCT IS DARK (register #101). :root CARRIES THE DARK PALETTE.
 
-     THE "NO UTILITY CHANGES" CLAIM THAT STOOD HERE WAS FALSE AND IS CORRECTED
-     RATHER THAN LEFT TO BE RE-DERIVED. It read: "Dark-ready by design: a future
-     `.dark { … }` block overrides these values with NO utility changes." Two
-     things break it. (1) 43 colour utilities across 18 files bypass these tokens
-     entirely — text-red-700 ×15, bg-red-50 ×7, text-red-600 ×6, border-red-200
-     ×6, text-amber-700 ×2, plus border-red-700, bg-yellow-400, bg-red-400,
-     bg-green-500, bg-white/15, bg-black/40, bg-black/10 — and 36 of those are the
-     danger/error family, which sits on delete-account confirmation and form
-     validation. On a dark ground bg-red-50 is a near-white block and text-red-700
-     is unreadable, so a dark palette costs a token block PLUS a 43-site sweep.
-     (2) This file is no longer tokens-only: it now carries one utility override,
-     below. Dark is still cheap and still the plan — it is just not free, and the
-     comment must not say it is.
-     ───────────────────────────────────────────────────────────────────────── */
-  --background: #f7faf9;         /* soft off-white canvas */
-  --surface: #ffffff;            /* cards / raised surfaces */
-  --foreground: #10201a;         /* primary text — deep green-slate (~15:1 on white) */
-  --muted: #eef2f0;              /* subtle fills */
-  --muted-foreground: #566b62;   /* secondary text (~4.9:1 on white, AA) */
-  --border: #e2e8e5;             /* hairline borders */
-  --input: #ffffff;              /* input background */
-  --ring: #059669;               /* focus ring (emerald-600) */
+     The ruling, and its reason, which is not a preference: a student moves
+     landing → signup → login → the app and must never notice a break on the
+     way. Theming the landing alone would not remove the break, it would move
+     it to signup — the page every new student passes through. Eleven routes
+     under [locale] render outside any themed subtree, and <body> sits outside
+     it on every route, so :root is where the palette has to change.
 
-  --primary: #047857;            /* emerald-700 — calm, non-neon; white text ~4.5:1 (AA) */
-  --primary-foreground: #ffffff;
-  --primary-hover: #036249;      /* darker emerald for hover/press */
-  --primary-subtle: #ecfdf5;     /* emerald-50 — soft accent fill / badges */
+     MERGED INTO :root, NOT A REPLACEMENT OF IT — READ THIS BEFORE "TIDYING" IT.
+     The 24 colour tokens below are [data-theme="dark"]'s declarations, value
+     for value and in its order. `--radius` is not a colour and is NOT in that
+     block: it is defined here and nowhere else, and tailwind.config.ts maps
+     `borderRadius.xl` to `var(--radius)`. Swap this block for the dark one and
+     `--radius` goes with it; every `border-radius: var(--radius)` is then
+     invalid at computed-value time and falls back to 0, and all 59
+     `rounded-xl` sites in src go square behind a green build with no diff
+     line to show it.
 
+     WHAT STOOD HERE: the Phase-2 light palette ("Calm Focus", cool off-white,
+     emerald primary), #93's state colours and #98's six theme-only tokens, all
+     measured against those light grounds. The rule #93 and #98 established
+     still holds and is why the list is complete: every token a utility can
+     name must be defined on :root, or a page outside a theme emits a var() to
+     nothing and its styling silently drops. #98's aliases (`--accent*` onto
+     `--primary*`, `--raised` onto `--muted`) are gone with the palette they
+     degraded into. `--raised` could not have stayed one: `var(--muted)` would
+     resolve to #221d17, not the dark theme's #26211a.
+
+     THE PALETTE NOW EXISTS TWICE — here, and in [data-theme="dark"], which
+     this change leaves byte-for-byte as it was. That kept the change to one
+     block, and it means the two copies can drift: change a value there and it
+     must change here. The dark block's per-pair contrast notes apply here too,
+     because the values are equal — but three of them do not survive
+     re-measurement (2026-09-19): --success is 7.26:1 on --surface and 6.57:1
+     on --raised, not 8.55 / 7.73, and --danger is 5.50:1 on --surface, not
+     6.20. All three still clear AA. They are corrected here rather than there
+     because this change leaves that block untouched.
+     ═════════════════════════════════════════════════════════════════════════ */
   --radius: 0.75rem;             /* rounded-xl baseline (D4) */
 
-  /* ── STATE COLOURS ON :root, AND THIS IS NOT OPTIONAL ─────────────────────
-     CAUGHT BY MEASUREMENT, NOT BY REVIEW, AND IT WOULD HAVE SHIPPED.
+  --background: #14110d;
+  --surface: #1c1813;
+  --raised: #26211a;
+  --muted: #221d17;
 
-     The #93 sweep moved every error box onto `text-danger` / `bg-danger-subtle`
-     / `border-danger-border`. Those tokens were defined ONLY inside the
-     [data-theme] blocks. But the auth and marketing pages - login, signup,
-     forgot-password, reset-password, pricing - are NOT inside a themed subtree:
-     they render on :root. Probing the built login page returned
-     `color: rgb(16,32,26)` (plain body text), `background: rgba(0,0,0,0)` and a
-     border the same colour as the text - i.e. THE ERROR STYLING VANISHED
-     COMPLETELY. Readable, but with nothing left to say it is an error. That is
-     the same class of defect the sweep exists to fix, introduced at the other
-     end of the product.
+  --border: rgba(255, 255, 255, 0.09);
+  --input: #1c1813;
 
-     Measured against :root's OWN grounds, which are the Phase-2 light ones and
-     differ from [data-theme="light"]'s (#f7faf9 / #ffffff / #eef2f0):
-       --danger        5.87 background / 6.16 surface / 5.46 muted / 5.58 subtle
-       --danger-border 3.71 / 3.89 / 3.45 / 3.53   (WCAG 1.4.11 non-text, 3:1)
-       --warning       6.59 / 6.92 / 6.13 / 6.27
-       white on the danger fill: 6.16:1
-     ─────────────────────────────────────────────────────────────────────── */
-  --success: #1c7a55;
-  --danger: #b3322b;
-  --danger-foreground: #ffffff;
-  --danger-subtle: #fdf1f0;
-  --danger-border: #bd6a60;
-  --warning: #7a5200;
+  --foreground: #f5f0e8;
+  --muted-foreground: #a39684;
+  --faint: #6f6455;
 
-  /* ── THE SIX THEME-ONLY TOKENS, GIVEN AN UNTHEMED GROUND ──────────────────
-     THIS BLOCK EXISTS TO MAKE A SILENT FAILURE IMPOSSIBLE, NOT TO ADD A LOOK.
+  --accent: #d4a548;
+  --accent-foreground: #14110d;
+  --accent-hover: #e0b25c;
+  --accent-subtle: rgba(212, 165, 72, 0.12);
 
-     `--accent*`, `--faint` and `--raised` were defined ONLY inside the two
-     [data-theme] blocks. An element that uses `bg-accent`, `text-faint` or
-     `bg-raised` while rendering OUTSIDE a themed subtree therefore emitted a
-     declaration referencing an undefined variable — which is invalid at
-     computed-value time and is DROPPED. The build stays green, the page
-     renders, and the styling is simply gone. That is the same failure class
-     this file already records for the danger family on the auth pages.
+  --success: #4fb98a;
+  --danger: #e8675f;
+  --danger-foreground: #14110d;
+  --danger-subtle: #2c1714;
+  --danger-border: #bb554a;
+  --warning: #f0c070;
 
-     Nothing uses them outside a theme TODAY — audited: the only matches are two
-     dashboard components, the themed preview route, and a comment. This is
-     forward cover for the moment landing and login are themed and somebody
-     reaches for `bg-accent` there.
+  --primary: #d4a548;
+  --primary-foreground: #14110d;
+  --primary-hover: #e0b25c;
+  --primary-subtle: rgba(212, 165, 72, 0.12);
 
-     WHY NOT THE DARK VALUES: `--accent` #d4a548 measures 2.16:1 on this block's
-     own #f7faf9 — unreadable — and `--raised` #26211a is a near-black slab on an
-     off-white page.
-
-     WHY NOT THE [data-theme="light"] VALUES, WHICH IS THE TEMPTING ANSWER: they
-     are the WARM half of the #85 system (hue ~35°) and :root is the COOL Phase-2
-     palette (#f7faf9 background, #10201a green-slate text, emerald primary).
-     Note the rejection does NOT rest on contrast — light `--raised` #f3ede3 sits
-     1.11:1 against #f7faf9, and this palette's own `--muted` step is 1.08:1, so
-     the STEP is comparable. It rests on HUE: warm cream dropped into a cool
-     palette reads as a stain, not as a surface. And light `--accent` #8a6514
-     would put a second identity colour on pages whose identity is emerald.
-
-     SO: THE SIX DEGRADE INTO :root's OWN PALETTE RATHER THAN IMPORTING ANOTHER.
-     The four accent tokens ALIAS the primary family, which is exactly the
-     mirror of what [data-theme="dark"] already does in reverse ("--primary is
-     kept pointing at the accent", below) — so in every scope the two names
-     agree. `--raised` aliases `--muted`: "a step up from the card" has nowhere
-     to go when the card is already #ffffff, and a step AWAY from white is the
-     only move the palette allows.
-
-     MEASURED ON THE REAL UNTHEMED GROUNDS (--background #f7faf9,
-     --surface #ffffff, --muted #eef2f0 — the LAST of which is the worst case,
-     being the darkest):
-       --accent        #047857   5.22 / 5.48 / 4.86      (AA on all three)
-       --accent-hover  #036249   7.02 / 7.38 / 6.53
-       --accent-foreground #ffffff on the accent fill  5.48   (AA)
-       --accent-subtle #ecfdf5   a FILL; --foreground on it 16.03
-       --raised        #eef2f0   a FILL; --foreground 14.95, --muted-foreground 5.06
-       --faint         #7c9086   3.23 / 3.39 / 3.00
-
-     `--faint` is the only NEW value here, and it is derived rather than picked:
-     `--muted-foreground` #566b62 lightened along its own hue (channel spacing
-     G−R 0x15→0x14, G−B 0x09→0x0a). It lands at 3.23:1, between the dark
-     theme's 3.25 and the light theme's 3.18 — the same CAPTION-AND-DECORATION-
-     ONLY intent. IT MUST NEVER CARRY BODY COPY, exactly as in the themes.
-
-     These are `var()` aliases, not copied literals, so they cannot drift from
-     the family they are defined to follow.
-     ─────────────────────────────────────────────────────────────────────── */
-  --accent: var(--primary);
-  --accent-foreground: var(--primary-foreground);
-  --accent-hover: var(--primary-hover);
-  --accent-subtle: var(--primary-subtle);
-  --raised: var(--muted);
-  --faint: #7c9086;
+  --ring: #d4a548;
 }
 
 /* Phase 2 complete: the legacy neon/terminal tokens (--bg-color, --accent-color,
@@ -168,27 +115,23 @@ body { background-color: var(--background); color: var(--foreground); }
 /* ═════════════════════════════════════════════════════════════════════════════
    THE TWO PALETTES (register #85). Dark is the BASE; light is a value swap.
 
-   WHY THESE SIT ON [data-theme] AND NOT ON :root — READ THIS BEFORE "FIXING" IT.
-   Every screen in this product paints with the same semantic utilities
-   (bg-background, bg-surface, text-foreground, border-border). Those resolve to
-   the variables above. Putting the dark values on `:root` would therefore flip
-   the LANDING PAGE, LOGIN, PRICING, SETTINGS and every other screen to dark in
-   the same commit — and half of them would be wrong, because 43 colour
-   utilities across 18 files bypass these tokens entirely (see the corrected note
-   at the top of this file). The worst of those is the danger family on the
-   delete-account panel: `bg-red-50` is a near-white block on a dark ground and
-   `text-red-700` is unreadable on it. Shipping that would put an unreadable
-   confirmation in front of an irreversible action.
+   THE WARNING THAT STOOD HERE IS SUPERSEDED, AND IS QUOTED RATHER THAN
+   DELETED. It read: "WHY THESE SIT ON [data-theme] AND NOT ON :root — READ THIS
+   BEFORE 'FIXING' IT", because putting the dark values on :root would flip
+   every screen at once while "43 colour utilities across 18 files bypass these
+   tokens entirely", the worst being `bg-red-50` / `text-red-700` on the
+   delete-account panel. #93's sweep put the error boxes on tokens, and 10 raw
+   palette utilities remain in src (measured 2026-09-19): the landing's three
+   terminal-title-bar dots, which are a picture and not state, and seven in
+   dashboard components, which render inside a themed subtree and are
+   untouched by :root. With that reason gone the product was ruled dark, and
+   :root now carries these values (see the note on :root, register #101).
 
-   So the palette is applied by SUBTREE. An element carrying `data-theme="dark"`
-   redefines the variables for itself and everything beneath it, and the existing
-   utilities resolve to the new values with no class changes anywhere. Today the
-   student home and its preview route carry it. When the rest of the product has
-   been migrated, moving the attribute to <html> in layout.tsx is a ONE-LINE
-   change and this block does not move — which is what "the second palette is a
-   value swap, not a second build" has to mean to be true.
-
-   `:root` keeps today's light values, so every unmigrated screen is untouched.
+   These blocks still apply a palette by SUBTREE, and neither moved: an element
+   carrying `data-theme` redefines the variables for itself and everything
+   beneath it. `data-theme="dark"` now repeats :root value for value, and still
+   matters anywhere it sits inside a light subtree. `data-theme="light"` is the
+   one that differs; today only the student-home preview route's toggle sets it.
 
    THREE SURFACE LEVELS, and depth comes from the STEP plus a hairline border,
    never from a shadow. A light-theme shadow scale ported onto a dark ground is
@@ -306,10 +249,11 @@ body { background-color: var(--background); color: var(--foreground); }
   --ring: #8a6514;
 }
 
-/* A migrated subtree paints its own ground, so it renders correctly wherever it
-   is mounted — inside the (still light) dashboard chrome, or alone on the
-   preview route. Without this the tokens would change but the canvas behind them
-   would not, and the screen would read as a dark card floating on a light page. */
+/* A themed subtree paints its own ground, so it renders correctly wherever it
+   is mounted. Without this the tokens would change but the canvas behind them
+   would not. Since :root went dark (#101) the case this guards is the LIGHT
+   subtree, which would otherwise read as light cards floating on a dark page;
+   a dark subtree now paints the same colour the page already has. */
 [data-theme] {
   background-color: var(--background);
   color: var(--foreground);
