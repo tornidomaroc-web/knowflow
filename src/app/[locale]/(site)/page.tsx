@@ -113,11 +113,23 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           </div>
 
           <div className={`lg:col-start-1 lg:row-start-2 flex flex-col items-center ${isRtl ? 'lg:items-end' : 'lg:items-start'}`}>
-            <div className={`flex flex-col sm:flex-row items-center justify-center ${isRtl ? 'lg:justify-end' : 'lg:justify-start'} gap-4 text-sm font-medium w-full`}>
-              <Link href={`/${locale}/signup`} className="w-full sm:w-auto rounded-xl bg-primary text-primary-foreground px-8 py-4 hover:bg-primary-hover transition-colors whitespace-nowrap text-center">
+            {/*
+              #109: THE TWO BUTTONS SIT SIDE BY SIDE ON A PHONE, and this is the
+              only lever that met the acceptance without deleting a word. Stacked,
+              they cost 120px; side by side they cost 52, and at 360 the English
+              pair measures 105 + 155 + 16 = 276px of the 297 available, so it does
+              not wrap. That 68px is exactly what the SECOND button needed: stacked
+              it ended 36px below the fold on /en at 360, side by side it ends 32px
+              above it. `flex-wrap` keeps a 320px screen working — the pair wraps
+              there and each button stays its own width rather than going full
+              bleed. The alternative was taking the badge AND another step off the
+              headline, which buys less (+21) and costs the bilingual claim.
+            */}
+            <div className={`flex flex-wrap items-center justify-center ${isRtl ? 'lg:justify-end' : 'lg:justify-start'} gap-3 sm:gap-4 text-sm font-medium w-full`}>
+              <Link href={`/${locale}/signup`} className="rounded-xl bg-primary text-primary-foreground px-5 sm:px-8 py-4 hover:bg-primary-hover transition-colors whitespace-nowrap text-center">
                 {t.hero.cta1}
               </Link>
-              <Link href="#how-it-works" className="w-full sm:w-auto rounded-xl border border-border bg-surface text-foreground px-8 py-4 hover:border-primary transition-colors whitespace-nowrap text-center">
+              <Link href="#how-it-works" className="rounded-xl border border-border bg-surface text-foreground px-5 sm:px-8 py-4 hover:border-primary transition-colors whitespace-nowrap text-center">
                 {t.hero.cta2}
               </Link>
             </div>
