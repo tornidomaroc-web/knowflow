@@ -9,13 +9,25 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
   return (
     <>
       {/* 1. HERO */}
-      <section className="relative overflow-hidden border-b border-border bg-background pt-24 pb-32">
+      {/* #108: `pt-12` on a phone, `pt-24` from lg. The hero opens directly under a
+          65px sticky header, and 96px of nothing before the first word is a
+          desktop measurement applied to a 390px screen. The 48px this returns
+          goes to the card. */}
+      <section className="relative overflow-hidden border-b border-border bg-background pt-12 lg:pt-24 pb-32">
         <div
           className="absolute inset-0 z-0 opacity-[0.35]"
           style={{ backgroundImage: 'linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)', backgroundSize: '4rem 4rem' }}
         />
-        <div className="max-w-7xl mx-auto px-6 relative z-10 flex flex-col lg:flex-row items-center gap-16">
-          <div className={`flex-1 text-center ${isRtl ? 'lg:text-right' : 'lg:text-left'}`} dir={isRtl ? "rtl" : "ltr"}>
+        {/* #108: A GRID, NOT A ROW, and the reason is the phone. The ruling puts
+            the answer card ABOVE the CTA buttons, which on a phone means it has
+            to sit INSIDE the copy column, between the words and the buttons.
+            A flex row cannot do that and keep the desktop's two columns; explicit
+            grid placement can. Below lg this is one column and the source order
+            IS the reading order: copy, card, buttons. From lg the card moves to
+            the second column and spans both rows, which is where the terminal it
+            replaces used to stand. */}
+        <div className="max-w-7xl mx-auto px-6 relative z-10 grid lg:grid-cols-2 items-center gap-x-16 gap-y-6 lg:gap-y-10">
+          <div className={`lg:col-start-1 lg:row-start-1 text-center ${isRtl ? 'lg:text-right' : 'lg:text-left'}`} dir={isRtl ? "rtl" : "ltr"}>
             <div className="inline-block rounded-full border border-border bg-surface px-3 py-1 mb-6 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {t.hero.badge}
             </div>
@@ -24,58 +36,69 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
             </h1>
             {/* #106: carried out of use case 01 before that block was deleted, not retyped.
                 It is the one line on this page written in the student's own voice. */}
-            <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto lg:mx-0">
+            {/* #108: `hero.subtitle` and `hero.note` no longer print here, and the
+                reason is measured rather than aesthetic. The card below is 300px
+                tall on a phone and only 81px of first screen were spare, so
+                something had to go for the buttons to stay above the fold. The
+                two that went are the two the card makes redundant: the subtitle
+                DESCRIBED an answer with its sources, and the card SHOWS one.
+                `hero.note` is deleted; `hero.subtitle` survives as a key because
+                layout.tsx still serves it as the page description. */}
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto lg:mx-0">
               {t.hero.hook}
             </p>
-            <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto lg:mx-0">
-              {t.hero.subtitle}
-            </p>
-            <p className="text-base text-muted-foreground mb-10 max-w-2xl mx-auto lg:mx-0">
-              {t.hero.note}
-            </p>
-            <div className={`flex flex-col items-center ${isRtl ? 'lg:items-end' : 'lg:items-start'}`}>
-              <div className={`flex flex-col sm:flex-row items-center justify-center ${isRtl ? 'lg:justify-end' : 'lg:justify-start'} gap-4 text-sm font-medium w-full`}>
-                <Link href={`/${locale}/signup`} className="w-full sm:w-auto rounded-xl bg-primary text-primary-foreground px-8 py-4 hover:bg-primary-hover transition-colors whitespace-nowrap text-center">
-                  {t.hero.cta1}
-                </Link>
-                <Link href="#how-it-works" className="w-full sm:w-auto rounded-xl border border-border bg-surface text-foreground px-8 py-4 hover:border-primary transition-colors whitespace-nowrap text-center">
-                  {t.hero.cta2}
-                </Link>
+          </div>
+
+          {/* #108, THE ANSWER CARD. It replaces the terminal, which was a picture of
+              a command line this product does not have. This is the product's own
+              chat, composed from the same parts: ChatBox puts its messages on
+              `bg-background` inside a `bg-surface` shell, MessageBubble gives the
+              student `bg-primary` and the answer `border-border bg-surface`, and
+              the citation chips are its own — `[n] filename`, file-level, never a
+              page. Deliberately NOT font-mono: register #92 is why the terminal
+              needed a scoped exception, and a card with no mono anywhere cannot
+              have that defect. It does not move; the reveal is #49's, in L4. */}
+          <div className="lg:col-start-2 lg:row-start-1 lg:row-span-2 w-full max-w-lg mx-auto lg:max-w-none">
+            <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
+              <div className="space-y-6 bg-background p-4 sm:p-6" dir={isRtl ? 'rtl' : 'ltr'}>
+                <div className="flex justify-end">
+                  <div dir="auto" className="max-w-[85%] rounded-2xl bg-primary p-4 text-sm text-primary-foreground shadow-soft sm:max-w-[75%]">
+                    {t.answer.question}
+                  </div>
+                </div>
+                <div className="flex flex-col items-start gap-2">
+                  <div dir="auto" className="max-w-[85%] rounded-2xl border border-border bg-surface p-4 text-sm text-foreground shadow-soft sm:max-w-[75%]">
+                    {t.answer.body}
+                  </div>
+                  {/* `dir="ltr"` on the row, as MessageBubble has it: the bracketed
+                      index must stay left of its filename in both languages. */}
+                  <div className="flex flex-wrap gap-2 px-1" dir="ltr">
+                    {t.answer.files.map((file, idx) => (
+                      <span
+                        key={file}
+                        className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground"
+                      >
+                        [{idx + 1}] {file}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <p className={`mt-4 text-xs text-muted-foreground text-center ${isRtl ? 'lg:text-right' : 'lg:text-left'}`}>
-                {t.hero.disclaimer}
-              </p>
             </div>
           </div>
-          <div className="flex-1 w-full max-w-lg lg:max-w-none mx-auto">
-            <div className="rounded-2xl border border-border bg-surface font-mono text-sm overflow-hidden shadow-card">
-              {/* LEFT OFF THE TOKEN SWEEP DELIBERATELY (#93). These three dots are a
-                  PICTURE of a terminal title bar, not state and not identity. Tokenising
-                  them would make all three gold and destroy the thing they depict, and
-                  they sit on bg-muted in both themes where they stay legible. The rule
-                  "green and red are state only" is about MEANING; these mean nothing. */}
-              <div className="flex items-center px-4 py-3 border-b border-border bg-muted gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="ps-4 text-muted-foreground text-xs">ask@knowflow</span>
-              </div>
-              <div className="p-6 space-y-4 text-foreground" dir="ltr">
-                <p><span className="text-muted-foreground">&gt;</span> upload ./biology-notes.pdf</p>
-                <p className="text-muted-foreground">[OK]</p>
-                {/* The container is `font-mono`, and Tailwind's stock mono stack is Latin-only
-                    (ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono,
-                    Courier New) — no face in it carries Arabic, so this question was rendering
-                    in an arbitrary system fallback: the exact defect layout.tsx:9-10 claims to
-                    have fixed. Scoped to `font-sans` (= var(--font-rubik)) rather than adding
-                    Rubik to a theme `mono` stack, because NO ordering of that stack is correct
-                    on every platform: Rubik before the generic costs Latin its monospace on
-                    Android (the Phase-8 target), and Rubik after it lets Windows' Courier New —
-                    which does carry Arabic — win instead of our face. Register #92. */}
-                <p><span className="text-muted-foreground">&gt;</span> ask &quot;<span className="font-sans">ما الفرق بين الانقسام المتساوي والمنصّف؟</span>&quot;</p>
-                <p className="animate-pulse text-primary">▋</p>
-              </div>
+
+          <div className={`lg:col-start-1 lg:row-start-2 flex flex-col items-center ${isRtl ? 'lg:items-end' : 'lg:items-start'}`}>
+            <div className={`flex flex-col sm:flex-row items-center justify-center ${isRtl ? 'lg:justify-end' : 'lg:justify-start'} gap-4 text-sm font-medium w-full`}>
+              <Link href={`/${locale}/signup`} className="w-full sm:w-auto rounded-xl bg-primary text-primary-foreground px-8 py-4 hover:bg-primary-hover transition-colors whitespace-nowrap text-center">
+                {t.hero.cta1}
+              </Link>
+              <Link href="#how-it-works" className="w-full sm:w-auto rounded-xl border border-border bg-surface text-foreground px-8 py-4 hover:border-primary transition-colors whitespace-nowrap text-center">
+                {t.hero.cta2}
+              </Link>
             </div>
+            <p className={`mt-4 text-xs text-muted-foreground text-center ${isRtl ? 'lg:text-right' : 'lg:text-left'}`}>
+              {t.hero.disclaimer}
+            </p>
           </div>
         </div>
       </section>

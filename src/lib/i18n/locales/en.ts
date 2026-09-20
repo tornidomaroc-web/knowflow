@@ -20,11 +20,30 @@ export const en = {
     badge: "Made for students · Arabic & English",
     title: "Your notes. Any question. In seconds.",
     hook: "Stuck on a concept the night before an exam?",
+    // #108. STILL THE PAGE DESCRIPTION, and that is why it survives the hero.
+    // `[locale]/layout.tsx:27` reads it as generateMetadata's `description`, so
+    // deleting the key would have emptied every <meta name="description"> and
+    // every og:description on the site. The hero stops PRINTING it, because the
+    // answer card below now shows what this sentence describes.
     subtitle: "Upload your lecture notes, slides, and PDFs. Then ask questions and get clear answers in Arabic or English. No searching. No scrolling. Just ask.",
-    note: "Made for students who'd rather understand than dig through PDFs.",
     cta1: "Start free",
     cta2: "See how it works",
     disclaimer: "No credit card · Free to start"
+  },
+  /*
+    #108, THE ANSWER CARD. NONE OF THIS IS INVENTED. The owner supplied the
+    question he actually asked, the answer the product actually gave, and the
+    two files it actually read, so the 40 on this page is a measured number and
+    not a marketing one. Do not "improve" the wording: it would stop being true.
+
+    File-level provenance, on the owner's ruling: the sentence promises WHICH
+    FILE was read, never which page. Register #16 (page-level citations) stays
+    out of this pass, so the chips carry filenames and nothing more.
+  */
+  answer: {
+    question: "What is the break-even quantity in exercise two?",
+    body: "40 units. Fixed costs of 600 divided by a margin of 15 per unit. At that point there is no profit and no loss.",
+    files: ["Microeconomics-Principles.pdf", "Solved-Exercises-Ch3.pdf"]
   },
   howItWorks: {
     title: "How it works",

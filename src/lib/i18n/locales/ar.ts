@@ -20,11 +20,24 @@ export const ar: Translation = {
     badge: "مصمم للطلاب · بالعربية والإنجليزية",
     title: "ملاحظاتك. أي سؤال. في ثوانٍ.",
     hook: "عالق في فكرة قبل الامتحان بليلة؟",
+    // #108. Still generateMetadata's `description` ([locale]/layout.tsx:27),
+    // so the key stays although the hero no longer prints it.
     subtitle: "ارفع ملاحظاتك ومحاضراتك وملفات PDF، ثم اطرح أسئلتك واحصل على إجابات واضحة بالعربية أو الإنجليزية. بدون بحث. بدون تنقّل. فقط اسأل.",
-    note: "مصمم للطلاب الذين يفضّلون الفهم على التنقيب في ملفات PDF.",
     cta1: "ابدأ مجاناً",
     cta2: "شاهد كيف يعمل",
     disclaimer: "بدون بطاقة ائتمانية · ابدأ مجاناً"
+  },
+  /*
+    #108, THE ANSWER CARD. NONE OF THIS IS INVENTED. The owner supplied the
+    question he actually asked, the answer the product actually gave, and the
+    two files it actually read. Do not "improve" the wording: it would stop
+    being true. File-level provenance on his ruling — the chips name the file,
+    never the page; register #16 stays out of this pass.
+  */
+  answer: {
+    question: "كم كمّية التعادل في التمرين الثاني؟",
+    body: "40 وحدة. التكاليف الثابتة 600 درهم على هامش المساهمة 15 درهماً. عندها لا ربح ولا خسارة.",
+    files: ["مبادئ الاقتصاد الجزئي.pdf", "تمارين محلولة - الفصل 3.pdf"]
   },
   howItWorks: {
     title: "كيف يعمل",
