@@ -118,6 +118,26 @@ body { background-color: var(--background); color: var(--foreground); }
 [dir="rtl"] .tracking-tight,
 [dir="rtl"] .tracking-tighter { letter-spacing: normal; }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   THE LANDING ANSWER'S REVEAL (register #49). The words are laid out by the
+   server and this ONLY fades them in. Opacity is a paint property: it moves no
+   line box, so the card is at its final height from the first frame and the
+   #109 fold budget cannot move. Do not add a transform or a width, height or
+   max-height animation here: those either do nothing on an inline span or
+   reflow the hero column.
+
+   THE BASE STATE IS THE FINAL STATE. The keyframes name only `from`, and
+   `backwards` holds it through each word's delay, so with `animation: none` a
+   span is simply visible. The reduced-motion rule leans on that: it snaps every
+   word to its final state with no JavaScript, and so does any browser that
+   drops the animation.
+   ───────────────────────────────────────────────────────────────────────────── */
+@keyframes landing-reveal { from { opacity: 0; } }
+.landing-reveal { animation: landing-reveal 300ms ease-out backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .landing-reveal { animation: none; }
+}
+
 /* ═════════════════════════════════════════════════════════════════════════════
    THE TWO PALETTES (register #85). Dark is the BASE; light is a value swap.
 
