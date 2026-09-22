@@ -82,7 +82,19 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
               the citation chips are its own — `[n] filename`, file-level, never a
               page. Deliberately NOT font-mono: register #92 is why the terminal
               needed a scoped exception, and a card with no mono anywhere cannot
-              have that defect. It does not move; the reveal is #49's, in L4. */}
+              have that defect.
+
+              #49, THE REVEAL, AND WHY THE ANSWER IS ONE UNBROKEN STRING. The
+              question stands still; the answer's bubble is swept in from top to
+              bottom, line by line, and then the chips fade in. It is all CSS
+              (`.landing-sweep` and `.landing-fade` in globals.css): no client
+              child, no JavaScript. DO NOT WRAP THE ANSWER'S WORDS IN SPANS TO
+              PACE IT WORD BY WORD. That was built and measured on 2026-09-22:
+              Chromium sizes inline boxes in 1/64 px units, so every span boundary
+              rounds, the English answer came out 0.33px wider, and at three frame
+              widths (342, 535, 1238) it wrapped one more line and grew the card
+              20px inside #109's 33px fold budget. A mask moves no line box and
+              leaves the text node exactly as the server wrote it. */}
           <div className="lg:col-start-2 lg:row-start-1 lg:row-span-2 w-full max-w-lg mx-auto lg:max-w-none">
             <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
               <div className="space-y-4 bg-background p-3 sm:space-y-6 sm:p-6" dir={isRtl ? 'rtl' : 'ltr'}>
@@ -92,7 +104,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                   </div>
                 </div>
                 <div className="flex flex-col items-start gap-2">
-                  <div dir="auto" className="max-w-[85%] rounded-2xl border border-border bg-surface p-4 text-sm text-foreground shadow-soft sm:max-w-[75%]">
+                  <div dir="auto" className="landing-sweep max-w-[85%] rounded-2xl border border-border bg-surface p-4 text-sm text-foreground shadow-soft sm:max-w-[75%]">
                     {t.answer.body}
                   </div>
                   {/* `dir="ltr"` on the row, as MessageBubble has it: the bracketed
@@ -101,7 +113,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                     {t.answer.files.map((file, idx) => (
                       <span
                         key={file}
-                        className="rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                        className="landing-fade rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground"
                       >
                         [{idx + 1}] {file}
                       </span>
