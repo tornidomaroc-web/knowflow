@@ -1,31 +1,10 @@
-import { Fragment } from 'react';
 import Link from 'next/link';
 import { useTranslation, Locale } from '@/lib/i18n';
-
-/*
-  #49, THE ANSWER'S REVEAL. The server renders every word already laid out, and
-  CSS only fades each one in (`.landing-reveal` in globals.css). There is no
-  'use client' child and no JavaScript, and the card is at its final height from
-  the first frame, because the fold budget at 360x800 is +33 / +32 on /en and a
-  card that grew as text arrived would reflow the column #109 measured.
-
-  ONE SPAN PER WORD, NEVER PER CHARACTER. Arabic is cursive: a span between two
-  letters splits the shaping run, and letters already on screen visibly change
-  shape as the next one arrives. A space already breaks the run, so a cut at a
-  space costs the shaping nothing. The spaces stay outside the spans.
-*/
-const REVEAL_START_MS = 600;
-const REVEAL_STEP_MS = 70;
-
-function revealDelay(step: number) {
-  return { animationDelay: `${REVEAL_START_MS + step * REVEAL_STEP_MS}ms` };
-}
 
 export default async function LandingPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
   const t = useTranslation(locale);
   const isRtl = locale === 'ar';
-  const answerWords = t.answer.body.split(' ');
 
   return (
     <>
@@ -103,9 +82,19 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
               the citation chips are its own — `[n] filename`, file-level, never a
               page. Deliberately NOT font-mono: register #92 is why the terminal
               needed a scoped exception, and a card with no mono anywhere cannot
-              have that defect. The question stands still; the answer's words and
-              then its chips fade in, which is #49's reveal (see the top of this
-              file). */}
+              have that defect.
+
+              #49, THE REVEAL, AND WHY THE ANSWER IS ONE UNBROKEN STRING. The
+              question stands still; the answer's bubble is swept in from top to
+              bottom, line by line, and then the chips fade in. It is all CSS
+              (`.landing-sweep` and `.landing-fade` in globals.css): no client
+              child, no JavaScript. DO NOT WRAP THE ANSWER'S WORDS IN SPANS TO
+              PACE IT WORD BY WORD. That was built and measured on 2026-09-22:
+              Chromium sizes inline boxes in 1/64 px units, so every span boundary
+              rounds, the English answer came out 0.33px wider, and at three frame
+              widths (342, 535, 1238) it wrapped one more line and grew the card
+              20px inside #109's 33px fold budget. A mask moves no line box and
+              leaves the text node exactly as the server wrote it. */}
           <div className="lg:col-start-2 lg:row-start-1 lg:row-span-2 w-full max-w-lg mx-auto lg:max-w-none">
             <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
               <div className="space-y-4 bg-background p-3 sm:space-y-6 sm:p-6" dir={isRtl ? 'rtl' : 'ltr'}>
@@ -115,13 +104,8 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                   </div>
                 </div>
                 <div className="flex flex-col items-start gap-2">
-                  <div dir="auto" className="max-w-[85%] rounded-2xl border border-border bg-surface p-4 text-sm text-foreground shadow-soft sm:max-w-[75%]">
-                    {answerWords.map((word, idx) => (
-                      <Fragment key={idx}>
-                        {idx > 0 && ' '}
-                        <span className="landing-reveal" style={revealDelay(idx)}>{word}</span>
-                      </Fragment>
-                    ))}
+                  <div dir="auto" className="landing-sweep max-w-[85%] rounded-2xl border border-border bg-surface p-4 text-sm text-foreground shadow-soft sm:max-w-[75%]">
+                    {t.answer.body}
                   </div>
                   {/* `dir="ltr"` on the row, as MessageBubble has it: the bracketed
                       index must stay left of its filename in both languages. */}
@@ -129,8 +113,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                     {t.answer.files.map((file, idx) => (
                       <span
                         key={file}
-                        className="landing-reveal rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground"
-                        style={revealDelay(answerWords.length + 2 + idx * 2)}
+                        className="landing-fade rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground"
                       >
                         [{idx + 1}] {file}
                       </span>

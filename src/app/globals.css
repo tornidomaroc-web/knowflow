@@ -119,23 +119,54 @@ body { background-color: var(--background); color: var(--foreground); }
 [dir="rtl"] .tracking-tighter { letter-spacing: normal; }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   THE LANDING ANSWER'S REVEAL (register #49). The words are laid out by the
-   server and this ONLY fades them in. Opacity is a paint property: it moves no
-   line box, so the card is at its final height from the first frame and the
-   #109 fold budget cannot move. Do not add a transform or a width, height or
-   max-height animation here: those either do nothing on an inline span or
-   reflow the hero column.
+   THE LANDING ANSWER'S REVEAL (register #49). The answer bubble is swept in from
+   top to bottom, so its lines arrive in order, and then the two citation chips
+   fade in. Both are PAINT ONLY: a mask and an opacity move no line box, so the
+   card is at its final height from the first frame and the #109 fold budget
+   cannot move. Do not add a transform or any size animation here.
 
-   THE BASE STATE IS THE FINAL STATE. The keyframes name only `from`, and
-   `backwards` holds it through each word's delay, so with `animation: none` a
-   span is simply visible. The reduced-motion rule leans on that: it snaps every
-   word to its final state with no JavaScript, and so does any browser that
-   drops the animation.
+   THE ANSWER IS ONE TEXT NODE AND MUST STAY ONE. Per-word spans were built and
+   measured first: Chromium rounds every inline box to 1/64 px, the English
+   answer grew 0.33px and wrapped an extra line at three widths. See page.tsx.
+
+   THE GEOMETRY. The mask is three bubbles tall and opaque above a soft edge 10%
+   of its height (0.3 of a bubble, about a line and a half). At `0 100%` the
+   bubble sits in the mask's transparent bottom third; at `0 0` in its opaque top
+   third. In between, the edge travels down the bubble. It is vertical, so it is
+   the same in RTL and LTR, and a mask never re-cuts a glyph, so Arabic letters
+   cannot change shape as it passes.
+
+   THE BASE STATE IS THE FINAL STATE. The mask exists ONLY inside the keyframes,
+   and `backwards` holds the first frame through the delay. When the animation
+   ends, or never runs, the bubble has no mask at all and the chips have their
+   normal opacity. The reduced-motion rule leans on that and snaps both to the
+   final state with no JavaScript; so does a browser without mask support.
+   KNOWN AND ACCEPTED: the mask clips the bubble's `shadow-soft` (at most 6%
+   near-black) while it runs, so that shadow appears when the sweep ends.
    ───────────────────────────────────────────────────────────────────────────── */
-@keyframes landing-reveal { from { opacity: 0; } }
-.landing-reveal { animation: landing-reveal 300ms ease-out backwards; }
+@keyframes landing-sweep {
+  from {
+    mask-image: linear-gradient(to bottom, #000 45%, transparent 55%);
+    mask-size: 100% 300%;
+    mask-repeat: no-repeat;
+    mask-position: 0 100%;
+  }
+  to {
+    mask-image: linear-gradient(to bottom, #000 45%, transparent 55%);
+    mask-size: 100% 300%;
+    mask-repeat: no-repeat;
+    mask-position: 0 0;
+  }
+}
+.landing-sweep { animation: landing-sweep 1500ms linear 600ms backwards; }
+
+@keyframes landing-fade { from { opacity: 0; } }
+.landing-fade { animation: landing-fade 300ms ease-out 1950ms backwards; }
+.landing-fade + .landing-fade { animation-delay: 2100ms; }
+
 @media (prefers-reduced-motion: reduce) {
-  .landing-reveal { animation: none; }
+  .landing-sweep,
+  .landing-fade { animation: none; }
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
