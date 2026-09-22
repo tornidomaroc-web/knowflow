@@ -41,12 +41,39 @@ import { DOCUMENTS_BUCKET, safeStorageName } from './storage-key';
  * were written from this material's passages and stay until the conversation's
  * account is deleted. The confirmation the student clicks through says so.
  *
+ * THE RESULT CARRIES ITS OWN EVIDENCE (`DeletionEvidence`): whether the file was
+ * there, and the chunk, quiz and quiz-item counts before and after, taken with
+ * the service role. They are reads only and never block the delete.
+ *
  * Self-contained on purpose: it imports only a type and `./storage-key`, so it
  * can be exercised against a scripted client with no database.
  */
 
+/** Rows beneath one document, counted with the service role. null = the count failed. */
+export interface DependentCounts {
+  chunks: number | null;
+  quizzes: number | null;
+  quizItems: number | null;
+}
+
+/**
+ * WHAT THE DELETE CAN PROVE ABOUT ITSELF, returned as counts only.
+ *
+ * Counted with the SERVICE ROLE, and that is the point: the `quizzes` and
+ * `quiz_items` policies reach ownership THROUGH `documents.kb_id`, so once the
+ * row is gone an orphaned quiz is invisible to the user's own session, and a
+ * read-back through it would report 0 whether the cascade worked or not. Only a
+ * count that bypasses RLS can fail, so only that one is a witness.
+ */
+export interface DeletionEvidence {
+  /** Whether the file was listed before removal; null on the kept-shared path. */
+  fileExistedBefore: boolean | null;
+  before: DependentCounts;
+  after: DependentCounts;
+}
+
 export type MaterialDeletionResult =
-  | { ok: true; file: 'removed' | 'kept-shared'; sharedWith: number }
+  | { ok: true; file: 'removed' | 'kept-shared'; sharedWith: number; evidence: DeletionEvidence }
   /** No row visible to this user. Nothing was attempted. */
   | { ok: false; stage: 'not-found'; reason: string }
   /** The key could not be derived from the filename. Nothing was attempted. */
@@ -91,6 +118,38 @@ async function fileExists(bucket: Bucket, folder: string, name: string): Promise
     if (data.length < LIST_PAGE) return false;
     offset += data.length;
   }
+}
+
+/**
+ * Counts beneath one document, with the service role. `quizIds` is captured
+ * BEFORE the delete, because afterwards nothing links a quiz item to the
+ * document except the quiz rows the cascade should have removed.
+ */
+async function countDependents(
+  admin: SupabaseClient,
+  documentId: string,
+  quizIds: string[]
+): Promise<DependentCounts> {
+  const chunks = await admin
+    .from('chunks')
+    .select('*', { count: 'exact', head: true })
+    .eq('document_id', documentId);
+  const quizzes = await admin
+    .from('quizzes')
+    .select('*', { count: 'exact', head: true })
+    .eq('document_id', documentId);
+  const quizItems =
+    quizIds.length === 0
+      ? { count: 0, error: null }
+      : await admin
+          .from('quiz_items')
+          .select('*', { count: 'exact', head: true })
+          .in('quiz_id', quizIds);
+  return {
+    chunks: chunks.error ? null : chunks.count ?? null,
+    quizzes: quizzes.error ? null : quizzes.count ?? null,
+    quizItems: quizItems.error ? null : quizItems.count ?? null,
+  };
 }
 
 export async function deleteMaterial(
@@ -140,10 +199,24 @@ export async function deleteMaterial(
   }
   const sharedWith = (siblings ?? []).filter((s) => safeStorageName(s.filename) === name).length;
 
+  // ---- The "before" half of the evidence. Reads only; a failed count is
+  // recorded as null and never blocks the delete the student asked for. ----
+  const quizRows = await admin.from('quizzes').select('id').eq('document_id', documentId);
+  const quizIds: string[] = quizRows.error ? [] : (quizRows.data ?? []).map((q: { id: string }) => q.id);
+  const before = await countDependents(admin, documentId, quizIds);
+  if (quizRows.error) before.quizItems = null;
+
   // ---- 2. The file. Removed only when nothing else maps to it, then proven gone. ----
+  let fileExistedBefore: boolean | null = null;
   if (sharedWith === 0) {
     const bucket = admin.storage.from(DOCUMENTS_BUCKET);
     const folder = `${userId}/${doc.kb_id}`;
+
+    const existed = await fileExists(bucket, folder, name);
+    if (typeof existed === 'string') {
+      return { ok: false, stage: 'storage', reason: `listing failed: ${existed}` };
+    }
+    fileExistedBefore = existed;
 
     const { error: removeError } = await bucket.remove([`${folder}/${name}`]);
     if (removeError) {
@@ -172,5 +245,15 @@ export async function deleteMaterial(
     return { ok: false, stage: 'row', reason: `expected to delete 1 row, deleted ${count ?? 'unknown'}` };
   }
 
-  return { ok: true, file: sharedWith === 0 ? 'removed' : 'kept-shared', sharedWith };
+  // ---- The "after" half. Non-zero here would mean the cascade did not run; the
+  // row is already gone, so it is reported rather than turned into a failure. ----
+  const after = await countDependents(admin, documentId, quizIds);
+  if (quizRows.error) after.quizItems = null;
+
+  return {
+    ok: true,
+    file: sharedWith === 0 ? 'removed' : 'kept-shared',
+    sharedWith,
+    evidence: { fileExistedBefore, before, after },
+  };
 }

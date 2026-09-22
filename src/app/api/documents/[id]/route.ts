@@ -49,7 +49,7 @@ export async function DELETE(
       ok: result.ok,
       ...(materialDeletionFailed(result)
         ? { stage: result.stage, reason: result.reason }
-        : { file: result.file, shared_with: result.sharedWith }),
+        : { file: result.file, shared_with: result.sharedWith, evidence: result.evidence }),
     })
   );
 
@@ -58,9 +58,11 @@ export async function DELETE(
   if (!materialDeletionFailed(result)) {
     // `file` says whether the stored file went with it. `kept-shared` means
     // another material in the same subject maps to the same stored file, which
-    // is kept for it (see `@/lib/storage-key`).
+    // is kept for it (see `@/lib/storage-key`). `evidence` is counts only, taken
+    // with the service role before and after: it is how a delete is witnessed,
+    // because the user's own session cannot see an orphaned quiz.
     return NextResponse.json(
-      { deleted: true, file: result.file, sharedWith: result.sharedWith },
+      { deleted: true, file: result.file, sharedWith: result.sharedWith, evidence: result.evidence },
       { headers }
     );
   }
