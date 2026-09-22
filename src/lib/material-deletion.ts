@@ -1,0 +1,176 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { DOCUMENTS_BUCKET, safeStorageName } from './storage-key';
+
+/**
+ * Delete ONE material: its stored file, then its `documents` row. Register #47.
+ *
+ * THE ORDER IS THE DESIGN, and it mirrors `account-deletion/orchestrate.ts`.
+ *
+ *   1. ownership        -- read through the user's own session, so RLS decides.
+ *                          No row means 404, and nothing else runs.
+ *   2. the stored file  -- removed with the service role, then PROVEN gone by
+ *                          re-listing. Any failure aborts with the row intact.
+ *   3. the row          -- deleted through the user's session. Postgres removes
+ *                          the rest by foreign key: `chunks` (text and
+ *                          embeddings), `quizzes`, and through them
+ *                          `quiz_items`. The summary and the extracted text are
+ *                          columns on the row itself.
+ *
+ * WHY THE FILE GOES FIRST. The row is the only thing that names the file: the
+ * key is derived from `documents.filename` and stored nowhere. Delete the row
+ * first and a failed file removal leaves bytes nothing can find again short of
+ * deleting the whole account. File first, and a failed row delete leaves a row
+ * whose file is already gone, which costs nothing: no code reads a stored file
+ * back after upload (the ingestion service receives the bytes directly), and a
+ * retry finishes the job because removing an absent file is not an error.
+ *
+ * ANY STATUS MAY BE DELETED, `processing` AND `error` INCLUDED. A row stuck at
+ * `processing` has no reaper and no other way out (`/api/ingest`), so refusing
+ * would trap exactly the rows that most need removing. The race with the
+ * ingestion service is safe: `chunks.document_id` references `documents`, so a
+ * late chunk insert fails instead of orphaning, and its final status update
+ * matches no row.
+ *
+ * THE SHARED KEY. `safeStorageName` maps every non-ASCII character to `_`, so
+ * two materials in one subject can share ONE stored file (see
+ * `storage-key.ts`). The file is removed only when no other row in the subject
+ * maps to its key; otherwise it is kept and the result says so.
+ *
+ * DELIBERATELY NOT TOUCHED, AS RULED: the day's usage counters (work already
+ * done), `study_events` (it names no document), and saved chat answers, which
+ * were written from this material's passages and stay until the conversation's
+ * account is deleted. The confirmation the student clicks through says so.
+ *
+ * Self-contained on purpose: it imports only a type and `./storage-key`, so it
+ * can be exercised against a scripted client with no database.
+ */
+
+export type MaterialDeletionResult =
+  | { ok: true; file: 'removed' | 'kept-shared'; sharedWith: number }
+  /** No row visible to this user. Nothing was attempted. */
+  | { ok: false; stage: 'not-found'; reason: string }
+  /** The key could not be derived from the filename. Nothing was attempted. */
+  | { ok: false; stage: 'unresolvable-key'; reason: string }
+  /** A read failed before anything was removed. Nothing was attempted. */
+  | { ok: false; stage: 'lookup'; reason: string }
+  /** The file could not be removed, or could not be proven gone. The row stands. */
+  | { ok: false; stage: 'storage'; reason: string }
+  /** The file is gone and the row still stands. A retry finishes it. */
+  | { ok: false; stage: 'row'; reason: string };
+
+/**
+ * `tsconfig` sets `strict: false` (register #41), so TypeScript will not narrow
+ * this union on `ok`. A predicate narrows regardless, as in `orchestrate.ts`.
+ */
+export function materialDeletionFailed(
+  r: MaterialDeletionResult
+): r is Extract<MaterialDeletionResult, { ok: false }> {
+  return !r.ok;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Supabase `list()` caps a page; page explicitly rather than trusting a default. */
+const LIST_PAGE = 100;
+
+type Bucket = ReturnType<SupabaseClient['storage']['from']>;
+
+/**
+ * Whether `folder/name` exists, or an error message. `search` narrows the
+ * listing, but it is a case-insensitive pattern in which `_` matches any
+ * character, so it can only ever return MORE entries than the one asked for,
+ * never fewer. The exact comparison below is what decides.
+ */
+async function fileExists(bucket: Bucket, folder: string, name: string): Promise<boolean | string> {
+  let offset = 0;
+  for (;;) {
+    const { data, error } = await bucket.list(folder, { limit: LIST_PAGE, offset, search: name });
+    if (error) return error.message;
+    if (!data || data.length === 0) return false;
+    if (data.some((entry) => entry.id !== null && entry.name === name)) return true;
+    if (data.length < LIST_PAGE) return false;
+    offset += data.length;
+  }
+}
+
+export async function deleteMaterial(
+  session: SupabaseClient,
+  admin: SupabaseClient,
+  userId: string,
+  documentId: string
+): Promise<MaterialDeletionResult> {
+  // The prefix is built from these ids, and a malformed one widens it. The user
+  // id comes from the session; the document id comes from the URL.
+  if (!UUID_RE.test(userId)) {
+    return { ok: false, stage: 'lookup', reason: 'userId is not a UUID' };
+  }
+  if (!UUID_RE.test(documentId)) {
+    return { ok: false, stage: 'not-found', reason: 'documentId is not a UUID' };
+  }
+
+  // ---- 1. Ownership, decided by RLS. ----
+  const { data: doc, error: readError } = await session
+    .from('documents')
+    .select('id, kb_id, filename')
+    .eq('id', documentId)
+    .maybeSingle();
+  if (readError) {
+    return { ok: false, stage: 'lookup', reason: readError.message };
+  }
+  if (!doc) {
+    return { ok: false, stage: 'not-found', reason: 'no such document for this user' };
+  }
+  if (!UUID_RE.test(doc.kb_id)) {
+    return { ok: false, stage: 'lookup', reason: 'kb_id is not a UUID' };
+  }
+
+  const name = safeStorageName(doc.filename);
+  if (!name) {
+    return { ok: false, stage: 'unresolvable-key', reason: 'filename reduces to an empty key' };
+  }
+
+  // ---- The shared key: does any OTHER row in this subject map to the same file? ----
+  const { data: siblings, error: siblingError } = await session
+    .from('documents')
+    .select('id, filename')
+    .eq('kb_id', doc.kb_id)
+    .neq('id', documentId);
+  if (siblingError) {
+    return { ok: false, stage: 'lookup', reason: siblingError.message };
+  }
+  const sharedWith = (siblings ?? []).filter((s) => safeStorageName(s.filename) === name).length;
+
+  // ---- 2. The file. Removed only when nothing else maps to it, then proven gone. ----
+  if (sharedWith === 0) {
+    const bucket = admin.storage.from(DOCUMENTS_BUCKET);
+    const folder = `${userId}/${doc.kb_id}`;
+
+    const { error: removeError } = await bucket.remove([`${folder}/${name}`]);
+    if (removeError) {
+      return { ok: false, stage: 'storage', reason: `remove failed: ${removeError.message}` };
+    }
+
+    const still = await fileExists(bucket, folder, name);
+    if (typeof still === 'string') {
+      // Unverified is treated as failed: the row must not go on a claim nobody checked.
+      return { ok: false, stage: 'storage', reason: `verification failed: ${still}` };
+    }
+    if (still) {
+      return { ok: false, stage: 'storage', reason: 'file still listed after removal reported success' };
+    }
+  }
+
+  // ---- 3. The row. The foreign keys remove its chunks and quizzes. ----
+  const { error: deleteError, count } = await session
+    .from('documents')
+    .delete({ count: 'exact' })
+    .eq('id', documentId);
+  if (deleteError) {
+    return { ok: false, stage: 'row', reason: deleteError.message };
+  }
+  if (count !== 1) {
+    return { ok: false, stage: 'row', reason: `expected to delete 1 row, deleted ${count ?? 'unknown'}` };
+  }
+
+  return { ok: true, file: sharedWith === 0 ? 'removed' : 'kept-shared', sharedWith };
+}

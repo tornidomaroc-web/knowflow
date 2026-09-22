@@ -169,20 +169,32 @@ const UPGRADE_MATERIALS: Record<Locale, string> = {
  * filters `where c.kb_id = match_kb_id` (`20260501_rag_pgvector.sql`), `/api/agent`
  * takes one `kb_id` and 400s without it, and the Ask page makes the student pick a
  * single subject through `KBSelector`. Splitting one course across two subjects
- * therefore puts half of it permanently out of reach of every question — and it is
- * IRREVERSIBLE, because there is no delete path and no move path for a document or
- * a subject (the sole DELETE handler is `/api/account`, register #80(c)). Steering
- * a blocked student into that is worse than telling them nothing.
+ * therefore puts half of it out of reach of every question. Steering a blocked
+ * student into that is worse than telling them nothing, so this line stays: it
+ * states the constraint that makes the obvious workaround a trap, at the one
+ * moment the student is about to take it.
  *
- * So the line names no action. It states the constraint that makes the obvious
- * workaround a trap, at the one moment the student is about to take it. Free users
- * additionally get the upgrade line, which is a real remedy. A Pro user at 200 has
- * NO remedy, and the copy does not invent one — per the standing rule, the app
- * never names something it cannot do.
+ * CORRECTED 2026-09-22 (register #47). This comment used to say the split was
+ * *"IRREVERSIBLE, because there is no delete path and no move path for a document
+ * or a subject (the sole DELETE handler is `/api/account`, register #80(c))"*, that
+ * the line therefore *"names no action"*, and that *"A Pro user at 200 has NO
+ * remedy"*. `/api/documents/[id]` now deletes a single material, so every tier has
+ * a real remedy and the message names it first (DELETE_FREES_A_PLACE below). There
+ * is still no MOVE path and no subject delete, and the copy names neither.
  */
 const ASK_IS_SINGLE_SUBJECT: Record<Locale, string> = {
   en: 'Ask works inside one subject at a time, so splitting a course in two puts half of it out of reach.',
   ar: 'تجيب صفحة اسأل من مادة واحدة فقط، لذا فإن تقسيم المقرر على مادتين يجعل نصفه خارج نطاق السؤال.',
+};
+
+/**
+ * The remedy every tier has (register #47). True because `checkDocumentLimit`
+ * counts the subject's live rows, so a deleted material's place is free on the
+ * very next upload, with no counter to wait out.
+ */
+const DELETE_FREES_A_PLACE: Record<Locale, string> = {
+  en: 'Deleting a material you no longer need frees its place.',
+  ar: 'حذف ملف لم تعد تحتاجه يُفرغ مكانه.',
 };
 
 function join(parts: string[]): string {
@@ -246,8 +258,9 @@ export function monthlyConversationMessage(
 
 /**
  * The one limit with NO clock in it. A subject's shelf never empties on a timer,
- * so there is no reset clause to write. Nor is there a remedy to offer a Pro user
- * — see ASK_IS_SINGLE_SUBJECT for why the obvious one is a trap.
+ * so there is no reset clause to write. The remedy is deleting a material, which
+ * every tier has; the warning after it is why the OTHER obvious remedy, a second
+ * subject, is a trap (see ASK_IS_SINGLE_SUBJECT).
  */
 export function subjectMaterialsMessage(
   locale: Locale,
@@ -260,6 +273,7 @@ export function subjectMaterialsMessage(
       : `This subject already holds its limit of ${cap} materials.`;
   return join([
     head,
+    DELETE_FREES_A_PLACE[locale],
     ASK_IS_SINGLE_SUBJECT[locale],
     tier === 'pro' ? '' : UPGRADE_MATERIALS[locale],
   ]);

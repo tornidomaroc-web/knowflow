@@ -256,7 +256,18 @@ export const ar: Translation = {
     kbDetail: {
       documents: "الملفات",
       noDocuments: "لا توجد ملفات بعد. ارفع أول ملف لك أعلاه.",
-      chunks: "مقاطع"
+      chunks: "مقاطع",
+      deleteMaterial: {
+        openButton: "حذف",
+        warning: "هل تريد حذف هذا الملف نهائيًا؟ سيُحذف الملف وملخّصه واختباراته، ولن تستخدمه صفحة اسأل بعد الآن، ولا يمكن استرجاع أي شيء.",
+        answersKept: "الإجابات التي حصلت عليها سابقًا في صفحة اسأل تبقى في محادثاتك، بما في ذلك ما اقتبسته من هذا الملف.",
+        confirmButton: "احذف نهائيًا",
+        cancelButton: "إلغاء",
+        deleting: "جارٍ الحذف…",
+        errorNotFound: "هذا الملف لم يعد موجودًا.",
+        errorFailed: "لم يكتمل الحذف. يمكنك المحاولة مرة أخرى.",
+        errorContact: "تعذّر حذف هذا الملف من هنا. راسلنا على support@tryknowflow.com وسنحذفه لك."
+      }
     },
     summary: {
       heading: "الملخّص",

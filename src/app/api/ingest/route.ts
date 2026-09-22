@@ -6,6 +6,7 @@ import { enforceLimit } from '@/lib/rate-limit';
 import type { Locale } from '@/lib/i18n';
 import { subjectMaterialsMessage } from '@/lib/limit-messages';
 import { recordStudyEvent } from '@/lib/study-events';
+import { safeStorageName } from '@/lib/storage-key';
 import { ALLOWED_FILE_TYPES, type FileType } from '@/types';
 
 // (b1) The ingestion service's ack, and deliberately tiny. The service persists
@@ -123,13 +124,12 @@ export async function POST(request: Request) {
     // B4 (path-traversal fix): reduce the client-supplied filename to a safe,
     // flat basename so the storage key cannot escape the user's prefix
     // (e.g. ../../evil.pdf). Storage key only; the original name is preserved
-    // for display in the documents row below.
-    const safeName =
-      ((file.name || '').split(/[/\\]/).pop() || '') // basename: drop directories
-        .replace(/[\x00-\x1f\x7f]/g, '')             // strip control chars
-        .replace(/[^A-Za-z0-9._-]/g, '_')            // allowlist
-        .replace(/^\.+/, '')                         // drop leading dots ("..", etc.)
-      || `upload-${Date.now()}`;                     // fallback if nothing safe remains
+    // for display in the documents row below. The rule lives in
+    // `@/lib/storage-key` because `/api/documents/[id]` must derive the SAME key
+    // to delete the file (register #47). The fallback is unreachable in
+    // practice: the extension check above guarantees the name keeps at least
+    // its allowed extension's letters.
+    const safeName = safeStorageName(file.name) ?? `upload-${Date.now()}`;
 
     const filePath = `${user.id}/${kbId}/${safeName}`;
     const { error: storageError } = await supabase.storage
