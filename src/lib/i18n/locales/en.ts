@@ -262,7 +262,21 @@ export const en = {
     kbDetail: {
       documents: "Materials",
       noDocuments: "No materials yet. Upload your first file above.",
-      chunks: "chunks"
+      chunks: "chunks",
+      // #47. `answersKept` is ruled, not decoration: deleting a material does NOT
+      // remove the answers Ask already gave from it, and the student is told so
+      // before they confirm rather than discovering it afterwards.
+      deleteMaterial: {
+        openButton: "Delete",
+        warning: "Delete this material permanently? Its file, its summary and its quizzes are removed, Ask stops using it, and nothing can be restored.",
+        answersKept: "Answers you already got in Ask stay in your conversations, including anything they quoted from this material.",
+        confirmButton: "Delete permanently",
+        cancelButton: "Cancel",
+        deleting: "Deleting…",
+        errorNotFound: "This material no longer exists.",
+        errorFailed: "The deletion did not finish. You can try again.",
+        errorContact: "This material could not be deleted from here. Email support@tryknowflow.com and we will remove it for you."
+      }
     },
     summary: {
       heading: "Summary",

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { DropZone } from '@/components/upload/DropZone'
 import { SummarySection } from '@/components/summary/SummarySection'
 import { QuizSection } from '@/components/quiz/QuizSection'
+import { DeleteMaterialControl } from '@/components/materials/DeleteMaterialControl'
 import type { Document } from '@/types'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 
@@ -89,6 +90,13 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
                   </div>
                   <SummarySection doc={doc} />
                   <QuizSection doc={doc} />
+                  <div className="mt-3">
+                    <DeleteMaterialControl
+                      documentId={doc.id}
+                      labels={t.dashboard.kbDetail.deleteMaterial}
+                      onDeleted={(deletedId) => setDocs(prev => prev.filter(d => d.id !== deletedId))}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
