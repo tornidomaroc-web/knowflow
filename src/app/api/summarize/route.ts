@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { enforceLimit } from '@/lib/rate-limit';
 import { recordStudyEvent } from '@/lib/study-events';
+import { usageTokens, usageUsd } from '@/lib/usage-cost';
 
 // Same cheap tier as /api/agent — a summary is a single, bounded Haiku call.
 const SUMMARY_MODEL = 'claude-haiku-4-5-20251001';
@@ -172,6 +173,31 @@ export async function POST(request: Request) {
         .map((b) => (b.type === 'text' ? b.text : ''))
         .join('')
         .trim();
+
+      // ONE `kf-usage` LINE PER CALL, the same tag and token fields `/api/agent`
+      // writes, so a summary's real cost is MEASURED rather than derived (register
+      // #80's unit costs never were). Logged HERE, right after the call returns
+      // and before any check on the text, because an empty or rejected summary
+      // was still billed. Counts and ids only: no document text, no summary text.
+      const tokens = usageTokens(resp.usage);
+      console.log(
+        JSON.stringify({
+          tag: 'kf-usage',
+          route: 'summarize',
+          model: SUMMARY_MODEL,
+          user_id: user.id,
+          document_id,
+          locale: lang,
+          ...tokens,
+          stop_reason: resp.stop_reason,
+          // Whether MAX_SUMMARY_TOKENS cut the summary off.
+          truncated: resp.stop_reason === 'max_tokens',
+          source_chars: sourceText.length,
+          is_partial: isPartial,
+          output_chars: summaryText.length,
+          usd: usageUsd(tokens),
+        })
+      );
     } catch (e) {
       console.error('summarize: Claude call failed', e);
       return NextResponse.json(

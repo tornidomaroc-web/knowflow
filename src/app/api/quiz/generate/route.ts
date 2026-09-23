@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { enforceLimit } from '@/lib/rate-limit';
+import { usageTokens, usageUsd } from '@/lib/usage-cost';
 import type { ClientQuizItem, Quiz } from '@/types';
 
 // Same cheap tier as /api/summarize and /api/agent — a quiz is a single, bounded
@@ -288,6 +289,30 @@ export async function POST(request: Request) {
         ],
       });
       completion = resp.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+
+      // ONE `kf-usage` LINE PER CALL, the same tag and token fields `/api/agent`
+      // writes, so a quiz's real cost is MEASURED rather than derived (register
+      // #80). Logged HERE, before the parse, because a quiz that fails
+      // validation and is never stored was still billed. Counts and ids only.
+      const tokens = usageTokens(resp.usage);
+      console.log(
+        JSON.stringify({
+          tag: 'kf-usage',
+          route: 'quiz',
+          model: QUIZ_MODEL,
+          user_id: user.id,
+          document_id,
+          locale: lang,
+          ...tokens,
+          stop_reason: resp.stop_reason,
+          // Whether MAX_QUIZ_TOKENS cut the JSON off, which would fail the parse.
+          truncated: resp.stop_reason === 'max_tokens',
+          source_chars: sourceText.length,
+          is_partial: isPartial,
+          output_chars: completion.length,
+          usd: usageUsd(tokens),
+        })
+      );
     } catch (e) {
       console.error('quiz/generate: Claude call failed', e);
       return NextResponse.json(
