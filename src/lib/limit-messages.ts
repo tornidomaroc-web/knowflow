@@ -311,7 +311,7 @@ const BYTES_PER_MB = 1024 * 1024;
 
 const MEGABYTES: Record<Locale, string> = {
   en: '{n} MB',
-  ar: '{n} ميجابايت',
+  ar: '{n} ميغابايت', // the owner's spelling, ruled 2026-09-23 (register #111)
 };
 
 const tenthsOfMB = (bytes: number) => (bytes * 10) / BYTES_PER_MB;
@@ -323,7 +323,7 @@ function megabytes(locale: Locale, tenths: number): string {
   return MEGABYTES[locale].replace('{n}', n);
 }
 
-/** "4 MB" / "4 ميجابايت", for the line under the drop zone. */
+/** "4 MB" / "4 ميغابايت", for the line under the drop zone. */
 export function uploadLimitLabel(locale: Locale): string {
   return megabytes(locale, LIMIT_TENTHS);
 }
@@ -360,6 +360,63 @@ export function uploadFailureMessage(
   if (status === 413 && isOverUploadLimit(fileBytes)) return fileTooLargeMessage(locale, fileBytes);
   const error = reply?.error;
   return typeof error === 'string' && error.trim() ? error : fallback;
+}
+
+/**
+ * THE UPLOAD ROUTE'S OTHER REFUSALS (register #111). Every reply `/api/ingest`
+ * can send a student, other than the limits above, in the student's language.
+ * `DropZone` shows the route's `error` as it comes, so this is the only place
+ * these sentences exist; the drop zone composes `type` itself for a dropped
+ * file, before anything is sent, by the same rule (`isAllowedFileType`).
+ *
+ * TWO 500 SENTENCES, NOT ONE, because the truth differs by stage. Before the
+ * file is forwarded to the ingestion service, no material was saved and the
+ * student should simply try again. After the forward, the service owns the
+ * material's final status ((b1) in the route), so the outcome is unknown to
+ * this route: the material may finish, or be marked with an error. One sentence
+ * covering both would have to be vague about the thing the student most needs
+ * to know, whether their file is there.
+ *
+ * `type` and `mime` name the file's extension. It is taken from the filename,
+ * so it is cut to ten plain characters before it is printed.
+ */
+export type UploadRefusal = 'request' | 'type' | 'mime' | 'session' | 'nothing-saved' | 'unconfirmed';
+
+const FORMATS = 'PDF, DOCX, PPTX, XLSX, TXT, MD';
+
+function printableExt(ext: string): string {
+  const clean = ext.replace(/[^a-z0-9]/gi, '').slice(0, 10);
+  return clean ? `.${clean}` : '';
+}
+
+export function uploadRefusalMessage(locale: Locale, kind: UploadRefusal, ext = ''): string {
+  const e = printableExt(ext);
+  switch (kind) {
+    case 'request':
+      return locale === 'ar'
+        ? 'وصل الطلب بلا ملف أو بلا مادة. حدّث الصفحة ثم حاول مجددًا.'
+        : 'The request arrived without a file or a subject. Refresh the page, then try again.';
+    case 'type':
+      return locale === 'ar'
+        ? `يقبل KnowFlow ملفات ${FORMATS} فقط${e ? `، وهذا الملف من نوع ${e}` : '، وهذا الملف بلا امتداد'}.`
+        : `KnowFlow takes ${FORMATS} files only${e ? `, and this file is a ${e}` : ', and this file has no extension'}.`;
+    case 'mime':
+      return locale === 'ar'
+        ? `محتوى هذا الملف لا يطابق اسمه${e ? ` (${e})` : ''}. احفظه من جديد بنوعه الصحيح ثم ارفعه.`
+        : `This file's contents do not match its name${e ? ` (${e})` : ''}. Save it again as the right type, then upload it.`;
+    case 'session':
+      return locale === 'ar'
+        ? 'لقد خرجت من حسابك. سجّل الدخول مجددًا ثم ارفع الملف.'
+        : 'You are signed out. Sign in again, then upload the file.';
+    case 'nothing-saved':
+      return locale === 'ar'
+        ? 'لم يتم الرفع ولم تُحفظ أي مادة. حاول مجددًا بعد قليل.'
+        : 'The upload did not go through, and no material was saved. Try again in a moment.';
+    case 'unconfirmed':
+      return locale === 'ar'
+        ? 'وصل ملفك، لكننا لم نتمكن من تأكيد معالجته. حدّث الصفحة: ستظهر المادة جاهزة أو مع علامة خطأ، ويمكنك حذفها ورفعها مجددًا.'
+        : 'Your file arrived, but we could not confirm it was processed. Refresh the page: the material will show as ready or marked with an error, and you can delete it and upload it again.';
+  }
 }
 
 /**

@@ -4,11 +4,11 @@ import { getServiceUrl } from '@/lib/ingestion';
 import { checkDocumentLimit } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
 import type { Locale } from '@/lib/i18n';
-import { fileTooLargeMessage, subjectMaterialsMessage } from '@/lib/limit-messages';
+import { fileTooLargeMessage, subjectMaterialsMessage, uploadRefusalMessage } from '@/lib/limit-messages';
 import { isOverUploadLimit } from '@/lib/upload-limits';
 import { recordStudyEvent } from '@/lib/study-events';
 import { documentStorageKey } from '@/lib/storage-key';
-import { ALLOWED_FILE_TYPES, type FileType } from '@/types';
+import { fileExtension, isAllowedFileType, type FileType } from '@/types';
 
 // (b1) The ingestion service's ack, and deliberately tiny. The service persists
 // the chunks and writes the terminal document status itself, so nothing comes
@@ -49,22 +49,29 @@ const ALLOWED_TYPES: Record<FileType, string[]> = {
 
 // Type guard against the SoT array, so the runtime membership test and the
 // compile-time FileType domain are literally the same list. `.some` (not
-// `.includes`) lets us compare against a widened `string` with no cast.
-function isAllowedFileType(ext: string): ext is FileType {
-  return ALLOWED_FILE_TYPES.some((t) => t === ext);
-}
+// `.includes`) lets us compare against a widened `string` with no cast. Shared
+// with the drop zone since #111 (`@/types`), so both refuse by one rule.
 
 export async function POST(request: Request) {
+  // #111: which 500 sentence is true depends on whether the file was forwarded
+  // to the ingestion service. Before that, no material was saved; after it, the
+  // service owns the outcome and this route may not know it. Both live outside
+  // the `try` so the catch-all can read them.
+  let forwarded = false;
+  let safeLocale: Locale = 'en';
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const kbId = formData.get('kb_id') as string;
     // Whitelisted server-side, as /api/summarize does (register #27). A multipart
     // field rather than a JSON key because this route takes formData.
-    const safeLocale: Locale = formData.get('locale') === 'ar' ? 'ar' : 'en';
+    safeLocale = formData.get('locale') === 'ar' ? 'ar' : 'en';
 
     if (!file || !kbId) {
-      return NextResponse.json({ success: false, error: 'Missing file or kb_id' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: uploadRefusalMessage(safeLocale, 'request') },
+        { status: 400 }
+      );
     }
 
     // #50: the same limit the browser checks and the drop zone states, from one
@@ -82,10 +89,10 @@ export async function POST(request: Request) {
     // B5a: reject anything outside the extension + MIME allowlist before any
     // storage or forwarding to the converter. ext is also reused as file_type
     // below, so it's always a normalized, known value.
-    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const ext = fileExtension(file.name);
     if (!isAllowedFileType(ext)) {
       return NextResponse.json(
-        { error: `Unsupported file type. Allowed: ${ALLOWED_FILE_TYPES.join(', ')}.` },
+        { success: false, error: uploadRefusalMessage(safeLocale, 'type', ext) },
         { status: 415 }
       );
     }
@@ -97,7 +104,7 @@ export async function POST(request: Request) {
     // reject a specific MIME that contradicts the extension.
     if (mime && mime !== 'application/octet-stream' && !allowedMimes.includes(mime)) {
       return NextResponse.json(
-        { error: `File content type "${file.type}" does not match its .${ext} extension.` },
+        { success: false, error: uploadRefusalMessage(safeLocale, 'mime', ext) },
         { status: 415 }
       );
     }
@@ -106,7 +113,10 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: uploadRefusalMessage(safeLocale, 'session') },
+        { status: 401 }
+      );
     }
 
     // Entitlement-gated (B1): Pro users get PRO_LIMITS. Needs user.id, so this
@@ -146,7 +156,13 @@ export async function POST(request: Request) {
       .upload(filePath, file, { upsert: false });
 
     if (storageError) {
-      return NextResponse.json({ success: false, error: storageError.message }, { status: 500 });
+      // #111: the storage error text is logged, not shown; a student cannot act
+      // on it, and it can name internals.
+      console.error('Storage upload failed:', storageError.message);
+      return NextResponse.json(
+        { success: false, error: uploadRefusalMessage(safeLocale, 'nothing-saved') },
+        { status: 500 }
+      );
     }
 
     const { data: docRecord, error: docError } = await supabase
@@ -164,7 +180,13 @@ export async function POST(request: Request) {
       .single();
 
     if (docError || !docRecord) {
-      return NextResponse.json({ success: false, error: docError?.message }, { status: 500 });
+      // #111: same as above. (The stored file has no row at this point and this
+      // route does not remove it; register #111 records that as a known gap.)
+      console.error('Document insert failed:', docError?.message);
+      return NextResponse.json(
+        { success: false, error: uploadRefusalMessage(safeLocale, 'nothing-saved') },
+        { status: 500 }
+      );
     }
 
     // (b1) THE POST-FORWARD ERROR WRITE, AND WHY IT IS CONDITIONAL.
@@ -211,7 +233,10 @@ export async function POST(request: Request) {
     if (!ingestionToken) {
       console.error('INGESTION_TOKEN env var is not set');
       await supabase.from('documents').update({ status: 'error', embedding_status: 'error' }).eq('id', docRecord.id);
-      return NextResponse.json({ success: false, error: 'Server misconfigured' }, { status: 500 });
+      return NextResponse.json(
+        { success: false, error: uploadRefusalMessage(safeLocale, 'nothing-saved') },
+        { status: 500 }
+      );
     }
 
     // (b1) The ingestion service writes to Supabase AS THIS USER, so it needs the
@@ -234,7 +259,10 @@ export async function POST(request: Request) {
         .from('documents')
         .update({ status: 'error', embedding_status: 'error', error_message: 'no access token on an authenticated session' })
         .eq('id', docRecord.id);
-      return NextResponse.json({ success: false, error: 'Server misconfigured' }, { status: 500 });
+      return NextResponse.json(
+        { success: false, error: uploadRefusalMessage(safeLocale, 'nothing-saved') },
+        { status: 500 }
+      );
     }
 
     // `document_id` and `kb_id` travel in the form body so the service knows
@@ -248,6 +276,7 @@ export async function POST(request: Request) {
     pyFormData.append('kb_id', kbId);
 
     let pyResponse: Response;
+    forwarded = true;
     try {
       pyResponse = await fetch(`${pythonServiceUrl}/ingest`, {
         method: 'POST',
@@ -268,7 +297,10 @@ export async function POST(request: Request) {
       const reason = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
       console.error('Ingestion service unreachable:', reason);
       await failIfStillProcessing(`ingestion service unreachable: ${reason.slice(0, 500)}`);
-      return NextResponse.json({ success: false, error: 'Ingestion failed' }, { status: 500 });
+      return NextResponse.json(
+        { success: false, error: uploadRefusalMessage(safeLocale, 'unconfirmed') },
+        { status: 500 }
+      );
     }
 
     if (!pyResponse.ok) {
@@ -305,7 +337,10 @@ export async function POST(request: Request) {
       // detail in front of a user. The user-facing body below is deliberately
       // unchanged.
       await failIfStillProcessing(upstream);
-      return NextResponse.json({ success: false, error: 'Ingestion failed' }, { status: 500 });
+      return NextResponse.json(
+        { success: false, error: uploadRefusalMessage(safeLocale, 'unconfirmed') },
+        { status: 500 }
+      );
     }
 
     // Small ack only: {document_id, chunk_count, status}. No chunks, no
@@ -323,7 +358,10 @@ export async function POST(request: Request) {
       const shape = JSON.stringify(ack).slice(0, 500);
       console.error('Unexpected ingestion ack:', shape);
       await failIfStillProcessing(`ingestion returned an unexpected ack: ${shape}`);
-      return NextResponse.json({ success: false, error: 'Ingestion failed' }, { status: 500 });
+      return NextResponse.json(
+        { success: false, error: uploadRefusalMessage(safeLocale, 'unconfirmed') },
+        { status: 500 }
+      );
     }
 
     // P5.2 study event. The emit is still gated on a CONFIRMED success — but the
@@ -346,6 +384,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, document_id: docRecord.id, chunk_count: ack.chunk_count });
   } catch (error) {
     console.error('Ingest API error:', error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: uploadRefusalMessage(safeLocale, forwarded ? 'unconfirmed' : 'nothing-saved') },
+      { status: 500 }
+    );
   }
 }

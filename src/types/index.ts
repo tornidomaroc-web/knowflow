@@ -45,6 +45,20 @@ export interface KnowledgeBase {
 export const ALLOWED_FILE_TYPES = ['pdf', 'docx', 'pptx', 'xlsx', 'txt', 'md'] as const;
 export type FileType = (typeof ALLOWED_FILE_TYPES)[number];
 
+/** A filename's extension, lowercased, without the dot; '' when it has none. */
+export function fileExtension(filename: string): string {
+  const dot = filename.lastIndexOf('.');
+  return dot < 0 ? '' : filename.slice(dot + 1).toLowerCase();
+}
+
+// Type guard against the SoT array, so the runtime membership test and the
+// compile-time FileType domain are literally the same list. Used by the ingest
+// route AND by the drop zone (#111), so a dropped file of the wrong type is
+// refused before anything is sent, by the same rule the route applies.
+export function isAllowedFileType(ext: string): ext is FileType {
+  return ALLOWED_FILE_TYPES.some((t) => t === ext);
+}
+
 export interface Document {
   id: string;
   kb_id: string;
