@@ -6,6 +6,7 @@ import { DropZone } from '@/components/upload/DropZone'
 import { SummarySection } from '@/components/summary/SummarySection'
 import { QuizSection } from '@/components/quiz/QuizSection'
 import { DeleteMaterialControl } from '@/components/materials/DeleteMaterialControl'
+import { RenameMaterialControl } from '@/components/materials/RenameMaterialControl'
 import type { Document } from '@/types'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 
@@ -90,7 +91,16 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
                   </div>
                   <SummarySection doc={doc} />
                   <QuizSection doc={doc} />
-                  <div className="mt-3">
+                  {/* #47: Rename beside Delete. The row wraps, and an open rename
+                      panel takes the full width, so neither control squeezes the other. */}
+                  <div className="mt-3 flex flex-wrap items-start gap-2">
+                    <RenameMaterialControl
+                      documentId={doc.id}
+                      filename={doc.filename}
+                      labels={t.dashboard.kbDetail.renameMaterial}
+                      onRenamed={(renamedId, filename) => setDocs(prev => prev.map(d => (d.id === renamedId ? { ...d, filename } : d)))}
+                      onGone={(goneId) => setDocs(prev => prev.filter(d => d.id !== goneId))}
+                    />
                     <DeleteMaterialControl
                       documentId={doc.id}
                       labels={t.dashboard.kbDetail.deleteMaterial}
