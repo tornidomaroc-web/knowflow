@@ -23,6 +23,17 @@ seam falls.
 
 ### 1.1 — Vercel enforces a hard 4.5 MB request-body cap at the edge
 
+**Corrected 2026-09-23 (register #50, #189): the cap is on the whole request, body and headers
+together, and it is now measured.** On a preview, with requests the route refused before any
+database call: a body of exactly 4,500,000 bytes was refused with `413 FUNCTION_PAYLOAD_TOO_LARGE`
+(for a `fetch`, a 93-byte `text/plain` reply, not HTML); with ~6.7 KB of headers the largest body
+that passed was 4,493,270 bytes, and that body with a 1,000-byte header added was refused. The
+browser sends the file raw (not base64) inside a multipart envelope of 402 bytes plus the
+filename. So the largest file that passes is about 4,490,000 bytes. The app's limit is now
+**4 MB (4,194,304 bytes)**, below the platform's, so the app's own check fires first, in the
+browser, and the "unreachable" 50 MB check below no longer exists. The text below is kept as
+written; where it says "body", read "body and headers".
+
 Vercel Functions reject any request whose body exceeds **4.5 MB** with
 `413 FUNCTION_PAYLOAD_TOO_LARGE`, **before the handler runs**. This is a documented platform
 constant, **not configurable** — it cannot be raised from `vercel.json`, `next.config.ts`, or
@@ -107,6 +118,14 @@ match. Any signature table that forgets this would reject every legitimate `.txt
 
 ### 1.6 — The 50 MB promise is BROKEN in production, asserted in 7 places
 
+**Corrected 2026-09-23 (#189): all seven sites are gone, and the promise is no longer broken.**
+The number is one constant, `MAX_UPLOAD_BYTES` = 4 MB in `src/lib/upload-limits.ts`, read by the
+route guard (sites 1-2), the browser check (site 3) and the line under the drop zone (sites 5
+and 7, whose strings now carry a `{limit}` slot instead of a number). The refusal (sites 2, 4
+and 6) is one sentence in both locales in `src/lib/limit-messages.ts`, so the route's 413 is no
+longer hardcoded English, and `fileTooBig` is removed from both dictionaries. The list below
+records what stood.
+
 The app promises 50 MB in **seven** sites, but §1.1 makes the real ceiling ~4.5 MB, so the
 promise is **false in production today**:
 
@@ -162,6 +181,9 @@ So the only movable piece is `getUser()`, and its payoff is small because the ed
 bounds the exposure. Record it; do not prioritize it.
 
 ### 2.3 — PIVOT_PLAN.md:269 asserts a FALSE claim ("Size cap (50 MB) already exists")
+
+**Corrected 2026-09-23: that `PIVOT_PLAN.md` line (at :375 by then) is corrected, on the owner's
+ruling, in the docs PR that records #189.**
 
 `PIVOT_PLAN.md:269` (the **B5a** row) states *"Size cap (50 MB) already exists."* This is
 **false**: the effective cap is **~4.5 MB** and is imposed by the **platform** (§1.1), not by
@@ -226,6 +248,8 @@ The browser uploads **straight to Supabase storage** via a signed URL, bypassing
   Vercel's edge.
 - **Gated entirely on the founder's file-size ruling** (§4 decision 1): if ~4.5 MB is accepted,
   (b2) is unnecessary; only a *real* 50 MB (or larger) target justifies it.
+- **Ruled 2026-09-23:** the real ceiling was accepted (a 4 MB limit, #189), so (b2) is not needed
+  now; it is the Phase 7 large-file path.
 - **Payoff is limited by register #22** — the free-tier Supabase **5 GB/month egress** caps the
   benefit at roughly **~100 uploads/month at 50 MB** before the tier is exhausted. A 50 MB
   capability the backend cannot afford to serve is a promise in the same family as the broken
@@ -241,6 +265,13 @@ The browser uploads **straight to Supabase storage** via a signed URL, bypassing
 through `t.*`) **vs.** deliver a **real 50 MB** via (b2) signed-URL upload.
 *Consequence:* this decision **gates** decision 5 (enforcement point) and the sync/async posture —
 a real-50 MB path is inherently async (b2 + B6), a ~4.5 MB path can stay synchronous.
+
+**RULED 2026-09-23 by the owner: accept the real ceiling now; real large-file support is Phase 7
+work.** Shipped as #189 (`cf4eba4`) and witnessed on production: a 4 MB limit, set below the
+platform's measured ceiling (§1.1) so it holds whatever a student's headers are. The message
+goes through `src/lib/limit-messages.ts`, not `t.*`: register #1 (PR #142, 2026-09-10), written
+after this document, made that module the home of every limit message a student reads. Uploads
+stay synchronous. Decision 5 is no longer blocked by this one, and stays open.
 
 **2. Format list.** Keep **all six**, or **drop the ZIP-container trio (docx / pptx / xlsx)** that
 carries **all** the decompression-bomb risk (§2.1). pdf/txt/md carry no ZIP-bomb surface.
@@ -291,6 +322,16 @@ without a signature; a naive "starts with PK" rule both mis-types and mis-defend
 
 ## Section 5 — Required measurement before any user-facing number ships
 
+**Ruled 2026-09-23 (#189): a number shipped before this measurement, by the owner's ruling, and
+the measurement stays owed, owner-run.** 4 MB is bound by the platform's request ceiling (§1.1),
+which no duration result can raise; the measurement can only show that some files at or under
+4 MB, text-dense `.txt`/`.md`, time out. Run it at the new ceiling, with one 4 MB `.txt`: the
+browser now refuses anything larger before sending it. Two rows of the table below changed with
+#189: the inbound cap's 413 arrives as `text/plain` for a `fetch` (measured), not HTML, and the
+app's own 413 is now the 4 MB check, answering JSON `{ success: false, error }` with a sentence
+in the request's locale. In the browser a timeout now reads as the `uploadFailed` sentence, so
+read the status in the network record, not the message.
+
 **Question:** at what file size does the upload **time out** (§1.4)?
 
 **Procedure.** Upload **plain `.txt`** files to a **PREVIEW** deployment. Plain text is used
@@ -324,4 +365,6 @@ chunk count / embed batches / duration.
   move above the body parse (§2.2) and why §5 uploads cost credits.
 - **Register #17** — hardcoded English bypassing `t.*`; the same defect class as `route.ts:52`
   (§1.6, site 2).
+- **Register #111** — the upload route's other refusals, still English in `/ar` after #189 closed
+  site 2 (opened 2026-09-23).
 - **B6 (PIVOT_PLAN §8)** — synchronous ingestion; the gate for every B5b-2 item and for (b1)/(b2).
