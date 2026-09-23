@@ -86,3 +86,4 @@
 # roles, so its `revoke ... from anon, authenticated` and
 # `grant execute ... to anon` execute rather than error.
 20260904_account_deletion_orphans.sql  apply
+20260923_documents_storage_path.sql  apply

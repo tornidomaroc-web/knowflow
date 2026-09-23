@@ -7,6 +7,12 @@ import type { Locale } from '@/lib/i18n';
 import { monthlyConversationMessage } from '@/lib/limit-messages';
 import { embedQuery } from '@/lib/ingestion';
 import { recordStudyEvent } from '@/lib/study-events';
+import {
+  USD_PER_INPUT_TOKEN,
+  USD_PER_OUTPUT_TOKEN,
+  USD_PER_CACHE_READ_TOKEN,
+  USD_PER_CACHE_WRITE_TOKEN,
+} from '@/lib/usage-cost';
 
 interface MatchedChunk {
   id: string;
@@ -35,15 +41,11 @@ Rules:
 
 const MATCH_COUNT = 8;
 
-// The answering model, named once. Rates below are the published Haiku 4.5 rates
-// READ ON 2026-09-13 from claude.com/pricing; they are used ONLY to annotate the
-// usage log, never to gate behaviour, so a stale rate mis-labels a log line and
-// breaks nothing. Re-read before quoting them anywhere that money is decided.
+// The answering model, named once. The rates that price its usage log line moved
+// to `@/lib/usage-cost` (#110's PR) so this route, `/api/summarize` and
+// `/api/quiz/generate` cannot price the same token differently; the values are
+// unchanged. They annotate the log only and never gate behaviour.
 const ANSWER_MODEL = 'claude-haiku-4-5-20251001';
-const USD_PER_INPUT_TOKEN = 1.0 / 1_000_000;
-const USD_PER_OUTPUT_TOKEN = 5.0 / 1_000_000;
-const USD_PER_CACHE_READ_TOKEN = 0.10 / 1_000_000;
-const USD_PER_CACHE_WRITE_TOKEN = 1.25 / 1_000_000;
 
 /**
  * LEVER 1 - the answer cap, cut 2048 -> 600.
