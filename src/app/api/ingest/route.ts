@@ -4,7 +4,8 @@ import { getServiceUrl } from '@/lib/ingestion';
 import { checkDocumentLimit } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
 import type { Locale } from '@/lib/i18n';
-import { subjectMaterialsMessage } from '@/lib/limit-messages';
+import { fileTooLargeMessage, subjectMaterialsMessage } from '@/lib/limit-messages';
+import { isOverUploadLimit } from '@/lib/upload-limits';
 import { recordStudyEvent } from '@/lib/study-events';
 import { documentStorageKey } from '@/lib/storage-key';
 import { ALLOWED_FILE_TYPES, type FileType } from '@/types';
@@ -66,8 +67,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Missing file or kb_id' }, { status: 400 });
     }
 
-    if (file.size > 52428800) {
-      return NextResponse.json({ error: 'File too large. Maximum size is 50MB.' }, { status: 413 });
+    // #50: the same limit the browser checks and the drop zone states, from one
+    // place (`@/lib/upload-limits`). Past about 4,490,000 bytes the platform
+    // refuses the request itself, before this line runs, so this answers the
+    // files in between (an old browser bundle during a deploy, a script), in the
+    // student's language, before any database or storage call.
+    if (isOverUploadLimit(file.size)) {
+      return NextResponse.json(
+        { success: false, error: fileTooLargeMessage(safeLocale, file.size) },
+        { status: 413 }
+      );
     }
 
     // B5a: reject anything outside the extension + MIME allowlist before any

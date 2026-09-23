@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { Upload } from 'lucide-react';
 import type { Document } from '@/types';
 import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { fileTooLargeMessage, uploadFailureMessage, uploadLimitLabel } from '@/lib/limit-messages';
+import { isOverUploadLimit, parseUploadReply } from '@/lib/upload-limits';
 
 interface DropZoneProps {
   kbId: string;
@@ -23,8 +25,10 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
-    if (file.size > 52428800) {
-      setErrorMsg(t.dashboard.upload.fileTooBig);
+    // #50: refused here, before anything is sent. This check, the line under the
+    // drop zone and the route's own guard all read `@/lib/upload-limits`.
+    if (isOverUploadLimit(file.size)) {
+      setErrorMsg(fileTooLargeMessage(safeLocale, file.size));
       setState('error');
       return;
     }
@@ -41,8 +45,14 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
       const res = await fetch('/api/ingest', { method: 'POST', body: formData });
       setState('processing');
 
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || t.dashboard.upload.uploadFailed);
+      // Read as text, not `res.json()`: the platform answers some failures itself
+      // in plain text before the route runs (`parseUploadReply`).
+      const data = parseUploadReply(await res.text());
+      if (!res.ok || !data?.success) {
+        setErrorMsg(uploadFailureMessage(safeLocale, res.status, data, file.size, t.dashboard.upload.uploadFailed));
+        setState('error');
+        return;
+      }
 
       setState('ready');
       if (onSuccess) {
@@ -58,8 +68,11 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
       }
 
       setTimeout(() => setState('idle'), 3000);
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch {
+      // The request itself failed (offline, a dropped connection). The browser's
+      // own error text is English and says nothing a student can act on, and
+      // whether the file arrived is unknown, which `uploadFailed` says.
+      setErrorMsg(t.dashboard.upload.uploadFailed);
       setState('error');
     }
   };
@@ -87,7 +100,7 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
             <Upload className="h-5 w-5" />
           </span>
           <p className="text-sm font-medium text-foreground">{t.dashboard.upload.dropHere}</p>
-          <p className="text-xs text-muted-foreground">{t.dashboard.upload.supported}</p>
+          <p className="text-xs text-muted-foreground">{t.dashboard.upload.supported.replace('{limit}', uploadLimitLabel(safeLocale))}</p>
         </>
       )}
       {state === 'uploading' && <p className="text-sm font-medium text-foreground">{t.dashboard.upload.uploading}</p>}
