@@ -45,8 +45,8 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
       const res = await fetch('/api/ingest', { method: 'POST', body: formData });
       setState('processing');
 
-      // Read as text, not `res.json()`: the platform answers some failures itself
-      // in plain text before the route runs (`parseUploadReply`).
+      // Read as text, not `res.json()`: the platform answers some failures itself,
+      // not in our JSON (`parseUploadReply`).
       const data = parseUploadReply(await res.text());
       if (!res.ok || !data?.success) {
         setErrorMsg(uploadFailureMessage(safeLocale, res.status, data, file.size, t.dashboard.upload.uploadFailed));

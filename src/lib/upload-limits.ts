@@ -55,11 +55,12 @@ export interface UploadReply {
 
 /**
  * Read an upload reply WITHOUT assuming it is JSON. The platform answers some
- * failures itself, in plain text, before the route runs: a 413 past its size
- * ceiling (`Request Entity Too Large … FUNCTION_PAYLOAD_TOO_LARGE`), or a timeout.
- * The old code called `res.json()` on those and showed the student the parser's
- * own error, `Unexpected token 'R', "Request En"... is not valid JSON`. Anything
- * that is not a JSON object comes back as `null`.
+ * failures itself, not in our JSON: a 413 past its size ceiling, before the route
+ * runs (measured: plain text, `Request Entity Too Large …
+ * FUNCTION_PAYLOAD_TOO_LARGE`), or a timeout. The old code called `res.json()` on
+ * those and showed the student the parser's own error, `Unexpected token 'R',
+ * "Request En"... is not valid JSON`. Anything that is not a JSON object comes
+ * back as `null`.
  */
 export function parseUploadReply(body: string): UploadReply | null {
   try {
