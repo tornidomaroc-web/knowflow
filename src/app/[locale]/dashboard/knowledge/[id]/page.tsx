@@ -9,6 +9,7 @@ import { DeleteMaterialControl } from '@/components/materials/DeleteMaterialCont
 import { RenameMaterialControl } from '@/components/materials/RenameMaterialControl'
 import type { Document } from '@/types'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
+import { withSupportEmail } from '@/lib/site'
 
 interface KB {
   id: string
@@ -97,13 +98,13 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
                     <RenameMaterialControl
                       documentId={doc.id}
                       filename={doc.filename}
-                      labels={t.dashboard.kbDetail.renameMaterial}
+                      labels={withSupportEmail(t.dashboard.kbDetail.renameMaterial)}
                       onRenamed={(renamedId, filename) => setDocs(prev => prev.map(d => (d.id === renamedId ? { ...d, filename } : d)))}
                       onGone={(goneId) => setDocs(prev => prev.filter(d => d.id !== goneId))}
                     />
                     <DeleteMaterialControl
                       documentId={doc.id}
-                      labels={t.dashboard.kbDetail.deleteMaterial}
+                      labels={withSupportEmail(t.dashboard.kbDetail.deleteMaterial)}
                       onDeleted={(deletedId) => setDocs(prev => prev.filter(d => d.id !== deletedId))}
                     />
                   </div>

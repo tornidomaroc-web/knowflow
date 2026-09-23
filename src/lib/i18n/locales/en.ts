@@ -160,12 +160,13 @@ export const en = {
   },
   contact: {
     title: "How can we help?",
-    general: "Support",
-    name: "Name",
-    email: "Email",
-    message: "Message",
-    send: "Send Message",
-    githubText: "View on GitHub"
+    intro: "Write to us at this address. A person reads it.",
+    emailButton: "Open my mail app",
+    copyButton: "Copy the address",
+    copied: "Copied. Paste it into any mail app or webmail.",
+    copyFailed: "Copying is blocked on this device. Select the address above and copy it.",
+    noMailApp: "If nothing opens when you press the button, copy the address and write to it from Gmail or any mail app.",
+    tip: "Tell us what you were doing, what you saw, and the email address of your KnowFlow account, so we can find it."
   },
   dashboard: {
     nav: {
@@ -275,7 +276,7 @@ export const en = {
         deleting: "Deleting…",
         errorNotFound: "This material no longer exists.",
         errorFailed: "The deletion did not finish. You can try again.",
-        errorContact: "This material could not be deleted from here. Email support@tryknowflow.com and we will remove it for you."
+        errorContact: "This material could not be deleted from here. Email {email} and we will remove it for you."
       },
       // #47, rename. The extension is shown but not editable: the server keeps
       // it, so the name can never claim a different file type.
@@ -289,7 +290,7 @@ export const en = {
         errorInvalid: "Enter a name that is not empty, has no / or \\, and is at most 200 characters long.",
         errorNotFound: "This material no longer exists.",
         errorConflict: "This material changed while you were renaming it. Reload the page and try again.",
-        errorContact: "This material cannot be renamed from here. Email support@tryknowflow.com and we will rename it for you.",
+        errorContact: "This material cannot be renamed from here. Email {email} and we will rename it for you.",
         errorFailed: "The rename did not finish and nothing was changed. You can try again."
       }
     },
@@ -356,7 +357,7 @@ export const en = {
         working: "Cancelling…",
         done: "Your subscription is cancelled. You keep Pro until",
         errorFailed: "That did not work and nothing was changed. You can try again.",
-        errorPartial: "Only part of it worked. {scheduled} of {total} subscriptions are now set to end, but {failed} could not be cancelled and is still billing. Please try again to cancel the rest. If it fails again, contact support with the reference below.",
+        errorPartial: "Only part of it worked. {scheduled} of {total} subscriptions are now set to end, but {failed} could not be cancelled and is still billing. Please try again to cancel the rest. If it fails again, email {email} with the reference below.",
         reference: "Reference:",
         errorElsewhere: "Part of your subscription was purchased outside this app, so it cannot be cancelled here. Please cancel it where you bought it. Anything we could cancel here has already been set to end."
       },
@@ -374,7 +375,7 @@ export const en = {
         deleting: "Deleting\u2026",
         errorMismatch: "That does not match your email address.",
         errorFailed: "Deletion failed and nothing was changed. You can try again.",
-        errorBillingCanceled: "Nothing was lost. Your account and everything in it is still here. Your subscription was cancelled, but the deletion did not finish. Please try again. If it fails again, contact us and we will finish it for you.",
+        errorBillingCanceled: "Nothing was lost. Your account and everything in it is still here. Your subscription was cancelled, but the deletion did not finish. Please try again. If it fails again, email {email} and we will finish it for you.",
         errorSubscriptionElsewhere: "Your account was not deleted, and nothing was changed. You still have a subscription that was purchased outside this app, and we cannot cancel it for you from here. Cancel it where you bought it first, then delete your account. We stopped rather than delete your account while something was still charging you."
       }
     },

@@ -1,4 +1,5 @@
 import { Locale } from '@/lib/i18n';
+import { SUPPORT_EMAIL } from '@/lib/site';
 
 export default async function PrivacyPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
@@ -41,14 +42,14 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Deleting Your Account and Data</h2>
         <p className="mb-6"><strong>You can delete your account yourself, from Settings in your dashboard.</strong> Deleting your account permanently removes your subjects, materials, conversations, quizzes and study history, together with every file you have uploaded, and immediately cancels any active subscription. It cannot be undone, and nothing can be restored afterwards. Changing your account details is still not available.</p>
-        <p className="mb-6">If you cannot reach your dashboard, you can still request deletion of your account and its associated data by emailing <a className="underline" href="mailto:support@tryknowflow.com">support@tryknowflow.com</a> from the address you registered with.</p>
+        <p className="mb-6">If you cannot reach your dashboard, you can still request deletion of your account and its associated data by emailing <a className="underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> from the address you registered with.</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">How Long We Keep It</h2>
         <p className="mb-6">We keep your account and everything in it until you delete it. Nothing is removed automatically and there is no expiry date.</p>
         <p className="mb-6">Two things do not go when your account does. If a deletion fails part of the way through, we keep a record holding your account id and your email address so that we can finish it by hand. And the services listed above keep their own records under their own policies; the payment records Paddle holds are kept for tax and accounting.</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Contact Us</h2>
-        <p className="mb-6">If you have any questions about this Privacy Policy, please contact us at support@tryknowflow.com.</p>
+        <p className="mb-6">If you have any questions about this Privacy Policy, please contact us at {SUPPORT_EMAIL}.</p>
       </div>
     </div>
   );

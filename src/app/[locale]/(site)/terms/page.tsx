@@ -1,4 +1,5 @@
 import { Locale } from '@/lib/i18n';
+import { SUPPORT_EMAIL } from '@/lib/site';
 
 export default async function TermsPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
@@ -29,7 +30,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
         <p className="mb-6">We reserve the right to modify these terms at any time. We will notify you of any significant changes via email or an alert on the dashboard.</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Contact</h2>
-        <p className="mb-6">For legal inquiries regarding these terms, please contact support@tryknowflow.com.</p>
+        <p className="mb-6">For legal inquiries regarding these terms, please contact {SUPPORT_EMAIL}.</p>
       </div>
     </div>
   );

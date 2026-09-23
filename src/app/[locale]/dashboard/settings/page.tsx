@@ -8,6 +8,7 @@ import { CancelSubscriptionCard } from '@/components/dashboard/CancelSubscriptio
 import { readScheduledCancellation } from '@/lib/subscription/cancel'
 import { paddleClient } from '@/lib/paddle'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
+import { withSupportEmail } from '@/lib/site'
 
 // Thin server wrapper: auth + entitlement only. Presentation lives in the dumb
 // <SettingsPanel/> (Phase 8 reuse).
@@ -76,7 +77,7 @@ export default async function SettingsPage({
           the gentler exit must meet it before the destructive one, not after. */}
       {isPro && (
         <CancelSubscriptionCard
-          labels={t.dashboard.settings.cancelSubscription}
+          labels={withSupportEmail(t.dashboard.settings.cancelSubscription)}
           accessUntil={cancelsOn ?? renewsOn}
           alreadyScheduled={Boolean(cancelsAt)}
         />
@@ -84,7 +85,7 @@ export default async function SettingsPage({
 
       <DeleteAccountCard
         homeHref={`/${safeLocale}`}
-        labels={t.dashboard.settings.deleteAccount}
+        labels={withSupportEmail(t.dashboard.settings.deleteAccount)}
       />
 
       {/* Apple 5.1.1(i): the privacy policy must be linked "within the app in an
