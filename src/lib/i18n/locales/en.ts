@@ -166,8 +166,7 @@ export const en = {
     copied: "Copied. Paste it into any mail app or webmail.",
     copyFailed: "Copying is blocked on this device. Select the address above and copy it.",
     noMailApp: "If nothing opens when you press the button, copy the address and write to it from Gmail or any mail app.",
-    tip: "Tell us what you were doing, what you saw, and the email address of your KnowFlow account, so we can find it.",
-    githubText: "View on GitHub"
+    tip: "Tell us what you were doing, what you saw, and the email address of your KnowFlow account, so we can find it."
   },
   dashboard: {
     nav: {

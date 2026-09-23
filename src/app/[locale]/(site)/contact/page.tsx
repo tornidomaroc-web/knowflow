@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { useTranslation, Locale } from '@/lib/i18n';
 import { SUPPORT_EMAIL } from '@/lib/site';
 import { ContactActions } from '@/components/site/ContactActions';
@@ -39,11 +38,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
         </div>
 
         <p className="text-sm text-muted-foreground mb-3">{t.contact.noMailApp}</p>
-        <p className="text-sm text-muted-foreground mb-12">{t.contact.tip}</p>
-
-        <Link href="https://github.com/tornidomaroc-web/knowflow" className="text-muted-foreground text-sm hover:text-primary underline transition-colors">
-          {t.contact.githubText}
-        </Link>
+        <p className="text-sm text-muted-foreground">{t.contact.tip}</p>
       </div>
     </div>
   );
