@@ -99,17 +99,60 @@ commit;
 --     select name from storage.objects where bucket_id = 'documents'
 --   )
 --   select
---     (select count(*) from docs)                                         as documents,
---     (select count(*) from docs where old_key in (select name from objs)) as file_found,
---     (select count(*) from docs where old_key not in (select name from objs)) as file_not_found,
+--     (select count(*) from docs) as documents,
+--     (select count(*) from docs
+--       where exists (select 1 from objs where objs.name = docs.old_key)) as file_found,
+--     (select count(*) from docs
+--       where not exists (select 1 from objs where objs.name = docs.old_key)) as file_not_found,
 --     (select count(*) from (select old_key from docs group by old_key
---                             having count(*) > 1) s)                    as shared_keys,
---     (select count(*) from objs where name not in (select old_key from docs)) as files_without_a_row;
+--                             having count(*) > 1) s) as shared_keys,
+--     (select count(*) from objs where name is null) as files_with_no_name,
+--     (select count(*) from objs
+--       where not exists (select 1 from docs where docs.old_key = objs.name)) as files_without_a_row;
 --
 -- Expected: file_found = documents, file_not_found = 0. shared_keys is the
 -- number of #110 collisions that already exist (expected 0 on today's data).
--- files_without_a_row is storage no row points at -- left over from failed
--- uploads; informational, and not touched by this change.
+-- files_with_no_name is expected 0. files_without_a_row is storage no row
+-- points at -- left over from failed uploads; informational, and not touched
+-- by this change.
+--
+-- EXISTS, NOT `IN`, ON PURPOSE. The first draft of this query used
+-- `old_key not in (select name ...)`. If a single stored name were NULL, every
+-- NOT IN comparison would be unknown and file_not_found would read 0 whatever
+-- the truth -- the reassuring value, produced by the bug. files_with_no_name
+-- makes that case visible instead of silent.
+--
+-- STEP 1b -- ONLY IF file_not_found OR shared_keys IS NOT 0. Read-only. Lists
+-- the rows behind those counts: which file each row expects, whether it was
+-- found, and how many rows share its key.
+--
+--   with docs as (
+--     select d.id,
+--            kb.user_id::text || '/' || d.kb_id::text || '/' ||
+--            regexp_replace(
+--              regexp_replace(
+--                regexp_replace(
+--                  regexp_replace(d.filename, '^.*[/\\]', ''),
+--                '[\x01-\x1f\x7f]', '', 'g'),
+--              '[^A-Za-z0-9._-]', '_', 'g'),
+--            '^\.+', '') as old_key
+--       from public.documents d
+--       join public.knowledge_bases kb on kb.id = d.kb_id
+--   )
+--   select d.id,
+--          d.created_at,
+--          d.status,
+--          d.filename,
+--          docs.old_key,
+--          exists (select 1 from storage.objects o
+--                   where o.bucket_id = 'documents' and o.name = docs.old_key) as file_found,
+--          (select count(*) from docs d2 where d2.old_key = docs.old_key) as rows_sharing_key
+--     from docs
+--     join public.documents d on d.id = docs.id
+--    where not exists (select 1 from storage.objects o
+--                       where o.bucket_id = 'documents' and o.name = docs.old_key)
+--       or (select count(*) from docs d2 where d2.old_key = docs.old_key) > 1
+--    order by d.created_at;
 --
 -- If file_not_found is NOT 0, look at those rows before going on. An emoji in
 -- a filename shows up as ONE file_not_found AND ONE extra files_without_a_row
