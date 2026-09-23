@@ -81,6 +81,11 @@ rejection. There is no platform ceiling on this leg — it degrades, it does not
 
 ### 1.4 — Duration likely binds before size, and it is UNMEASURED
 
+**Measured 2026-09-23 (register #50): size binds first.** At the 4 MB limit a text file ingested in
+80.5 s on production against a 300 s ceiling (Fluid compute proven on by that very time), so the
+duration limit sits well above the size limit and the 4 MB promise holds. The service did not
+cold-start: its health address answered in about 0.25 s before and after. See §5 for the run.
+
 **No `maxDuration` is configured anywhere.** Verified grep-empty across `vercel.json`,
 `next.config.ts`, `package.json`, **and** all of `src/`. The function runs under the platform
 default.
@@ -331,6 +336,14 @@ browser now refuses anything larger before sending it. Two rows of the table bel
 app's own 413 is now the 4 MB check, answering JSON `{ success: false, error }` with a sentence
 in the request's locale. In the browser a timeout now reads as the `uploadFailed` sentence, so
 read the status in the network record, not the message.
+
+**Measured 2026-09-23, owner-run on production.** File: 4,194,304 bytes of English prose, 9,849
+lines, uploaded through the drop zone to an existing subject. Result: `200` in **80.5 s**, 1,845
+chunks, READY. Health address: 0.28 s and 0.22 s before (05:23:58Z), 0.28 s and 0.24 s after
+(05:34:52Z), so the service was warm and does not sleep. 80.5 s succeeding proves Fluid compute is
+on, so the ceiling is 300 s and the margin is 3.7×. Consumed: one upload credit, about a million
+Voyage tokens, one study-event row; the material was deleted afterwards. The table above still
+reads: pass. What the run exposed instead is the wait itself (register #113).
 
 **Question:** at what file size does the upload **time out** (§1.4)?
 
