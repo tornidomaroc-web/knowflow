@@ -12,9 +12,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * reason is mechanical rather than stylistic: a Postgres trigger can only
  * `DELETE FROM storage.objects`, which removes the METADATA ROW. The bytes live
  * in the storage backend and are removed by the Storage API, which is what the
- * upload path already uses (`api/ingest/route.ts:131`). A trigger cannot call
- * that API, so it could only ever orphan the files it claimed to delete --
- * precisely the failure this module exists to prevent.
+ * upload path already uses (the `.upload(...)` call in `api/ingest/route.ts`).
+ * A trigger cannot call that API, so it could only ever orphan the files it
+ * claimed to delete -- precisely the failure this module exists to prevent.
  *
  * SERVICE ROLE IS REQUIRED, NOT PREFERRED. `002_storage.sql` grants storage
  * policies for INSERT ("Users can upload to their own folder") and SELECT
@@ -23,8 +23,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * called with a service-role client (as `api/paddle/webhook/route.ts` does), and
  * consequently must NEVER run in the browser.
  *
- * Layout is `{userId}/{kbId}/{filename}` in the `documents` bucket, set at
- * `api/ingest/route.ts:130`. The walk below does NOT hardcode that depth.
+ * Layout in the `documents` bucket is `{userId}/{kbId}/{documentId}/{name}` for
+ * every upload since #110, and `{userId}/{kbId}/{name}` for files uploaded before
+ * it; both keys are defined in `src/lib/storage-key.ts`. The walk below does NOT
+ * hardcode either depth. (Corrected 2026-09-23: this said the layout was
+ * `{userId}/{kbId}/{filename}`, set at `api/ingest/route.ts:130`; #110 made both
+ * stale.)
  */
 
 const BUCKET = 'documents';
