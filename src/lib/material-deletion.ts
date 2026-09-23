@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { DOCUMENTS_BUCKET, safeStorageName } from './storage-key';
+import { DOCUMENTS_BUCKET, effectiveStorageKey } from './storage-key';
 
 /**
  * Delete ONE material: its stored file, then its `documents` row. Register #47.
@@ -16,8 +16,9 @@ import { DOCUMENTS_BUCKET, safeStorageName } from './storage-key';
  *                          `quiz_items`. The summary and the extracted text are
  *                          columns on the row itself.
  *
- * WHY THE FILE GOES FIRST. The row is the only thing that names the file: the
- * key is derived from `documents.filename` and stored nowhere. Delete the row
+ * WHY THE FILE GOES FIRST. The row is the only thing that names the file: its
+ * `storage_path` since #110, or its `filename` for rows from before it (see
+ * `effectiveStorageKey` in `storage-key.ts`). Delete the row
  * first and a failed file removal leaves bytes nothing can find again short of
  * deleting the whole account. File first, and a failed row delete leaves a row
  * whose file is already gone, which costs nothing: no code reads a stored file
@@ -31,10 +32,11 @@ import { DOCUMENTS_BUCKET, safeStorageName } from './storage-key';
  * late chunk insert fails instead of orphaning, and its final status update
  * matches no row.
  *
- * THE SHARED KEY. `safeStorageName` maps every non-ASCII character to `_`, so
- * two materials in one subject can share ONE stored file (see
- * `storage-key.ts`). The file is removed only when no other row in the subject
- * maps to its key; otherwise it is kept and the result says so.
+ * THE SHARED KEY. Before #110 the key rule mapped every non-ASCII character to
+ * `_`, so two pre-#110 materials in one subject can share ONE stored file (see
+ * `storage-key.ts`). A row written since #110 cannot share: its key contains
+ * its own document id. The file is removed only when no other row in the
+ * subject maps to its key; otherwise it is kept and the result says so.
  *
  * DELIBERATELY NOT TOUCHED, AS RULED: the day's usage counters (work already
  * done), `study_events` (it names no document), and saved chat answers, which
@@ -170,7 +172,7 @@ export async function deleteMaterial(
   // ---- 1. Ownership, decided by RLS. ----
   const { data: doc, error: readError } = await session
     .from('documents')
-    .select('id, kb_id, filename')
+    .select('id, kb_id, filename, storage_path')
     .eq('id', documentId)
     .maybeSingle();
   if (readError) {
@@ -183,21 +185,35 @@ export async function deleteMaterial(
     return { ok: false, stage: 'lookup', reason: 'kb_id is not a UUID' };
   }
 
-  const name = safeStorageName(doc.filename);
-  if (!name) {
+  // `storage_path` for rows written since #110, the old rule for rows before it.
+  const key = effectiveStorageKey(userId, doc);
+  if (!key) {
     return { ok: false, stage: 'unresolvable-key', reason: 'filename reduces to an empty key' };
   }
+  // The service role removes whatever this names, so a stored key is not trusted
+  // blindly: it must sit strictly inside this user's own subject folder, with no
+  // empty or dot segments. Our own ingest writes it, and this is the check that
+  // keeps it that way if anything else ever does.
+  const prefix = `${userId}/${doc.kb_id}/`;
+  const rest = key.startsWith(prefix) ? key.slice(prefix.length) : '';
+  if (!rest || rest.split('/').some((seg) => seg === '' || seg === '.' || seg === '..')) {
+    return { ok: false, stage: 'unresolvable-key', reason: 'stored key is outside the subject folder' };
+  }
+  const slash = key.lastIndexOf('/');
+  const folder = key.slice(0, slash);
+  const name = key.slice(slash + 1);
 
-  // ---- The shared key: does any OTHER row in this subject map to the same file? ----
+  // ---- The shared key: does any OTHER row in this subject map to the same file?
+  // Only pre-#110 rows can: a stored key contains its own document id. ----
   const { data: siblings, error: siblingError } = await session
     .from('documents')
-    .select('id, filename')
+    .select('id, kb_id, filename, storage_path')
     .eq('kb_id', doc.kb_id)
     .neq('id', documentId);
   if (siblingError) {
     return { ok: false, stage: 'lookup', reason: siblingError.message };
   }
-  const sharedWith = (siblings ?? []).filter((s) => safeStorageName(s.filename) === name).length;
+  const sharedWith = (siblings ?? []).filter((s) => effectiveStorageKey(userId, s) === key).length;
 
   // ---- The "before" half of the evidence. Reads only; a failed count is
   // recorded as null and never blocks the delete the student asked for. ----
@@ -210,7 +226,6 @@ export async function deleteMaterial(
   let fileExistedBefore: boolean | null = null;
   if (sharedWith === 0) {
     const bucket = admin.storage.from(DOCUMENTS_BUCKET);
-    const folder = `${userId}/${doc.kb_id}`;
 
     const existed = await fileExists(bucket, folder, name);
     if (typeof existed === 'string') {
@@ -218,7 +233,7 @@ export async function deleteMaterial(
     }
     fileExistedBefore = existed;
 
-    const { error: removeError } = await bucket.remove([`${folder}/${name}`]);
+    const { error: removeError } = await bucket.remove([key]);
     if (removeError) {
       return { ok: false, stage: 'storage', reason: `remove failed: ${removeError.message}` };
     }

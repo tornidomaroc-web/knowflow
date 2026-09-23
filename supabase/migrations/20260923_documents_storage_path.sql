@@ -1,0 +1,162 @@
+-- Register #110: one stored file per document.
+--
+-- Adds `documents.storage_path`, the key of the row's file in the `documents`
+-- bucket, and a partial unique index on it. New uploads write
+-- {userId}/{kbId}/{documentId}/{name} into it (`src/lib/storage-key.ts`), so two
+-- rows can no longer share a file. Before this, the key was recomputed from the
+-- filename with every non-ASCII character mapped to `_`, so two Arabic filenames
+-- of the same shape shared one key and the second upload overwrote the first.
+--
+-- APPLIED TO PRODUCTION BY HAND, BEFORE THE CODE THAT USES IT IS MERGED. The
+-- code selects and inserts this column, so code without the column fails; the
+-- column without the code is ignored. The exact runbook, including the
+-- read-only preflight to run FIRST, is at the bottom of this file.
+--
+--
+-- THREE DECISIONS, EACH MADE FROM THE CODE
+-- ----------------------------------------
+-- 1. EXISTING ROWS ARE LEFT NULL, NOT BACKFILLED. The application reads a NULL
+--    `storage_path` as "recompute the old key from the filename", exactly as the
+--    live, witnessed delete path does today (`effectiveStorageKey`). A SQL
+--    backfill cannot reproduce that rule exactly: JavaScript treats a character
+--    outside the Basic Multilingual Plane (an emoji) as TWO UTF-16 code units
+--    and writes `__`, while Postgres sees ONE code point and would write `_`. A
+--    backfill that pointed a row at the wrong file is the very harm #110 exists
+--    to end, and leaving the column NULL also keeps this migration purely
+--    additive: no existing value changes, so undoing it loses nothing.
+--
+-- 2. ROWS WHOSE OLD KEYS ALREADY COLLIDE STAY COLLIDED. The bytes the second
+--    upload overwrote are gone, and nothing can bring them back. The delete path
+--    already handles a shared key: it keeps the file while any other row still
+--    maps to it (`kept-shared`). The preflight below counts how many such keys
+--    exist, so the number is known rather than assumed.
+--
+-- 3. THE NEW KEY RULE APPLIES TO NEW UPLOADS ONLY. No existing file is moved.
+--    Moving an object is a Storage API copy-and-delete; a SQL UPDATE of
+--    `storage.objects.name` would move the metadata row and not the bytes. A move
+--    is also unnecessary, because a NULL `storage_path` already finds the old key.
+--
+--
+-- WHY A PARTIAL UNIQUE INDEX
+-- --------------------------
+-- "One row, one file" is enforced by the database, not just by the fact that
+-- a UUID is in the path. NULLs are excluded, so the pre-#110 rows (all NULL)
+-- are unaffected; and Postgres never treats two NULLs as equal anyway, so the
+-- WHERE clause states the intent rather than being required for correctness.
+--
+-- Adding a nullable column with no default is a catalogue-only change: no
+-- table rewrite, no long lock. The index build on a table this size is
+-- instantaneous.
+--
+-- One transaction, explicitly, as in 20260829_spine_constraints.sql and
+-- 20260904_account_deletion_orphans.sql: either both objects exist or neither
+-- does. If the client has already opened a transaction, BEGIN emits
+--   WARNING:  there is already a transaction in progress
+-- That warning is expected and is not a failure.
+
+begin;
+
+alter table public.documents
+  add column storage_path text;
+
+comment on column public.documents.storage_path is
+  'Key of this document''s file in the documents bucket: {userId}/{kbId}/{documentId}/{name}, written by /api/ingest in the same insert that creates the row. NULL for rows created before register #110; the application then recomputes the old key {userId}/{kbId}/{safeStorageName(filename)} (src/lib/storage-key.ts, effectiveStorageKey). Deliberately NOT backfilled -- see 20260923_documents_storage_path.sql.';
+
+create unique index documents_storage_path_key
+  on public.documents (storage_path)
+  where storage_path is not null;
+
+commit;
+
+
+-- ===========================================================================
+-- RUNBOOK -- for applying this file to production by hand. Nothing below runs
+-- when the file is applied; every line is a comment. Run each step on its own
+-- in the Supabase SQL editor, in this order.
+-- ===========================================================================
+--
+-- STEP 1 -- PREFLIGHT, READ-ONLY. Run BEFORE the migration.
+-- It changes nothing. It recomputes each existing row's old key in SQL and
+-- checks it against the files actually in storage. The SQL copy of the rule
+-- differs from the application's only for characters outside the Basic
+-- Multilingual Plane (emoji), so a row reported "not found" means either that
+-- or a genuinely missing file, and should be looked at, not ignored.
+--
+--   with docs as (
+--     select d.id,
+--            kb.user_id::text || '/' || d.kb_id::text || '/' ||
+--            regexp_replace(
+--              regexp_replace(
+--                regexp_replace(
+--                  regexp_replace(d.filename, '^.*[/\\]', ''),
+--                '[\x01-\x1f\x7f]', '', 'g'),
+--              '[^A-Za-z0-9._-]', '_', 'g'),
+--            '^\.+', '') as old_key
+--       from public.documents d
+--       join public.knowledge_bases kb on kb.id = d.kb_id
+--   ),
+--   objs as (
+--     select name from storage.objects where bucket_id = 'documents'
+--   )
+--   select
+--     (select count(*) from docs)                                         as documents,
+--     (select count(*) from docs where old_key in (select name from objs)) as file_found,
+--     (select count(*) from docs where old_key not in (select name from objs)) as file_not_found,
+--     (select count(*) from (select old_key from docs group by old_key
+--                             having count(*) > 1) s)                    as shared_keys,
+--     (select count(*) from objs where name not in (select old_key from docs)) as files_without_a_row;
+--
+-- Expected: file_found = documents, file_not_found = 0. shared_keys is the
+-- number of #110 collisions that already exist (expected 0 on today's data).
+-- files_without_a_row is storage no row points at -- left over from failed
+-- uploads; informational, and not touched by this change.
+--
+-- If file_not_found is NOT 0, look at those rows before going on. An emoji in
+-- a filename shows up as ONE file_not_found AND ONE extra files_without_a_row
+-- (the file is there, under the key the application computed); that is the
+-- SQL copy of the rule differing, not a lost file, and the application still
+-- finds it. A file_not_found with no matching extra file is a real missing
+-- file, and it predates this change.
+--
+-- Proven before merge (PR for #110) in a throwaway container of the pinned
+-- Postgres image: with nine awkward filenames, the SQL key matched the
+-- application's key for eight, and the emoji name was the one that differed.
+--
+-- STEP 2 -- APPLY. Paste the part of this file ABOVE the runbook (from `begin;`
+-- to `commit;`) and run it once. Running it a second time fails on the ADD
+-- COLUMN; that is deliberate, and harmless.
+--
+-- STEP 3 -- VERIFY, READ-ONLY.
+--
+--   select
+--     (select count(*) from information_schema.columns
+--       where table_schema = 'public' and table_name = 'documents'
+--         and column_name = 'storage_path' and data_type = 'text'
+--         and is_nullable = 'YES') = 1                                  as column_ok,
+--     (select count(*) from pg_indexes
+--       where schemaname = 'public' and indexname = 'documents_storage_path_key'
+--         and indexdef ilike 'create unique index%'
+--         and indexdef ilike '%where (storage_path is not null)%') = 1  as index_ok,
+--     (select count(*) from public.documents where storage_path is not null) as rows_with_path;
+--
+-- Expected: column_ok = true, index_ok = true, rows_with_path = 0.
+--
+-- STEP 4 -- only now merge the PR that uses the column.
+--
+--
+-- UNDO
+-- ----
+-- While rows_with_path is still 0 (the code is not merged, or nobody has
+-- uploaded since), undoing is exact and loses nothing:
+--
+--   begin;
+--   drop index if exists public.documents_storage_path_key;
+--   alter table public.documents drop column if exists storage_path;
+--   commit;
+--
+-- ONCE ANY ROW HAS A storage_path, DO NOT DROP THE COLUMN. Those rows' files
+-- live at {userId}/{kbId}/{documentId}/{name}, and that column is the only
+-- record of it; dropping it strands those files where no code will ever look.
+-- To back out the CODE, revert its merge commit and keep the column: the old
+-- code ignores it. Only after each such row has been deleted, or its file
+-- moved back by hand, does the column become safe to drop.

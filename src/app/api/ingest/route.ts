@@ -6,7 +6,7 @@ import { enforceLimit } from '@/lib/rate-limit';
 import type { Locale } from '@/lib/i18n';
 import { subjectMaterialsMessage } from '@/lib/limit-messages';
 import { recordStudyEvent } from '@/lib/study-events';
-import { safeStorageName } from '@/lib/storage-key';
+import { documentStorageKey } from '@/lib/storage-key';
 import { ALLOWED_FILE_TYPES, type FileType } from '@/types';
 
 // (b1) The ingestion service's ack, and deliberately tiny. The service persists
@@ -121,20 +121,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: limit.error }, { status: limit.status });
     }
 
-    // B4 (path-traversal fix): reduce the client-supplied filename to a safe,
-    // flat basename so the storage key cannot escape the user's prefix
-    // (e.g. ../../evil.pdf). Storage key only; the original name is preserved
-    // for display in the documents row below. The rule lives in
-    // `@/lib/storage-key` because `/api/documents/[id]` must derive the SAME key
-    // to delete the file (register #47). The fallback is unreachable in
-    // practice: the extension check above guarantees the name keeps at least
-    // its allowed extension's letters.
-    const safeName = safeStorageName(file.name) ?? `upload-${Date.now()}`;
-
-    const filePath = `${user.id}/${kbId}/${safeName}`;
+    // #110: ONE STORED FILE PER DOCUMENT. The id is minted here rather than by
+    // the database default, because the file is uploaded BEFORE the row exists
+    // and its key has to contain the id: {userId}/{kbId}/{documentId}/{name}.
+    // The old key, {userId}/{kbId}/{name}, let two Arabic filenames of the same
+    // shape share one file, and `upsert: true` then overwrote the first. Now the
+    // folder makes every key unique, `upsert: false` refuses to overwrite even if
+    // one somehow were not, and the key is stored on the row
+    // (`documents.storage_path`) so nothing has to recompute it. The name part is
+    // still B4's path-traversal fix (`@/lib/storage-key`).
+    const documentId = crypto.randomUUID();
+    const filePath = documentStorageKey(user.id, kbId, documentId, file.name);
     const { error: storageError } = await supabase.storage
       .from('documents')
-      .upload(filePath, file, { upsert: true });
+      .upload(filePath, file, { upsert: false });
 
     if (storageError) {
       return NextResponse.json({ success: false, error: storageError.message }, { status: 500 });
@@ -143,11 +143,13 @@ export async function POST(request: Request) {
     const { data: docRecord, error: docError } = await supabase
       .from('documents')
       .insert({
+        id: documentId,
         kb_id: kbId,
         filename: file.name,
         file_type: ext, // B5a: validated, normalized extension (was raw split/'unknown')
         status: 'processing',
         embedding_status: 'processing',
+        storage_path: filePath,
       })
       .select()
       .single();

@@ -144,6 +144,7 @@ export type Database = {
           kb_id: string
           markdown_content: string | null
           status: string | null
+          storage_path: string | null
           summary: string | null
           summary_generated_at: string | null
           summary_is_partial: boolean
@@ -160,6 +161,7 @@ export type Database = {
           kb_id: string
           markdown_content?: string | null
           status?: string | null
+          storage_path?: string | null
           summary?: string | null
           summary_generated_at?: string | null
           summary_is_partial?: boolean
@@ -176,6 +178,7 @@ export type Database = {
           kb_id?: string
           markdown_content?: string | null
           status?: string | null
+          storage_path?: string | null
           summary?: string | null
           summary_generated_at?: string | null
           summary_is_partial?: boolean
