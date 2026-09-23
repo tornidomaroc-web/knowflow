@@ -267,6 +267,19 @@ export const ar: Translation = {
         errorNotFound: "هذا الملف لم يعد موجودًا.",
         errorFailed: "لم يكتمل الحذف. يمكنك المحاولة مرة أخرى.",
         errorContact: "تعذّر حذف هذا الملف من هنا. راسلنا على support@tryknowflow.com وسنحذفه لك."
+      },
+      renameMaterial: {
+        openButton: "إعادة تسمية",
+        label: "الاسم الجديد",
+        hint: "يبقى نوع الملف كما هو.",
+        saveButton: "حفظ الاسم",
+        cancelButton: "إلغاء",
+        saving: "جارٍ الحفظ…",
+        errorInvalid: "أدخل اسمًا غير فارغ، بلا / أو \\، ولا يتجاوز 200 حرف.",
+        errorNotFound: "هذا الملف لم يعد موجودًا.",
+        errorConflict: "تغيّر هذا الملف أثناء إعادة تسميته. أعد تحميل الصفحة وحاول مرة أخرى.",
+        errorContact: "تعذّرت إعادة تسمية هذا الملف من هنا. راسلنا على support@tryknowflow.com وسنعيد تسميته لك.",
+        errorFailed: "لم تكتمل إعادة التسمية ولم يتغير أي شيء. يمكنك المحاولة مرة أخرى."
       }
     },
     summary: {

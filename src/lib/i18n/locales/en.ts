@@ -276,6 +276,21 @@ export const en = {
         errorNotFound: "This material no longer exists.",
         errorFailed: "The deletion did not finish. You can try again.",
         errorContact: "This material could not be deleted from here. Email support@tryknowflow.com and we will remove it for you."
+      },
+      // #47, rename. The extension is shown but not editable: the server keeps
+      // it, so the name can never claim a different file type.
+      renameMaterial: {
+        openButton: "Rename",
+        label: "New name",
+        hint: "The file type stays the same.",
+        saveButton: "Save name",
+        cancelButton: "Cancel",
+        saving: "Saving…",
+        errorInvalid: "Enter a name that is not empty, has no / or \\, and is at most 200 characters long.",
+        errorNotFound: "This material no longer exists.",
+        errorConflict: "This material changed while you were renaming it. Reload the page and try again.",
+        errorContact: "This material cannot be renamed from here. Email support@tryknowflow.com and we will rename it for you.",
+        errorFailed: "The rename did not finish and nothing was changed. You can try again."
       }
     },
     summary: {
