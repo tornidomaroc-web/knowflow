@@ -5,8 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { Upload } from 'lucide-react';
 import type { Document } from '@/types';
 import { Locale, locales, useTranslation } from '@/lib/i18n';
-import { fileTooLargeMessage, uploadFailureMessage, uploadLimitLabel } from '@/lib/limit-messages';
+import { fileTooLargeMessage, uploadFailureMessage, uploadLimitLabel, uploadRefusalMessage } from '@/lib/limit-messages';
 import { isOverUploadLimit, parseUploadReply } from '@/lib/upload-limits';
+import { fileExtension, isAllowedFileType } from '@/types';
 
 interface DropZoneProps {
   kbId: string;
@@ -29,6 +30,14 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
     // drop zone and the route's own guard all read `@/lib/upload-limits`.
     if (isOverUploadLimit(file.size)) {
       setErrorMsg(fileTooLargeMessage(safeLocale, file.size));
+      setState('error');
+      return;
+    }
+    // #111: the picker's `accept` list does not apply to a dropped file, so the
+    // route's own type rule runs here too, before anything is sent.
+    const ext = fileExtension(file.name);
+    if (!isAllowedFileType(ext)) {
+      setErrorMsg(uploadRefusalMessage(safeLocale, 'type', ext));
       setState('error');
       return;
     }
