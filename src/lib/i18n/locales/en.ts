@@ -389,10 +389,9 @@ export const en = {
       history: "History"
     },
     upload: {
-      fileTooBig: "File too large. Maximum size is 50MB.",
-      uploadFailed: "Upload failed",
+      uploadFailed: "We could not confirm that your file was uploaded. Refresh the page to see whether it arrived, and upload it again if it did not.",
       dropHere: "Drop files here or click to upload",
-      supported: "Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (Max: 50MB)",
+      supported: "Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (up to {limit} per file)",
       uploading: "Uploading...",
       processing: "Processing...",
       ready: "Ready ✓",

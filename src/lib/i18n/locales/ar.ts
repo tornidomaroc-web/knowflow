@@ -378,10 +378,9 @@ export const ar: Translation = {
       history: "السجل"
     },
     upload: {
-      fileTooBig: "الملف كبير جدًا. الحد الأقصى للحجم 50 ميجابايت.",
-      uploadFailed: "فشل الرفع",
+      uploadFailed: "لم نتمكن من التأكد من رفع ملفك. حدّث الصفحة لترى إن كان قد وصل، وارفعه مجددًا إن لم يصل.",
       dropHere: "أسقط الملفات هنا أو انقر للرفع",
-      supported: "المدعوم: PDF, DOCX, PPTX, XLSX, TXT, MD (الحد الأقصى: 50 ميجابايت)",
+      supported: "المدعوم: PDF, DOCX, PPTX, XLSX, TXT, MD (حتى {limit} للملف الواحد)",
       uploading: "جارٍ الرفع...",
       processing: "جارٍ المعالجة...",
       ready: "جاهز ✓",

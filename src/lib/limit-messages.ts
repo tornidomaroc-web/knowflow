@@ -1,6 +1,7 @@
 import type { Locale } from '@/lib/i18n';
 import { pluralize, type PluralForms } from '@/lib/i18n/plural';
 import type { Tier } from '@/types';
+import { MAX_UPLOAD_BYTES, isOverUploadLimit, type UploadReply } from '@/lib/upload-limits';
 
 /**
  * The one place every limit message a student can read is written (register #1).
@@ -53,7 +54,9 @@ import type { Tier } from '@/types';
  * is still rendered client-side from the dictionary (`dashboard.newKb.errorLimit*`)
  * because that route never had an English-only wall — register #1 named two routes
  * and this module closes those two. It is the one limit surface not centralised
- * here, and it is named so the next reader does not assume otherwise.
+ * here, and it is named so the next reader does not assume otherwise. (The line
+ * under the drop zone, `dashboard.upload.supported`, is dictionary copy too, but
+ * its number is not: `DropZone` fills it from `uploadLimitLabel` below.)
  *
  * ============================================================================
  * WHICH NUMBERS MAY BE PRINTED, AND WHICH MAY NOT
@@ -74,6 +77,10 @@ import type { Tier } from '@/types';
  * THE PER-SUBJECT MATERIALS CAP IS THE EXCEPTION AND PRINTS ITS NUMBER IN BOTH
  * TIERS — 10 free, 200 Pro, both ruled publishable. It is a per-subject shelf
  * size, not a rate: knowing it is how a student decides how to split a course.
+ *
+ * THE UPLOAD SIZE CEILING PRINTS ITS NUMBER TOO, IN BOTH TIERS (register #50). It
+ * is the platform's ceiling, not a pricing call, it is the same for every
+ * student, and nobody can choose a file to upload without knowing it.
  *
  * ============================================================================
  * ARABIC
@@ -277,6 +284,82 @@ export function subjectMaterialsMessage(
     ASK_IS_SINGLE_SUBJECT[locale],
     tier === 'pro' ? '' : UPGRADE_MATERIALS[locale],
   ]);
+}
+
+/**
+ * THE UPLOAD SIZE CEILING (register #50). The one limit this module is called
+ * for from the BROWSER as well as the server, and deliberately: the check has to
+ * run before anything is sent, so `DropZone` composes the refusal itself, and
+ * `/api/ingest` composes the same sentence from the same function for a request
+ * that got past the browser. Both take the number from `@/lib/upload-limits`.
+ *
+ * ROUNDING, AND WHICH WAY. Both figures have one decimal and 1 MB is 1,048,576
+ * bytes, as in `@/lib/upload-limits`. The limit is rounded DOWN, so it is never
+ * shown larger than it is. A refused file's size is rounded to the NEAREST tenth,
+ * as the student's own computer shows it, except just over the limit, where that
+ * would read "This file is 4 MB. The largest file you can upload is 4 MB." There
+ * it is shown one tenth above the limit ("4.1 MB"), so a refused file always
+ * reads larger than the limit.
+ *
+ * NO REMEDY IS OFFERED. The one a student will reach for, splitting the file,
+ * spends a material place per part (10 per subject on the free plan) and gives
+ * each part its own summary and quiz, and one sentence cannot say all of that. A
+ * remedy that hides its cost is worse than none (ASK_IS_SINGLE_SUBJECT above is
+ * the same judgement).
+ */
+const BYTES_PER_MB = 1024 * 1024;
+
+const MEGABYTES: Record<Locale, string> = {
+  en: '{n} MB',
+  ar: '{n} ميجابايت',
+};
+
+const tenthsOfMB = (bytes: number) => (bytes * 10) / BYTES_PER_MB;
+
+const LIMIT_TENTHS = Math.floor(tenthsOfMB(MAX_UPLOAD_BYTES));
+
+function megabytes(locale: Locale, tenths: number): string {
+  const n = tenths % 10 === 0 ? String(tenths / 10) : (tenths / 10).toFixed(1);
+  return MEGABYTES[locale].replace('{n}', n);
+}
+
+/** "4 MB" / "4 ميجابايت", for the line under the drop zone. */
+export function uploadLimitLabel(locale: Locale): string {
+  return megabytes(locale, LIMIT_TENTHS);
+}
+
+/** The refusal for a file over the limit, from the browser or from the route. */
+export function fileTooLargeMessage(locale: Locale, fileBytes: number): string {
+  const size = megabytes(locale, Math.max(Math.round(tenthsOfMB(fileBytes)), LIMIT_TENTHS + 1));
+  const limit = uploadLimitLabel(locale);
+  return locale === 'ar'
+    ? `حجم هذا الملف ${size}، وأكبر حجم يمكنك رفعه هو ${limit}.`
+    : `This file is ${size}. The largest file you can upload is ${limit}.`;
+}
+
+/**
+ * The sentence a student reads when an upload did not succeed.
+ *
+ * A 413 for a file over the limit is the size sentence, whoever sent it: the
+ * route (JSON, for a request that got past the browser check) or the platform
+ * (plain text, for one too large to reach the route at all). A 413 for a file
+ * WITHIN the limit did not come from our limit (a school or office proxy with a
+ * smaller cap would send one), and the size sentence would then contradict
+ * itself ("This file is 2 MB. The largest file you can upload is 4 MB."), so it
+ * falls through. Next, the route's own `error` is shown if it sent
+ * one, as before. Anything else, including a reply that is not JSON at all, gets
+ * `fallback` (the dictionary's `uploadFailed`), never a parser's error text.
+ */
+export function uploadFailureMessage(
+  locale: Locale,
+  status: number,
+  reply: UploadReply | null,
+  fileBytes: number,
+  fallback: string
+): string {
+  if (status === 413 && isOverUploadLimit(fileBytes)) return fileTooLargeMessage(locale, fileBytes);
+  const error = reply?.error;
+  return typeof error === 'string' && error.trim() ? error : fallback;
 }
 
 /**
