@@ -100,3 +100,11 @@ jobs:
       # everything, from passing.
       - name: Verify Pro stops at 25 questions a day, in one conversation too (register #80(b))
         run: node --experimental-strip-types scripts/verify-pro-question-cap.mjs
+
+      # Register #80(b), the summary and quiz half. Drives the REAL /api/summarize and
+      # /api/quiz/generate handlers and the REAL enforceLimit with a Pro entitlement,
+      # six fresh documents each on one day; fails unless the 6th of each is refused
+      # with a 429 before any model call. A Free control (5, then a 429) keeps a
+      # harness that refuses nothing, or everything, from passing.
+      - name: Verify Pro stops at 5 summaries and 5 quizzes a day (register #80(b))
+        run: node --experimental-strip-types scripts/verify-pro-summary-quiz-caps.mjs
