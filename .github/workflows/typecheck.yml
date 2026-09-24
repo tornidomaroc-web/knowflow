@@ -77,3 +77,18 @@ jobs:
       # required status check that branch protection is configured against.
       - name: Verify the orphan call sites (register #54)
         run: python3 scripts/verify-orphan-call-sites.py
+
+      # Register #114. Drives the REAL /api/summarize handler with a stubbed model
+      # reply (no network, no credential, no database) and fails if a summary the
+      # model did not finish is saved, or if the output ceiling cannot hold the
+      # word budget the prompt sets, written in Arabic. It rides in this required
+      # check for the reason given above: a step here cannot go missing quietly.
+      - name: Verify an unfinished summary is never saved (register #114)
+        run: node --experimental-strip-types scripts/verify-summary-cutoff.mjs
+
+      # Register #114, the quiz half. Cuts a valid quiz reply at every character
+      # and drives the REAL /api/quiz/generate handler with each; fails if any cut
+      # is saved. It passes today by the route's strict JSON parse, and exists so
+      # that a future "lenient" parse cannot start saving unfinished quizzes.
+      - name: Verify an unfinished quiz is never saved (register #114)
+        run: node --experimental-strip-types scripts/verify-quiz-cutoff.mjs

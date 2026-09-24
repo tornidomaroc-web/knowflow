@@ -33,10 +33,14 @@ const QUIZ_QUESTION_COUNT = 5;
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 5;
 
-// Token headroom is larger than summarize's 1024 on purpose: quiz output is
-// structured JSON, and a truncated response is UNPARSEABLE (→ 502, nothing
-// persisted), so headroom against truncation matters more than for free prose.
-// 4096 comfortably covers ~5 MCQs in either language while still bounding cost.
+// Token headroom on purpose: quiz output is structured JSON, and a truncated
+// response is UNPARSEABLE (→ 502, nothing persisted), so headroom against
+// truncation keeps a student from paying for a quiz that cannot be saved. 4096
+// comfortably covers ~5 MCQs in either language while still bounding cost:
+// MEASURED 2026-09-24, five Arabic questions used 916 output tokens. That a cut
+// reply is never saved is not left to this argument: scripts/verify-quiz-cutoff.mjs
+// cuts a valid reply at every character and drives this handler with each
+// (register #114). Keep the parse strict; a "lenient" salvage would break that.
 const MAX_QUIZ_TOKENS = 4096;
 
 // Strict-JSON quiz-writer instructions (prompt layer). Kept as a constant so the

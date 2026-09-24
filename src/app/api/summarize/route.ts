@@ -20,7 +20,32 @@ const INPUT_CHAR_CAP = 120_000;
 // asked to "summarize almost nothing" is exactly where invention happens.
 const MIN_CONTENT_CHARS = 200;
 
-const MAX_SUMMARY_TOKENS = 1024;
+// THE LENGTH OF A SUMMARY IS SET BY THE PROMPT, AND THE CEILING IS SIZED TO HOLD
+// IT (register #114). The old ceiling was a bare 1024 with no length in the
+// prompt, and on 2026-09-24 an Arabic summary of a 13,421-char document hit it
+// mid-word and was saved that way. A ceiling alone cannot be sized: with no
+// length set, the summary grows with the document (that one wanted about 780
+// words, and the input cap allows about nine times that document). So the prompt
+// states a word budget, and the ceiling is derived from it in the costliest
+// language:
+//   - SUMMARY_WORD_BUDGET: a summary a student reads in three or four minutes.
+//     It is about three quarters of what the model chose unprompted for a
+//     2,300-word document, so a medium document loses little and a long one is
+//     compressed rather than cut.
+//   - AR_OUTPUT_TOKENS_PER_WORD: MEASURED on production, 1,024 output tokens for
+//     1,628 Arabic characters at 5.83 characters a word. English runs about 1.35,
+//     so Arabic binds.
+//   - OVERRUN_MARGIN: headroom for a model that overshoots a word budget. It is a
+//     margin, not a promise; anything that still hits the ceiling is refused
+//     below, never saved.
+// Worst case per summary at the 120,000-char input cap (about 85,200 Arabic input
+// tokens): $0.0852 in + 3,330 x $5/MTok = $0.0167 out, about $0.102 (was about
+// $0.090 with 1024). scripts/verify-summary-cutoff.mjs holds this ceiling to the
+// budget.
+const SUMMARY_WORD_BUDGET = 600;
+const AR_OUTPUT_TOKENS_PER_WORD = 3.7;
+const OVERRUN_MARGIN = 1.5;
+const MAX_SUMMARY_TOKENS = Math.ceil(SUMMARY_WORD_BUDGET * AR_OUTPUT_TOKENS_PER_WORD * OVERRUN_MARGIN);
 
 // Belt-and-suspenders plain-text safety net. The summary is rendered as literal
 // text (whitespace-pre-wrap, no Markdown renderer) and is permanent once stored
@@ -51,6 +76,7 @@ Rules:
 - Write your summary in the language specified in the user message below, regardless of the document's own language.
 - Output PLAIN TEXT only. Do NOT use any Markdown formatting: no ** for bold, no * for italics, no # headings, no backticks, and no bullet characters. Write in plain sentences and paragraphs.
 - Prefer brevity. Cover the document's actual key points and then stop — do NOT pad to a target length. A short document gets a short summary.
+- Keep the whole summary to at most ${SUMMARY_WORD_BUDGET} words. For a long document, cover every major part briefly within that limit rather than covering the first parts in detail and running out. End on a complete sentence.
 - If the document is too thin or has no real content to summarize, say that plainly in one sentence instead of inventing material.
 - Output the summary text only — no preamble such as "Here is a summary".`;
 
@@ -156,6 +182,7 @@ export async function POST(request: Request) {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
 
     let summaryText = '';
+    let stopReason: string | null = null;
     try {
       const resp = await anthropic.messages.create({
         model: SUMMARY_MODEL,
@@ -173,6 +200,7 @@ export async function POST(request: Request) {
         .map((b) => (b.type === 'text' ? b.text : ''))
         .join('')
         .trim();
+      stopReason = resp.stop_reason;
 
       // ONE `kf-usage` LINE PER CALL, the same tag and token fields `/api/agent`
       // writes, so a summary's real cost is MEASURED rather than derived (register
@@ -200,6 +228,27 @@ export async function POST(request: Request) {
       );
     } catch (e) {
       console.error('summarize: Claude call failed', e);
+      return NextResponse.json(
+        { error: 'Could not generate a summary right now. Please try again shortly.' },
+        { status: 502 }
+      );
+    }
+
+    // ONLY A SUMMARY THE MODEL FINISHED IS EVER SAVED (register #114). A stored
+    // summary is final (register #26: generate-once, no regenerate path), so
+    // saving an unfinished one locks the student out of a whole summary for good.
+    // `end_turn` is the only stop that means "done": `max_tokens` is the ceiling
+    // cutting it off, and any other reason (a refusal, a pause) is not a finished
+    // summary either. The student gets the same honest "couldn't create it right
+    // now, try again shortly" as any other failed generation, which is true:
+    // nothing was saved and a retry is a fresh attempt. That retry costs a daily
+    // credit, as every failed generation already does (register #24). The
+    // `kf-usage` line above has already recorded the spend and `truncated`; this
+    // tagged line makes the refusal findable without matching prose.
+    if (stopReason !== 'end_turn') {
+      console.error(
+        `[summary-incomplete] not saved: stop_reason=${stopReason} document_id=${document_id} locale=${lang}`
+      );
       return NextResponse.json(
         { error: 'Could not generate a summary right now. Please try again shortly.' },
         { status: 502 }
