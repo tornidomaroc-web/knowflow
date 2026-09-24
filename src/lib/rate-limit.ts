@@ -41,9 +41,15 @@ export type UsageKind = LimitKind;
 // EXPORTED so the student home can print the same ceilings this limiter
 // enforces. Restating the numbers in the UI is how copy and enforcement drift
 // apart — register #1 records that exact failure for the limit messages.
+//
+// `pro.query` IS THE SETTLED PRICE'S ALLOWANCE, NOT A TUNING KNOB (register #80(b)).
+// The price (40 USD a semester, 12 USD a month) was set on Pro at 25 questions a
+// day (#94). It was 2,000, which at the measured $0.005622 a question is $337 per
+// 30 days against a $12 month. `enforceLimit` counts every question, so keeping
+// one conversation open does not get past it (scripts/verify-pro-question-cap.mjs).
 export const DAILY_CAPS: Record<Tier, Record<UsageKind, number>> = {
   free: { query: 10, upload: 5, summary: 5, quiz: 5 },
-  pro: { query: 2000, upload: 500, summary: 100, quiz: 100 },
+  pro: { query: 25, upload: 500, summary: 100, quiz: 100 },
 };
 
 
