@@ -28,7 +28,7 @@ import {
 export type UsageKind = LimitKind;
 
 /**
- * Daily caps per tier. Pro is high but FINITE on purpose — we never allow
+ * Daily caps per tier. Pro is FINITE on purpose — we never allow
  * unbounded inference/ingestion cost, even for paying users (same principle as
  * PRO_LIMITS in limits.ts). Tunable with real usage.
  *
@@ -47,9 +47,16 @@ export type UsageKind = LimitKind;
 // day (#94). It was 2,000, which at the measured $0.005622 a question is $337 per
 // 30 days against a $12 month. `enforceLimit` counts every question, so keeping
 // one conversation open does not get past it (scripts/verify-pro-question-cap.mjs).
+//
+// `pro.summary` and `pro.quiz` ARE SET FROM THE SAME PRICE (register #80(b)).
+// They were 100 and 100, which at the measured $0.015891 a summary and $0.014168 a
+// quiz (#94) is $90 per 30 days. At 5 and 5 it is $4.51, so with 25 questions a
+// Pro day is about $8.72 per 30 days at that document's size. They now EQUAL
+// Free's 5 and 5: Pro buys more questions, not more summaries or quizzes
+// (scripts/verify-pro-summary-quiz-caps.mjs).
 export const DAILY_CAPS: Record<Tier, Record<UsageKind, number>> = {
   free: { query: 10, upload: 5, summary: 5, quiz: 5 },
-  pro: { query: 25, upload: 500, summary: 100, quiz: 100 },
+  pro: { query: 25, upload: 500, summary: 5, quiz: 5 },
 };
 
 
