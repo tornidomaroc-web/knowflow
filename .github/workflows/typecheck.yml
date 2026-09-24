@@ -92,3 +92,11 @@ jobs:
       # that a future "lenient" parse cannot start saving unfinished quizzes.
       - name: Verify an unfinished quiz is never saved (register #114)
         run: node --experimental-strip-types scripts/verify-quiz-cutoff.mjs
+
+      # Register #80(b). Drives the REAL /api/agent handler and the REAL
+      # enforceLimit with a Pro entitlement, 26 questions in ONE conversation;
+      # fails unless the 26th is refused with a 429 before any model call. A
+      # Free control (10, then a 429) keeps a harness that refuses nothing, or
+      # everything, from passing.
+      - name: Verify Pro stops at 25 questions a day, in one conversation too (register #80(b))
+        run: node --experimental-strip-types scripts/verify-pro-question-cap.mjs
