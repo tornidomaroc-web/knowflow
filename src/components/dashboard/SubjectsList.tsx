@@ -117,11 +117,13 @@ function SubjectCard({ subject: s, locale, labels, index }: { subject: SubjectIt
         <>
           {/* The ring is the progress (VISUAL_LANGUAGE.md rule 2): summarised over
               materials, the home's measure, with the percent inside it. */}
-          <div className="mt-4 flex items-center gap-4">
+          {/* Ring above the tiles on a phone, beside them from sm: three labels next
+              to a 64px ring clipped at 375px ("Summaris"), seen on the preview (#122). */}
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <Ring value={pct / 100} size={64} stroke={6} tone={tone} label={`${pct}% ${labels.summarised}`}>
               <span className="text-sm font-bold text-foreground">{pct}%</span>
             </Ring>
-            <dl className="grid flex-1 grid-cols-3 gap-2">
+            <dl className="grid w-full flex-1 grid-cols-3 gap-2">
               <Stat icon={FileText} value={stats.materials} label={labels.materials} />
               <Stat icon={BookOpen} value={stats.summarised} label={labels.summarised} />
               <Stat icon={ListChecks} value={stats.quizzed} label={labels.quizzed} />
