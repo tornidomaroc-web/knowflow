@@ -108,7 +108,7 @@ for (const p of ['src/components/dashboard/StudentHome.tsx', 'src/components/das
     check(formatDate('garbage', 'en') === '', 'an invalid date must be empty, not "Invalid Date"');
   }
   const hits = [];
-  const walk = (d) => { for (const e of readdirSync(d, { withFileTypes: true })) { const p = resolvePath(d, e.name); if (e.isDirectory()) walk(p); else if (/\.tsx?$/.test(e.name) && /toLocale(Date|Time)?String\(/.test(readFileSync(p, 'utf8'))) hits.push(p.slice(ROOT.length + 1)); } };
+  const walk = (d) => { for (const e of readdirSync(d, { withFileTypes: true })) { const p = resolvePath(d, e.name); if (e.isDirectory()) walk(p); else if (/\.tsx?$/.test(e.name) && e.name !== 'format-date.ts' && /toLocale(Date|Time)?String\(/.test(readFileSync(p, 'utf8'))) hits.push(p.slice(ROOT.length + 1)); } };
   walk(resolvePath(ROOT, 'src'));
   check(hits.length === 0, `toLocale*String still used in: ${hits.join(', ')}`);
 }
