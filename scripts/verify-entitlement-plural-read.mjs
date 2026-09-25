@@ -26,12 +26,12 @@
  * Requires Docker. Usage:
  *   node --experimental-strip-types scripts/verify-entitlement-plural-read.mjs
  */
-import { registerHooks } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
+import { installTsxHooks } from './lib/tsx-hooks.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 const PG = 'kf-ent-verify-pg';
@@ -55,6 +55,12 @@ function teardown() {
   quiet('docker', ['rm', '-f', PG, PREST]);
   quiet('docker', ['network', 'rm', NET]);
 }
+// Register #125. The stack is torn down on EVERY exit, not only the planned one:
+// the ENOENT crash left both containers running, port 3999 held, for as long as
+// the machine stayed up (55 minutes were measured on 2026-09-25), and a case
+// that throws inside the code under test would do the same. `teardown` is
+// synchronous, so it is safe in an exit handler; running it twice is harmless.
+process.on('exit', teardown);
 
 async function waitFor(label, probe, seconds = 45) {
   for (let i = 0; i < seconds; i++) {
@@ -117,19 +123,16 @@ await waitFor('postgrest', async () => {
 });
 
 // --- load the real module --------------------------------------------------
-registerHooks({
-  resolve(spec, ctx, next) {
-    if (spec === '@/lib/supabase/server') {
-      return {
-        url: 'data:text/javascript,export async function createClient(){throw new Error("verify script must call readEntitlement, not getEntitlement")}',
-        shortCircuit: true,
-      };
-    }
-    if (spec.startsWith('@/')) {
-      return { url: pathToFileURL(resolvePath(ROOT, 'src', spec.slice(2))).href, shortCircuit: true };
-    }
-    return next(spec, ctx);
-  },
+// Register #125. This used to resolve `@/x` to `src/x` with no extension, which
+// worked only while entitlement.ts imported nothing under `@/` but the stubbed
+// server client. `f0cf3d1` (2026-09-08) added `@/lib/entitlement-core`, and from
+// that commit on the import failed with ENOENT before any assertion ran, with
+// no CI job to notice. The shared hook resolves `@/` the way every later proof
+// does (`.ts`, `.tsx` or a folder's index), so the next such import cannot
+// break this file again.
+installTsxHooks(ROOT, {
+  '@/lib/supabase/server':
+    'export async function createClient(){throw new Error("verify script must call readEntitlement, not getEntitlement")}',
 });
 const { readEntitlement } = await import(pathToFileURL(resolvePath(ROOT, 'src/lib/entitlement.ts')).href);
 
@@ -146,9 +149,16 @@ const db = createClient(`http://localhost:${PORT}`, 'verify-anon-key', {
 });
 
 // --- the matrix ------------------------------------------------------------
+// Register #125. SOON and LATE were fixed dates ('2026-10-01', '2027-03-01'),
+// which the clock would have turned into lapsed rows: every "future" case would
+// have failed from 2026-10-01 with no change to the code under test. They are
+// now 30 and 180 days from the run, at midnight UTC, spelled as PostgREST
+// returns a timestamptz ('+00:00', not 'Z') because expiresAt is compared as a
+// string. PAST stays fixed: a date in 2025 is lapsed on every future run.
+const day = (offset) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10) + 'T00:00:00+00:00';
 const PAST = '2025-01-01T00:00:00+00:00';
-const SOON = '2026-10-01T00:00:00+00:00';
-const LATE = '2027-03-01T00:00:00+00:00';
+const SOON = day(30);
+const LATE = day(180);
 
 const CASES = [
   ['zero rows (free user)',                  [],                                                      'free', null],
