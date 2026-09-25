@@ -162,3 +162,9 @@ jobs:
       # rings for numbers, a picture on every panel; rendered, not grepped.
       - name: Verify the visual language holds (VISUAL_LANGUAGE.md)
         run: node --experimental-strip-types scripts/verify-visual-system.mjs
+
+      # The landing showpiece (Part C): renders the real page in both locales for its
+      # five sections, pictures, reveals, parallax shapes and hero beats; every
+      # start state inside the reduced-motion guard; the client files small.
+      - name: Verify the landing shows the product working and is still there with motion off
+        run: node --experimental-strip-types scripts/verify-landing.mjs

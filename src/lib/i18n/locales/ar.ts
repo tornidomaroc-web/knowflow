@@ -19,6 +19,27 @@ export const ar: Translation = {
     themeDark: "داكن",
     themeLight: "فاتح"
   },
+  landing: {
+    howEyebrow: "كيف يعمل",
+    featuresEyebrow: "ماذا تحصل",
+    featuresTitle: "كل شيء من ملفاتك أنت.",
+    featuresDesc: "لا بحث في الإنترنت ولا تخمين. كل إجابة وملخص واختبار يأتي مما رفعته.",
+    features: [
+      { title: "ملخصات تقرأها في استراحة", desc: "ملخص واضح لكل ملف، بلغتك." },
+      { title: "اختبارات تراجعك", desc: "خمسة أسئلة من الملف، تُصحَّح في الحال." },
+      { title: "إجابات مع مصدرها", desc: "اسأل ما تشاء؛ كل إجابة تسمّي الملف الذي جاءت منه." },
+      { title: "سلسلة تبقيك مستمرًا", desc: "ذاكر قليلًا كل يوم وشاهد الشعلة تبقى مشتعلة." },
+    ],
+    bilingualEyebrow: "العربية أولًا",
+    bilingualTitle: "العربية أولًا. والإنجليزية أيضًا.",
+    bilingualDesc: "اسأل باللغة التي تفكر بها. ارفع ملاحظاتك بأيٍّ منهما، وتأتيك الإجابة بلغتك.",
+    sampleArQ: "ما هي مرونة الطلب؟",
+    sampleArA: "مرونة الطلب تقيس كيف تتغير الكمية المطلوبة عند تغير السعر.",
+    sampleEnQ: "What is price elasticity?",
+    sampleEnA: "It measures how much quantity demanded changes when the price changes.",
+    kitSummary: "الملخص جاهز",
+    kitQuiz: "الاختبار جاهز",
+  },
   hero: {
     badge: "مصمم للطلاب · بالعربية والإنجليزية",
     title: "ملاحظاتك. أي سؤال. في ثوانٍ.",
