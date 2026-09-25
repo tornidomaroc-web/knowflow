@@ -38,6 +38,13 @@ const PG = 'kf-ent-verify-pg';
 const PREST = 'kf-ent-verify-prest';
 const NET = 'kf-ent-verify-net';
 const PORT = 3999;
+// Pinned by tag AND digest (register #125). This job is meant to be a required
+// check, and branch protection enforces it on admins too: a floating tag such
+// as `postgrest/postgrest:latest` would let an upstream release turn every PR
+// red with no change here. Moving either image is a deliberate commit, and the
+// proof must pass on it before it merges.
+const PG_IMAGE = 'postgres:16.15-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea';
+const PREST_IMAGE = 'postgrest/postgrest:v16.4@sha256:d155c6718ed9a9f990d159a2ab7c0a3f16944dbb6d0a0344557421042acfe0df';
 
 const run = (cmd, args, opts = {}) =>
   execFileSync(cmd, args, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], ...opts });
@@ -74,7 +81,7 @@ async function waitFor(label, probe, seconds = 45) {
 teardown();
 console.log('starting throwaway postgres + postgrest…');
 run('docker', ['network', 'create', NET]);
-run('docker', ['run', '-d', '--name', PG, '--network', NET, '-e', 'POSTGRES_PASSWORD=testpw', '-e', 'POSTGRES_DB=kftest', 'postgres:16-alpine']);
+run('docker', ['run', '-d', '--name', PG, '--network', NET, '-e', 'POSTGRES_PASSWORD=testpw', '-e', 'POSTGRES_DB=kftest', PG_IMAGE]);
 // Register #125. `pg_isready` alone is not readiness: the postgres image's
 // entrypoint first runs a TEMPORARY server to initialise the database, which
 // answers "accepting connections", then stops it and starts the real one. The
@@ -126,7 +133,7 @@ if (/UNIQUE \(user_id\)/.test(constraints)) {
 
 run('docker', ['run', '-d', '--name', PREST, '--network', NET, '-p', `${PORT}:3000`,
   '-e', `PGRST_DB_URI=postgres://authenticator:testpw@${PG}:5432/kftest`,
-  '-e', 'PGRST_DB_SCHEMA=public', '-e', 'PGRST_DB_ANON_ROLE=anon', 'postgrest/postgrest:latest']);
+  '-e', 'PGRST_DB_SCHEMA=public', '-e', 'PGRST_DB_ANON_ROLE=anon', PREST_IMAGE]);
 await waitFor('postgrest', async () => {
   try {
     return (await fetch(`http://localhost:${PORT}/subscriptions?select=status`)).ok;
