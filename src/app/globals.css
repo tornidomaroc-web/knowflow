@@ -201,6 +201,41 @@ body { background-color: var(--background); color: var(--foreground); }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   THE LANDING'S MOTION (Part C, 2026-09-25). Same rule as the app: the base
+   state is the final state, and every start state lives only inside the
+   no-preference guard, so reduced motion, no JavaScript and old browsers all
+   get the finished page.
+
+   .hero-type: the question writes itself in. A clip-path that opens from the
+   inline start, so it is one rule for LTR and its mirror for RTL; no per-word
+   spans (register #49 measured why). Then #49's sweep and fade carry the
+   answer and the sources, and .hero-pop brings the two study-kit chips.
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity 600ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .reveal.is-in { opacity: 1; transform: none; }
+  .reveal-1 { transition-delay: 80ms; }
+  .reveal-2 { transition-delay: 160ms; }
+  .reveal-3 { transition-delay: 240ms; }
+  .reveal-4 { transition-delay: 320ms; }
+  .reveal-5 { transition-delay: 400ms; }
+
+  @keyframes hero-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes hero-type-rtl { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
+  .hero-type { animation: hero-type 700ms steps(24, end) 200ms both; }
+  [dir="rtl"] .hero-type { animation-name: hero-type-rtl; }
+
+  @keyframes hero-pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+  .hero-pop { animation: hero-pop 420ms cubic-bezier(0.2, 0.8, 0.2, 1) 2350ms both; }
+  .hero-pop-2 { animation-delay: 2500ms; }
+
+  @keyframes hero-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -12px; } }
+  .hero-float { animation: hero-float 9s ease-in-out infinite; }
+  .hero-float-2 { animation-duration: 11s; animation-delay: -3s; }
+  .hero-float-3 { animation-duration: 13s; animation-delay: -6s; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    MOTION AS FEEDBACK (docs/design/VISUAL_LANGUAGE.md, rule 5). Every rule here
    lives inside the no-preference guard, so with reduced motion the final state
    is the only state and nothing below applies. Transforms and opacity only;

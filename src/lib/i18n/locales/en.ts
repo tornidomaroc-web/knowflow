@@ -21,6 +21,28 @@ export const en = {
     themeDark: "Dark",
     themeLight: "Light"
   },
+  // Part C (2026-09-25): the landing as the showpiece. Short lines, one idea each.
+  landing: {
+    howEyebrow: "How it works",
+    featuresEyebrow: "What you get",
+    featuresTitle: "Everything, from your own files.",
+    featuresDesc: "No web search, no guessing. Every answer, summary and quiz comes from what you uploaded.",
+    features: [
+      { title: "Summaries you can read in a break", desc: "One clear summary per material, in your language." },
+      { title: "Quizzes that check you", desc: "Five questions from the material, graded on the spot." },
+      { title: "Answers with the source", desc: "Ask anything; every answer names the file it came from." },
+      { title: "A streak that keeps you going", desc: "Study a little each day and watch the flame stay lit." },
+    ],
+    bilingualEyebrow: "Arabic first",
+    bilingualTitle: "Arabic first. English too.",
+    bilingualDesc: "Ask in the language you think in. Upload notes in either, and the answer comes back in yours.",
+    sampleArQ: "ما هي مرونة الطلب؟",
+    sampleArA: "مرونة الطلب تقيس كيف تتغير الكمية المطلوبة عند تغير السعر.",
+    sampleEnQ: "What is price elasticity?",
+    sampleEnA: "It measures how much quantity demanded changes when the price changes.",
+    kitSummary: "Summary ready",
+    kitQuiz: "Quiz ready",
+  },
   hero: {
     badge: "Made for students · Arabic & English",
     title: "Your notes. Any question. In seconds.",
