@@ -5,7 +5,7 @@ import { StudentHome, type SubjectProgress } from '@/components/dashboard/Studen
 import { TimeZoneSync } from '@/components/dashboard/TimeZoneSync'
 import type { ActivityItem } from '@/components/dashboard/RecentActivity'
 import { getCurrentStreak, TIME_ZONE_COOKIE } from '@/lib/streak'
-import { Locale, locales, useTranslation } from '@/lib/i18n'
+import { Locale, useTranslation, resolveLocale } from '@/lib/i18n'
 import { pluralize } from '@/lib/i18n/plural'
 import { getEntitlement } from '@/lib/entitlement'
 import { FREE_LIMITS, PRO_LIMITS } from '@/lib/limits'
@@ -24,7 +24,7 @@ export default async function DashboardPage({
   params: Promise<{ locale: Locale }>
 }) {
   const { locale } = await params
-  const safeLocale: Locale = locales.includes(locale) ? locale : 'en'
+  const safeLocale: Locale = resolveLocale(locale)
   const t = useTranslation(safeLocale)
 
   const supabase = await createClient()

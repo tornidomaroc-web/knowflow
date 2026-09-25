@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { buttonVariants } from '@/components/ui';
 import { MessageBubble, Citation } from './MessageBubble';
-import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 
 interface Message {
   id: string;
@@ -65,7 +65,7 @@ function decodeCitations(header: string | null): Citation[] | undefined {
 
 export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, onConversationCreated }: ChatBoxProps) {
   const params = useParams<{ locale: Locale }>();
-  const safeLocale: Locale = locales.includes(params.locale) ? params.locale : 'en';
+  const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
   const [messages, setMessages] = useState<Message[]>(
     initialMessages?.map((m, i) => ({ id: String(i), role: m.role as 'user' | 'assistant', content: m.content })) ?? []

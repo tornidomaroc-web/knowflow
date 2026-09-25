@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Upload } from 'lucide-react';
 import type { Document } from '@/types';
-import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { fileTooLargeMessage, uploadFailureMessage, uploadLimitLabel, uploadRefusalMessage } from '@/lib/limit-messages';
 import { isOverUploadLimit, parseUploadReply } from '@/lib/upload-limits';
 import { fileExtension, isAllowedFileType } from '@/types';
@@ -19,7 +19,7 @@ type UploadState = 'idle' | 'uploading' | 'processing' | 'ready' | 'error';
 export function DropZone({ kbId, onSuccess }: DropZoneProps) {
   const router = useRouter();
   const params = useParams<{ locale: Locale }>();
-  const safeLocale: Locale = locales.includes(params.locale) ? params.locale : 'en';
+  const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
   const [state, setState] = useState<UploadState>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);

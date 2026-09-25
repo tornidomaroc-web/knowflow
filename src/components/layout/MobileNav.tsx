@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui';
-import type { Locale } from '@/lib/i18n';
+import { ENDONYM, otherLocale, switchLocaleHref, type Locale } from '@/lib/i18n';
 import { getNavItems, isNavActive, type NavLabels } from './nav-items';
 import { SignOutButton } from './SignOutButton';
 
@@ -33,6 +33,15 @@ export function MobileNav({
           Know<span className="text-primary">Flow</span>
         </Link>
         <div className="flex items-center gap-2">
+          {/* Register #83 (b): the language switch, in the top bar so it is
+              reachable from every screen without opening a menu. 44px tall. */}
+          <Link
+            href={switchLocaleHref(locale, pathname)}
+            lang={otherLocale(locale)}
+            className="inline-flex min-h-[2.75rem] items-center rounded-md px-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {ENDONYM[otherLocale(locale)]}
+          </Link>
           {isPro && <Badge>PRO</Badge>}
           <SignOutButton locale={locale} label={labels.signOut} iconOnly />
         </div>

@@ -1,32 +1,63 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import {
+  LOCALE_COOKIE,
+  LOCALE_COOKIE_MAX_AGE,
+  defaultLocale,
+  locales,
+  type Locale,
+} from '@/lib/i18n';
 
-const locales = ['en', 'ar'] as const;
-const defaultLocale = 'ar';
-
-function getLocale(request: NextRequest): string {
+/**
+ * WHERE A VISIT WITHOUT A LOCALE GOES (register #83 (a) and (c)).
+ *
+ * 1. The cookie the student's last visit wrote, because a language they chose
+ *    outranks one the browser guesses.
+ * 2. `Accept-Language`, first tag, for a first visit.
+ * 3. `defaultLocale`, which is Arabic and is read from `@/lib/i18n` rather than
+ *    restated here: this file and that one said different things for a year.
+ */
+function getLocale(request: NextRequest): Locale {
+  const remembered = request.cookies.get(LOCALE_COOKIE)?.value;
+  if (locales.includes(remembered as Locale)) return remembered as Locale;
   const acceptLang = request.headers.get('accept-language') ?? '';
   const preferred = acceptLang.split(',')[0].trim().substring(0, 2).toLowerCase();
-  return locales.includes(preferred as 'en' | 'ar') ? preferred : defaultLocale;
+  return locales.includes(preferred as Locale) ? (preferred as Locale) : defaultLocale;
+}
+
+/** The locale a path carries, or null. */
+function pathLocale(pathname: string): Locale | null {
+  return locales.find((l) => pathname.startsWith(`/${l}/`) || pathname === `/${l}`) ?? null;
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const hasLocale = locales.some(
-    (l) => pathname.startsWith(`/${l}/`) || pathname === `/${l}`
-  );
+  const locale = pathLocale(pathname);
 
   // 1. i18n redirect first if no locale
-  if (!hasLocale) {
-    const locale = getLocale(request);
+  if (!locale) {
+    const target = getLocale(request);
     const url = request.nextUrl.clone();
-    url.pathname = pathname === '/' ? `/${locale}` : `/${locale}${pathname}`;
+    url.pathname = pathname === '/' ? `/${target}` : `/${target}${pathname}`;
     return NextResponse.redirect(url, 307);
   }
 
   // 2. Supabase session update second
-  return await updateSession(request);
+  const response = await updateSession(request);
+
+  // 3. Remember the language of the page being opened. Every page carries its
+  //    locale in the path, so the switcher needs no client code and no route of
+  //    its own: following its link is the choice, and this line is the memory.
+  //    Written only when it changes, so an ordinary page view sets no cookie.
+  if (request.cookies.get(LOCALE_COOKIE)?.value !== locale) {
+    response.cookies.set(LOCALE_COOKIE, locale, {
+      path: '/',
+      maxAge: LOCALE_COOKIE_MAX_AGE,
+      sameSite: 'lax',
+    });
+  }
+  return response;
 }
 
 /**

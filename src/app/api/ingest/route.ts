@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getServiceUrl } from '@/lib/ingestion';
 import { checkDocumentLimit } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
-import type { Locale } from '@/lib/i18n';
+import { defaultLocale, resolveLocale, type Locale } from '@/lib/i18n';
 import { fileTooLargeMessage, subjectMaterialsMessage, uploadRefusalMessage } from '@/lib/limit-messages';
 import { isOverUploadLimit } from '@/lib/upload-limits';
 import { recordStudyEvent } from '@/lib/study-events';
@@ -58,14 +58,14 @@ export async function POST(request: Request) {
   // service owns the outcome and this route may not know it. Both live outside
   // the `try` so the catch-all can read them.
   let forwarded = false;
-  let safeLocale: Locale = 'en';
+  let safeLocale: Locale = defaultLocale;
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const kbId = formData.get('kb_id') as string;
     // Whitelisted server-side, as /api/summarize does (register #27). A multipart
     // field rather than a JSON key because this route takes formData.
-    safeLocale = formData.get('locale') === 'ar' ? 'ar' : 'en';
+    safeLocale = resolveLocale(formData.get('locale'));
 
     if (!file || !kbId) {
       return NextResponse.json(

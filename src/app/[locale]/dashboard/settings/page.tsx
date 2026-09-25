@@ -7,7 +7,7 @@ import { DeleteAccountCard } from '@/components/dashboard/DeleteAccountCard'
 import { CancelSubscriptionCard } from '@/components/dashboard/CancelSubscriptionCard'
 import { readScheduledCancellation } from '@/lib/subscription/cancel'
 import { paddleClient } from '@/lib/paddle'
-import { Locale, locales, useTranslation } from '@/lib/i18n'
+import { Locale, useTranslation, resolveLocale } from '@/lib/i18n'
 import { withSupportEmail } from '@/lib/site'
 
 // Thin server wrapper: auth + entitlement only. Presentation lives in the dumb
@@ -18,7 +18,7 @@ export default async function SettingsPage({
   params: Promise<{ locale: Locale }>
 }) {
   const { locale } = await params
-  const safeLocale: Locale = locales.includes(locale) ? locale : 'en'
+  const safeLocale: Locale = resolveLocale(locale)
   const t = useTranslation(safeLocale)
 
   const supabase = await createClient()

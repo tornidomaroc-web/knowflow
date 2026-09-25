@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Languages } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui';
-import type { Locale } from '@/lib/i18n';
+import { ENDONYM, otherLocale, switchLocaleHref, type Locale } from '@/lib/i18n';
 import { getNavItems, isNavActive, type NavLabels } from './nav-items';
 import { SignOutButton } from './SignOutButton';
 
@@ -59,6 +60,18 @@ export function Sidebar({
       </nav>
 
       <div className="border-t border-border p-3">
+        {/* Register #83 (b): the same-page language switch the marketing header
+            has, inside the app, where the store shell lives. `lang` and no
+            `dir`: a single run of the other script lays itself out; `dir` would
+            move it to the other edge of its own box. */}
+        <Link
+          href={switchLocaleHref(locale, pathname)}
+          lang={otherLocale(locale)}
+          className="flex min-h-[2.75rem] items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <Languages className="h-5 w-5 shrink-0" />
+          {ENDONYM[otherLocale(locale)]}
+        </Link>
         <div className="flex items-center gap-2 px-3 py-2">
           <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground" title={userEmail}>
             {userEmail}

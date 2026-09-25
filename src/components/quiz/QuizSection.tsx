@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { buttonVariants } from '@/components/ui';
-import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { readServerLimitMessage } from '@/lib/limit-messages';
 
 // Only the fields this section needs from a document, mirroring SummarySection's
@@ -72,7 +72,7 @@ function answeredIndex(r: GradedResultView, optionCount: number): number | null 
 
 export function QuizSection({ doc }: { doc: QuizDoc }) {
   const params = useParams<{ locale: Locale }>();
-  const safeLocale: Locale = locales.includes(params.locale) ? params.locale : 'en';
+  const safeLocale: Locale = resolveLocale(params.locale);
   // `useTranslation` is a plain dictionary lookup, not a React hook, despite the
   // name — register #25 tracks the rename across all 8 call sites. Following the
   // surrounding file's pattern here rather than refactoring someone else's code in

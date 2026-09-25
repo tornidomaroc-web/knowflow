@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { enforceLimit } from '@/lib/rate-limit';
+import { resolveLocale } from '@/lib/i18n';
 import { recordStudyEvent } from '@/lib/study-events';
 import { usageTokens, usageUsd } from '@/lib/usage-cost';
 
@@ -87,10 +88,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing document_id' }, { status: 400 });
     }
     // Fail-closed whitelist: the summary follows the APP UI language, never the
-    // document's language. Any value other than 'ar' collapses to 'en' so a raw
+    // document's language. Any value that is not a locale this app has collapses
+    // to the default, Arabic (register #83 (c)), so a raw
     // client string can never reach the prompt. (Only the concrete directive
     // built from `lang` is interpolated, never `locale` itself.)
-    const lang = locale === 'ar' ? 'ar' : 'en';
+    const lang = resolveLocale(locale);
 
     const supabase = await createClient();
     const {

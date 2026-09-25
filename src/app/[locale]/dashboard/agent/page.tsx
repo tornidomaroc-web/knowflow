@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { KBSelector } from '@/components/agent/KBSelector';
 import { AgentEmptyState } from '@/components/agent/AgentEmptyState';
-import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { Locale, locales, useTranslation, resolveLocale } from '@/lib/i18n';
 import type { KnowledgeBase } from '@/types';
 
 // Thin server wrapper: data only. The chat UI (KBSelector) is a client island;
@@ -12,7 +12,7 @@ export default async function AgentPage({
   params: Promise<{ locale: Locale }>;
 }) {
   const { locale } = await params;
-  const safeLocale: Locale = locales.includes(locale) ? locale : 'en';
+  const safeLocale: Locale = resolveLocale(locale);
   const t = useTranslation(safeLocale);
 
   const supabase = await createClient();

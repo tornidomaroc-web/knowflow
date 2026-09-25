@@ -21,6 +21,7 @@
  * Usage: node --experimental-strip-types scripts/verify-summary-cutoff.mjs
  */
 import { registerHooks } from 'node:module';
+import { existsSync } from 'node:fs';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { dirname, resolve as resolvePath } from 'node:path';
 
@@ -101,7 +102,16 @@ registerHooks({
     if (spec === '@/lib/study-events') return { url: inline(STUDY_EVENTS_STUB), shortCircuit: true };
     if (spec.startsWith('@/')) {
       const base = resolvePath(ROOT, 'src', spec.slice(2));
-      return { url: pathToFileURL(/\.[a-z]+$/i.test(base) ? base : base + '.ts').href, shortCircuit: true };
+      // A bare path may be a file or a folder with an index (`@/lib/i18n` became one, #83).
+      const ts = /\.[a-z]+$/i.test(base) ? base : existsSync(base + '.ts') ? base + '.ts' : resolvePath(base, 'index.ts');
+      return { url: pathToFileURL(ts).href, shortCircuit: true };
+    }
+    // A relative import inside a real module (the i18n index imports its two
+    // dictionaries this way) needs the same .ts / index.ts rule.
+    if (spec.startsWith('.') && ctx.parentURL && ctx.parentURL.startsWith('file:')) {
+      const base = resolvePath(dirname(fileURLToPath(ctx.parentURL)), spec);
+      const ts = /\.[a-z]+$/i.test(base) ? base : existsSync(base + '.ts') ? base + '.ts' : resolvePath(base, 'index.ts');
+      return { url: pathToFileURL(ts).href, shortCircuit: true };
     }
     return next(spec, ctx);
   },

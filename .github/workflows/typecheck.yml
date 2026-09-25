@@ -108,3 +108,9 @@ jobs:
       # harness that refuses nothing, or everything, from passing.
       - name: Verify Pro stops at 5 summaries and 5 quizzes a day (register #80(b))
         run: node --experimental-strip-types scripts/verify-pro-summary-quiz-caps.mjs
+
+      # Register #83. Drives the REAL middleware and the REAL i18n module: one
+      # default (Arabic), the remembered-locale cookie outranking Accept-Language,
+      # and the in-app language switch that keeps the page.
+      - name: Verify one default locale, the remembered choice and the in-app switch (register #83)
+        run: node --experimental-strip-types scripts/verify-locale-default.mjs
