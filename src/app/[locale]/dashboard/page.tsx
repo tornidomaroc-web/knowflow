@@ -126,6 +126,17 @@ export default async function DashboardPage({
         stats={stats}
         streak={streak} // P5.3: real number, or null while the zone is unknown (honest ghost).
         {...buildHrefs(safeLocale)}
+        // Register #85 (2.4): the most recent conversation, from the read the
+        // home already makes. Null for an account that has not asked yet.
+        continueCard={
+          recentActivity?.[0]
+            ? {
+                subject: recentActivity[0].knowledge_bases?.name ?? t.dashboard.home.unknownKb,
+                date: new Date(recentActivity[0].created_at).toLocaleDateString(safeLocale === 'ar' ? 'ar' : 'en-GB'),
+                href: `/${safeLocale}/dashboard/agent`,
+              }
+            : null
+        }
         isPro={isPro}
         quotas={buildQuotas(t.dashboard.home, used, caps)}
         subjects={subjects}
@@ -139,6 +150,7 @@ export default async function DashboardPage({
         labels={buildHomeLabels({
           home: t.dashboard.home,
           subjectsNavLabel: t.dashboard.nav.knowledge,
+          cont: t.dashboard.continueCard,
           isPro,
           // Form selection happens HERE, not in StudentHome. The component stays dumb
           // and prop-driven (it must remain storybookable in Phase 8), so it receives

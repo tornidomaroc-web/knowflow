@@ -255,6 +255,45 @@ export const en = {
       whatLine3: "Answers your questions from your materials, not from the web.",
       upgradeCta: "Upgrade",
     },
+    // ── #85, SIGNED_IN_FEATURES.md part 2. The subjects screen's cards, the
+    //    subject page's header and checklist, the Ask screen's suggested
+    //    questions and the home's Continue card. No key names a price.
+    subjects: {
+      subtitle: "One subject per course. Each card shows how far along it is.",
+      summarised: "Summarised",
+      quizzed: "Quizzed",
+      processing: "still processing",
+      noMaterials: "No materials yet. Add the course's PDFs, slides or notes to start.",
+      lastAsked: "Last asked",
+      lastAdded: "Last added",
+      created: "Created",
+      addMaterial: "Add material",
+    },
+    subjectDetail: {
+      askAbout: "Ask about this subject",
+      stillProcessing: "Still processing",
+      statusReady: "Ready",
+      statusProcessing: "Processing",
+      statusError: "Failed",
+      checklist: "Study kit",
+      summaryDone: "Summary ready",
+      summaryTodo: "No summary yet",
+      quizDone: "Quiz ready",
+      quizTodo: "No quiz yet",
+      added: "Added",
+    },
+    suggestions: {
+      heading: "Try asking",
+      mainIdeas: "What are the main ideas in {material}?",
+      hardest: "Explain the hardest concept in {subject} simply.",
+      example: "Give me an example that tests what {material} covers.",
+      overview: "What does {subject} cover, in a few lines?",
+    },
+    continueCard: {
+      title: "Pick up where you left off",
+      body: "Your last conversation was in {subject}.",
+      cta: "Continue",
+    },
     newKb: {
       title: "Create Subject",
       name: "Name",

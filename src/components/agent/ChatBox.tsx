@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { buttonVariants } from '@/components/ui';
 import { MessageBubble, Citation } from './MessageBubble';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
+import { askSuggestions } from '@/lib/ask-suggestions';
 
 interface Message {
   id: string;
@@ -16,6 +17,8 @@ interface Message {
 interface ChatBoxProps {
   kbId: string;
   kbName: string;
+  /** The subject's material names, for the suggested first questions (#85). */
+  materialNames?: string[];
   initialConversationId?: string | null;
   initialMessages?: { role: string; content: string }[] | null;
   onConversationCreated?: (id: string) => void;
@@ -63,7 +66,7 @@ function decodeCitations(header: string | null): Citation[] | undefined {
   }
 }
 
-export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, onConversationCreated }: ChatBoxProps) {
+export function ChatBox({ kbId, kbName, materialNames = [], initialConversationId, initialMessages, onConversationCreated }: ChatBoxProps) {
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
@@ -79,9 +82,11 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, isLoading]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: input.trim() };
+  // `preset` is a pressed suggestion (#85); it goes exactly where typed text goes.
+  const handleSend = async (preset?: string) => {
+    const text = (preset ?? input).trim();
+    if (!text || isLoading) return;
+    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsLoading(true);
@@ -182,7 +187,27 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
           />
         ))}
         {messages.length === 0 && (
-          <div className="mt-10 text-center text-sm text-muted-foreground">{t.dashboard.agent.startTyping}</div>
+          /* Register #85 (SIGNED_IN_FEATURES.md 2.3): a first screen with
+             something to press. Built here from names only; nothing is sent
+             until a suggestion is pressed, and then it is the student's own
+             message through the same path and the same daily cap. */
+          <div className="mx-auto mt-6 max-w-lg">
+            <p className="text-center text-sm text-muted-foreground">{t.dashboard.agent.startTyping}</p>
+            <p className="mt-6 text-xs font-semibold uppercase text-muted-foreground">{t.dashboard.suggestions.heading}</p>
+            <div className="mt-2 flex flex-col gap-2">
+              {askSuggestions(t.dashboard.suggestions, kbName, materialNames).map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => handleSend(q)}
+                  disabled={isLoading}
+                  className="rounded-xl border border-border bg-surface px-4 py-3 text-start text-sm text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
@@ -196,7 +221,7 @@ export function ChatBox({ kbId, kbName, initialConversationId, initialMessages, 
           rows={3}
         />
         <button
-          onClick={handleSend}
+          onClick={() => handleSend()}
           disabled={isLoading || !input.trim()}
           className={buttonVariants({ variant: 'primary' })}
         >

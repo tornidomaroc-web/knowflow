@@ -51,7 +51,17 @@ export interface OnboardingStep {
   href: string;
 }
 
+/** The most recent conversation, for the Continue card (register #85, 2.4). */
+export interface ContinueCard {
+  subject: string;
+  date: string;
+  href: string;
+}
+
 interface StudentHomeLabels {
+  continueTitle: string;
+  continueBody: string;
+  continueCta: string;
   welcome: string;
   askTitle: string;
   askDesc: string;
@@ -86,6 +96,8 @@ export interface StudentHomeProps {
   subjectsHref: string;
   /** Null when no purchase link may be shown (Apple 3.1.1(a); src/lib/platform.ts). */
   upgradeHref: string | null;
+  /** The most recent conversation, or null for an account that has not asked yet. */
+  continueCard?: ContinueCard | null;
   isPro: boolean;
   quotas: QuotaMeter[];
   subjects: SubjectProgress[];
@@ -133,6 +145,7 @@ export function StudentHome({
   onboarding,
   labels,
   recentActivity,
+  continueCard = null,
 }: StudentHomeProps) {
   const stepsLeft = onboarding.filter((s) => !s.done).length;
 
@@ -212,6 +225,26 @@ export function StudentHome({
             </div>
           </div>
         </section>
+
+        {/* ── Pick up where you left off (register #85, 2.4). Only once there is
+            somewhere to go back to; a new account sees the path below instead. ── */}
+        {continueCard && (
+          <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface p-5">
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-foreground">{labels.continueTitle}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {labels.continueBody.replace('{subject}', continueCard.subject)} <span className="text-faint">· {continueCard.date}</span>
+              </p>
+            </div>
+            <Link
+              href={continueCard.href}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-accent px-4 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              {labels.continueCta}
+              <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />
+            </Link>
+          </section>
+        )}
 
         {/* ── Plan + quota. Renders identically at zero: a new account has its
             full allowance, which is the most useful thing the screen can say to

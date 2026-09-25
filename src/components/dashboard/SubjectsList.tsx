@@ -1,51 +1,78 @@
 import Link from 'next/link';
-import { ArrowRight, Plus } from 'lucide-react';
-import { Badge, Card, buttonVariants } from '@/components/ui';
+import { ArrowRight, BookOpen, FileText, ListChecks, MessageCircle, Plus, Upload } from 'lucide-react';
+import { Badge, buttonVariants } from '@/components/ui';
+import { cn } from '@/lib/utils';
+import type { SubjectStats } from '@/lib/subject-stats';
+import { summarisedPercent } from '@/lib/subject-stats';
 
-interface SubjectItem {
+export interface SubjectItem {
   id: string;
   name: string;
   description: string | null;
   language: string;
   href: string;
+  askHref: string;
   createdAt: string;
+  stats: SubjectStats;
 }
 
-interface SubjectsListLabels {
+export interface SubjectsListLabels {
   title: string;
+  subtitle: string;
   newSubject: string;
+  emptyTitle: string;
   emptyPrompt: string;
+  materials: string;
+  summarised: string;
+  quizzed: string;
+  processing: string;
+  noMaterials: string;
+  lastAsked: string;
+  lastAdded: string;
+  created: string;
+  ask: string;
+  addMaterial: string;
 }
 
 export interface SubjectsListProps {
   subjects: SubjectItem[];
   newHref: string;
+  locale: string;
   labels: SubjectsListLabels;
 }
 
 /**
- * Subjects list — dumb, presentational. Data/labels arrive as plain props
- * (hrefs pre-built by the server wrapper) so it can be reused in Phase 8.
+ * Subjects (register #85, SIGNED_IN_FEATURES.md 2.1). Each card says how far
+ * along the course is: counts, a bar of summarised over materials, the last
+ * thing that happened in it, and the two actions a student takes next. Dumb
+ * and presentational; the numbers come from `subjectStats` on the server.
  *
- * Pure content: the dashboard `<main>` (P2.7) owns the light canvas + padding;
- * this just centres the list (`mx-auto max-w-5xl`).
+ * A subject with no materials is not a failure state but the most common
+ * state of a new account, so its card says what to do and offers only that.
  */
-export function SubjectsList({ subjects, newHref, labels }: SubjectsListProps) {
+export function SubjectsList({ subjects, newHref, locale, labels }: SubjectsListProps) {
   return (
     <div>
       <div className="mx-auto max-w-5xl space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{labels.title}</h1>
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground md:text-3xl">{labels.title}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{labels.subtitle}</p>
+          </div>
           <Link href={newHref} className={buttonVariants({ variant: 'primary' })}>
             <Plus className="h-4 w-4" />
             {labels.newSubject}
           </Link>
-        </div>
+        </header>
 
         {subjects.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-surface p-12 text-center">
-            <p className="mb-4 text-sm text-muted-foreground">{labels.emptyPrompt}</p>
-            <Link href={newHref} className={buttonVariants({ variant: 'secondary' })}>
+          <div className="rounded-2xl border border-dashed border-border bg-surface p-10 text-center">
+            <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary-subtle text-primary">
+              <BookOpen className="h-6 w-6" />
+            </span>
+            <h2 className="mt-4 text-lg font-semibold text-foreground">{labels.emptyTitle}</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{labels.emptyPrompt}</p>
+            <Link href={newHref} className={cn(buttonVariants({ variant: 'primary' }), 'mt-6')}>
               <Plus className="h-4 w-4" />
               {labels.newSubject}
             </Link>
@@ -53,31 +80,87 @@ export function SubjectsList({ subjects, newHref, labels }: SubjectsListProps) {
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {subjects.map((s) => (
-              <Link key={s.id} href={s.href} className="group block">
-                <Card className="h-full p-6 transition-colors group-hover:border-primary">
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <h3 className="min-w-0 truncate text-lg font-semibold text-foreground transition-colors group-hover:text-primary">
-                      {s.name}
-                    </h3>
-                    <Badge variant="neutral" className="shrink-0 uppercase">
-                      {s.language}
-                    </Badge>
-                  </div>
-                  <p className="mb-6 line-clamp-2 min-h-[2.5rem] text-sm text-muted-foreground">
-                    {s.description || ''}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(s.createdAt).toLocaleDateString()}
-                    </span>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100" />
-                  </div>
-                </Card>
-              </Link>
+              <SubjectCard key={s.id} subject={s} locale={locale} labels={labels} />
             ))}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function SubjectCard({ subject: s, locale, labels }: { subject: SubjectItem; locale: string; labels: SubjectsListLabels }) {
+  const { stats } = s;
+  const pct = summarisedPercent(stats);
+  const empty = stats.materials === 0;
+  const when = stats.lastActivityAt ?? s.createdAt;
+  const whenLabel = stats.lastActivityAt ? (stats.lastActivityIsAsk ? labels.lastAsked : labels.lastAdded) : labels.created;
+
+  return (
+    <article className="flex flex-col rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-primary">
+      <div className="flex items-start justify-between gap-3">
+        <Link href={s.href} className="min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <h2 className="truncate text-lg font-semibold text-foreground">{s.name}</h2>
+          {s.description ? <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{s.description}</p> : null}
+        </Link>
+        <Badge variant="neutral" className="shrink-0 uppercase">{s.language}</Badge>
+      </div>
+
+      {empty ? (
+        <p className="mt-4 rounded-xl bg-raised p-4 text-sm text-muted-foreground">{labels.noMaterials}</p>
+      ) : (
+        <>
+          <dl className="mt-4 grid grid-cols-3 gap-2">
+            <Stat icon={FileText} value={stats.materials} label={labels.materials} />
+            <Stat icon={BookOpen} value={stats.summarised} label={labels.summarised} />
+            <Stat icon={ListChecks} value={stats.quizzed} label={labels.quizzed} />
+          </dl>
+          {/* Summarised over materials: the home's measure, ruled for #85. Under
+              RTL the fill anchors to the right edge by itself (flex-start). */}
+          <div className="mt-3 flex items-center gap-3">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-raised" aria-hidden="true">
+              <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+            </div>
+            <span className="text-xs tabular-nums text-muted-foreground">{pct}%</span>
+          </div>
+          {stats.processing > 0 && (
+            <p className="mt-2 text-xs text-warning">
+              {stats.processing} {labels.processing}
+            </p>
+          )}
+        </>
+      )}
+
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
+        <span className="text-xs text-faint">
+          {whenLabel} {new Date(when).toLocaleDateString(locale === 'ar' ? 'ar' : 'en-GB')}
+        </span>
+        <div className="flex items-center gap-2">
+          {!empty && (
+            <Link href={s.askHref} className={buttonVariants({ variant: 'primary', size: 'sm' })}>
+              <MessageCircle className="h-4 w-4" />
+              {labels.ask}
+            </Link>
+          )}
+          <Link href={s.href} className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
+            {empty ? <Upload className="h-4 w-4" /> : <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />}
+            {empty ? labels.addMaterial : null}
+            {empty ? null : <span className="sr-only">{s.name}</span>}
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function Stat({ icon: Icon, value, label }: { icon: typeof FileText; value: number; label: string }) {
+  return (
+    <div className="rounded-xl bg-raised p-3">
+      <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
+        {label}
+      </dt>
+      <dd className="mt-1 text-2xl font-bold leading-none text-foreground">{value}</dd>
     </div>
   );
 }

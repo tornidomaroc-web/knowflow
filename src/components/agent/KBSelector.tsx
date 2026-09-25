@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import type { KnowledgeBase } from '@/types';
 import { cn } from '@/lib/utils';
@@ -18,13 +18,23 @@ interface Conversation {
   knowledge_bases: { name: string } | null;
 }
 
-export function KBSelector({ kbs }: { kbs: KnowledgeBase[] }) {
+export interface MaterialName {
+  id: string;
+  kb_id: string;
+  filename: string;
+}
+
+export function KBSelector({ kbs, materials = [] }: { kbs: KnowledgeBase[]; materials?: MaterialName[] }) {
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
   const isRtl = safeLocale === 'ar';
 
-  const [selectedId, setSelectedId] = useState(kbs[0]?.id || '');
+  // `?kb=` preselects a subject (register #85): the subject cards and the
+  // subject page link here with it. An unknown id falls back to the first.
+  const searchParams = useSearchParams();
+  const wanted = searchParams.get('kb');
+  const [selectedId, setSelectedId] = useState(kbs.find((k) => k.id === wanted)?.id ?? kbs[0]?.id ?? '');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [mountKey, setMountKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -129,6 +139,7 @@ export function KBSelector({ kbs }: { kbs: KnowledgeBase[] }) {
             key={`${selectedKb.id}-${mountKey}`}
             kbId={selectedKb.id}
             kbName={selectedKb.name}
+            materialNames={materials.filter((m) => m.kb_id === selectedKb.id).map((m) => m.filename)}
             initialConversationId={selection.conversationId}
             initialMessages={selection.messages}
             onConversationCreated={(id) => { setSelection(s => ({ ...s, conversationId: id })); fetchConversations(); }}
