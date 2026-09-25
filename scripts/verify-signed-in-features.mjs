@@ -104,7 +104,8 @@ if (has('src/lib/ask-suggestions.ts')) {
     newHref: '/en/dashboard/knowledge/new', locale: 'en', labels,
   }));
   check(html.includes('href="/en/dashboard/agent?kb=s1"'), 'the subject card has no Ask link with ?kb=');
-  check(/width:75%/.test(html), 'the summarised bar is not 6 of 8 (75%)');
+  // The progress is a ring since the visual language (VISUAL_LANGUAGE.md rule 2): the percent sits inside it.
+  check(/>75%<\/span>/.test(html), 'the summarised ring is not 6 of 8 (75%)');
   check(html.includes('Last asked'), 'the last activity is not shown');
   check(html.includes('No materials yet') && !html.includes('href="/en/dashboard/agent?kb=s2"'), 'an empty subject must say so and offer no Ask');
   check(html.includes('1 still processing'), 'processing materials are not shown');

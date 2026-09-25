@@ -63,6 +63,12 @@ const config: Config = {
           border: 'var(--danger-border)',
         },
         warning: 'var(--warning)',
+        // The supporting palette (docs/design/VISUAL_LANGUAGE.md, rule 4):
+        // icon tiles and illustrations, never an action. `bg-mint-subtle text-mint`.
+        mint: { DEFAULT: 'var(--mint)', subtle: 'var(--mint-subtle)' },
+        sky: { DEFAULT: 'var(--sky)', subtle: 'var(--sky-subtle)' },
+        coral: { DEFAULT: 'var(--coral)', subtle: 'var(--coral-subtle)' },
+        violet: { DEFAULT: 'var(--violet)', subtle: 'var(--violet-subtle)' },
       },
       fontFamily: {
         // Rubik covers Latin + Arabic in one family (see src/app/[locale]/layout.tsx).

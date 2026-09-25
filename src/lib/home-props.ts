@@ -28,6 +28,9 @@ import type { ActivityItem, RecentActivityLabels } from '@/components/dashboard/
 // rendering `undefined` on the page.
 type HomeDict = {
   platformWeb: string
+  welcomeLine: string
+  streakLit: string
+  streakUnlit: string
   welcome: string
   talkAgentTitle: string
   talkAgentDesc: string
@@ -92,6 +95,9 @@ export function buildHomeLabels({ home, subjectsNavLabel, isPro, streakUnit, con
     continueBody: cont.body,
     continueCta: cont.cta,
     welcome: home.welcome,
+    welcomeLine: home.welcomeLine,
+    streakLit: home.streakLit,
+    streakUnlit: home.streakUnlit,
     askTitle: home.talkAgentTitle,
     askDesc: home.talkAgentDesc,
     newSubject: home.newSubject,

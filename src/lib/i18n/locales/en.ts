@@ -193,6 +193,11 @@ export const en = {
     },
     home: {
       welcome: "Welcome back.",
+      // VISUAL_LANGUAGE.md rule 3: one friendly line under the greeting, and one
+      // under the flame for each of its states.
+      welcomeLine: "Ready to study? Your materials are waiting.",
+      streakLit: "Keep it going.",
+      streakUnlit: "Start one today: ask one question.",
       knowledgeBases: "Subjects",
       knowledgeBasesDesc: "Active subjects",
       documents: "Materials",
@@ -204,7 +209,7 @@ export const en = {
       newSubject: "New subject",
       talkAgentTitle: "Ask your materials",
       talkAgentDesc: "Ask about the materials in one subject",
-      streakLabel: "Study streak",
+      streakLabel: "Streak",
       // A COUNTED NOUN, so it carries its plural forms rather than one baked string.
       // `as PluralForms` is load-bearing: `ar.ts` is typed `typeof en`, so without the
       // widening annotation this literal would infer `{ one: string; other: string }`
@@ -232,7 +237,7 @@ export const en = {
       //    NO KEY HERE IS A COUNTED NOUN. That is deliberate: every quota renders
       //    as a large numeral with a caption beside it, so nothing has to agree
       //    with a number, and no Arabic plural category is involved.
-      planTitle: "Your plan",
+      planTitle: "Today's allowance",
       planFree: "Free",
       planPro: "Pro",
       questionsLeft: "Questions left",
@@ -243,14 +248,14 @@ export const en = {
       materialsWord: "summarised",
       noSubjects: "No subjects yet",
       noSubjectsDesc: "A subject is one course. Add one, then upload its materials.",
-      startTitle: "Get started",
+      startTitle: "Three steps to your first answer",
       step1Title: "Create a subject",
       step1Desc: "One subject per course.",
       step2Title: "Upload your materials",
       step2Desc: "PDFs, slides and notes.",
       step3Title: "Ask a question",
       step3Desc: "Answers come from your own materials.",
-      whatTitle: "What KnowFlow does",
+      whatTitle: "What KnowFlow does for you",
       whatLine1: "Reads the files you upload and turns them into searchable text.",
       whatLine2: "Writes summaries and builds quizzes from them.",
       whatLine3: "Answers your questions from your materials, not from the web.",

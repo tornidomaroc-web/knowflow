@@ -55,11 +55,20 @@ export function MaterialCard({
         ? { text: labels.statusError, cls: 'bg-danger-subtle text-danger' }
         : { text: labels.statusProcessing, cls: 'bg-raised text-warning' };
 
+  // A tint per file type (VISUAL_LANGUAGE.md rule 4), so a list of materials
+  // reads as a shelf of different things, not a column of identical tiles.
+  const tile =
+    fileType === 'pdf' ? 'bg-coral-subtle text-coral'
+    : fileType === 'pptx' ? 'bg-violet-subtle text-violet'
+    : fileType === 'docx' ? 'bg-sky-subtle text-sky'
+    : fileType === 'xlsx' ? 'bg-mint-subtle text-mint'
+    : 'bg-accent-subtle text-accent';
   return (
-    <article className="rounded-2xl border border-border bg-surface p-4 md:p-5">
+    <article className="rise rounded-2xl border border-border bg-surface p-4 md:p-5">
       <div className="flex items-start gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-subtle text-primary">
+        <span className={`inline-flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl ${tile}`}>
           <FileText className="h-5 w-5" />
+          <span className="text-[9px] font-bold uppercase leading-none">{fileType ?? ''}</span>
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground" dir="auto">{filename}</p>

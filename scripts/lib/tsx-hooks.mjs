@@ -41,6 +41,8 @@ export function installTsxHooks(ROOT, stubs = {}) {
   const withTs = (base) => {
     if (/\.[a-z]+$/i.test(base)) return base;
     for (const ext of ['.ts', '.tsx']) if (existsSync(base + ext)) return base + ext;
+    // A folder module may be index.ts or index.tsx (the illustrations are the latter).
+    for (const idx of ['index.ts', 'index.tsx']) if (existsSync(resolvePath(base, idx))) return resolvePath(base, idx);
     return resolvePath(base, 'index.ts');
   };
   const all = { 'next/link': NEXT_LINK, 'next/navigation': NEXT_NAVIGATION, ...stubs };

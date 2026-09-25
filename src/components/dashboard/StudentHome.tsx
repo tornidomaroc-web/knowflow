@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { ArrowRight, BookOpen, Check, FileText, MessageCircle, Plus, Sparkles, Upload } from 'lucide-react';
 import type { Locale } from '@/lib/i18n';
-import { ArrowRight, BookOpen, Check, FileText, Flame, MessageCircle, Plus, Sparkles, Upload } from 'lucide-react';
+import { Ring } from '@/components/ui/Ring';
+import { ChatPages, EmptyShelf, Flame, SparkBook } from '@/components/illustrations';
 import { RecentActivity, type ActivityItem, type RecentActivityLabels } from './RecentActivity';
 
 interface StudentHomeStat {
@@ -10,21 +12,11 @@ interface StudentHomeStat {
 }
 
 /**
- * A quota rendered as a LARGE NUMERAL with a faint caption, never as a sentence.
- *
- * Two reasons, and the second is a correctness one.
- *
- * (1) The kits treat big figures as decoration; a number set large with a quiet
- *     label under it is the shape being copied here.
- *
- * (2) IT AVOIDS A DAY CLAIM AND AN ARABIC AGREEMENT BUG AT THE SAME TIME.
- *     `usage_counters.day` defaults to `current_date`, which is SERVER UTC, so
- *     "3 of 10 used today" is false for a student at 00:30 in Morocco — the
- *     exact defect this project already paid for once in the try-again-tomorrow
- *     copy. Splitting the figure from its label removes the word "today"
- *     entirely. It also removes the need to inflect a counted noun inline:
- *     "7 questions left" in Arabic would have to agree with 7, and the caption
- *     form ("Questions left" / the definite plural) agrees with nothing.
+ * A quota rendered as a RING with the number inside, never as a sentence
+ * (docs/design/VISUAL_LANGUAGE.md, rule 2). The caption under it agrees with
+ * nothing, so no Arabic plural category is involved and no day word appears:
+ * `usage_counters.day` is server UTC, and "used today" would be false for a
+ * student at 00:30 in Morocco (register #85).
  */
 export interface QuotaMeter {
   /** Stable key for React; never rendered. */
@@ -64,6 +56,8 @@ interface StudentHomeLabels {
   continueBody: string;
   continueCta: string;
   welcome: string;
+  /** The friendly line under the greeting (VISUAL_LANGUAGE.md rule 3). */
+  welcomeLine: string;
   askTitle: string;
   askDesc: string;
   newSubject: string;
@@ -72,6 +66,9 @@ interface StudentHomeLabels {
   streakLabel: string;
   streakUnit: string;
   streakZoneHint: string;
+  /** One line under the flame: lit ("Keep it going.") or unlit ("Start one today."). */
+  streakLit: string;
+  streakUnlit: string;
   recentActivity: string;
   planTitle: string;
   planName: string;
@@ -90,7 +87,7 @@ interface StudentHomeLabels {
 
 export interface StudentHomeProps {
   stats: StudentHomeStat[];
-  /** Current study streak, or null when not yet tracked (ghost "—" placeholder). Phase 5 passes a real number. */
+  /** Streak in days; null while unknown (no timezone yet) renders a ghost dash. */
   streak: number | null;
   askHref: string;
   newSubjectHref: string;
@@ -99,7 +96,7 @@ export interface StudentHomeProps {
   upgradeHref: string | null;
   /** The most recent conversation, or null for an account that has not asked yet. */
   continueCard?: ContinueCard | null;
-  /** For the one date format (#121); every date on the screen is already formatted except the activity list's. */
+  /** For the one date format (#121). */
   locale: Locale;
   isPro: boolean;
   quotas: QuotaMeter[];
@@ -112,26 +109,13 @@ export interface StudentHomeProps {
 }
 
 /**
- * Student home — dumb, presentational. All data/labels arrive as plain props
- * (no i18n dict, no Supabase) so the shell can be reused/storybooked in Phase 8.
- * THAT CONTRACT IS LOAD-BEARING AND MUST SURVIVE: local dev writes to the
- * PRODUCTION database, so a component that fetches its own data cannot be looked
- * at safely. Prop-driven is what lets `/preview/student-home` render this at any
- * data state with no database anywhere near it.
+ * THE STUDENT HOME, FOR AN 18-YEAR-OLD ON A PHONE (docs/design/VISUAL_LANGUAGE.md).
  *
- * It does NOT carry a theme of its own. It briefly did, to paint over a light
- * dashboard canvas that no longer exists; a hardcoded `data-theme="dark"` here
- * would make this screen ignore the toggle, so the light half could never
- * reach it. The dashboard shell and the preview route own the theme, and this
- * is pure content again - which is also what its "dumb, presentational"
- * contract above actually requires.
- *
- * ZERO IS THE STATE THAT MATTERS. The live embedding key was last used
- * 2026-08-10 and every existing conversation is months old, so an empty account
- * is not an edge case — it is what the next student sees. Everything here that
- * carries weight at zero (the plan meters, the subject shelf, the path, the
- * capability panel) renders the same whether the account is empty or full; only
- * the activity list and the progress bars need rows to exist.
+ * Every card says what it is with a picture before a word is read; every
+ * number is a ring or a bar; every line is short; the cards rise in as the
+ * screen opens (staggered, inside the reduced-motion guard); a press scales.
+ * The data and the props did not change: this is the same screen, made for
+ * the person it is for.
  */
 export function StudentHome({
   stats,
@@ -152,107 +136,89 @@ export function StudentHome({
   locale,
 }: StudentHomeProps) {
   const stepsLeft = onboarding.filter((s) => !s.done).length;
+  const lit = (streak ?? 0) > 0;
+  const tones = ['accent', 'mint', 'sky', 'violet'] as const;
 
   return (
     <div>
-      {/* Start-aligned, not centred (register #121, defect 2): a centred column
-          beside a fixed sidebar leaves a gap on the sidebar's side, widest in
-          RTL on a wide screen. The canvas now starts at the sidebar and grows to
-          a comfortable reading width. */}
-      <div className="max-w-6xl space-y-6">
-        {/* ── Header. Weight, not letter-spacing, carries the hierarchy: Rubik's
-            Arabic subset ships the full 300..900 axis, so font-bold on a large
-            size is available in both scripts. No tracking utility appears
-            anywhere in this file. ── */}
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-3xl font-bold text-foreground md:text-4xl">{labels.welcome}</h1>
+      <div className="max-w-6xl space-y-5">
+        {/* ── Greeting: a name-sized headline, one friendly line, the plan pill. ── */}
+        <header className="rise flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground md:text-4xl">{labels.welcome}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{labels.welcomeLine}</p>
+          </div>
           <span
             className={
               isPro
-                ? 'inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground'
-                : 'inline-flex items-center rounded-full bg-accent-subtle px-3 py-1 text-xs font-semibold text-accent'
+                ? 'inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground'
+                : 'inline-flex items-center gap-1.5 rounded-full bg-accent-subtle px-3 py-1 text-xs font-semibold text-accent'
             }
           >
+            <Sparkles className="h-3.5 w-3.5" />
             {labels.planName}
           </span>
         </header>
 
-        {/* ── Primary action + streak ── */}
+        {/* ── Ask + streak ── */}
         <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Link
             href={askHref}
-            className="group flex items-center justify-between gap-4 rounded-2xl bg-accent p-6 text-accent-foreground transition-colors hover:bg-accent-hover md:col-span-2"
+            className="pressable liftable rise rise-1 group relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl bg-accent p-6 text-accent-foreground transition-colors hover:bg-accent-hover md:col-span-2"
           >
             <div className="min-w-0">
-              {/* bg-black/15 LEFT OFF THE SWEEP (#93): this tile sits ON the gold
-                  accent fill, which is gold in BOTH themes, so a fixed black scrim is
-                  correct in both. It is a shade of the accent, not a palette colour. */}
-              <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-black/15">
-                <MessageCircle className="h-5 w-5" />
-              </span>
-              <p className="text-lg font-bold">{labels.askTitle}</p>
+              <p className="text-xl font-bold">{labels.askTitle}</p>
               <p className="mt-1 text-sm opacity-80">{labels.askDesc}</p>
+              <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-black/15 px-3 py-1.5 text-xs font-semibold">
+                <MessageCircle className="h-3.5 w-3.5" />
+                {labels.askTitle}
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100" />
+              </span>
             </div>
-            <ArrowRight className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100" />
+            {/* The illustration sits on the gold: its own tokens re-colour on the
+                accent fill through the -subtle vars, which are translucent. */}
+            <ChatPages onAccent size={104} className="hidden shrink-0 sm:block" />
           </Link>
 
-          {/*
-            Streak. P5.3 wired it; the component did not change shape, exactly as
-            register #14 predicted — `streak` simply stopped being a literal null.
-
-            `null` still means NOT MEASURED (no timezone yet, or the read failed) and
-            renders the ghost with the unit AND the zone hint suppressed: a hint that
-            the dash is "in your local time" would be a claim about a number that
-            does not exist. `0` is a real, earned zero and renders normally.
-          */}
-          <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase text-muted-foreground">{labels.streakLabel}</span>
-              <Flame className={streak ? 'h-5 w-5 text-accent' : 'h-5 w-5 text-faint'} />
-            </div>
-            <div className="mt-3">
+          <div className="rise rise-2 flex items-center gap-4 rounded-2xl border border-border bg-surface p-5">
+            <Flame lit={lit} size={72} className="shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase text-muted-foreground">{labels.streakLabel}</p>
               {streak === null ? (
-                <p>
-                  <span className="text-5xl font-bold text-faint">-</span>
-                </p>
+                <p className="text-4xl font-bold text-faint">-</p>
               ) : (
-                <>
-                  <p>
-                    <span className="text-5xl font-bold text-foreground">{streak}</span>
-                    <span className="ms-2 text-sm text-muted-foreground">{labels.streakUnit}</span>
-                  </p>
-                  {/*
-                    §5, "never promise what the app doesn't do". The streak counts
-                    days in the STUDENT'S timezone; that is true but opaque, so it is
-                    stated rather than left to be inferred from a number that ticks
-                    at what looks like a strange hour.
-                  */}
-                  <p className="mt-1 text-xs text-faint">{labels.streakZoneHint}</p>
-                </>
+                <p>
+                  <span className="text-4xl font-bold text-foreground">{streak}</span>
+                  <span className="ms-2 text-sm text-muted-foreground">{labels.streakUnit}</span>
+                </p>
               )}
+              <p className="mt-1 text-xs text-muted-foreground">{lit ? labels.streakLit : labels.streakUnlit}</p>
+              {streak !== null && <p className="mt-0.5 text-[11px] text-faint">{labels.streakZoneHint}</p>}
             </div>
           </div>
         </section>
 
-        {/* ── Pick up where you left off (register #85, 2.4). Only once there is
-            somewhere to go back to; a new account sees the path below instead. ── */}
+        {/* ── Pick up where you left off (register #85, 2.4). ── */}
         {continueCard && (
-          <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface p-5">
-            <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-foreground">{labels.continueTitle}</h2>
-              {/* Register #121, defect 3: the subject name and the date are each
-                  a <bdi>, so a Latin name or a date inside an Arabic sentence
-                  keeps its own direction and the sentence keeps its order. */}
-              <p className="mt-1 text-sm text-muted-foreground">
-                {labels.continueBody.split('{subject}')[0]}
-                <bdi className="font-medium text-foreground">{continueCard.subject}</bdi>
-                {labels.continueBody.split('{subject}')[1]}{' '}
-                <bdi className="text-faint">· {continueCard.date}</bdi>
-              </p>
+          <section className="rise rise-2 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface p-5">
+            <div className="flex min-w-0 items-center gap-4">
+              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-subtle text-violet">
+                <MessageCircle className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-foreground">{labels.continueTitle}</h2>
+                {/* #121: the subject and the date are each a <bdi>. */}
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {labels.continueBody.split('{subject}')[0]}
+                  <bdi className="font-medium text-foreground">{continueCard.subject}</bdi>
+                  {labels.continueBody.split('{subject}')[1]}{' '}
+                  <bdi className="text-faint">· {continueCard.date}</bdi>
+                </p>
+              </div>
             </div>
             <Link
               href={continueCard.href}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-accent px-4 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="pressable inline-flex h-10 items-center gap-2 rounded-xl border border-accent px-4 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               {labels.continueCta}
               <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />
@@ -260,16 +226,20 @@ export function StudentHome({
           </section>
         )}
 
-        {/* ── Plan + quota. Renders identically at zero: a new account has its
-            full allowance, which is the most useful thing the screen can say to
-            someone who has done nothing yet. NO DAY WORD APPEARS — see QuotaMeter. ── */}
-        <section className="rounded-2xl border border-border bg-surface p-5">
+        {/* ── Plan: rings, not sentences. Full at zero, which is the most useful
+            thing the screen can say to someone who has done nothing yet. ── */}
+        <section className="rise rise-3 rounded-2xl border border-border bg-surface p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-foreground">{labels.planTitle}</h2>
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-accent-subtle text-accent">
+                <Sparkles className="h-4 w-4" />
+              </span>
+              {labels.planTitle}
+            </h2>
             {!isPro && upgradeHref && (
               <Link
                 href={upgradeHref}
-                className="inline-flex items-center gap-1.5 rounded-full border border-accent px-3 py-1 text-xs font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="pressable inline-flex items-center gap-1.5 rounded-full border border-accent px-3 py-1 text-xs font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 {labels.upgradeCta}
@@ -277,66 +247,74 @@ export function StudentHome({
             )}
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {quotas.map((q) => (
-              <div key={q.key} className="rounded-xl bg-raised p-4">
-                <p className="text-4xl font-bold leading-snug text-foreground">{q.remaining}</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">{q.label}</p>
-                <p className="mt-2 text-xs text-faint">
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            {quotas.map((q, i) => (
+              <div key={q.key} className="flex flex-col items-center rounded-xl bg-raised p-3 text-center">
+                <Ring value={q.total ? q.remaining / q.total : 0} tone={tones[i % tones.length]} label={`${q.remaining} ${labels.ofWord} ${q.total} ${q.label}`}>
+                  <span className="text-xl font-bold leading-none text-foreground">{q.remaining}</span>
+                </Ring>
+                <p className="mt-2 text-xs font-medium text-muted-foreground">{q.label}</p>
+                <p className="text-[11px] text-faint">
                   {labels.ofWord} {q.total}
                 </p>
               </div>
             ))}
-            <div className="rounded-xl bg-raised p-4">
-              <p className="text-4xl font-bold leading-snug text-foreground">
-                {subjectsUsed}
-                <span className="text-xl font-semibold text-faint">/{subjectsLimit}</span>
+            <div className="flex flex-col items-center rounded-xl bg-raised p-3 text-center">
+              <Ring value={subjectsLimit ? subjectsUsed / subjectsLimit : 0} tone="violet" label={`${subjectsUsed} ${labels.ofWord} ${subjectsLimit} ${labels.subjectsUsed}`}>
+                <span className="text-xl font-bold leading-none text-foreground">{subjectsUsed}</span>
+              </Ring>
+              <p className="mt-2 text-xs font-medium text-muted-foreground">{labels.subjectsUsed}</p>
+              <p className="text-[11px] text-faint">
+                {labels.ofWord} {subjectsLimit}
               </p>
-              <p className="mt-0.5 text-sm text-muted-foreground">{labels.subjectsUsed}</p>
             </div>
           </div>
         </section>
 
-        {/* ── The path. Present at zero, and it is the densest thing on the screen
-            for an empty account precisely because every step is undone. It
-            disappears once all three are done, so a working account does not
-            carry onboarding forever. ── */}
+        {/* ── The path: present at zero, gone once all three are done. ── */}
         {stepsLeft > 0 && (
-          <section className="rounded-2xl border border-border bg-surface p-5">
-            <h2 className="text-sm font-semibold text-foreground">{labels.startTitle}</h2>
-            <ol className="mt-4 space-y-2">
-              {onboarding.map((step, i) => (
-                <li key={step.key}>
-                  <Link
-                    href={step.href}
-                    className="group flex items-center gap-4 rounded-xl bg-raised p-4 transition-colors hover:bg-muted"
-                  >
-                    <span
-                      className={
-                        step.done
-                          ? 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground'
-                          : 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-accent'
-                      }
+          <section className="rise rise-3 rounded-2xl border border-border bg-surface p-5">
+            <div className="flex items-center gap-4">
+              <SparkBook size={64} className="shrink-0" />
+              <h2 className="text-base font-bold text-foreground">{labels.startTitle}</h2>
+            </div>
+            <ol className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {onboarding.map((step, i) => {
+                const Icon = [Plus, Upload, MessageCircle][i] ?? Plus;
+                const tile = ['bg-mint-subtle text-mint', 'bg-sky-subtle text-sky', 'bg-violet-subtle text-violet'][i] ?? 'bg-accent-subtle text-accent';
+                return (
+                  <li key={step.key}>
+                    <Link
+                      href={step.href}
+                      className="pressable liftable group flex h-full items-center gap-3 rounded-xl bg-raised p-4 transition-colors hover:bg-muted sm:flex-col sm:items-start"
                     >
-                      {step.done ? <Check className="h-5 w-5" /> : <span className="text-sm font-bold">{i + 1}</span>}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-foreground">{step.title}</span>
-                      <span className="mt-0.5 block text-sm text-muted-foreground">{step.desc}</span>
-                    </span>
-                    <ArrowRight className="h-4 w-4 shrink-0 text-faint transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100" />
-                  </Link>
-                </li>
-              ))}
+                      <span className={step.done ? 'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground' : `inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tile}`}>
+                        {step.done ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-foreground">
+                          <span className="me-1.5 text-faint">{i + 1}.</span>
+                          {step.title}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">{step.desc}</span>
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
             </ol>
           </section>
         )}
 
-        {/* ── Subjects + per-subject progress. At zero this is the empty
-            affordance, not a blank area. ── */}
-        <section className="rounded-2xl border border-border bg-surface p-5">
+        {/* ── Subjects with mini rings; an illustrated empty state. ── */}
+        <section className="rise rise-4 rounded-2xl border border-border bg-surface p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-foreground">{labels.subjects}</h2>
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-sky-subtle text-sky">
+                <BookOpen className="h-4 w-4" />
+              </span>
+              {labels.subjects}
+            </h2>
             <Link
               href={subjectsHref}
               className="group inline-flex items-center gap-1.5 text-xs font-semibold text-accent transition-colors hover:text-accent-hover"
@@ -347,29 +325,25 @@ export function StudentHome({
           </div>
 
           {subjects.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-dashed border-border bg-raised p-8 text-center">
-              <span className="mx-auto mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-subtle text-accent">
-                <BookOpen className="h-5 w-5" />
-              </span>
-              <p className="text-sm font-semibold text-foreground">{labels.noSubjects}</p>
+            <div className="mt-4 flex flex-col items-center rounded-xl border border-dashed border-border bg-raised p-6 text-center">
+              <EmptyShelf size={88} title={labels.noSubjects} />
+              <p className="mt-2 text-sm font-semibold text-foreground">{labels.noSubjects}</p>
               <p className="mt-1 text-sm text-muted-foreground">{labels.noSubjectsDesc}</p>
             </div>
           ) : (
-            <ul className="mt-4 space-y-2">
-              {subjects.map((s) => {
-                const pct = s.materials === 0 ? 0 : Math.round((s.summarised / s.materials) * 100);
+            <ul className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {subjects.map((s, i) => {
+                const pct = s.materials === 0 ? 0 : s.summarised / s.materials;
                 return (
-                  <li key={s.id} className="rounded-xl bg-raised p-4">
-                    <div className="flex items-center justify-between gap-3">
+                  <li key={s.id} className="flex items-center gap-3 rounded-xl bg-raised p-3">
+                    <Ring value={pct} size={48} stroke={5} tone={tones[(i + 1) % tones.length]} label={`${s.summarised} ${labels.ofWord} ${s.materials} ${labels.materialsWord}`}>
+                      <span className="text-[11px] font-bold text-foreground">{Math.round(pct * 100)}%</span>
+                    </Ring>
+                    <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-foreground">{s.name}</p>
-                      <p className="shrink-0 text-xs text-faint">
+                      <p className="text-xs text-faint">
                         {s.summarised}/{s.materials} {labels.materialsWord}
                       </p>
-                    </div>
-                    {/* Progress = materials WITH a summary. The track is a surface
-                        step, not a shadow; the fill is the one accent. */}
-                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-                      <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
                     </div>
                   </li>
                 );
@@ -379,50 +353,50 @@ export function StudentHome({
 
           <Link
             href={newSubjectHref}
-            className="group mt-3 flex items-center gap-4 rounded-xl border border-dashed border-border p-4 transition-colors hover:border-accent"
+            className="pressable group mt-3 flex items-center gap-4 rounded-xl border border-dashed border-border p-4 transition-colors hover:border-accent"
           >
             <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-accent">
               <Plus className="h-5 w-5" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold text-foreground">{labels.newSubject}</span>
-              <span className="mt-0.5 block text-sm text-muted-foreground">{labels.newSubjectDesc}</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">{labels.newSubjectDesc}</span>
             </span>
             <ArrowRight className="h-5 w-5 shrink-0 text-faint transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100" />
           </Link>
         </section>
 
-        {/* ── Stats. The three counts the page already fetched, in the kits' tile
-            shape: icon in a rounded accent-tinted square, short title, faint line. ── */}
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {/* ── Stats as tiles, each with its own tint. ── */}
+        <section className="rise rise-4 grid grid-cols-3 gap-3">
           {stats.map(({ label, value, desc }, i) => {
             const Icon = [BookOpen, FileText, MessageCircle][i] ?? BookOpen;
+            const tile = ['bg-sky-subtle text-sky', 'bg-mint-subtle text-mint', 'bg-violet-subtle text-violet'][i] ?? 'bg-accent-subtle text-accent';
             return (
-              <div key={label} className="rounded-2xl border border-border bg-surface p-5">
-                <span className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-accent-subtle text-accent">
-                  <Icon className="h-5 w-5" />
+              <div key={label} className="rounded-2xl border border-border bg-surface p-4">
+                <span className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${tile}`}>
+                  <Icon className="h-4 w-4" />
                 </span>
-                <p className="text-3xl font-bold text-foreground">{value}</p>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">{label}</p>
-                <p className="mt-0.5 text-xs text-faint">{desc}</p>
+                <p className="mt-3 text-2xl font-bold leading-none text-foreground">{value}</p>
+                <p className="mt-1 text-xs font-medium text-foreground">{label}</p>
+                <p className="hidden text-[11px] text-faint sm:block">{desc}</p>
               </div>
             );
           })}
         </section>
 
-        {/* ── What this does. Pure capability copy, so it is fully present at zero
-            and is the answer to "this looks empty, what am I paying for". ── */}
-        <section className="rounded-2xl border border-border bg-surface p-5">
+        {/* ── What KnowFlow does: three tiles with an icon each. ── */}
+        <section className="rise rise-5 rounded-2xl border border-border bg-surface p-5">
           <h2 className="text-sm font-semibold text-foreground">{labels.whatTitle}</h2>
           <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {labels.whatLines.map((line, i) => {
-              const Icon = [Upload, Sparkles, MessageCircle][i] ?? Sparkles;
+              const Icon = [FileText, BookOpen, MessageCircle][i] ?? FileText;
+              const tile = ['bg-mint-subtle text-mint', 'bg-coral-subtle text-coral', 'bg-sky-subtle text-sky'][i] ?? 'bg-accent-subtle text-accent';
               return (
-                <li key={line} className="rounded-xl bg-raised p-4">
-                  <span className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-accent-subtle text-accent">
-                    <Icon className="h-5 w-5" />
+                <li key={line} className="flex items-start gap-3 rounded-xl bg-raised p-4">
+                  <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${tile}`}>
+                    <Icon className="h-4 w-4" />
                   </span>
-                  <p className="text-sm text-muted-foreground">{line}</p>
+                  <span className="text-sm text-muted-foreground">{line}</span>
                 </li>
               );
             })}
@@ -430,9 +404,16 @@ export function StudentHome({
         </section>
 
         {/* ── Recent activity ── */}
-        <section className="space-y-3">
-          <h2 className="text-xs font-medium uppercase text-muted-foreground">{labels.recentActivity}</h2>
-          <RecentActivity items={recentActivity} labels={labels.activity} locale={locale} />
+        <section className="rise rise-5 rounded-2xl border border-border bg-surface p-5">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-coral-subtle text-coral">
+              <MessageCircle className="h-4 w-4" />
+            </span>
+            {labels.recentActivity}
+          </h2>
+          <div className="mt-4">
+            <RecentActivity items={recentActivity} labels={labels.activity} locale={locale} />
+          </div>
         </section>
       </div>
     </div>

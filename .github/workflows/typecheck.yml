@@ -156,3 +156,9 @@ jobs:
       # format, the material action grid), each held here.
       - name: Verify the six production defects of 2026-09-25 stay fixed (register #121)
         run: node --experimental-strip-types scripts/verify-production-defects.mjs
+
+      # The visual language (docs/design/VISUAL_LANGUAGE.md): the palette in three
+      # scopes, motion behind the reduced-motion guard, original illustrations,
+      # rings for numbers, a picture on every panel; rendered, not grepped.
+      - name: Verify the visual language holds (VISUAL_LANGUAGE.md)
+        run: node --experimental-strip-types scripts/verify-visual-system.mjs
