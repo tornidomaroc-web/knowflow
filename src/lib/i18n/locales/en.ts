@@ -417,8 +417,19 @@ export const en = {
       uploadFailed: "We could not confirm that your file was uploaded. Refresh the page to see whether it arrived, and upload it again if it did not.",
       dropHere: "Drop files here or click to upload",
       supported: "Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (up to {limit} per file)",
-      uploading: "Uploading...",
-      processing: "Processing...",
+      uploading: "Uploading…",
+      processing: "Processing…",
+      // #113. What the student reads during the synchronous wait, in order:
+      // the first moments, the expected span, and past the estimate. The
+      // estimate is measured (`src/lib/upload-progress.ts`) and said as
+      // "usually", never promised. `leaveNote` is true: the service owns the
+      // final status, so the material appears after a refresh once it finishes.
+      reading: "Reading your file…",
+      preparing: "Preparing it for questions…",
+      stillWorking: "Still working on it…",
+      usuallyAbout: "Usually about {n} seconds for a file this size.",
+      leaveNote: "Large files can take a minute or two. You can leave this page; the material appears after a refresh once it finishes.",
+      tryAnother: "Choose another file to try again.",
       ready: "Ready ✓",
       error: "Error"
     }

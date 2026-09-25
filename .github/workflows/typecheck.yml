@@ -139,3 +139,8 @@ jobs:
       # thrown) and renders the real Apple button; both auth pages must carry it.
       - name: Verify Sign in with Apple stands beside Google (register #119)
         run: node --experimental-strip-types scripts/verify-apple-signin.mjs
+
+      # Register #113. Imports the real upload estimate (measured rate, stages, the
+      # 90% cap) and reads DropZone for the progress transport and the #50/#111 checks.
+      - name: Verify the upload shows real progress and an honest estimate (register #113)
+        run: node --experimental-strip-types scripts/verify-upload-progress.mjs
