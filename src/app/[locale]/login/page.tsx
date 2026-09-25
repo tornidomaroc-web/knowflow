@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
 import { GoogleButton } from '@/components/auth/GoogleButton';
 import { AppleButton } from '@/components/auth/AppleButton';
+import { ChatPages } from '@/components/illustrations';
 import { APPLE_SIGNIN_ENABLED } from '@/lib/auth/providers';
 import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
@@ -52,20 +53,26 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
   };
 
   return (
-    <div className="flex min-h-screen" dir={isRtl ? 'rtl' : 'ltr'}>
-      <div className="flex w-full items-center justify-center bg-surface p-8">
+    <div className="relative flex min-h-screen overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
+      {/* The landing's depth, quietly (review #122, defect 7): two tinted shapes
+          behind the form at #109's 0.08, and the page rises in like every
+          other screen. The form itself is unchanged in what it asks. */}
+      <div aria-hidden="true" className="hero-float pointer-events-none absolute z-0" style={{ top: '-8rem', insetInlineEnd: '-8rem', width: '24rem', height: '24rem', opacity: 0.08, background: 'radial-gradient(circle, var(--primary) 0%, transparent 70%)' }} />
+      <div aria-hidden="true" className="hero-float hero-float-2 pointer-events-none absolute z-0" style={{ bottom: '-8rem', insetInlineStart: '-8rem', width: '20rem', height: '20rem', opacity: 0.08, background: 'radial-gradient(circle, var(--violet) 0%, transparent 70%)' }} />
+      <div className="relative z-10 flex w-full items-center justify-center bg-surface/0 p-6 sm:p-8">
         <form onSubmit={handleLogin} className="w-full max-w-sm space-y-6 text-start">
           {/* #103: the product name at every width. The gold panel carried it at lg and up and is gone. */}
           {/* #105: it links to the landing. These pages had no other way back. */}
-          <div className="mb-10 text-center">
+          <div className="rise mb-8 flex flex-col items-center text-center">
+            <ChatPages size={88} className="mb-3" />
             <h1 className="text-4xl font-bold tracking-tight">
               <Link href={`/${locale}`} className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
               </Link>
             </h1>
           </div>
-          <h2 className="text-3xl font-semibold tracking-tight">{t.auth.loginTitle}</h2>
-          <p className="mb-8 text-sm text-muted-foreground">{t.auth.loginSubtitle}</p>
+          <h2 className="rise rise-1 text-3xl font-semibold tracking-tight">{t.auth.loginTitle}</h2>
+          <p className="rise rise-1 mb-8 text-sm text-muted-foreground">{t.auth.loginSubtitle}</p>
 
           {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
 

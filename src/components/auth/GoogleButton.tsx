@@ -69,7 +69,7 @@ export function GoogleButton({
         type="button"
         onClick={start}
         disabled={loading}
-        className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-surface disabled:opacity-60"
+        className="pressable flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-surface disabled:opacity-60"
       >
         <GoogleMark />
         <span>{label}</span>

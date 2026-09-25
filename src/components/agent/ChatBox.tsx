@@ -7,6 +7,7 @@ import { MessageBubble, Citation } from './MessageBubble';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { askSuggestions, type MaterialForSuggestion } from '@/lib/ask-suggestions';
 import { ChatPages } from '@/components/illustrations';
+import { BookOpen, ListChecks, Send, Sparkles } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -78,6 +79,13 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(initialConversationId ?? null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // The keyboard hint is shown only where a keyboard is likely (md and up, via
+  // CSS) and names the modifier the platform has (review #122, defect 5):
+  // Cmd on a Mac, Ctrl elsewhere. Read after mount; the server renders none.
+  const [modifier, setModifier] = useState<'mac' | 'other' | null>(null);
+  useEffect(() => {
+    setModifier(/Mac|iPhone|iPad/.test(navigator.platform) ? 'mac' : 'other');
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -171,10 +179,14 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
       overflow from the inside.
     */
     <div className="flex min-h-0 flex-1 flex-col bg-surface">
-      <div className="border-b border-border bg-surface p-4">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {t.dashboard.agent.chatWith}: <span className="text-foreground">{kbName}</span>
-        </h2>
+      <div className="flex items-center gap-3 border-b border-border bg-surface px-4 py-3">
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-subtle text-sky">
+          <BookOpen className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">{t.dashboard.agent.chatWith}</p>
+          <h2 className="truncate text-sm font-semibold text-foreground">{kbName}</h2>
+        </div>
       </div>
 
       <div className="flex-1 space-y-6 overflow-y-auto bg-background p-6" ref={scrollRef}>
@@ -192,44 +204,67 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
              something to press. Built here from names only; nothing is sent
              until a suggestion is pressed, and then it is the student's own
              message through the same path and the same daily cap. */
-          <div className="mx-auto mt-6 max-w-lg">
-            <div className="flex justify-center"><ChatPages size={96} /></div>
-            <p className="mt-2 text-center text-sm text-muted-foreground">{t.dashboard.agent.startTyping}</p>
-            <p className="mt-6 text-xs font-semibold uppercase text-muted-foreground">{t.dashboard.suggestions.heading}</p>
-            <div className="mt-2 flex flex-col gap-2">
-              {askSuggestions(t.dashboard.suggestions, kbName, materials).map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  onClick={() => handleSend(q)}
-                  disabled={isLoading}
-                  dir="auto"
-                  className="pressable rounded-xl border border-border bg-surface px-4 py-3 text-start text-sm text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {q}
-                </button>
-              ))}
+          <div className="mx-auto mt-2 max-w-lg">
+            <div className="rise flex flex-col items-center text-center">
+              <ChatPages size={112} />
+              <h3 className="mt-3 text-lg font-bold text-foreground">{t.dashboard.agent.emptyTitle}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{t.dashboard.agent.startTyping}</p>
+            </div>
+            <p className="rise rise-1 mt-6 flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-accent" />
+              {t.dashboard.suggestions.heading}
+            </p>
+            <div className="mt-2 grid grid-cols-1 gap-2">
+              {askSuggestions(t.dashboard.suggestions, kbName, materials).map((q, i) => {
+                const Icon = [BookOpen, Sparkles, ListChecks][i] ?? Sparkles;
+                const tint = ['bg-mint-subtle text-mint', 'bg-violet-subtle text-violet', 'bg-coral-subtle text-coral'][i] ?? 'bg-accent-subtle text-accent';
+                return (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => handleSend(q)}
+                    disabled={isLoading}
+                    dir="auto"
+                    className={`pressable liftable rise rise-${i + 2} flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-start text-sm text-foreground transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+                  >
+                    <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tint}`}>
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">{q}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex gap-3 border-t border-border bg-surface p-4 pb-8 md:pb-4">
-        <textarea
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={t.dashboard.agent.askPlaceholder}
-          className="flex-1 resize-none rounded-xl border border-border bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-          rows={3}
-        />
-        <button
-          onClick={() => handleSend()}
-          disabled={isLoading || !input.trim()}
-          className={buttonVariants({ variant: 'primary' })}
-        >
-          {t.dashboard.agent.send}
-        </button>
+      <div className="border-t border-border bg-surface p-3 pb-6 md:p-4">
+        <div className="flex items-end gap-2 rounded-2xl border border-control-border bg-background p-2 focus-within:border-primary">
+          <textarea
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={t.dashboard.agent.askPlaceholder}
+            className="max-h-40 min-h-[2.75rem] flex-1 resize-none bg-transparent px-2 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+            rows={2}
+          />
+          <button
+            onClick={() => handleSend()}
+            disabled={isLoading || !input.trim()}
+            aria-label={t.dashboard.agent.send}
+            className={buttonVariants({ variant: 'primary', size: 'icon' })}
+          >
+            <Send className="h-5 w-5 rtl:-scale-x-100" />
+          </button>
+        </div>
+        {/* Only where a keyboard is likely: md and up, and only once the platform
+            is known, so a phone never reads a shortcut it cannot press. */}
+        {modifier && (
+          <p className="mt-1.5 hidden text-[11px] text-faint md:block">
+            {modifier === 'mac' ? t.dashboard.agent.sendHintMac : t.dashboard.agent.sendHintOther}
+          </p>
+        )}
       </div>
     </div>
   );

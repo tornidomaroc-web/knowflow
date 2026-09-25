@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, BookOpen, ListChecks, MessageCircle, Quote } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useTranslation, Locale } from '@/lib/i18n';
 import { ChatPages, Flame, QuizCheck, SparkBook, Trophy, UploadCloud } from '@/components/illustrations';
 import { HeroDemo } from '@/components/landing/HeroDemo';
@@ -30,13 +30,18 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
   const dir = isRtl ? 'rtl' : 'ltr';
   const L = t.landing;
 
+  // ONE picture per card, and it is the card's meaning (review 2026-09-25,
+  // #122): a summary is a book that sparks, a quiz is a checklist, an answer
+  // with its source is pages that talk, a streak is a flame.
   const features = [
-    { icon: BookOpen, tint: 'bg-mint-subtle text-mint', art: <SparkBook size={56} /> , ...L.features[0] },
-    { icon: ListChecks, tint: 'bg-violet-subtle text-violet', art: <QuizCheck size={56} />, ...L.features[1] },
-    { icon: MessageCircle, tint: 'bg-sky-subtle text-sky', art: <ChatPages size={56} />, ...L.features[2] },
-    { icon: Quote, tint: 'bg-accent-subtle text-accent', art: <Flame size={56} />, ...L.features[3] },
+    { art: <SparkBook size={72} />, ...L.features[0] },
+    { art: <QuizCheck size={72} />, ...L.features[1] },
+    { art: <ChatPages size={72} />, ...L.features[2] },
+    { art: <Flame size={72} />, ...L.features[3] },
   ];
-  const stepArt = [<SparkBook key="a" size={72} />, <UploadCloud key="b" size={72} />, <ChatPages key="c" size={72} />];
+  // The steps are upload, ask, get the answer: a cloud, pages that talk, a book
+  // that sparks. The first version had the book on upload and the cloud on ask.
+  const stepArt = [<UploadCloud key="a" size={72} />, <ChatPages key="b" size={72} />, <SparkBook key="c" size={72} />];
   const stepTint = ['bg-mint-subtle text-mint', 'bg-sky-subtle text-sky', 'bg-violet-subtle text-violet'];
 
   return (
@@ -121,12 +126,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((f, i) => (
               <Reveal key={f.title} delay={(i + 1) as 1 | 2 | 3 | 4} className="liftable flex flex-col rounded-2xl border border-border bg-surface p-6">
-                <div className="flex items-start justify-between" dir={dir}>
-                  <span className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${f.tint}`}>
-                    <f.icon className="h-5 w-5" />
-                  </span>
-                  {f.art}
-                </div>
+                <div className="flex items-start" dir={dir}>{f.art}</div>
                 <h3 className="mt-5 text-lg font-semibold" dir={dir}>{f.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground" dir={dir}>{f.desc}</p>
               </Reveal>

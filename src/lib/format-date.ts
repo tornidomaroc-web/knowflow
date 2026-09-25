@@ -6,8 +6,10 @@ import type { Locale } from '@/lib/i18n';
  * Dates appeared in three shapes on production: `toLocaleDateString()` with
  * no locale (the browser's), `'en-GB'` inside the Arabic UI, and `'ar'`
  * (which picks Eastern Arabic digits on most engines). Every date now goes
- * through here: `ar-MA` for Arabic, which Morocco reads with Western digits
- * and Arabic month names, and `en-GB` for English, day-month-year in both.
+ * through here: `ar-u-nu-latn` for Arabic (the standard month names, يوليو and
+ * أغسطس, which a Gulf student reads as well as a Moroccan one, with Western
+ * digits; `ar-MA` gave the Moroccan يوليوز and غشت, review #122), and `en-GB`
+ * for English, day-month-year in both.
  *
  * Wrap the result in `<bdi>` when it sits inside a sentence of the other
  * direction; the string itself carries no direction marks.
@@ -15,7 +17,7 @@ import type { Locale } from '@/lib/i18n';
 export function formatDate(value: string | number | Date, locale: Locale): string {
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-MA' : 'en-GB', {
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
