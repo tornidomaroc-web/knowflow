@@ -51,7 +51,9 @@ export function HeroDemo({ copy, rtl }: { copy: HeroDemoCopy; rtl: boolean }) {
             ))}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+        {/* Hidden below sm: #109 keeps the two CTAs above a 360px fold, and this row
+            costs the 48px that would push them under it. On a desk it is the fourth beat. */}
+        <div className="hidden flex-wrap gap-2 border-t border-border pt-4 sm:flex">
           <span className="hero-pop inline-flex items-center gap-1.5 rounded-full bg-mint-subtle px-3 py-1 text-xs font-semibold text-mint">
             <BookOpen className="h-3.5 w-3.5" />
             {copy.summaryReady}
