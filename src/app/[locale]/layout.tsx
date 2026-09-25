@@ -6,6 +6,7 @@ import { Rubik } from 'next/font/google';
 import { locales, Locale, useTranslation } from '@/lib/i18n';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
 import { THEME_BOOT_SCRIPT } from '@/lib/theme';
+import { ThemeSync } from '@/components/platform/ThemeSync';
 
 // Rubik covers Latin + Arabic in a single family — fixes the prior fonts, which
 // were Latin-only and left Arabic in an unstyled browser fallback.
@@ -95,6 +96,9 @@ export default async function LocaleLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body className="bg-background text-foreground font-sans antialiased">
+        {/* Restores the chosen theme after the 404's client-rendered shell
+            (see ThemeSync); a no-op on every other page. */}
+        <ThemeSync />
         {children}
       </body>
     </html>

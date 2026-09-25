@@ -72,6 +72,9 @@ if (theme?.THEME_BOOT_SCRIPT) {
   const htmlTag = layout.match(/<html[\s\S]*?>/)?.[0] ?? '';
   check(htmlTag !== '' && !/data-theme=/.test(htmlTag), '[locale]/layout.tsx renders data-theme on <html>, which resets the chosen theme on the 404');
   check(layout.includes('THEME_BOOT_SCRIPT'), '[locale]/layout.tsx does not inline THEME_BOOT_SCRIPT');
+  // The 404's client-rendered shell loses the attribute the script set, so a
+  // client component restores it after mount (witnessed on the preview).
+  check(layout.includes('<ThemeSync />') && existsSync(resolvePath(ROOT, 'src/components/platform/ThemeSync.tsx')), '[locale]/layout.tsx does not mount ThemeSync, so the 404 falls back to dark whatever was chosen');
 }
 
 // 3. The stylesheet.
