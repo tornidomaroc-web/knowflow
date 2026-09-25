@@ -1,4 +1,5 @@
 import type { Locale } from '@/lib/i18n'
+import { purchaseLinksAllowed } from '@/lib/platform'
 import type { PluralForms } from '@/lib/i18n/plural'
 import type {
   OnboardingStep,
@@ -114,7 +115,8 @@ export function buildHrefs(locale: Locale) {
     askHref: `/${locale}/dashboard/agent`,
     newSubjectHref: `/${locale}/dashboard/knowledge/new`,
     subjectsHref: `/${locale}/dashboard/knowledge`,
-    upgradeHref: `/${locale}/pricing`,
+    // Null in the store build: no purchase link inside the app (Apple 3.1.1(a)).
+    upgradeHref: purchaseLinksAllowed() ? `/${locale}/pricing` : null,
   }
 }
 

@@ -262,7 +262,10 @@ export const en = {
       create: "Create Subject",
       creating: "Creating...",
       errorAuth: "Not authenticated",
-      errorLimitFree: "You've reached the free plan's limit of {limit} subjects. Upgrade to Pro for more.",
+      // The upgrade sentence is its own key, appended on the WEB only (Apple
+      // 3.1.1(a); src/lib/platform.ts), so the store build never prints it.
+      errorLimitFree: "You've reached the free plan's limit of {limit} subjects.",
+      errorLimitUpgrade: "Upgrade to Pro for more.",
       errorLimitPro: "You've reached your limit of {limit} subjects."
     },
     kbDetail: {
@@ -339,6 +342,18 @@ export const en = {
     },
     settings: {
       title: "Settings",
+      // #46. The rebuilt page: a subtitle, a sentence per plan, the
+      // Preferences card, and the help-and-legal card Apple 5.1.1(i) wants
+      // reachable inside the app. No key here names a price.
+      subtitle: "Your account, plan and preferences.",
+      freePlanDesc: "The free plan. Your daily allowance is on your home screen.",
+      proPlanDesc: "Thank you for supporting KnowFlow.",
+      preferences: "Preferences",
+      language: "Language",
+      helpLegal: "Help & legal",
+      terms: "Terms of Service",
+      support: "Contact support",
+      supportDesc: "We answer by email.",
       account: "Account",
       email: "Email",
       plan: "Plan",

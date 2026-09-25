@@ -84,7 +84,8 @@ export interface StudentHomeProps {
   askHref: string;
   newSubjectHref: string;
   subjectsHref: string;
-  upgradeHref: string;
+  /** Null when no purchase link may be shown (Apple 3.1.1(a); src/lib/platform.ts). */
+  upgradeHref: string | null;
   isPro: boolean;
   quotas: QuotaMeter[];
   subjects: SubjectProgress[];
@@ -218,7 +219,7 @@ export function StudentHome({
         <section className="rounded-2xl border border-border bg-surface p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-foreground">{labels.planTitle}</h2>
-            {!isPro && (
+            {!isPro && upgradeHref && (
               <Link
                 href={upgradeHref}
                 className="inline-flex items-center gap-1.5 rounded-full border border-accent px-3 py-1 text-xs font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground"

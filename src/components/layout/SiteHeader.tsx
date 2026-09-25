@@ -78,7 +78,7 @@ export function SiteHeader({ locale, labels }: { locale: Locale; labels: SiteHea
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-header backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-border bg-header pt-[env(safe-area-inset-top)] backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-6 h-16 md:h-20 flex items-center justify-between gap-4">
         <Link
           href={`/${locale}`}

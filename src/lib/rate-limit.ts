@@ -14,6 +14,7 @@ import { getEntitlement } from '@/lib/entitlement';
 import { createClient } from '@/lib/supabase/server';
 import type { Tier } from '@/types';
 import type { Locale } from '@/lib/i18n';
+import type { Platform } from '@/lib/platform';
 import type { LimitKind } from '@/lib/limit-messages';
 import {
   dailyLimitMessage,
@@ -89,7 +90,10 @@ export interface LimitResult {
 export async function enforceLimit(
   userId: string,
   kind: UsageKind,
-  locale: Locale
+  locale: Locale,
+  // Which shell asked (`platformFromRequest`): the refusal's upgrade sentence
+  // is dropped in the store build (Apple 3.1.1(a); src/lib/platform.ts).
+  platform: Platform = 'web'
 ): Promise<LimitResult> {
   // Layer 1: burst guard (queries only). Returns before any DB write, so a
   // burst-denied request is not counted against the daily cap.
@@ -130,7 +134,7 @@ export async function enforceLimit(
     return {
       allowed: false,
       status: 429,
-      error: dailyLimitMessage(locale, kind, cap, tier, nextDailyReset()),
+      error: dailyLimitMessage(locale, kind, cap, tier, nextDailyReset(), new Date(), platform),
     };
   }
 

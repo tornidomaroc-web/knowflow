@@ -50,7 +50,7 @@ export function DashboardShell({
         no longer paint their own). `ms-60` offsets the desktop sidebar (mirrors
         under RTL); the mobile top/bottom padding clears the fixed bars.
       */}
-      <main className="min-h-screen bg-background p-4 pb-24 pt-[4.5rem] text-foreground md:ms-60 md:p-8">
+      <main className="min-h-screen bg-background p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[calc(4.5rem+env(safe-area-inset-top))] text-foreground md:ms-60 md:p-8">
         {children}
       </main>
     </div>

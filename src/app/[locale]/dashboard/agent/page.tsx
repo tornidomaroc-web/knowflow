@@ -81,7 +81,7 @@ export default async function AgentPage({
       parses `dvh` (2022) has supported `env()` since 2017/18, so there is no
       engine that would see this as invalid and drop it.
     */
-    <div className="flex flex-col h-[calc(100dvh-4.5rem-6rem-env(safe-area-inset-bottom))] md:h-[calc(100dvh-4rem)]">
+    <div className="flex flex-col h-[calc(100dvh-4.5rem-6rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-[calc(100dvh-4rem)]">
       {/*
         The <Database> generic types `language` as `string | null` because
         knowledge_bases.language is bare `text` with NO check constraint — the

@@ -4,6 +4,7 @@ import { getServiceUrl } from '@/lib/ingestion';
 import { checkDocumentLimit } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
 import { defaultLocale, resolveLocale, type Locale } from '@/lib/i18n';
+import { platformFromRequest } from '@/lib/platform';
 import { fileTooLargeMessage, subjectMaterialsMessage, uploadRefusalMessage } from '@/lib/limit-messages';
 import { isOverUploadLimit } from '@/lib/upload-limits';
 import { recordStudyEvent } from '@/lib/study-events';
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
       // Tier-correct: states the tier's actual per-subject cap (publishable in
       // both tiers) and offers the upgrade line to free users only.
       return NextResponse.json(
-        { error: subjectMaterialsMessage(safeLocale, docLimit.limit, docLimit.tier) },
+        { error: subjectMaterialsMessage(safeLocale, docLimit.limit, docLimit.tier, platformFromRequest(request)) },
         { status: 403 }
       );
     }
@@ -135,7 +136,7 @@ export async function POST(request: Request) {
     // B7 cost guard: daily upload cap, in front of the expensive storage +
     // ingestion/embedding work. Placed after the per-KB document check so the
     // counter only increments for uploads that actually proceed.
-    const limit = await enforceLimit(user.id, 'upload', safeLocale);
+    const limit = await enforceLimit(user.id, 'upload', safeLocale, platformFromRequest(request));
     if (!limit.allowed) {
       return NextResponse.json({ error: limit.error }, { status: limit.status });
     }

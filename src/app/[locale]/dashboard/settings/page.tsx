@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getEntitlement } from '@/lib/entitlement'
 import { redirect } from 'next/navigation'
@@ -8,7 +7,8 @@ import { CancelSubscriptionCard } from '@/components/dashboard/CancelSubscriptio
 import { readScheduledCancellation } from '@/lib/subscription/cancel'
 import { paddleClient } from '@/lib/paddle'
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n'
-import { withSupportEmail } from '@/lib/site'
+import { SUPPORT_EMAIL, withSupportEmail } from '@/lib/site'
+import { purchaseLinksAllowed } from '@/lib/platform'
 
 // Thin server wrapper: auth + entitlement only. Presentation lives in the dumb
 // <SettingsPanel/> (Phase 8 reuse).
@@ -52,52 +52,63 @@ export default async function SettingsPage({
     ? new Date(cancelsAt).toLocaleDateString(safeLocale === 'ar' ? 'ar' : 'en-GB')
     : null
 
+  const s = t.dashboard.settings
   return (
     <SettingsPanel
       email={user.email || ''}
       isPro={isPro}
       renewsOn={renewsOn}
       cancelsOn={cancelsOn}
-      upgradeHref={`/${safeLocale}/pricing`}
+      // Apple 3.1.1(a): inside the store build the plan card is status only.
+      // `purchaseLinksAllowed()` reads the build-time flag (src/lib/platform.ts).
+      upgradeHref={purchaseLinksAllowed() ? `/${safeLocale}/pricing` : null}
+      locale={safeLocale}
+      pathname={`/${safeLocale}/dashboard/settings`}
+      // Apple 5.1.1(i): the privacy policy must be linked "within the app in an
+      // easily accessible manner", not only from the marketing footer.
+      privacyHref={`/${safeLocale}/privacy`}
+      termsHref={`/${safeLocale}/terms`}
+      supportEmail={SUPPORT_EMAIL}
       labels={{
-        title: t.dashboard.settings.title,
-        account: t.dashboard.settings.account,
-        email: t.dashboard.settings.email,
-        plan: t.dashboard.settings.plan,
-        free: t.dashboard.settings.free,
-        pro: t.dashboard.settings.pro,
-        renews: t.dashboard.settings.renews,
-        cancels: t.dashboard.settings.cancels,
-        upgrade: t.dashboard.settings.upgrade,
-        activeSubscription: t.dashboard.settings.activeSubscription,
+        title: s.title,
+        subtitle: s.subtitle,
+        account: s.account,
+        email: s.email,
+        plan: s.plan,
+        free: s.free,
+        pro: s.pro,
+        freePlanDesc: s.freePlanDesc,
+        proPlanDesc: s.proPlanDesc,
+        renews: s.renews,
+        cancels: s.cancels,
+        upgrade: s.upgrade,
+        activeSubscription: s.activeSubscription,
+        preferences: s.preferences,
+        language: s.language,
+        appearance: t.nav.appearance,
+        themeDark: t.nav.themeDark,
+        themeLight: t.nav.themeLight,
+        helpLegal: s.helpLegal,
+        privacyPolicy: s.privacyPolicy,
+        terms: s.terms,
+        support: s.support,
+        supportDesc: s.supportDesc,
       }}
-    >
-      {/* ABOVE the delete card, deliberately. Register #70 is that the only way
-          to stop being billed was to destroy the account; a customer looking for
-          the gentler exit must meet it before the destructive one, not after. */}
-      {isPro && (
-        <CancelSubscriptionCard
-          labels={withSupportEmail(t.dashboard.settings.cancelSubscription)}
-          accessUntil={cancelsOn ?? renewsOn}
-          alreadyScheduled={Boolean(cancelsAt)}
-        />
-      )}
-
-      <DeleteAccountCard
-        homeHref={`/${safeLocale}`}
-        labels={withSupportEmail(t.dashboard.settings.deleteAccount)}
-      />
-
-      {/* Apple 5.1.1(i): the privacy policy must be linked "within the app in an
-          easily accessible manner", not only from the marketing footer. Before this,
-          the landing footer was the ONLY link to it anywhere in the product, so a
-          signed-in student -- and, at Phase 8, anyone inside the Capacitor shell --
-          had no path to it at all. */}
-      <p className="text-sm text-muted-foreground">
-        <Link href={`/${safeLocale}/privacy`} className="underline hover:text-foreground transition-colors">
-          {t.dashboard.settings.privacyPolicy}
-        </Link>
-      </p>
-    </SettingsPanel>
+      // ABOVE the delete card, deliberately. Register #70 is that the only way
+      // to stop being billed was to destroy the account; a customer looking for
+      // the gentler exit must meet it before the destructive one, not after.
+      subscriptionCard={
+        isPro ? (
+          <CancelSubscriptionCard
+            labels={withSupportEmail(s.cancelSubscription)}
+            accessUntil={cancelsOn ?? renewsOn}
+            alreadyScheduled={Boolean(cancelsAt)}
+          />
+        ) : null
+      }
+      deleteCard={
+        <DeleteAccountCard homeHref={`/${safeLocale}`} labels={withSupportEmail(s.deleteAccount)} />
+      }
+    />
   )
 }

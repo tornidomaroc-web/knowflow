@@ -10,9 +10,11 @@ import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
 
 /**
- * Mobile navigation (below md): a slim top bar (brand + sign-out) and a bottom
- * tab bar (thumb-reachable, ≥44px targets, safe-area padded for the Capacitor
- * shell in Phase 8). Row order and edges mirror automatically under dir="rtl".
+ * Mobile navigation (below md): a slim top bar (brand, language, theme,
+ * sign-out) and a bottom tab bar (thumb-reachable, ≥44px targets). Both bars
+ * pad by their safe-area inset, which is non-zero only because the viewport is
+ * `viewport-fit=cover` (register #96). Row order and edges mirror automatically
+ * under dir="rtl".
  */
 export function MobileNav({
   isPro,
@@ -29,7 +31,12 @@ export function MobileNav({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-surface px-4 md:hidden">
+      {/* The top bar runs under the notch: `viewport-fit=cover` (src/lib/viewport.ts)
+          makes the inset real, and the bar grows by it so its content stays
+          below the sensors. Register #96, corrected. */}
+      <header
+        className="fixed inset-x-0 top-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center justify-between border-b border-border bg-surface px-4 pt-[env(safe-area-inset-top)] md:hidden"
+      >
         <Link href={`/${locale}/dashboard`} className="text-lg font-bold tracking-tight text-foreground">
           Know<span className="text-primary">Flow</span>
         </Link>
