@@ -66,9 +66,12 @@ if (theme?.THEME_BOOT_SCRIPT) {
     : read('src/app/[locale]/dashboard/layout.tsx');
   check(!/data-theme=["']dark["']/.test(shell), 'the dashboard shell still hardcodes data-theme="dark", which would pin the app dark whatever the student chose');
   const layout = read('src/app/[locale]/layout.tsx');
-  check(/<html[\s\S]*?data-theme=\{DEFAULT_THEME\}[\s\S]*?>/.test(layout), '[locale]/layout.tsx does not put data-theme on <html>');
+  // The <html> JSX must NOT render data-theme: on the 404's client-rendered
+  // error shell React would set it back to the default after the boot script
+  // chose light (witnessed on the preview). The script alone owns it.
+  const htmlTag = layout.match(/<html[\s\S]*?>/)?.[0] ?? '';
+  check(htmlTag !== '' && !/data-theme=/.test(htmlTag), '[locale]/layout.tsx renders data-theme on <html>, which resets the chosen theme on the 404');
   check(layout.includes('THEME_BOOT_SCRIPT'), '[locale]/layout.tsx does not inline THEME_BOOT_SCRIPT');
-  check(layout.includes('suppressHydrationWarning'), '<html> needs suppressHydrationWarning, since the script changes the attribute before hydration');
 }
 
 // 3. The stylesheet.
