@@ -117,6 +117,10 @@ export const en = {
     googleLogin: "Sign in with Google",
     googleSignup: "Continue with Google",
     googleFailed: "We could not open Google sign in. Please try again.",
+    // Apple guideline 4.8. The two labels are Apple's own required wording.
+    appleLogin: "Sign in with Apple",
+    appleSignup: "Continue with Apple",
+    appleFailed: "We could not open Apple sign in. Please try again.",
     orDivider: "or",
     loggingIn: "Signing in...",
     noAccount: "Don't have an account? Sign up",

@@ -133,3 +133,9 @@ jobs:
       # accounts for its safe-area inset.
       - name: Verify the iPhone safe areas are declared and used (register #96)
         run: node --experimental-strip-types scripts/verify-safe-areas.mjs
+
+      # Apple guideline 4.8 (register #119). Calls the real startOAuth with a recording
+      # Supabase stub (provider apple, the shared callback, a refusal returned not
+      # thrown) and renders the real Apple button; both auth pages must carry it.
+      - name: Verify Sign in with Apple stands beside Google (register #119)
+        run: node --experimental-strip-types scripts/verify-apple-signin.mjs
