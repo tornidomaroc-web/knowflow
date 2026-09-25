@@ -70,7 +70,9 @@ if (has('src/lib/ask-suggestions.ts')) {
   check(en.dashboard.suggestions && ar.dashboard.suggestions, 'the suggestion templates are missing from a dictionary');
   if (en.dashboard.suggestions && ar.dashboard.suggestions) {
   check(materialTitle('Chapter 3.pdf') === 'Chapter 3' && materialTitle('مبادئ-الاقتصاد.md') === 'مبادئ-الاقتصاد', 'materialTitle strips the extension');
-  const s = askSuggestions(en.dashboard.suggestions, 'Statistics', ['Lecture 1.pdf', 'Problem set.docx', 'Extra.txt']);
+  // Materials are objects since #121: a name and the summary's first sentence.
+  const mat = (filename, lead = null) => ({ filename, lead });
+  const s = askSuggestions(en.dashboard.suggestions, 'Statistics', [mat('Lecture 1.pdf'), mat('Problem set.docx'), mat('Extra.txt')]);
   console.error(`en suggestions: ${JSON.stringify(s)}`);
   check(s.length === 3, 'three suggestions with materials');
   check(s[0].includes('Lecture 1') && !s[0].includes('.pdf'), 'the first suggestion names the first material without its extension');
@@ -78,7 +80,7 @@ if (has('src/lib/ask-suggestions.ts')) {
   check(s.every((q) => !/\{(subject|material)\}/.test(q)), 'every placeholder is filled');
   const none = askSuggestions(en.dashboard.suggestions, 'Statistics', []);
   check(none.length >= 2 && none.every((q) => q.includes('Statistics')), 'a subject with no materials still gets questions about itself');
-  const arS = askSuggestions(ar.dashboard.suggestions, 'الإحصاء', ['محاضرة 1.pdf']);
+  const arS = askSuggestions(ar.dashboard.suggestions, 'الإحصاء', [mat('محاضرة 1.pdf')]);
   check(arS.length >= 2 && arS[0].includes('محاضرة 1'), 'Arabic templates fill the same way');
   }
 }
@@ -123,7 +125,7 @@ if (has('src/lib/ask-suggestions.ts')) {
 // 4. The wiring, read.
 {
   const chat = read('src/components/agent/ChatBox.tsx');
-  check(/materialNames/.test(chat) && /askSuggestions\(/.test(chat), 'ChatBox does not render suggestions');
+  check(/materials/.test(chat) && /askSuggestions\(/.test(chat), 'ChatBox does not render suggestions');
   const sel = read('src/components/agent/KBSelector.tsx');
   check(/searchParams\.get\('kb'\)/.test(sel), 'KBSelector does not honour ?kb=');
   const agentPage = read('src/app/[locale]/dashboard/agent/page.tsx');
