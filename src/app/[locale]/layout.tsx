@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { Rubik } from 'next/font/google';
 import { locales, Locale, useTranslation } from '@/lib/i18n';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
+import { DEFAULT_THEME, THEME_BOOT_SCRIPT } from '@/lib/theme';
 
 // Rubik covers Latin + Arabic in a single family — fixes the prior fonts, which
 // were Latin-only and left Arabic in an unstyled browser fallback.
@@ -80,7 +81,20 @@ export default async function LocaleLayout({
   }
 
   return (
-    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} className={rubik.variable}>
+    // `data-theme` is the server's default and the boot script's target: the
+    // script in <head> replaces it from the kf-theme cookie before first paint,
+    // which is why `suppressHydrationWarning` is on this element and only this
+    // one (register #46; `src/lib/theme.ts` has the rule).
+    <html
+      lang={locale}
+      dir={locale === 'ar' ? 'rtl' : 'ltr'}
+      className={rubik.variable}
+      data-theme={DEFAULT_THEME}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className="bg-background text-foreground font-sans antialiased">
         {children}
       </body>

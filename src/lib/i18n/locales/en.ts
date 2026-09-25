@@ -14,7 +14,12 @@ export const en = {
     signIn: "Sign in",
     getStarted: "Start free",
     // Screen-reader only: the hamburger's name (#48). Never rendered as text.
-    menu: "Menu"
+    menu: "Menu",
+    // The theme toggle (#46). `appearance` names the control for a screen
+    // reader and heads the Settings card; the two are the options.
+    appearance: "Appearance",
+    themeDark: "Dark",
+    themeLight: "Light"
   },
   hero: {
     badge: "Made for students · Arabic & English",

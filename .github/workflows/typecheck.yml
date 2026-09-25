@@ -114,3 +114,10 @@ jobs:
       # and the in-app language switch that keeps the page.
       - name: Verify one default locale, the remembered choice and the in-app switch (register #83)
         run: node --experimental-strip-types scripts/verify-locale-default.mjs
+
+      # Register #46 (the toggle) and three items #101 held. Executes the inline
+      # theme boot script against a fake document, and checks that nothing pins
+      # the theme, that color-scheme and the Arabic tracking resets are set, and
+      # that the 404 is the product's own page.
+      - name: Verify the theme boots from the cookie before paint (register #46, #101)
+        run: node --experimental-strip-types scripts/verify-theme.mjs

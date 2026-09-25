@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui';
 import { ENDONYM, otherLocale, switchLocaleHref, type Locale } from '@/lib/i18n';
 import { getNavItems, isNavActive, type NavLabels } from './nav-items';
 import { SignOutButton } from './SignOutButton';
+import { ThemeToggle } from './ThemeToggle';
 
 /**
  * Mobile navigation (below md): a slim top bar (brand + sign-out) and a bottom
@@ -42,6 +43,10 @@ export function MobileNav({
           >
             {ENDONYM[otherLocale(locale)]}
           </Link>
+          <ThemeToggle
+            variant="icon"
+            labels={{ appearance: labels.appearance, dark: labels.themeDark, light: labels.themeLight }}
+          />
           {isPro && <Badge>PRO</Badge>}
           <SignOutButton locale={locale} label={labels.signOut} iconOnly />
         </div>
