@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { Input, buttonVariants } from '@/components/ui';
-import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
+import { useTranslation, Locale, resolveLocale } from '@/lib/i18n';
+import { purchaseLinksAllowed } from '@/lib/platform';
 import { KB_LANGUAGES, type KbLanguage } from '@/types';
 
 const fieldClass =
@@ -62,7 +63,8 @@ export default function NewKnowledgeBasePage({
       // the copy can never drift from the enforced number. A Pro user never sees
       // the free-plan / upgrade wording.
       const template = tier === 'pro' ? t.dashboard.newKb.errorLimitPro : t.dashboard.newKb.errorLimitFree;
-      setError(template.replace('{limit}', String(limit)));
+      const upgrade = tier !== 'pro' && purchaseLinksAllowed() ? ' ' + t.dashboard.newKb.errorLimitUpgrade : '';
+      setError(template.replace('{limit}', String(limit)) + upgrade);
       setLoading(false);
       return;
     }

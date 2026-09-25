@@ -254,7 +254,8 @@ export const ar: Translation = {
       create: "إنشاء مادة",
       creating: "جارٍ الإنشاء...",
       errorAuth: "غير مصادق عليه",
-      errorLimitFree: "لقد بلغت الحد الأقصى للمواد في الباقة المجانية ({limit}). قم بالترقية إلى الاحترافي للمزيد.",
+      errorLimitFree: "لقد بلغت الحد الأقصى للمواد في الباقة المجانية ({limit}).",
+      errorLimitUpgrade: "قم بالترقية إلى الاحترافي للمزيد.",
       errorLimitPro: "لقد بلغت الحد الأقصى للمواد ({limit})."
     },
     kbDetail: {
@@ -326,6 +327,15 @@ export const ar: Translation = {
     },
     settings: {
       title: "الإعدادات",
+      subtitle: "حسابك وباقتك وتفضيلاتك.",
+      freePlanDesc: "الباقة المجانية. حصتك اليومية معروضة في صفحتك الرئيسية.",
+      proPlanDesc: "شكرًا لدعمك KnowFlow.",
+      preferences: "التفضيلات",
+      language: "اللغة",
+      helpLegal: "المساعدة والقانوني",
+      terms: "شروط الخدمة",
+      support: "تواصل مع الدعم",
+      supportDesc: "نرد عبر البريد الإلكتروني.",
       account: "الحساب",
       email: "البريد الإلكتروني",
       plan: "الباقة",

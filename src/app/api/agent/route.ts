@@ -5,6 +5,7 @@ import { checkConversationLimit, conversationMonthWindow } from '@/lib/limits-se
 import { enforceLimit } from '@/lib/rate-limit';
 import { resolveLocale, type Locale } from '@/lib/i18n';
 import { monthlyConversationMessage } from '@/lib/limit-messages';
+import { platformFromRequest } from '@/lib/platform';
 import { embedQuery } from '@/lib/ingestion';
 import { recordStudyEvent } from '@/lib/study-events';
 import {
@@ -115,7 +116,8 @@ export async function POST(request: Request) {
     // B7 cost guard: burst + daily query cap, in front of the expensive
     // embed/retrieve/Claude work. Returned as text/plain (not JSON) so the
     // streaming client renders the message cleanly while the status is a real 429.
-    const limit = await enforceLimit(user.id, 'query', safeLocale);
+    const platform = platformFromRequest(request);
+    const limit = await enforceLimit(user.id, 'query', safeLocale, platform);
     if (!limit.allowed) {
       return new Response(limit.error, {
         status: limit.status,
@@ -131,7 +133,9 @@ export async function POST(request: Request) {
         safeLocale,
         convoLimit.limit,
         convoLimit.tier,
-        conversationMonthWindow().nextStart
+        conversationMonthWindow().nextStart,
+        new Date(),
+        platform
       );
       const encoder = new TextEncoder();
       const readable = new ReadableStream({

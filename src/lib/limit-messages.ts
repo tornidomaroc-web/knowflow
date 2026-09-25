@@ -2,6 +2,7 @@ import type { Locale } from '@/lib/i18n';
 import { pluralize, type PluralForms } from '@/lib/i18n/plural';
 import type { Tier } from '@/types';
 import { MAX_UPLOAD_BYTES, isOverUploadLimit, type UploadReply } from '@/lib/upload-limits';
+import { purchaseLinksAllowed, type Platform } from '@/lib/platform';
 
 /**
  * The one place every limit message a student can read is written (register #1).
@@ -157,7 +158,12 @@ function resetClause(locale: Locale, resetAt: Date, now: Date): string {
     : `It resets in about ${phrase}.`;
 }
 
-/** Shown to free users only. States what Pro gives, never what it costs. */
+/**
+ * Shown to free users only, ON THE WEB ONLY. States what Pro gives, never what
+ * it costs. Inside the packaged app it is a "call to action that directs
+ * customers to purchasing mechanisms other than in-app purchase" (Apple
+ * 3.1.1(a)), so `upgradeLine` returns nothing there; `src/lib/platform.ts`.
+ */
 const UPGRADE: Record<Locale, string> = {
   en: 'Pro has higher limits.',
   ar: 'الباقة الاحترافية تتيح حدودًا أعلى.',
@@ -167,6 +173,12 @@ const UPGRADE_MATERIALS: Record<Locale, string> = {
   en: 'Pro subjects hold more.',
   ar: 'الباقة الاحترافية تتيح عددًا أكبر.',
 };
+
+/** The upgrade sentence a free student may be shown, or nothing in the store build. */
+function upgradeLine(table: Record<Locale, string>, locale: Locale, tier: Tier, platform: Platform): string {
+  if (tier === 'pro') return '';
+  return purchaseLinksAllowed(platform) ? table[locale] : '';
+}
 
 /**
  * WHAT A FULL SUBJECT MAY SAY, AND WHY IT IS A WARNING RATHER THAN ADVICE.
@@ -221,7 +233,8 @@ export function dailyLimitMessage(
   cap: number,
   tier: Tier,
   resetAt: Date,
-  now: Date = new Date()
+  now: Date = new Date(),
+  platform: Platform = 'web'
 ): string {
   const noun = NOUN[locale][kind];
   // Pro's cap is withheld (see the numbers note above), so the head names the
@@ -237,7 +250,7 @@ export function dailyLimitMessage(
   return join([
     head,
     resetClause(locale, resetAt, now),
-    tier === 'pro' ? '' : UPGRADE[locale],
+    upgradeLine(UPGRADE, locale, tier, platform),
   ]);
 }
 
@@ -246,7 +259,8 @@ export function monthlyConversationMessage(
   cap: number,
   tier: Tier,
   resetAt: Date,
-  now: Date = new Date()
+  now: Date = new Date(),
+  platform: Platform = 'web'
 ): string {
   const head =
     tier === 'pro'
@@ -259,7 +273,7 @@ export function monthlyConversationMessage(
   return join([
     head,
     resetClause(locale, resetAt, now),
-    tier === 'pro' ? '' : UPGRADE[locale],
+    upgradeLine(UPGRADE, locale, tier, platform),
   ]);
 }
 
@@ -272,7 +286,8 @@ export function monthlyConversationMessage(
 export function subjectMaterialsMessage(
   locale: Locale,
   cap: number,
-  tier: Tier
+  tier: Tier,
+  platform: Platform = 'web'
 ): string {
   const head =
     locale === 'ar'
@@ -282,7 +297,7 @@ export function subjectMaterialsMessage(
     head,
     DELETE_FREES_A_PLACE[locale],
     ASK_IS_SINGLE_SUBJECT[locale],
-    tier === 'pro' ? '' : UPGRADE_MATERIALS[locale],
+    upgradeLine(UPGRADE_MATERIALS, locale, tier, platform),
   ]);
 }
 

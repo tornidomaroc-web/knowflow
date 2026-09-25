@@ -121,3 +121,15 @@ jobs:
       # that the 404 is the product's own page.
       - name: Verify the theme boots from the cookie before paint (register #46, #101)
         run: node --experimental-strip-types scripts/verify-theme.mjs
+
+      # Apple 3.1.1(a), the Phase 8 gate (register #46). Calls the three real server
+      # refusals with the native and web platform, and RENDERS the real Settings and
+      # StudentHome with react-dom/server: no purchase link or upgrade sentence in
+      # the store build, every one of them on the web.
+      - name: Verify no purchase link reaches the store build (Apple 3.1.1(a), register #46)
+        run: node --experimental-strip-types scripts/verify-store-purchase-links.mjs
+
+      # Register #96, corrected: viewport-fit=cover is declared and every fixed bar
+      # accounts for its safe-area inset.
+      - name: Verify the iPhone safe areas are declared and used (register #96)
+        run: node --experimental-strip-types scripts/verify-safe-areas.mjs

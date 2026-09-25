@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { enforceLimit } from '@/lib/rate-limit';
 import { resolveLocale } from '@/lib/i18n';
+import { platformFromRequest } from '@/lib/platform';
 import { recordStudyEvent } from '@/lib/study-events';
 import { usageTokens, usageUsd } from '@/lib/usage-cost';
 
@@ -154,7 +155,7 @@ export async function POST(request: Request) {
     // (Matches /api/agent and /api/ingest: the atomic increment happens before the
     // paid work, so a rare model failure after this point still counts — the
     // fail-closed cost ceiling is preferred pre-revenue over a decrement race.)
-    const limit = await enforceLimit(user.id, 'summary', lang);
+    const limit = await enforceLimit(user.id, 'summary', lang, platformFromRequest(request));
     if (!limit.allowed) {
       return NextResponse.json({ error: limit.error }, { status: limit.status });
     }
