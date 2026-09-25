@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 import { Rubik } from 'next/font/google';
 import { locales, Locale, useTranslation } from '@/lib/i18n';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
-import { DEFAULT_THEME, THEME_BOOT_SCRIPT } from '@/lib/theme';
+import { THEME_BOOT_SCRIPT } from '@/lib/theme';
 
 // Rubik covers Latin + Arabic in a single family — fixes the prior fonts, which
 // were Latin-only and left Arabic in an unstyled browser fallback.
@@ -81,17 +81,16 @@ export default async function LocaleLayout({
   }
 
   return (
-    // `data-theme` is the server's default and the boot script's target: the
-    // script in <head> replaces it from the kf-theme cookie before first paint,
-    // which is why `suppressHydrationWarning` is on this element and only this
-    // one (register #46; `src/lib/theme.ts` has the rule).
-    <html
-      lang={locale}
-      dir={locale === 'ar' ? 'rtl' : 'ltr'}
-      className={rubik.variable}
-      data-theme={DEFAULT_THEME}
-      suppressHydrationWarning
-    >
+    // NO `data-theme` HERE, ON PURPOSE. The boot script in <head> sets it from
+    // the kf-theme cookie before first paint, and :root already carries the
+    // dark palette, so an absent attribute IS the default. Writing
+    // data-theme="dark" in this JSX was tried and it broke the 404: Next serves
+    // an unmatched URL as an error shell (<html id="__next_error__">) that is
+    // client-rendered rather than hydrated, and that render set the attribute
+    // back to "dark" AFTER the script had chosen light. Witnessed on the PR
+    // preview. An attribute React never renders is one React never resets
+    // (register #46; `src/lib/theme.ts` has the rule).
+    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} className={rubik.variable}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
