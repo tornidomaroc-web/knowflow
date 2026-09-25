@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { SubjectsList } from '@/components/dashboard/SubjectsList';
-import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 
 // Thin server wrapper: data only. Presentation lives in <SubjectsList/> (dumb,
 // prop-driven) so it can be reused/storybooked in Phase 8.
@@ -10,7 +10,7 @@ export default async function KnowledgeBasesPage({
   params: Promise<{ locale: Locale }>;
 }) {
   const { locale } = await params;
-  const safeLocale: Locale = locales.includes(locale) ? locale : 'en';
+  const safeLocale: Locale = resolveLocale(locale);
   const t = useTranslation(safeLocale);
 
   const supabase = await createClient();

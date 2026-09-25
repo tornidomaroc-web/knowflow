@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { enforceLimit } from '@/lib/rate-limit';
+import { resolveLocale } from '@/lib/i18n';
 import { usageTokens, usageUsd } from '@/lib/usage-cost';
 import type { ClientQuizItem, Quiz } from '@/types';
 
@@ -178,9 +179,10 @@ export async function POST(request: Request) {
     }
 
     // 2. Fail-closed language whitelist. Questions follow the APP UI language
-    //    (register #27), never the document's. Any value other than 'ar'
-    //    collapses to 'en'; only the derived directive is interpolated.
-    const lang = locale === 'ar' ? 'ar' : 'en';
+    //    (register #27), never the document's. Any value that is not a locale
+    //    this app has collapses to the default, Arabic (register #83 (c));
+    //    only the derived directive is interpolated.
+    const lang = resolveLocale(locale);
 
     // 3. Auth.
     const supabase = await createClient();

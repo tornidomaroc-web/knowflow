@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
-import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 
 interface Conversation {
   id: string;
@@ -21,7 +21,7 @@ interface Props {
 
 export function ConversationSidebar({ activeId, onSelect, onNew, conversations }: Props) {
   const params = useParams<{ locale: Locale }>();
-  const safeLocale: Locale = locales.includes(params.locale) ? params.locale : 'en';
+  const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
 
   return (

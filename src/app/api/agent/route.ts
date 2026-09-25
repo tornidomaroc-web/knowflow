@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkConversationLimit, conversationMonthWindow } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
-import type { Locale } from '@/lib/i18n';
+import { resolveLocale, type Locale } from '@/lib/i18n';
 import { monthlyConversationMessage } from '@/lib/limit-messages';
 import { embedQuery } from '@/lib/ingestion';
 import { recordStudyEvent } from '@/lib/study-events';
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     const { message, kb_id, conversation_id, locale } = await request.json();
     // Whitelisted server-side, exactly as /api/summarize does (register #27):
     // the value is never interpolated, only used to pick a locale key.
-    const safeLocale: Locale = locale === 'ar' ? 'ar' : 'en';
+    const safeLocale: Locale = resolveLocale(locale);
     if (!message || !kb_id) {
       return NextResponse.json({ error: 'Missing message or kb_id' }, { status: 400 });
     }

@@ -6,7 +6,7 @@ import { Menu } from 'lucide-react';
 import type { KnowledgeBase } from '@/types';
 import { cn } from '@/lib/utils';
 import { Sheet } from '@/components/ui';
-import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { ChatBox } from './ChatBox';
 import { ConversationSidebar } from './ConversationSidebar';
 import { createClient } from '@/lib/supabase/client';
@@ -20,7 +20,7 @@ interface Conversation {
 
 export function KBSelector({ kbs }: { kbs: KnowledgeBase[] }) {
   const params = useParams<{ locale: Locale }>();
-  const safeLocale: Locale = locales.includes(params.locale) ? params.locale : 'en';
+  const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
   const isRtl = safeLocale === 'ar';
 

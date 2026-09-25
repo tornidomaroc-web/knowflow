@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { Input, buttonVariants } from '@/components/ui';
-import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { KB_LANGUAGES, type KbLanguage } from '@/types';
 
 const fieldClass =
@@ -33,7 +33,7 @@ export default function NewKnowledgeBasePage({
   params: Promise<{ locale: Locale }>;
 }) {
   const { locale } = use(params);
-  const safeLocale: Locale = locales.includes(locale) ? locale : 'en';
+  const safeLocale: Locale = resolveLocale(locale);
   const t = useTranslation(safeLocale);
   const router = useRouter();
   const supabase = createClient();

@@ -8,6 +8,7 @@ import { pluralize } from '@/lib/i18n/plural'
 import { FREE_LIMITS } from '@/lib/limits'
 import { DAILY_CAPS } from '@/lib/rate-limit'
 import { buildHomeLabels, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
+import { DashboardShell } from '@/components/layout/DashboardShell'
 
 /**
  * DESIGN PREVIEW for the student home (#85) — the surface Abo Jad judges on.
@@ -152,7 +153,21 @@ export default async function StudentHomePreview({
         </Link>
       </div>
 
-      <div className="p-4 md:p-8">
+      {/* The real chrome (register #83 (b)): the sidebar and mobile nav carry
+          the language switch, and this is the one place it can be seen without
+          a session. The email is a literal. */}
+      <DashboardShell
+        locale={safeLocale}
+        email="student@example.com"
+        isPro={false}
+        labels={{
+          dashboard: t.dashboard.nav.dashboard,
+          knowledge: t.dashboard.nav.knowledge,
+          agent: t.dashboard.nav.agent,
+          settings: t.dashboard.nav.settings,
+          signOut: t.dashboard.nav.signOut,
+        }}
+      >
         <StudentHome
           stats={stats}
           streak={streak}
@@ -171,7 +186,7 @@ export default async function StudentHomePreview({
           })}
           recentActivity={recentActivity}
         />
-      </div>
+      </DashboardShell>
     </div>
   )
 }

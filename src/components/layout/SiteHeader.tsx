@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Menu, X } from 'lucide-react';
-import { locales, type Locale } from '@/lib/i18n';
+import { ENDONYM, otherLocale, switchLocaleHref, type Locale } from '@/lib/i18n';
 
 export interface SiteHeaderLabels {
   /** The wordmark, which is the product name in both dictionaries. */
@@ -17,16 +17,6 @@ export interface SiteHeaderLabels {
   /** Screen-reader only: the hamburger's name. Never rendered as text. */
   menu: string;
 }
-
-/**
- * A language's name in its OWN language does not translate, so these are not
- * dictionary entries: "English" is English in the Arabic UI and "العربية" is
- * Arabic in the English one. Two dictionary keys would have held four strings
- * with only two distinct values, and the pair that matters — the one a student
- * on the wrong locale has to recognise — would have been the pair they cannot
- * read. Register #83 asked for the switcher; this is the label half of it.
- */
-const ENDONYM: Record<Locale, string> = { en: 'English', ar: 'العربية' };
 
 /**
  * The public site's header, shared by the landing and the six marketing and
@@ -61,16 +51,11 @@ export function SiteHeader({ locale, labels }: { locale: Locale; labels: SiteHea
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
-  const other: Locale = locale === 'en' ? 'ar' : 'en';
-  /**
-   * Same page, other language. `usePathname()` carries no query string, so a
-   * switch drops one — the only query this shell ever sees is a campaign tag,
-   * and no page here reads one. It does not carry the hash either, which is
-   * what a browser gives us: the fragment never reaches the server.
-   */
-  const switchHref = locales.some((l) => pathname === `/${l}` || pathname.startsWith(`/${l}/`))
-    ? `/${other}${pathname.slice(locale.length + 1)}`
-    : `/${other}`;
+  // Same page, other language. The label and the href rule live in
+  // `@/lib/i18n` since the dashboard's sidebar and mobile nav carry the same
+  // control (register #83 (b)); the middleware remembers whichever is followed.
+  const other = otherLocale(locale);
+  const switchHref = switchLocaleHref(locale, pathname);
 
   const links = [
     // ABSOLUTE, not the bare `#how-it-works` the landing carried alone. This

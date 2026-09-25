@@ -1,13 +1,12 @@
 import { ReactNode } from 'react';
 import { cookies } from 'next/headers';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { MobileNav } from '@/components/layout/MobileNav';
+import { DashboardShell } from '@/components/layout/DashboardShell';
 import { PasswordReplacedNotice } from '@/components/dashboard/PasswordReplacedNotice';
 import { createClient } from '@/lib/supabase/server';
 import { getEntitlement } from '@/lib/entitlement';
 import { PASSWORD_REPLACED_COOKIE } from '@/lib/auth/password-replaced';
 import { redirect } from 'next/navigation';
-import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 
 export default async function DashboardLayout({
   children,
@@ -17,7 +16,7 @@ export default async function DashboardLayout({
   params: Promise<{ locale: Locale }>;
 }) {
   const { locale } = await params;
-  const safeLocale: Locale = locales.includes(locale) ? locale : 'en';
+  const safeLocale: Locale = resolveLocale(locale);
   const t = useTranslation(safeLocale);
 
   const supabase = await createClient();
@@ -52,34 +51,15 @@ export default async function DashboardLayout({
     signOut: t.dashboard.nav.signOut,
   };
 
-  // #85 CHROME REPAINT. ONE attribute themes the entire dashboard shell.
-  // Sidebar, MobileNav and the canvas below paint with semantic utilities ONLY
-  // (bg-surface, border-border, text-muted-foreground, bg-primary-subtle), so
-  // not one of them needed a class change - they resolve to the dark values
-  // purely by sitting inside the subtree. Flipping this attribute to "light"
-  // is the entire light half of the toggle.
   return (
-    <div className="min-h-screen bg-background" data-theme="dark">
-      <Sidebar userEmail={user.email || ''} isPro={isPro} locale={safeLocale} labels={labels} />
-      <MobileNav userEmail={user.email || ''} isPro={isPro} locale={safeLocale} labels={labels} />
-
-      {/*
-        The content canvas for every dashboard screen. WORDING CORRECTED #85:
-        this line read "The light content canvas ..." and is no longer true —
-        the shell above carries data-theme and this canvas follows it. (P2.7 flip — all
-        screens are migrated, so this owns the background + padding and screens
-        no longer paint their own). `ms-60` offsets the desktop sidebar (mirrors
-        under RTL); the mobile top/bottom padding clears the fixed bars.
-      */}
-      <main className="min-h-screen bg-background p-4 pb-24 pt-[4.5rem] text-foreground md:ms-60 md:p-8">
-        {passwordReplaced && (
-          <PasswordReplacedNotice
-            locale={safeLocale}
-            labels={t.dashboard.passwordReplaced}
-          />
-        )}
-        {children}
-      </main>
-    </div>
+    <DashboardShell locale={safeLocale} email={user.email || ''} isPro={isPro} labels={labels}>
+      {passwordReplaced && (
+        <PasswordReplacedNotice
+          locale={safeLocale}
+          labels={t.dashboard.passwordReplaced}
+        />
+      )}
+      {children}
+    </DashboardShell>
   );
 }

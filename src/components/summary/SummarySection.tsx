@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { buttonVariants } from '@/components/ui';
-import { Locale, locales, useTranslation } from '@/lib/i18n';
+import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { readServerLimitMessage } from '@/lib/limit-messages';
 
 // Only the fields this section needs from a document. The subject page already
@@ -18,7 +18,7 @@ interface SummaryDoc {
 
 export function SummarySection({ doc }: { doc: SummaryDoc }) {
   const params = useParams<{ locale: Locale }>();
-  const safeLocale: Locale = locales.includes(params.locale) ? params.locale : 'en';
+  const safeLocale: Locale = resolveLocale(params.locale);
   const s = useTranslation(safeLocale).dashboard.summary;
 
   // Seed from the row we already have. `summary` truthy = a real generated

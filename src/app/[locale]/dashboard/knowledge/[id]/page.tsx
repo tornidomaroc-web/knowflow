@@ -8,7 +8,7 @@ import { QuizSection } from '@/components/quiz/QuizSection'
 import { DeleteMaterialControl } from '@/components/materials/DeleteMaterialControl'
 import { RenameMaterialControl } from '@/components/materials/RenameMaterialControl'
 import type { Document } from '@/types'
-import { Locale, locales, useTranslation } from '@/lib/i18n'
+import { Locale, useTranslation, resolveLocale } from '@/lib/i18n'
 import { withSupportEmail } from '@/lib/site'
 
 interface KB {
@@ -20,7 +20,7 @@ interface KB {
 
 export default function KBDetailPage({ params }: { params: Promise<{ id: string; locale: Locale }> }) {
   const { id, locale } = React.use(params)
-  const safeLocale: Locale = locales.includes(locale) ? locale : 'en'
+  const safeLocale: Locale = resolveLocale(locale)
   const t = useTranslation(safeLocale)
   const [kb, setKb] = useState<KB | null>(null)
   const [docs, setDocs] = useState<Document[]>([])
