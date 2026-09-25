@@ -80,8 +80,8 @@ for (const p of ['src/components/dashboard/StudentHome.tsx', 'src/components/das
     check(m.materialTopic({ filename: 'xilvaroth-n11-20260810.pdf', lead: null }) === null, 'an export-code file name must not become a topic');
     check(m.materialTopic({ filename: 'Chapter 3 notes.pdf', lead: null }) === 'Chapter 3 notes', 'a title-like file name is a topic');
     check(m.materialTopic({ filename: 'مبادئ-الاقتصاد.md', lead: null }) === 'مبادئ-الاقتصاد', 'an Arabic file name is a topic');
-    check(m.materialTopic({ filename: 'xilvaroth-n11-20260810.pdf', lead: 'يشرح الفصل مرونة الطلب السعرية وعواملها.' }) === 'يشرح الفصل مرونة الطلب السعرية وعواملها.', 'a summary lead beats the file name');
-    check(m.summaryLead('First sentence here. Second one.') === 'First sentence here.', 'summaryLead takes the first sentence');
+    check(m.materialTopic({ filename: 'xilvaroth-n11-20260810.pdf', lead: 'يشرح الفصل مرونة الطلب السعرية وعواملها.' }) === 'يشرح الفصل مرونة الطلب السعرية وعواملها', 'a summary lead beats the file name (without its full stop)');
+    check(m.summaryLead('First sentence here. Second one.') === 'First sentence here', 'summaryLead takes the first sentence, without its stop');
     check((m.summaryLead('x'.repeat(200)) ?? '').length <= 72, 'summaryLead is cut');
     const { ar } = await load('src/lib/i18n/locales/ar.ts');
     const qs = m.askSuggestions(ar.dashboard.suggestions, 'الاقتصاد', [{ filename: 'xilvaroth-n11-20260810.pdf', lead: null }, { filename: 'Lecture 2.pdf', lead: null }]);

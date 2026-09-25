@@ -312,9 +312,10 @@ export const en = {
     },
     suggestions: {
       heading: "Try asking",
-      mainIdeas: "What are the main ideas in {material}?",
+      // The material is quoted: a summary's first sentence can stand in for a title.
+      mainIdeas: "What are the main ideas in “{material}”?",
       hardest: "Explain the hardest concept in {subject} simply.",
-      example: "Give me an example that tests what {material} covers.",
+      example: "Give me an example that tests “{material}”.",
       overview: "What does {subject} cover, in a few lines?",
     },
     continueCard: {

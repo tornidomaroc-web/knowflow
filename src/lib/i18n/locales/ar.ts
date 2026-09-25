@@ -297,9 +297,9 @@ export const ar: Translation = {
     },
     suggestions: {
       heading: "جرّب أن تسأل",
-      mainIdeas: "ما الأفكار الرئيسية في {material}؟",
+      mainIdeas: "ما الأفكار الرئيسية في «{material}»؟",
       hardest: "اشرح أصعب مفهوم في {subject} ببساطة.",
-      example: "أعطني مثالًا يختبر ما يغطيه {material}.",
+      example: "أعطني مثالًا يختبر «{material}».",
       overview: "ماذا تغطي {subject} في بضعة أسطر؟",
     },
     continueCard: {

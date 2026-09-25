@@ -88,7 +88,9 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
   }, []);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    // Only with messages: on the empty state this scrolled the illustration and
+    // the headline out of view on a phone (seen on the preview, #122).
+    if (scrollRef.current && messages.length > 0) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, isLoading]);
 
   // `preset` is a pressed suggestion (#85); it goes exactly where typed text goes.

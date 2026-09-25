@@ -327,9 +327,9 @@ file is not read by the app.
 | Key | العربية | English |
 |---|---|---|
 | `dashboard.suggestions.heading` | جرّب أن تسأل | Try asking |
-| `dashboard.suggestions.mainIdeas` | ما الأفكار الرئيسية في {material}؟ | What are the main ideas in {material}? |
+| `dashboard.suggestions.mainIdeas` | ما الأفكار الرئيسية في «{material}»؟ | What are the main ideas in “{material}”? |
 | `dashboard.suggestions.hardest` | اشرح أصعب مفهوم في {subject} ببساطة. | Explain the hardest concept in {subject} simply. |
-| `dashboard.suggestions.example` | أعطني مثالًا يختبر ما يغطيه {material}. | Give me an example that tests what {material} covers. |
+| `dashboard.suggestions.example` | أعطني مثالًا يختبر «{material}». | Give me an example that tests “{material}”. |
 | `dashboard.suggestions.overview` | ماذا تغطي {subject} في بضعة أسطر؟ | What does {subject} cover, in a few lines? |
 
 ## Signed-in app: continueCard (`dashboard.continueCard`)
