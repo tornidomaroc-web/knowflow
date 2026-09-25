@@ -34,7 +34,7 @@ import type { Tier } from '@/types';
  * window until `current_period_end`, which the time check below enforces. This
  * is what prevents a single failed charge from causing instant lockout.
  */
-export const ENTITLED_STATUSES = new Set(['pro', 'active', 'trialing']); // DELIBERATE BREAK for the #125 CI red run, reverted in the next commit
+export const ENTITLED_STATUSES = new Set(['pro', 'active', 'trialing', 'past_due']);
 
 /**
  * Pure tier derivation for ONE row, separated from the DB read so it can be
