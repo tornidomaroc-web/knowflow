@@ -27,7 +27,7 @@
  *   node --experimental-strip-types scripts/verify-entitlement-plural-read.mjs
  */
 import { pathToFileURL } from 'node:url';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
@@ -75,7 +75,20 @@ teardown();
 console.log('starting throwaway postgres + postgrest…');
 run('docker', ['network', 'create', NET]);
 run('docker', ['run', '-d', '--name', PG, '--network', NET, '-e', 'POSTGRES_PASSWORD=testpw', '-e', 'POSTGRES_DB=kftest', 'postgres:16-alpine']);
-await waitFor('postgres', async () => quiet('docker', ['exec', PG, 'pg_isready', '-U', 'postgres', '-d', 'kftest']).includes('accepting'));
+// Register #125. `pg_isready` alone is not readiness: the postgres image's
+// entrypoint first runs a TEMPORARY server to initialise the database, which
+// answers "accepting connections", then stops it and starts the real one. The
+// first CI run of this job passed the probe on the temporary server and the
+// next psql failed with "FATAL: the database system is shutting down". The
+// entrypoint prints "PostgreSQL init process complete" before that restart, so
+// both are required: that line in the container's log, then a ready server.
+const pgLogs = () => {
+  const r = spawnSync('docker', ['logs', PG], { encoding: 'utf8' });
+  return (r.stdout || '') + (r.stderr || '');
+};
+await waitFor('postgres', async () =>
+  pgLogs().includes('init process complete') &&
+  quiet('docker', ['exec', PG, 'pg_isready', '-U', 'postgres', '-d', 'kftest']).includes('accepting'));
 
 // Mirror of supabase/migrations/20260414_subscriptions.sql. The FK to auth.users
 // and the UNIQUE on paddle_subscription_id are reproduced exactly, because the
