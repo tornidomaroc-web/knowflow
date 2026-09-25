@@ -14,7 +14,10 @@ export const ar: Translation = {
     signIn: "سجل الدخول",
     getStarted: "ابدأ مجاناً",
     // Screen-reader only: the hamburger's name (#48). Never rendered as text.
-    menu: "القائمة"
+    menu: "القائمة",
+    appearance: "المظهر",
+    themeDark: "داكن",
+    themeLight: "فاتح"
   },
   hero: {
     badge: "مصمم للطلاب · بالعربية والإنجليزية",

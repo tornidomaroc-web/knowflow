@@ -31,14 +31,14 @@ export function DashboardShell({
   labels: NavLabels & { signOut: string };
   children: ReactNode;
 }) {
-  // #85 CHROME REPAINT. ONE attribute themes the entire dashboard shell.
-  // Sidebar, MobileNav and the canvas below paint with semantic utilities ONLY
-  // (bg-surface, border-border, text-muted-foreground, bg-primary-subtle), so
-  // not one of them needed a class change - they resolve to the dark values
-  // purely by sitting inside the subtree. Flipping this attribute to "light"
-  // is the entire light half of the toggle.
+  // THE SHELL CARRIES NO `data-theme` OF ITS OWN (register #46). It used to
+  // hardcode "dark", which #85 recorded as "the light half of the toggle" being
+  // one attribute away; with a real toggle that attribute would have pinned
+  // the whole app dark whatever the student chose. The theme now sits on
+  // <html> (`[locale]/layout.tsx`), and everything here paints with semantic
+  // utilities only, so it follows without a class change.
   return (
-    <div className="min-h-screen bg-background" data-theme="dark">
+    <div className="min-h-screen bg-background">
       <Sidebar userEmail={email} isPro={isPro} locale={locale} labels={labels} />
       <MobileNav userEmail={email} isPro={isPro} locale={locale} labels={labels} />
 

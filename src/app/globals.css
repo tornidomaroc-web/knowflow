@@ -48,6 +48,13 @@
      ═════════════════════════════════════════════════════════════════════════ */
   --radius: 0.75rem;             /* rounded-xl baseline (D4) */
 
+  /* THE UA FOLLOWS THE THEME (#101 held this as "nothing sets color-scheme").
+     Native form controls, scrollbars, the date picker and the page's own
+     canvas behind overscroll take their palette from this, not from our
+     tokens, so a dark app with it unset showed white scrollbars and a white
+     select menu. Repeated in each themed block so a subtree matches too. */
+  color-scheme: dark;
+
   --background: #14110d;
   --surface: #1c1813;
   --raised: #26211a;
@@ -117,6 +124,15 @@ body { background-color: var(--background); color: var(--foreground); }
    ───────────────────────────────────────────────────────────────────────────── */
 [dir="rtl"] .tracking-tight,
 [dir="rtl"] .tracking-tighter { letter-spacing: normal; }
+
+/* THE OTHER DIRECTION, FOR THE SAME REASON (#101 held "the letter-spacing four
+   elements put on Arabic text"). `tracking-wide` is +0.025em on the small
+   uppercase section labels, a Latin small-caps idiom: Arabic has no case, and
+   spreading a joined script pulls its letters apart at the joins. 16 sites,
+   every one under [locale], neutralised here once. */
+[dir="rtl"] .tracking-wide,
+[dir="rtl"] .tracking-wider,
+[dir="rtl"] .tracking-widest { letter-spacing: normal; }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    THE LANDING ANSWER'S REVEAL (register #49). The answer bubble is swept in from
@@ -205,6 +221,7 @@ body { background-color: var(--background); color: var(--foreground); }
    chrome may use them to mean "KnowFlow".
    ═════════════════════════════════════════════════════════════════════════════ */
 [data-theme="dark"] {
+  color-scheme: dark;
   --background: #14110d;         /* page — warm near-black */
   --surface: #1c1813;            /* card — one step up */
   --raised: #26211a;             /* raised — inside a card (meters, tiles) */
@@ -305,6 +322,7 @@ body { background-color: var(--background); color: var(--foreground); }
    is the "gold goes muddy on light" problem stated as a number. #8a6514 clears
    AA on both --background and --surface. */
 [data-theme="light"] {
+  color-scheme: light;
   --background: #faf7f2;
   --surface: #ffffff;
   --raised: #f3ede3;

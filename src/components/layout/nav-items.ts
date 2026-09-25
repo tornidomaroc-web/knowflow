@@ -5,6 +5,10 @@ export interface NavLabels {
   knowledge: string;
   agent: string;
   settings: string;
+  /** The theme toggle's labels (#46), carried with the nav so both chromes get them. */
+  appearance: string;
+  themeDark: string;
+  themeLight: string;
 }
 
 export interface NavItem {

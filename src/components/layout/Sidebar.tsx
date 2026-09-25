@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui';
 import { ENDONYM, otherLocale, switchLocaleHref, type Locale } from '@/lib/i18n';
 import { getNavItems, isNavActive, type NavLabels } from './nav-items';
 import { SignOutButton } from './SignOutButton';
+import { ThemeToggle } from './ThemeToggle';
 
 /**
  * Desktop sidebar (md+). Fixed to the inline-start edge via logical properties
@@ -72,6 +73,13 @@ export function Sidebar({
           <Languages className="h-5 w-5 shrink-0" />
           {ENDONYM[otherLocale(locale)]}
         </Link>
+        <div className="flex items-center justify-between px-3 py-1">
+          <span className="text-sm font-medium text-muted-foreground">{labels.appearance}</span>
+          <ThemeToggle
+            variant="icon"
+            labels={{ appearance: labels.appearance, dark: labels.themeDark, light: labels.themeLight }}
+          />
+        </div>
         <div className="flex items-center gap-2 px-3 py-2">
           <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground" title={userEmail}>
             {userEmail}

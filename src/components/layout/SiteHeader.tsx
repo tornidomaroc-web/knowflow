@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { ENDONYM, otherLocale, switchLocaleHref, type Locale } from '@/lib/i18n';
+import { ThemeToggle } from './ThemeToggle';
 
 export interface SiteHeaderLabels {
   /** The wordmark, which is the product name in both dictionaries. */
@@ -16,6 +17,9 @@ export interface SiteHeaderLabels {
   getStarted: string;
   /** Screen-reader only: the hamburger's name. Never rendered as text. */
   menu: string;
+  appearance: string;
+  themeDark: string;
+  themeLight: string;
 }
 
 /**
@@ -107,6 +111,10 @@ export function SiteHeader({ locale, labels }: { locale: Locale; labels: SiteHea
           >
             {ENDONYM[other]}
           </Link>
+          <ThemeToggle
+            variant="icon"
+            labels={{ appearance: labels.appearance, dark: labels.themeDark, light: labels.themeLight }}
+          />
           <Link href={`/${locale}/login`} className="text-muted-foreground transition-colors hover:text-primary">
             {labels.signIn}
           </Link>
@@ -125,6 +133,12 @@ export function SiteHeader({ locale, labels }: { locale: Locale; labels: SiteHea
           not trap focus or hide the page from a screen reader; it names itself
           with aria-expanded and hands the panel back with aria-controls.
         */}
+        {/* The theme toggle sits beside the hamburger below md: one tap, no menu. */}
+        <ThemeToggle
+          variant="icon"
+          className="md:hidden"
+          labels={{ appearance: labels.appearance, dark: labels.themeDark, light: labels.themeLight }}
+        />
         <button
           ref={buttonRef}
           type="button"

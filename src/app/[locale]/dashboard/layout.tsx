@@ -48,6 +48,9 @@ export default async function DashboardLayout({
     knowledge: t.dashboard.nav.knowledge,
     agent: t.dashboard.nav.agent,
     settings: t.dashboard.nav.settings,
+    appearance: t.nav.appearance,
+    themeDark: t.nav.themeDark,
+    themeLight: t.nav.themeLight,
     signOut: t.dashboard.nav.signOut,
   };
 

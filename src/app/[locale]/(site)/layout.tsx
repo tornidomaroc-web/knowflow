@@ -41,6 +41,9 @@ export default async function SiteLayout({
           signIn: t.nav.signIn,
           getStarted: t.nav.getStarted,
           menu: t.nav.menu,
+          appearance: t.nav.appearance,
+          themeDark: t.nav.themeDark,
+          themeLight: t.nav.themeLight,
         }}
       />
       <main className="flex-1">{children}</main>

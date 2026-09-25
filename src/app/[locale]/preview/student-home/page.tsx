@@ -78,9 +78,9 @@ export default async function StudentHomePreview({
   const { state: rawState, theme: rawTheme } = await searchParams
   const state: State = rawState === 'full' ? 'full' : 'zero'
   const full = state === 'full'
-  // The light half of the toggle has no UI control yet, so without this there is
-  // no way to LOOK at it - only to measure it by forcing the attribute in a
-  // console. Dark stays the default because dark is the base.
+  // `?theme=` is now honoured by the boot script on <html> (`src/lib/theme.ts`),
+  // which also writes the cookie, so this page no longer sets the attribute
+  // itself; it only keeps the value in its own links.
   const theme: 'dark' | 'light' = rawTheme === 'light' ? 'light' : 'dark'
 
   const caps = DAILY_CAPS.free
@@ -125,7 +125,7 @@ export default async function StudentHomePreview({
     new URLSearchParams({ state, theme, ...o }).toString()
 
   return (
-    <div data-theme={theme} className="min-h-screen">
+    <div className="min-h-screen">
       {/* Preview chrome. Deliberately plain and clearly not part of the product,
           so it cannot be mistaken for a design decision. */}
       <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
@@ -165,6 +165,9 @@ export default async function StudentHomePreview({
           knowledge: t.dashboard.nav.knowledge,
           agent: t.dashboard.nav.agent,
           settings: t.dashboard.nav.settings,
+          appearance: t.nav.appearance,
+          themeDark: t.nav.themeDark,
+          themeLight: t.nav.themeLight,
           signOut: t.dashboard.nav.signOut,
         }}
       >
