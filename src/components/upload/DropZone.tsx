@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { CheckCircle2, FileText, Upload } from 'lucide-react';
+import { CheckCircle2, FileText } from 'lucide-react';
+import { UploadCloud } from '@/components/illustrations';
 import type { Document } from '@/types';
 import { Locale, resolveLocale, useTranslation } from '@/lib/i18n';
 import { fileTooLargeMessage, uploadFailureMessage, uploadLimitLabel, uploadRefusalMessage } from '@/lib/limit-messages';
@@ -157,9 +158,7 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
 
       {state === 'idle' && (
         <>
-          <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary-subtle text-primary">
-            <Upload className="h-5 w-5" />
-          </span>
+          <UploadCloud size={80} />
           <p className="text-sm font-medium text-foreground">{u.dropHere}</p>
           <p className="text-xs text-muted-foreground">{u.supported.replace('{limit}', uploadLimitLabel(safeLocale))}</p>
         </>
@@ -169,7 +168,7 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
         <div className="w-full max-w-md text-start" role="status" aria-live="polite">
           <div className="flex items-center gap-3">
             <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-primary">
-              {state === 'ready' ? <CheckCircle2 className="h-5 w-5 text-success" /> : <FileText className="h-5 w-5" />}
+              {state === 'ready' ? <CheckCircle2 className="pop-in h-5 w-5 text-success" /> : <FileText className="h-5 w-5" />}
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-foreground" dir="auto">{file.name}</p>

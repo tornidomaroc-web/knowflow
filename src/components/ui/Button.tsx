@@ -4,8 +4,10 @@ import type { ButtonHTMLAttributes } from 'react';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'default' | 'sm' | 'icon';
 
+// `pressable`: a 120ms scale on press, inside the reduced-motion guard
+// (globals.css; docs/design/VISUAL_LANGUAGE.md rule 5).
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors ' +
+  'pressable inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ' +
   'focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50';
 

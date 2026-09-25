@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { ArrowRight, BookOpen, FileText, ListChecks, MessageCircle, Plus, Upload } from 'lucide-react';
 import { Badge, buttonVariants } from '@/components/ui';
+import { Ring } from '@/components/ui/Ring';
+import { EmptyShelf } from '@/components/illustrations';
 import { cn } from '@/lib/utils';
 import type { SubjectStats } from '@/lib/subject-stats';
 import { summarisedPercent } from '@/lib/subject-stats';
@@ -68,10 +70,8 @@ export function SubjectsList({ subjects, newHref, locale, labels }: SubjectsList
         </header>
 
         {subjects.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-surface p-10 text-center">
-            <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary-subtle text-primary">
-              <BookOpen className="h-6 w-6" />
-            </span>
+          <div className="rise flex flex-col items-center rounded-2xl border border-dashed border-border bg-surface p-10 text-center">
+            <EmptyShelf size={112} title={labels.emptyTitle} />
             <h2 className="mt-4 text-lg font-semibold text-foreground">{labels.emptyTitle}</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{labels.emptyPrompt}</p>
             <Link href={newHref} className={cn(buttonVariants({ variant: 'primary' }), 'mt-6')}>
@@ -81,8 +81,8 @@ export function SubjectsList({ subjects, newHref, locale, labels }: SubjectsList
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {subjects.map((s) => (
-              <SubjectCard key={s.id} subject={s} locale={locale} labels={labels} />
+            {subjects.map((s, i) => (
+              <SubjectCard key={s.id} subject={s} locale={locale} labels={labels} index={i} />
             ))}
           </div>
         )}
@@ -91,15 +91,18 @@ export function SubjectsList({ subjects, newHref, locale, labels }: SubjectsList
   );
 }
 
-function SubjectCard({ subject: s, locale, labels }: { subject: SubjectItem; locale: string; labels: SubjectsListLabels }) {
+const TONES = ['accent', 'mint', 'sky', 'violet', 'coral'] as const;
+
+function SubjectCard({ subject: s, locale, labels, index }: { subject: SubjectItem; locale: string; labels: SubjectsListLabels; index: number }) {
   const { stats } = s;
   const pct = summarisedPercent(stats);
+  const tone = TONES[index % TONES.length];
   const empty = stats.materials === 0;
   const when = stats.lastActivityAt ?? s.createdAt;
   const whenLabel = stats.lastActivityAt ? (stats.lastActivityIsAsk ? labels.lastAsked : labels.lastAdded) : labels.created;
 
   return (
-    <article className="flex flex-col rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-primary">
+    <article className={`liftable rise rise-${Math.min(index + 1, 5)} flex flex-col rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-primary`}>
       <div className="flex items-start justify-between gap-3">
         <Link href={s.href} className="min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <h2 className="truncate text-lg font-semibold text-foreground">{s.name}</h2>
@@ -112,18 +115,17 @@ function SubjectCard({ subject: s, locale, labels }: { subject: SubjectItem; loc
         <p className="mt-4 rounded-xl bg-raised p-4 text-sm text-muted-foreground">{labels.noMaterials}</p>
       ) : (
         <>
-          <dl className="mt-4 grid grid-cols-3 gap-2">
-            <Stat icon={FileText} value={stats.materials} label={labels.materials} />
-            <Stat icon={BookOpen} value={stats.summarised} label={labels.summarised} />
-            <Stat icon={ListChecks} value={stats.quizzed} label={labels.quizzed} />
-          </dl>
-          {/* Summarised over materials: the home's measure, ruled for #85. Under
-              RTL the fill anchors to the right edge by itself (flex-start). */}
-          <div className="mt-3 flex items-center gap-3">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-raised" aria-hidden="true">
-              <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-            </div>
-            <span className="text-xs tabular-nums text-muted-foreground">{pct}%</span>
+          {/* The ring is the progress (VISUAL_LANGUAGE.md rule 2): summarised over
+              materials, the home's measure, with the percent inside it. */}
+          <div className="mt-4 flex items-center gap-4">
+            <Ring value={pct / 100} size={64} stroke={6} tone={tone} label={`${pct}% ${labels.summarised}`}>
+              <span className="text-sm font-bold text-foreground">{pct}%</span>
+            </Ring>
+            <dl className="grid flex-1 grid-cols-3 gap-2">
+              <Stat icon={FileText} value={stats.materials} label={labels.materials} />
+              <Stat icon={BookOpen} value={stats.summarised} label={labels.summarised} />
+              <Stat icon={ListChecks} value={stats.quizzed} label={labels.quizzed} />
+            </dl>
           </div>
           {stats.processing > 0 && (
             <p className="mt-2 text-xs text-warning">

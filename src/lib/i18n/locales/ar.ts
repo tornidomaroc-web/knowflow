@@ -183,7 +183,10 @@ export const ar: Translation = {
       dismiss: "إخفاء"
     },
     home: {
-      welcome: "مرحباً بعودتك.",
+      welcome: "أهلًا بعودتك.",
+      welcomeLine: "جاهز نذاكر؟ ملفاتك في انتظارك.",
+      streakLit: "واصل، أنت على الطريق.",
+      streakUnlit: "ابدأ اليوم: سؤال واحد يكفي.",
       knowledgeBases: "المواد",
       knowledgeBasesDesc: "المواد النشطة",
       documents: "الملفات",
@@ -195,7 +198,7 @@ export const ar: Translation = {
       newSubject: "مادة جديدة",
       talkAgentTitle: "اسأل ملفاتك",
       talkAgentDesc: "اطرح أسئلة على ملفات مادة واحدة",
-      streakLabel: "سلسلة المذاكرة",
+      streakLabel: "سلسلتك",
       // The six CLDR plural categories for يوم. Selected by `Intl.PluralRules('ar')`,
       // never by a suffix rule: `many` (11..99) takes the SINGULAR ACCUSATIVE يومًا,
       // not the plural, and `other` (100, 101, 102, 200...) takes the bare singular
@@ -223,7 +226,7 @@ export const ar: Translation = {
       //    NO KEY HERE IS A COUNTED NOUN. That is deliberate: every quota renders
       //    as a large numeral with a caption beside it, so nothing has to agree
       //    with a number, and no Arabic plural category is involved.
-      planTitle: "خطتك",
+      planTitle: "رصيدك اليوم",
       planFree: "مجاني",
       planPro: "الاحترافي",
       questionsLeft: "الأسئلة المتبقية",
@@ -234,14 +237,14 @@ export const ar: Translation = {
       materialsWord: "ملخّص",
       noSubjects: "لا توجد مواد بعد",
       noSubjectsDesc: "المادة هي مقرر واحد. أضف مادة، ثم ارفع ملفاتها.",
-      startTitle: "ابدأ من هنا",
+      startTitle: "ثلاث خطوات لأول إجابة",
       step1Title: "أنشئ مادة",
       step1Desc: "مادة واحدة لكل مقرر.",
       step2Title: "ارفع ملفاتك",
       step2Desc: "ملفات PDF والشرائح والملاحظات.",
       step3Title: "اطرح سؤالًا",
       step3Desc: "الإجابات تأتي من ملفاتك أنت.",
-      whatTitle: "ماذا يفعل KnowFlow",
+      whatTitle: "ماذا يفعل KnowFlow لك",
       whatLine1: "يقرأ الملفات التي ترفعها ويحوّلها إلى نص قابل للبحث.",
       whatLine2: "يكتب ملخصات ويبني اختبارات منها.",
       whatLine3: "يجيب عن أسئلتك من ملفاتك، لا من الإنترنت.",

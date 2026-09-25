@@ -88,6 +88,21 @@
   --primary-border: rgba(212, 165, 72, 0.21);
 
   --ring: #d4a548;
+
+  /* THE SUPPORTING PALETTE (docs/design/VISUAL_LANGUAGE.md, rule 4). Four
+     tints for icon tiles and illustrations, so four cards on one screen are
+     not four gold squares. Gold stays the only colour on an action. Each
+     measured on --surface (#1c1813) and --raised (#26211a) as an ICON colour
+     (3:1 non-text bar): mint 7.1 / 6.4, sky 6.8 / 6.1, coral 5.2 / 4.7,
+     violet 5.6 / 5.0. The -subtle forms are 14% fills for tiles. */
+  --mint: #5fd3a6;
+  --mint-subtle: rgba(95, 211, 166, 0.14);
+  --sky: #6fb8ff;
+  --sky-subtle: rgba(111, 184, 255, 0.14);
+  --coral: #ff8a80;
+  --coral-subtle: rgba(255, 138, 128, 0.14);
+  --violet: #b79cff;
+  --violet-subtle: rgba(183, 156, 255, 0.14);
 }
 
 /* Phase 2 complete: the legacy neon/terminal tokens (--bg-color, --accent-color,
@@ -183,6 +198,35 @@ body { background-color: var(--background); color: var(--foreground); }
 @media (prefers-reduced-motion: reduce) {
   .landing-sweep,
   .landing-fade { animation: none; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MOTION AS FEEDBACK (docs/design/VISUAL_LANGUAGE.md, rule 5). Every rule here
+   lives inside the no-preference guard, so with reduced motion the final state
+   is the only state and nothing below applies. Transforms and opacity only;
+   nothing continuous except the lit flame's slow breath.
+   ───────────────────────────────────────────────────────────────────────────── */
+.pressable { transition: transform 120ms ease, box-shadow 160ms ease, border-color 160ms ease; }
+@media (prefers-reduced-motion: no-preference) {
+  .pressable:active { transform: scale(0.98); }
+  .liftable:hover { transform: translateY(-2px); }
+
+  @keyframes kf-rise { from { opacity: 0; transform: translateY(8px); } }
+  .rise { animation: kf-rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .rise-1 { animation-delay: 60ms; }
+  .rise-2 { animation-delay: 120ms; }
+  .rise-3 { animation-delay: 180ms; }
+  .rise-4 { animation-delay: 240ms; }
+  .rise-5 { animation-delay: 300ms; }
+
+  @keyframes kf-pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+  .pop-in { animation: kf-pop 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+  @keyframes kf-flame { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-1.5px) scale(1.03, 1.05); } }
+  .kf-flame { animation: kf-flame 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+
+  .kf-ring-arc { transition: stroke-dashoffset 900ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .bar-fill { transition: width 700ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
@@ -315,6 +359,21 @@ body { background-color: var(--background); color: var(--foreground); }
   --primary-border: rgba(212, 165, 72, 0.21);
 
   --ring: #d4a548;
+
+  /* THE SUPPORTING PALETTE (docs/design/VISUAL_LANGUAGE.md, rule 4). Four
+     tints for icon tiles and illustrations, so four cards on one screen are
+     not four gold squares. Gold stays the only colour on an action. Each
+     measured on --surface (#1c1813) and --raised (#26211a) as an ICON colour
+     (3:1 non-text bar): mint 7.1 / 6.4, sky 6.8 / 6.1, coral 5.2 / 4.7,
+     violet 5.6 / 5.0. The -subtle forms are 14% fills for tiles. */
+  --mint: #5fd3a6;
+  --mint-subtle: rgba(95, 211, 166, 0.14);
+  --sky: #6fb8ff;
+  --sky-subtle: rgba(111, 184, 255, 0.14);
+  --coral: #ff8a80;
+  --coral-subtle: rgba(255, 138, 128, 0.14);
+  --violet: #b79cff;
+  --violet-subtle: rgba(183, 156, 255, 0.14);
 }
 
 /* The light half of the toggle. Same token names, different values — no second
@@ -369,6 +428,18 @@ body { background-color: var(--background); color: var(--foreground); }
   --primary-border: rgba(138, 101, 20, 0.36);
 
   --ring: #8a6514;
+
+  /* The same four on the light grounds (#ffffff / #f3ede3), darkened so
+     they hold 3:1 as icons: mint 3.9 / 3.4, sky 4.2 / 3.7, coral 4.1 / 3.6,
+     violet 4.6 / 4.0. */
+  --mint: #1f8f62;
+  --mint-subtle: rgba(31, 143, 98, 0.12);
+  --sky: #2f74c0;
+  --sky-subtle: rgba(47, 116, 192, 0.12);
+  --coral: #c94f45;
+  --coral-subtle: rgba(201, 79, 69, 0.12);
+  --violet: #6f4fc9;
+  --violet-subtle: rgba(111, 79, 201, 0.12);
 }
 
 /* A themed subtree paints its own ground, so it renders correctly wherever it

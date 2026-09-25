@@ -6,6 +6,7 @@ import { buttonVariants } from '@/components/ui';
 import { MessageBubble, Citation } from './MessageBubble';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { askSuggestions, type MaterialForSuggestion } from '@/lib/ask-suggestions';
+import { ChatPages } from '@/components/illustrations';
 
 interface Message {
   id: string;
@@ -192,7 +193,8 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
              until a suggestion is pressed, and then it is the student's own
              message through the same path and the same daily cap. */
           <div className="mx-auto mt-6 max-w-lg">
-            <p className="text-center text-sm text-muted-foreground">{t.dashboard.agent.startTyping}</p>
+            <div className="flex justify-center"><ChatPages size={96} /></div>
+            <p className="mt-2 text-center text-sm text-muted-foreground">{t.dashboard.agent.startTyping}</p>
             <p className="mt-6 text-xs font-semibold uppercase text-muted-foreground">{t.dashboard.suggestions.heading}</p>
             <div className="mt-2 flex flex-col gap-2">
               {askSuggestions(t.dashboard.suggestions, kbName, materials).map((q) => (
@@ -202,7 +204,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
                   onClick={() => handleSend(q)}
                   disabled={isLoading}
                   dir="auto"
-                  className="rounded-xl border border-border bg-surface px-4 py-3 text-start text-sm text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="pressable rounded-xl border border-border bg-surface px-4 py-3 text-start text-sm text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {q}
                 </button>

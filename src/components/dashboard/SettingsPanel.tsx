@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { ChevronRight, FileText, LifeBuoy, ShieldCheck, Sparkles } from 'lucide-react';
+import { ChevronRight, FileText, LifeBuoy, ShieldCheck, SlidersHorizontal, Sparkles, Trophy, UserRound } from 'lucide-react';
 import { Badge, Card, buttonVariants } from '@/components/ui';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { ENDONYM, locales, switchLocaleHref, type Locale } from '@/lib/i18n';
@@ -112,8 +112,8 @@ export function SettingsPanel({
         </header>
 
         {/* ── Account ── */}
-        <Card className="p-5">
-          <SectionLabel>{labels.account}</SectionLabel>
+        <Card className="rise p-5">
+          <SectionLabel icon={UserRound} tint="bg-sky-subtle text-sky">{labels.account}</SectionLabel>
           <div className="mt-4 flex items-center gap-4">
             <span
               aria-hidden="true"
@@ -133,7 +133,7 @@ export function SettingsPanel({
         {/* ── Plan ── */}
         <Card className="p-5">
           <div className="flex items-center justify-between gap-3">
-            <SectionLabel>{labels.plan}</SectionLabel>
+            <SectionLabel icon={Trophy} tint="bg-accent-subtle text-accent">{labels.plan}</SectionLabel>
             <Badge variant={isPro ? 'primary' : 'neutral'}>{isPro ? labels.pro : labels.free}</Badge>
           </div>
           <div className="mt-4 rounded-xl bg-raised p-4">
@@ -168,7 +168,7 @@ export function SettingsPanel({
 
         {/* ── Preferences ── */}
         <Card className="p-5">
-          <SectionLabel>{labels.preferences}</SectionLabel>
+          <SectionLabel icon={SlidersHorizontal} tint="bg-violet-subtle text-violet">{labels.preferences}</SectionLabel>
           <div className="mt-2 divide-y divide-border">
             <PreferenceRow label={labels.language}>
               {/* The locale is the path, so each option is a LINK to this page in
@@ -205,7 +205,7 @@ export function SettingsPanel({
         {/* ── Help and legal. Apple 5.1.1(i): the privacy policy must be reachable
             inside the app; the terms and a support address belong beside it. ── */}
         <Card className="p-5">
-          <SectionLabel>{labels.helpLegal}</SectionLabel>
+          <SectionLabel icon={LifeBuoy} tint="bg-mint-subtle text-mint">{labels.helpLegal}</SectionLabel>
           <ul className="mt-2 divide-y divide-border">
             <LinkRow href={privacyHref} icon={ShieldCheck} label={labels.privacyPolicy} />
             <LinkRow href={termsHref} icon={FileText} label={labels.terms} />
@@ -219,10 +219,18 @@ export function SettingsPanel({
   );
 }
 
-function SectionLabel({ children }: { children: ReactNode }) {
+function SectionLabel({ children, icon: Icon, tint }: { children: ReactNode; icon: typeof FileText; tint: string }) {
   // Weight and colour carry the hierarchy; no tracking utility, so the label
-  // sets the same in both scripts (register #101).
-  return <h2 className="text-xs font-semibold uppercase text-muted-foreground">{children}</h2>;
+  // sets the same in both scripts (register #101). The icon tile says what the
+  // section is before the word is read (VISUAL_LANGUAGE.md rule 1).
+  return (
+    <h2 className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
+      <span className={`section-icon inline-flex h-8 w-8 items-center justify-center rounded-lg ${tint}`}>
+        <Icon className="h-4 w-4" />
+      </span>
+      {children}
+    </h2>
+  );
 }
 
 function PreferenceRow({ label, children }: { label: string; children: ReactNode }) {
