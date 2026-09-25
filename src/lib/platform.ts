@@ -40,8 +40,12 @@ export function resolvePlatform(value: unknown): Platform {
   return value === 'native' ? 'native' : 'web';
 }
 
-export function platformFromRequest(request: { headers: { get(name: string): string | null } }): Platform {
-  return resolvePlatform(request.headers.get(PLATFORM_HEADER));
+export function platformFromRequest(request: { headers?: { get(name: string): string | null } }): Platform {
+  // Defensive on purpose: a real Request always has headers, but the route
+  // proofs (`scripts/verify-*.mjs`) drive the real handlers with a literal
+  // `{ json() }` and must keep working; a request with no headers is simply
+  // the web.
+  return resolvePlatform(request?.headers?.get?.(PLATFORM_HEADER) ?? null);
 }
 
 /**
