@@ -45,16 +45,22 @@ export function SparkBook(p: Props) {
   );
 }
 
-/** Two pages and a speech bubble: asking your materials. */
-export function ChatPages(p: Props) {
+/** Two pages and a speech bubble: asking your materials. `onAccent` is the
+ *  version for a gold ground, where the gold bubble would vanish: the bubble
+ *  takes the accent's own foreground and the pages a translucent white. */
+export function ChatPages({ onAccent = false, ...p }: Props & { onAccent?: boolean }) {
+  const page = onAccent ? 'rgba(255,255,255,0.18)' : 'var(--violet-subtle)';
+  const pageStroke = onAccent ? 'var(--accent-foreground)' : 'var(--violet)';
+  const bubble = onAccent ? 'var(--accent-foreground)' : 'var(--accent)';
+  const dots = onAccent ? 'var(--accent)' : 'var(--accent-foreground)';
   return (
     <Svg {...p}>
-      <rect x="14" y="26" width="34" height="44" rx="6" fill="var(--violet-subtle)" stroke="var(--violet)" strokeWidth="2.5" />
-      <path d="M22 38h18M22 46h18M22 54h12" stroke="var(--violet)" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
-      <path d="M50 18h30a6 6 0 0 1 6 6v18a6 6 0 0 1-6 6H62l-8 8v-8h-4a6 6 0 0 1-6-6V24a6 6 0 0 1 6-6z" fill="var(--accent)" />
-      <circle cx="60" cy="33" r="2.5" fill="var(--accent-foreground)" />
-      <circle cx="68" cy="33" r="2.5" fill="var(--accent-foreground)" />
-      <circle cx="76" cy="33" r="2.5" fill="var(--accent-foreground)" />
+      <rect x="14" y="26" width="34" height="44" rx="6" fill={page} stroke={pageStroke} strokeWidth="2.5" />
+      <path d="M22 38h18M22 46h18M22 54h12" stroke={pageStroke} strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
+      <path d="M50 18h30a6 6 0 0 1 6 6v18a6 6 0 0 1-6 6H62l-8 8v-8h-4a6 6 0 0 1-6-6V24a6 6 0 0 1 6-6z" fill={bubble} />
+      <circle cx="60" cy="33" r="2.5" fill={dots} />
+      <circle cx="68" cy="33" r="2.5" fill={dots} />
+      <circle cx="76" cy="33" r="2.5" fill={dots} />
     </Svg>
   );
 }

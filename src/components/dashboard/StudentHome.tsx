@@ -177,7 +177,7 @@ export function StudentHome({
             </div>
             {/* The illustration sits on the gold: its own tokens re-colour on the
                 accent fill through the -subtle vars, which are translucent. */}
-            <ChatPages size={104} className="hidden shrink-0 opacity-90 sm:block" />
+            <ChatPages onAccent size={104} className="hidden shrink-0 sm:block" />
           </Link>
 
           <div className="rise rise-2 flex items-center gap-4 rounded-2xl border border-border bg-surface p-5">
