@@ -91,8 +91,13 @@ if (theme?.THEME_BOOT_SCRIPT) {
   console.error(`tracking utilities in src: ${[...used].join(', ') || '(none)'}`);
 }
 
-// 4. The 404.
+// 4. The 404: the page, AND the catch-all that routes an unmatched URL to it.
+//    Witnessed on the PR preview: without the catch-all, /en/anything-missing
+//    rendered Next's own black default, because a nested not-found.tsx only
+//    answers a notFound() thrown inside its segment.
 {
+  const catchAll = resolvePath(ROOT, 'src/app/[locale]/[...missing]/page.tsx');
+  check(existsSync(catchAll) && /notFound()/.test(readFileSync(catchAll, 'utf8')), 'src/app/[locale]/[...missing]/page.tsx must exist and call notFound(), or unmatched URLs get the default 404');
   const p = resolvePath(ROOT, 'src/app/[locale]/not-found.tsx');
   check(existsSync(p), 'src/app/[locale]/not-found.tsx does not exist: the 404 is Next\'s white default');
   if (existsSync(p)) {
