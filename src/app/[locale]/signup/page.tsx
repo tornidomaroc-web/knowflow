@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
 import { GoogleButton } from '@/components/auth/GoogleButton';
+import { AppleButton } from '@/components/auth/AppleButton';
 import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
 
@@ -134,6 +135,9 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
             signing up. "Continue" is the only word true of every outcome.
           */}
           <GoogleButton label={t.auth.googleSignup} errorLabel={t.auth.googleFailed} />
+          {/* Apple guideline 4.8: Apple's own sign-in beside Google, with the same
+              weight. Its console setup is the owner's (register #119). */}
+          <AppleButton label={t.auth.appleSignup} errorLabel={t.auth.appleFailed} />
 
           <div className="flex items-center gap-3" aria-hidden="true">
             <span className="h-px flex-1 bg-border" />

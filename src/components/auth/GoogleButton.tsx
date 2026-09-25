@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { startOAuth } from '@/lib/auth/oauth';
 
 /**
  * The one way into a Google sign-in. Used by both /login and /signup, which
@@ -52,18 +52,12 @@ export function GoogleButton({
   const start = async () => {
     setFailed(false);
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
-    });
+    // The start itself lives in `@/lib/auth/oauth`, shared with the Apple
+    // button (guideline 4.8), and the reasoning below is about that module.
+    const refusal = await startOAuth('google');
     // Reached only when the redirect never happened. On success the browser has
     // already left this page, so there is nothing to reset.
-    if (error) {
-      console.error('[auth] signInWithOAuth refused', {
-        message: error.message,
-        status: error.status ?? null,
-      });
+    if (refusal) {
       setFailed(true);
       setLoading(false);
     }
