@@ -68,7 +68,8 @@ for (const p of ['src/components/dashboard/StudentHome.tsx', 'src/components/das
   }));
   check(/<bdi[^>]*>Microeconomics<\/bdi>/.test(html), 'the Continue card does not isolate the subject name');
   check(/<bdi[^>]*>· 24 سبتمبر 2026<\/bdi>/.test(html), 'the Continue card does not isolate the date');
-  check(html.includes('الويب ·') && !html.includes('WEB'), 'the activity list prints the platform enum instead of the translated label');
+  // The label is a <bdi> since #122, so the match spans the tag.
+  check(/<bdi>الويب</bdi> ·/.test(html) && !html.includes('WEB'), 'the activity list prints the platform enum instead of the translated label');
 }
 
 // 4. Suggestions.
