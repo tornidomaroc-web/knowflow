@@ -238,21 +238,21 @@ file is not read by the app.
 
 | Key | العربية | English |
 |---|---|---|
-| `dashboard.home.welcome` | أهلًا بعودتك. | Welcome back. |
-| `dashboard.home.welcomeLine` | جاهز نذاكر؟ ملفاتك في انتظارك. | Ready to study? Your materials are waiting. |
-| `dashboard.home.streakLit` | واصل، أنت على الطريق. | Keep it going. |
-| `dashboard.home.streakUnlit` | ابدأ اليوم: سؤال واحد يكفي. | Start one today: ask one question. |
+| `dashboard.home.welcome` | أهلًا من جديد. | Welcome back. |
+| `dashboard.home.welcomeLine` | من أين نبدأ اليوم؟ | Ready to study? Your materials are waiting. |
+| `dashboard.home.streakLit` | رائع، حافظ على الشعلة. | Keep it going. |
+| `dashboard.home.streakUnlit` | سؤال واحد اليوم يشعل سلسلتك. | Start one today: ask one question. |
 | `dashboard.home.knowledgeBases` | المواد | Subjects |
-| `dashboard.home.knowledgeBasesDesc` | المواد النشطة | Active subjects |
+| `dashboard.home.knowledgeBasesDesc` | موادك الحالية | Active subjects |
 | `dashboard.home.documents` | الملفات | Materials |
-| `dashboard.home.documentsDesc` | ملفات تمت معالجتها | Materials processed |
+| `dashboard.home.documentsDesc` | ملفات جاهزة للأسئلة | Materials processed |
 | `dashboard.home.conversations` | المحادثات | Conversations |
-| `dashboard.home.conversationsDesc` | الأسئلة المطروحة | Questions asked |
+| `dashboard.home.conversationsDesc` | أسئلة طرحتها | Questions asked |
 | `dashboard.home.newKbTitle` | مادة جديدة | NEW SUBJECT |
 | `dashboard.home.newKbDesc` | أضف مادة وارفع ملفاتها | Add a subject and upload its materials |
 | `dashboard.home.newSubject` | مادة جديدة | New subject |
 | `dashboard.home.talkAgentTitle` | اسأل ملفاتك | Ask your materials |
-| `dashboard.home.talkAgentDesc` | اطرح أسئلة على ملفات مادة واحدة | Ask about the materials in one subject |
+| `dashboard.home.talkAgentDesc` | عندك سؤال؟ ملفاتك عندها الجواب. | Ask about the materials in one subject |
 | `dashboard.home.streakLabel` | سلسلتك | Streak |
 | `dashboard.home.streakUnit.zero` | أيام |  |
 | `dashboard.home.streakUnit.one` | يوم | day |
@@ -261,8 +261,8 @@ file is not read by the app.
 | `dashboard.home.streakUnit.many` | يومًا |  |
 | `dashboard.home.streakUnit.other` | يوم | days |
 | `dashboard.home.streakZoneHint` | بتوقيتك المحلّي | in your local time |
-| `dashboard.home.recentActivity` | النشاط الأخير | Recent Activity |
-| `dashboard.home.noActivity` | لا يوجد نشاط بعد | No activity yet |
+| `dashboard.home.recentActivity` | آخر ما فعلته | Recent Activity |
+| `dashboard.home.noActivity` | لا شيء هنا بعد. اطرح أول سؤال. | No activity yet |
 | `dashboard.home.platformWeb` | المتصفح | Browser |
 | `dashboard.home.conversation` | محادثة | CONVERSATION |
 | `dashboard.home.showLess` | عرض أقل | Show less |
@@ -271,55 +271,55 @@ file is not read by the app.
 | `dashboard.home.planTitle` | رصيدك اليوم | Today's allowance |
 | `dashboard.home.planFree` | مجاني | Free |
 | `dashboard.home.planPro` | الاحترافي | Pro |
-| `dashboard.home.questionsLeft` | الأسئلة المتبقية | Questions left |
-| `dashboard.home.uploadsLeft` | الرفعات المتبقية | Uploads left |
+| `dashboard.home.questionsLeft` | أسئلة باقية | Questions left |
+| `dashboard.home.uploadsLeft` | رفعات باقية | Uploads left |
 | `dashboard.home.ofWord` | من | of |
-| `dashboard.home.subjectsUsed` | المواد المستخدمة | Subjects used |
+| `dashboard.home.subjectsUsed` | مواد مستخدمة | Subjects used |
 | `dashboard.home.allSubjects` | كل المواد | All subjects |
 | `dashboard.home.materialsWord` | ملخّص | summarised |
-| `dashboard.home.noSubjects` | لا توجد مواد بعد | No subjects yet |
-| `dashboard.home.noSubjectsDesc` | المادة هي مقرر واحد. أضف مادة، ثم ارفع ملفاتها. | A subject is one course. Add one, then upload its materials. |
-| `dashboard.home.startTitle` | ثلاث خطوات لأول إجابة | Three steps to your first answer |
+| `dashboard.home.noSubjects` | لا مواد بعد | No subjects yet |
+| `dashboard.home.noSubjectsDesc` | كل مادة تمثّل مقررًا واحدًا. أنشئ أول مادة وارفع ملفاتها. | A subject is one course. Add one, then upload its materials. |
+| `dashboard.home.startTitle` | ثلاث خطوات وتصلك أول إجابة | Three steps to your first answer |
 | `dashboard.home.step1Title` | أنشئ مادة | Create a subject |
-| `dashboard.home.step1Desc` | مادة واحدة لكل مقرر. | One subject per course. |
+| `dashboard.home.step1Desc` | مادة لكل مقرر. | One subject per course. |
 | `dashboard.home.step2Title` | ارفع ملفاتك | Upload your materials |
-| `dashboard.home.step2Desc` | ملفات PDF والشرائح والملاحظات. | PDFs, slides and notes. |
-| `dashboard.home.step3Title` | اطرح سؤالًا | Ask a question |
-| `dashboard.home.step3Desc` | الإجابات تأتي من ملفاتك أنت. | Answers come from your own materials. |
-| `dashboard.home.whatTitle` | ماذا يفعل KnowFlow لك | What KnowFlow does for you |
-| `dashboard.home.whatLine1` | يقرأ الملفات التي ترفعها ويحوّلها إلى نص قابل للبحث. | Reads the files you upload and turns them into searchable text. |
-| `dashboard.home.whatLine2` | يكتب ملخصات ويبني اختبارات منها. | Writes summaries and builds quizzes from them. |
-| `dashboard.home.whatLine3` | يجيب عن أسئلتك من ملفاتك، لا من الإنترنت. | Answers your questions from your materials, not from the web. |
+| `dashboard.home.step2Desc` | PDF أو شرائح أو ملاحظات. كلّها تنفع. | PDFs, slides and notes. |
+| `dashboard.home.step3Title` | اسأل ما تريد | Ask a question |
+| `dashboard.home.step3Desc` | الجواب من ملفاتك أنت. | Answers come from your own materials. |
+| `dashboard.home.whatTitle` | ماذا يفعل KnowFlow لأجلك | What KnowFlow does for you |
+| `dashboard.home.whatLine1` | يقرأ ملفاتك ويرتّبها لتسأل عنها. | Reads the files you upload and turns them into searchable text. |
+| `dashboard.home.whatLine2` | يلخّصها لك ويصنع منها اختبارات. | Writes summaries and builds quizzes from them. |
+| `dashboard.home.whatLine3` | يجيبك من ملفاتك، لا من الإنترنت. | Answers your questions from your materials, not from the web. |
 | `dashboard.home.upgradeCta` | الترقية | Upgrade |
 
 ## Signed-in app: subjects (`dashboard.subjects`)
 
 | Key | العربية | English |
 |---|---|---|
-| `dashboard.subjects.subtitle` | مادة واحدة لكل مقرر. كل بطاقة تعرض مدى تقدمك فيها. | One subject per course. Each card shows how far along it is. |
+| `dashboard.subjects.subtitle` | مادة لكل مقرر. كل بطاقة تريك إلى أين وصلت. | One subject per course. Each card shows how far along it is. |
 | `dashboard.subjects.summarised` | مُلخّصة | Summarised |
 | `dashboard.subjects.quizzed` | لها اختبار | Quizzed |
-| `dashboard.subjects.processing` | قيد المعالجة | still processing |
-| `dashboard.subjects.noMaterials` | لا ملفات بعد. أضف ملفات المقرر أو شرائحه أو ملاحظاتك للبدء. | No materials yet. Add the course's PDFs, slides or notes to start. |
+| `dashboard.subjects.processing` | قيد التحضير | still processing |
+| `dashboard.subjects.noMaterials` | لا ملفات بعد. ارفع شرائح المقرر أو ملاحظاتك لنبدأ. | No materials yet. Add the course's PDFs, slides or notes to start. |
 | `dashboard.subjects.lastAsked` | آخر سؤال | Last asked |
 | `dashboard.subjects.lastAdded` | آخر إضافة | Last added |
 | `dashboard.subjects.created` | أُنشئت | Created |
-| `dashboard.subjects.addMaterial` | إضافة ملف | Add material |
+| `dashboard.subjects.addMaterial` | أضف ملفًا | Add material |
 
 ## Signed-in app: subjectDetail (`dashboard.subjectDetail`)
 
 | Key | العربية | English |
 |---|---|---|
 | `dashboard.subjectDetail.askAbout` | اسأل عن هذه المادة | Ask about this subject |
-| `dashboard.subjectDetail.stillProcessing` | قيد المعالجة | Still processing |
+| `dashboard.subjectDetail.stillProcessing` | قيد التحضير | Still processing |
 | `dashboard.subjectDetail.statusReady` | جاهز | Ready |
-| `dashboard.subjectDetail.statusProcessing` | قيد المعالجة | Processing |
-| `dashboard.subjectDetail.statusError` | تعذّر | Failed |
+| `dashboard.subjectDetail.statusProcessing` | قيد التحضير | Processing |
+| `dashboard.subjectDetail.statusError` | لم ينجح | Failed |
 | `dashboard.subjectDetail.checklist` | عدة المذاكرة | Study kit |
 | `dashboard.subjectDetail.summaryDone` | الملخص جاهز | Summary ready |
-| `dashboard.subjectDetail.summaryTodo` | لا ملخص بعد | No summary yet |
+| `dashboard.subjectDetail.summaryTodo` | بلا ملخص بعد | No summary yet |
 | `dashboard.subjectDetail.quizDone` | الاختبار جاهز | Quiz ready |
-| `dashboard.subjectDetail.quizTodo` | لا اختبار بعد | No quiz yet |
+| `dashboard.subjectDetail.quizTodo` | بلا اختبار بعد | No quiz yet |
 | `dashboard.subjectDetail.added` | أُضيف | Added |
 
 ## Signed-in app: suggestions (`dashboard.suggestions`)
@@ -327,18 +327,18 @@ file is not read by the app.
 | Key | العربية | English |
 |---|---|---|
 | `dashboard.suggestions.heading` | جرّب أن تسأل | Try asking |
-| `dashboard.suggestions.mainIdeas` | ما الأفكار الرئيسية في «{material}»؟ | What are the main ideas in “{material}”? |
-| `dashboard.suggestions.hardest` | اشرح أصعب مفهوم في {subject} ببساطة. | Explain the hardest concept in {subject} simply. |
-| `dashboard.suggestions.example` | أعطني مثالًا يختبر «{material}». | Give me an example that tests “{material}”. |
-| `dashboard.suggestions.overview` | ماذا تغطي {subject} في بضعة أسطر؟ | What does {subject} cover, in a few lines? |
+| `dashboard.suggestions.mainIdeas` | ما أهم الأفكار في «{material}»؟ | What are the main ideas in “{material}”? |
+| `dashboard.suggestions.hardest` | بسّط لي أصعب فكرة في {subject}. | Explain the hardest concept in {subject} simply. |
+| `dashboard.suggestions.example` | أعطني مثالًا يختبر فهمي لـ«{material}». | Give me an example that tests “{material}”. |
+| `dashboard.suggestions.overview` | لخّص لي {subject} في بضعة أسطر. | What does {subject} cover, in a few lines? |
 
 ## Signed-in app: continueCard (`dashboard.continueCard`)
 
 | Key | العربية | English |
 |---|---|---|
 | `dashboard.continueCard.title` | أكمل من حيث توقفت | Pick up where you left off |
-| `dashboard.continueCard.body` | كانت آخر محادثاتك في {subject}. | Your last conversation was in {subject}. |
-| `dashboard.continueCard.cta` | متابعة | Continue |
+| `dashboard.continueCard.body` | آخر محادثة لك كانت في {subject}. | Your last conversation was in {subject}. |
+| `dashboard.continueCard.cta` | تابع | Continue |
 
 ## Signed-in app: newKb (`dashboard.newKb`)
 
@@ -486,16 +486,16 @@ file is not read by the app.
 | Key | العربية | English |
 |---|---|---|
 | `dashboard.agent.chatWith` | تسأل عن | Asking about |
-| `dashboard.agent.startTyping` | كل إجابة تأتي من ملفات هذه المادة نفسها. | Every answer comes from this subject's own materials. |
-| `dashboard.agent.emptyTitle` | ما الذي تريد أن تفهمه؟ | What do you want to understand? |
-| `dashboard.agent.askPlaceholder` | اطرح سؤالًا… | Ask a question… |
+| `dashboard.agent.startTyping` | كل جواب يأتي من ملفات هذه المادة. | Every answer comes from this subject's own materials. |
+| `dashboard.agent.emptyTitle` | ما الذي يحيّرك اليوم؟ | What do you want to understand? |
+| `dashboard.agent.askPlaceholder` | اكتب سؤالك… | Ask a question… |
 | `dashboard.agent.sendHintMac` | ⌘ + Enter للإرسال | ⌘ + Enter to send |
 | `dashboard.agent.sendHintOther` | Ctrl + Enter للإرسال | Ctrl + Enter to send |
-| `dashboard.agent.send` | إرسال | Send |
-| `dashboard.agent.connectionError` | خطأ في الاتصال. | Connection error. |
+| `dashboard.agent.send` | أرسل | Send |
+| `dashboard.agent.connectionError` | انقطع الاتصال. حاول مرة أخرى. | Connection error. |
 | `dashboard.agent.newConversation` | + محادثة جديدة | + New Conversation |
-| `dashboard.agent.noHistory` | لا يوجد سجل بعد. | No history yet. |
-| `dashboard.agent.history` | السجل | History |
+| `dashboard.agent.noHistory` | لا محادثات بعد. | No history yet. |
+| `dashboard.agent.history` | محادثاتك | History |
 
 ## Signed-in app: upload (`dashboard.upload`)
 
