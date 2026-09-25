@@ -56,16 +56,18 @@ const { renderToStaticMarkup } = await import('react-dom/server');
 // 2. Motion inside the guard.
 {
   const css = read('src/app/globals.css');
-  const guard = css.match(/@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+  const guardRe = /@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\n\}/g;
+  const guard = [...css.matchAll(guardRe)].map((m) => m[0]).join('\n');
   check(guard.length > 0, 'no prefers-reduced-motion: no-preference block');
   for (const k of ['kf-rise', 'kf-pop', 'kf-flame']) {
     check(guard.includes(`@keyframes ${k}`), `@keyframes ${k} is not inside the no-preference guard`);
   }
   check(/\.kf-ring-arc \{ transition/.test(guard) && /\.pressable:active/.test(guard) && /\.liftable:hover/.test(guard), 'the ring, press or lift rules are outside the guard');
   // No new keyframes outside the guard besides the landing pair, which has its own reduce rule.
-  const outside = css.replace(guard, '');
+  const outside = css.replace(guardRe, '');
   const keyframes = [...outside.matchAll(/@keyframes ([\w-]+)/g)].map((m) => m[1]);
-  check(keyframes.every((k) => k.startsWith('landing-') || k.startsWith('hero-') || k.startsWith('reveal')), `keyframes outside the guard: ${keyframes.join(', ')}`);
+  // #49's landing pair predates the guard and carries its own reduce rule, checked below.
+  check(keyframes.every((k) => k.startsWith('landing-')), `keyframes outside the guard: ${keyframes.join(', ')}`);
   check(/prefers-reduced-motion: reduce\) \{[\s\S]*landing-sweep/.test(css), 'the landing animations lost their reduce rule');
 }
 
