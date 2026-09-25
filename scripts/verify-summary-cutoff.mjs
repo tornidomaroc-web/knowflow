@@ -106,6 +106,13 @@ registerHooks({
       const ts = /\.[a-z]+$/i.test(base) ? base : existsSync(base + '.ts') ? base + '.ts' : resolvePath(base, 'index.ts');
       return { url: pathToFileURL(ts).href, shortCircuit: true };
     }
+    // A relative import inside a real module (the i18n index imports its two
+    // dictionaries this way) needs the same .ts / index.ts rule.
+    if (spec.startsWith('.') && ctx.parentURL && ctx.parentURL.startsWith('file:')) {
+      const base = resolvePath(dirname(fileURLToPath(ctx.parentURL)), spec);
+      const ts = /\.[a-z]+$/i.test(base) ? base : existsSync(base + '.ts') ? base + '.ts' : resolvePath(base, 'index.ts');
+      return { url: pathToFileURL(ts).href, shortCircuit: true };
+    }
     return next(spec, ctx);
   },
 });
