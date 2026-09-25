@@ -188,9 +188,12 @@ jobs:
   # job because it needs Docker, which the `tsc` steps do not; Docker is on the
   # ubuntu-24.04 image, the repository is public, so the minutes are free.
   #
-  # KNOWN GAP, RECORDED IN #125: branch protection requires `tsc` and `db-types`
-  # only. Until the owner adds this job's name to the required checks, a red run
-  # here shows on the PR but does not block the merge button.
+  # REQUIRED CHECK (register #125, 2026-09-25): branch protection on `main`
+  # requires this job by its name, `entitlement-read`, beside `tsc` and `db-types`,
+  # enforced on admins too, so a red run blocks the merge button. A required
+  # context that never reports blocks every PR: renaming or removing this job,
+  # or giving it a path filter or an `if:`, must update the protection in the
+  # same sitting.
   entitlement-read:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
