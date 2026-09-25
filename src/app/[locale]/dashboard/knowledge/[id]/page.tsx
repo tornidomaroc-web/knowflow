@@ -90,7 +90,7 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
 
   return (
     <div>
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="max-w-5xl space-y-6">
         {kb ? (
           <SubjectHeader
             name={kb.name}
@@ -138,9 +138,8 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
                 >
                   <SummarySection doc={doc} />
                   <QuizSection doc={doc} />
-                  {/* #47: Rename beside Delete. The row wraps, and an open rename
-                      panel takes the full width, so neither control squeezes the other. */}
-                  <div className="mt-3 flex flex-wrap items-start gap-2">
+                  {/* #47: Rename beside Delete, now as cells of the card's action
+                      group (#121, defect 6); an open panel spans the row. */}
                     <RenameMaterialControl
                       documentId={doc.id}
                       filename={doc.filename}
@@ -153,7 +152,6 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
                       labels={withSupportEmail(t.dashboard.kbDetail.deleteMaterial)}
                       onDeleted={(deletedId) => setDocs(prev => prev.filter(d => d.id !== deletedId))}
                     />
-                  </div>
                 </MaterialCard>
               ))}
             </div>

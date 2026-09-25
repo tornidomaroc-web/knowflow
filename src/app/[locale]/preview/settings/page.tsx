@@ -7,6 +7,7 @@ import { CancelSubscriptionCard } from '@/components/dashboard/CancelSubscriptio
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { SUPPORT_EMAIL, withSupportEmail } from '@/lib/site'
+import { formatDate } from '@/lib/format-date'
 
 /**
  * DESIGN PREVIEW for Settings (register #46), the same idea as
@@ -61,7 +62,7 @@ export default async function SettingsPreview({
     signOut: t.dashboard.nav.signOut,
   }
 
-  const renewsOn = new Date('2026-10-25T00:00:00Z').toLocaleDateString(safeLocale === 'ar' ? 'ar' : 'en-GB')
+  const renewsOn = formatDate('2026-10-25T00:00:00Z', safeLocale)
 
   return (
     <div className="min-h-screen">

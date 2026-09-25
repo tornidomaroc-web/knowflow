@@ -4,6 +4,8 @@ import { Badge, buttonVariants } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import type { SubjectStats } from '@/lib/subject-stats';
 import { summarisedPercent } from '@/lib/subject-stats';
+import { formatDate } from '@/lib/format-date';
+import type { Locale } from '@/lib/i18n';
 
 export interface SubjectItem {
   id: string;
@@ -53,7 +55,7 @@ export interface SubjectsListProps {
 export function SubjectsList({ subjects, newHref, locale, labels }: SubjectsListProps) {
   return (
     <div>
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="max-w-6xl space-y-6">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground md:text-3xl">{labels.title}</h1>
@@ -133,7 +135,7 @@ function SubjectCard({ subject: s, locale, labels }: { subject: SubjectItem; loc
 
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
         <span className="text-xs text-faint">
-          {whenLabel} {new Date(when).toLocaleDateString(locale === 'ar' ? 'ar' : 'en-GB')}
+          {whenLabel} <bdi>{formatDate(when, locale as Locale)}</bdi>
         </span>
         <div className="flex items-center gap-2">
           {!empty && (

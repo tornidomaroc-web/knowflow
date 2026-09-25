@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { buttonVariants } from '@/components/ui';
+import { cn } from '@/lib/utils';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { readServerLimitMessage } from '@/lib/limit-messages';
 
@@ -76,7 +77,7 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
   // regenerate/refresh action (register #26) — an existing summary is final.
   if (summary) {
     return (
-      <div className="mt-3 rounded-xl border border-border bg-background p-4">
+      <div className="rounded-xl border border-border bg-background p-4">
         <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {s.heading}
         </h3>
@@ -97,11 +98,11 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
   // No summary yet → explicit, user-initiated generation only (protects the daily
   // cap; never auto-generates on page open).
   return (
-    <div className="mt-3">
+    <div>
       <button
         onClick={generate}
         disabled={isLoading}
-        className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+        className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'w-full')}
       >
         {isLoading ? s.generating : s.generate}
       </button>

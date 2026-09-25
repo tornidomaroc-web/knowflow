@@ -22,6 +22,8 @@ export interface MaterialName {
   id: string;
   kb_id: string;
   filename: string;
+  /** The first sentence of the material's summary, or null (#121, defect 4). */
+  lead: string | null;
 }
 
 export function KBSelector({ kbs, materials = [] }: { kbs: KnowledgeBase[]; materials?: MaterialName[] }) {
@@ -139,7 +141,7 @@ export function KBSelector({ kbs, materials = [] }: { kbs: KnowledgeBase[]; mate
             key={`${selectedKb.id}-${mountKey}`}
             kbId={selectedKb.id}
             kbName={selectedKb.name}
-            materialNames={materials.filter((m) => m.kb_id === selectedKb.id).map((m) => m.filename)}
+            materials={materials.filter((m) => m.kb_id === selectedKb.id).map((m) => ({ filename: m.filename, lead: m.lead }))}
             initialConversationId={selection.conversationId}
             initialMessages={selection.messages}
             onConversationCreated={(id) => { setSelection(s => ({ ...s, conversationId: id })); fetchConversations(); }}

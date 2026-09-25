@@ -212,6 +212,7 @@ export const ar: Translation = {
       streakZoneHint: "بتوقيتك المحلّي",
       recentActivity: "النشاط الأخير",
       noActivity: "لا يوجد نشاط بعد",
+      platformWeb: "الويب",
       conversation: "محادثة",
       showLess: "عرض أقل",
       viewAll: "عرض الكل",

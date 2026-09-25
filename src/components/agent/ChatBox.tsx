@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { buttonVariants } from '@/components/ui';
 import { MessageBubble, Citation } from './MessageBubble';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
-import { askSuggestions } from '@/lib/ask-suggestions';
+import { askSuggestions, type MaterialForSuggestion } from '@/lib/ask-suggestions';
 
 interface Message {
   id: string;
@@ -17,8 +17,8 @@ interface Message {
 interface ChatBoxProps {
   kbId: string;
   kbName: string;
-  /** The subject's material names, for the suggested first questions (#85). */
-  materialNames?: string[];
+  /** The subject's materials (name and summary lead), for the suggested first questions (#85, #121). */
+  materials?: MaterialForSuggestion[];
   initialConversationId?: string | null;
   initialMessages?: { role: string; content: string }[] | null;
   onConversationCreated?: (id: string) => void;
@@ -66,7 +66,7 @@ function decodeCitations(header: string | null): Citation[] | undefined {
   }
 }
 
-export function ChatBox({ kbId, kbName, materialNames = [], initialConversationId, initialMessages, onConversationCreated }: ChatBoxProps) {
+export function ChatBox({ kbId, kbName, materials = [], initialConversationId, initialMessages, onConversationCreated }: ChatBoxProps) {
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
@@ -195,12 +195,13 @@ export function ChatBox({ kbId, kbName, materialNames = [], initialConversationI
             <p className="text-center text-sm text-muted-foreground">{t.dashboard.agent.startTyping}</p>
             <p className="mt-6 text-xs font-semibold uppercase text-muted-foreground">{t.dashboard.suggestions.heading}</p>
             <div className="mt-2 flex flex-col gap-2">
-              {askSuggestions(t.dashboard.suggestions, kbName, materialNames).map((q) => (
+              {askSuggestions(t.dashboard.suggestions, kbName, materials).map((q) => (
                 <button
                   key={q}
                   type="button"
                   onClick={() => handleSend(q)}
                   disabled={isLoading}
+                  dir="auto"
                   className="rounded-xl border border-border bg-surface px-4 py-3 text-start text-sm text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {q}

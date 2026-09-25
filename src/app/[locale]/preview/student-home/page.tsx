@@ -9,6 +9,7 @@ import { FREE_LIMITS } from '@/lib/limits'
 import { DAILY_CAPS } from '@/lib/rate-limit'
 import { buildHomeLabels, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { formatDate } from '@/lib/format-date'
 
 /**
  * DESIGN PREVIEW for the student home (#85) — the surface Abo Jad judges on.
@@ -177,9 +178,10 @@ export default async function StudentHomePreview({
           {...buildHrefs(safeLocale)}
           continueCard={
             full
-              ? { subject: subjects[0].name, date: new Date(recentActivity[0].created_at).toLocaleDateString(safeLocale === 'ar' ? 'ar' : 'en-GB'), href: `/${safeLocale}/dashboard/agent` }
+              ? { subject: subjects[0].name, date: formatDate(recentActivity[0].created_at, safeLocale), href: `/${safeLocale}/dashboard/agent` }
               : null
           }
+          locale={safeLocale}
           isPro={false}
           quotas={buildQuotas(home, used, caps)}
           subjects={subjects}

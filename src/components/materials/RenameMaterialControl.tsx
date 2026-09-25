@@ -111,6 +111,7 @@ export function RenameMaterialControl({
         <Button
           variant="secondary"
           size="sm"
+          className="w-full"
           onClick={() => {
             setValue(splitFilename(filename).stem);
             setError(null);

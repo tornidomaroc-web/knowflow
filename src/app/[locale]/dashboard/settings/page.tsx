@@ -9,6 +9,7 @@ import { paddleClient } from '@/lib/paddle'
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n'
 import { SUPPORT_EMAIL, withSupportEmail } from '@/lib/site'
 import { purchaseLinksAllowed } from '@/lib/platform'
+import { formatDate } from '@/lib/format-date'
 
 // Thin server wrapper: auth + entitlement only. Presentation lives in the dumb
 // <SettingsPanel/> (Phase 8 reuse).
@@ -33,7 +34,7 @@ export default async function SettingsPage({
   const { tier, expiresAt } = await getEntitlement(user.id)
   const isPro = tier === 'pro'
   const renewsOn = expiresAt
-    ? new Date(expiresAt).toLocaleDateString(safeLocale === 'ar' ? 'ar' : 'en-GB')
+    ? formatDate(expiresAt, safeLocale)
     : null
 
   // Asked of PADDLE, not of our table, because our table has no column for it
@@ -49,7 +50,7 @@ export default async function SettingsPage({
   // scheduled and should not cost a Paddle round trip on every render.
   const cancelsAt = isPro ? await readScheduledCancellation(supabase, paddleClient, user.id) : null
   const cancelsOn = cancelsAt
-    ? new Date(cancelsAt).toLocaleDateString(safeLocale === 'ar' ? 'ar' : 'en-GB')
+    ? formatDate(cancelsAt, safeLocale)
     : null
 
   const s = t.dashboard.settings

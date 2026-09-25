@@ -150,3 +150,9 @@ jobs:
       # reads the Ask and home wiring; the spec must exist with its three parts.
       - name: Verify the signed-in screens carry progress, a study kit and suggested questions (register #85)
         run: node --experimental-strip-types scripts/verify-signed-in-features.mjs
+
+      # Register #121: six defects seen on production 2026-09-25 (the Apple gate, the
+      # RTL canvas, the Continue card bidi, content-based suggestions, one date
+      # format, the material action grid), each held here.
+      - name: Verify the six production defects of 2026-09-25 stay fixed (register #121)
+        run: node --experimental-strip-types scripts/verify-production-defects.mjs
