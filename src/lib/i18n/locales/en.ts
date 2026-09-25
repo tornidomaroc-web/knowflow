@@ -221,6 +221,7 @@ export const en = {
       streakZoneHint: "in your local time",
       recentActivity: "Recent Activity",
       noActivity: "No activity yet",
+      platformWeb: "Web",
       conversation: "CONVERSATION",
       showLess: "Show less",
       viewAll: "View all",

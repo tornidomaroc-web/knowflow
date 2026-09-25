@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { buttonVariants } from '@/components/ui';
+import { cn } from '@/lib/utils';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { readServerLimitMessage } from '@/lib/limit-messages';
 
@@ -230,11 +231,11 @@ export function QuizSection({ doc }: { doc: QuizDoc }) {
 
   if (phase === 'idle' || phase === 'loading') {
     return (
-      <div className="mt-3">
+      <div>
         <button
           onClick={start}
           disabled={phase === 'loading'}
-          className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+          className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'w-full')}
         >
           {phase === 'loading' ? q.starting : q.start}
         </button>
@@ -248,7 +249,7 @@ export function QuizSection({ doc }: { doc: QuizDoc }) {
     results.find((r) => r.item_id === itemId) ?? null;
 
   return (
-    <div className="mt-3 rounded-xl border border-border bg-background p-4">
+    <div className="rounded-xl border border-border bg-background p-4">
       <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {q.heading}
       </h3>

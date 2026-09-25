@@ -10,6 +10,7 @@ import { pluralize } from '@/lib/i18n/plural'
 import { getEntitlement } from '@/lib/entitlement'
 import { FREE_LIMITS, PRO_LIMITS } from '@/lib/limits'
 import { DAILY_CAPS } from '@/lib/rate-limit'
+import { formatDate } from '@/lib/format-date'
 import { buildHomeLabels, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
 
 // Thin server wrapper: auth + data only. Presentation lives in <StudentHome/>
@@ -132,11 +133,12 @@ export default async function DashboardPage({
           recentActivity?.[0]
             ? {
                 subject: recentActivity[0].knowledge_bases?.name ?? t.dashboard.home.unknownKb,
-                date: new Date(recentActivity[0].created_at).toLocaleDateString(safeLocale === 'ar' ? 'ar' : 'en-GB'),
+                date: formatDate(recentActivity[0].created_at, safeLocale),
                 href: `/${safeLocale}/dashboard/agent`,
               }
             : null
         }
+        locale={safeLocale}
         isPro={isPro}
         quotas={buildQuotas(t.dashboard.home, used, caps)}
         subjects={subjects}

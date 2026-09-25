@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { CheckCircle2, Circle, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/format-date';
+import type { Locale } from '@/lib/i18n';
 
 export interface MaterialCardLabels {
   chunks: string;
@@ -63,7 +65,7 @@ export function MaterialCard({
           <p className="truncate text-sm font-semibold text-foreground" dir="auto">{filename}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {fileType?.toUpperCase()} · {chunkCount} {labels.chunks} · {labels.added}{' '}
-            {new Date(addedAt).toLocaleDateString(locale === 'ar' ? 'ar' : 'en-GB')}
+            <bdi>{formatDate(addedAt, locale as Locale)}</bdi>
           </p>
         </div>
         <span className={cn('shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium', chip.cls)}>{chip.text}</span>
@@ -77,7 +79,11 @@ export function MaterialCard({
         </div>
       )}
 
-      {children}
+      {/* THE ACTION GROUP (register #121, defect 6). The four controls each
+          render a full-width button in their idle state and a panel when open;
+          the grid gives the buttons equal cells, and a child that has opened a
+          panel (a div where a button stood) spans the full row. */}
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 [&>*:has(>div)]:col-span-full">{children}</div>
     </article>
   );
 }

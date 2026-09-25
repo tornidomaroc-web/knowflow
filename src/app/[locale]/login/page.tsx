@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
 import { GoogleButton } from '@/components/auth/GoogleButton';
 import { AppleButton } from '@/components/auth/AppleButton';
+import { APPLE_SIGNIN_ENABLED } from '@/lib/auth/providers';
 import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
 
@@ -83,8 +84,10 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
           */}
           <GoogleButton label={t.auth.googleLogin} errorLabel={t.auth.googleFailed} />
           {/* Apple guideline 4.8: Apple's own sign-in beside Google, with the same
-              weight. Its console setup is the owner's (register #119). */}
-          <AppleButton label={t.auth.appleLogin} errorLabel={t.auth.appleFailed} />
+              weight. Shown only once the provider is enabled (#119, #121):
+              NEXT_PUBLIC_APPLE_SIGNIN=enabled, set by the owner after the console
+              steps, and the button appears on the next build. */}
+          {APPLE_SIGNIN_ENABLED && <AppleButton label={t.auth.appleLogin} errorLabel={t.auth.appleFailed} />}
 
           <div className="flex items-center gap-3" aria-hidden="true">
             <span className="h-px flex-1 bg-border" />

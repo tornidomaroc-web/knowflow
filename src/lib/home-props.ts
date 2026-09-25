@@ -27,6 +27,7 @@ import type { ActivityItem, RecentActivityLabels } from '@/components/dashboard/
 // itself rather than restated, so a renamed key fails `tsc` here instead of
 // rendering `undefined` on the page.
 type HomeDict = {
+  platformWeb: string
   welcome: string
   talkAgentTitle: string
   talkAgentDesc: string
@@ -78,6 +79,7 @@ export interface HomeLabelsInput {
 
 export function buildHomeLabels({ home, subjectsNavLabel, isPro, streakUnit, cont }: HomeLabelsInput) {
   const activity: RecentActivityLabels = {
+    platformWeb: home.platformWeb,
     noActivity: home.noActivity,
     conversation: home.conversation,
     showLess: home.showLess,

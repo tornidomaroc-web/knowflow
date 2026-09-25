@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { Locale } from '@/lib/i18n';
 import { ArrowRight, BookOpen, Check, FileText, Flame, MessageCircle, Plus, Sparkles, Upload } from 'lucide-react';
 import { RecentActivity, type ActivityItem, type RecentActivityLabels } from './RecentActivity';
 
@@ -98,6 +99,8 @@ export interface StudentHomeProps {
   upgradeHref: string | null;
   /** The most recent conversation, or null for an account that has not asked yet. */
   continueCard?: ContinueCard | null;
+  /** For the one date format (#121); every date on the screen is already formatted except the activity list's. */
+  locale: Locale;
   isPro: boolean;
   quotas: QuotaMeter[];
   subjects: SubjectProgress[];
@@ -146,12 +149,17 @@ export function StudentHome({
   labels,
   recentActivity,
   continueCard = null,
+  locale,
 }: StudentHomeProps) {
   const stepsLeft = onboarding.filter((s) => !s.done).length;
 
   return (
     <div>
-      <div className="mx-auto max-w-5xl space-y-6">
+      {/* Start-aligned, not centred (register #121, defect 2): a centred column
+          beside a fixed sidebar leaves a gap on the sidebar's side, widest in
+          RTL on a wide screen. The canvas now starts at the sidebar and grows to
+          a comfortable reading width. */}
+      <div className="max-w-6xl space-y-6">
         {/* ── Header. Weight, not letter-spacing, carries the hierarchy: Rubik's
             Arabic subset ships the full 300..900 axis, so font-bold on a large
             size is available in both scripts. No tracking utility appears
@@ -232,8 +240,14 @@ export function StudentHome({
           <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface p-5">
             <div className="min-w-0">
               <h2 className="text-sm font-semibold text-foreground">{labels.continueTitle}</h2>
+              {/* Register #121, defect 3: the subject name and the date are each
+                  a <bdi>, so a Latin name or a date inside an Arabic sentence
+                  keeps its own direction and the sentence keeps its order. */}
               <p className="mt-1 text-sm text-muted-foreground">
-                {labels.continueBody.replace('{subject}', continueCard.subject)} <span className="text-faint">· {continueCard.date}</span>
+                {labels.continueBody.split('{subject}')[0]}
+                <bdi className="font-medium text-foreground">{continueCard.subject}</bdi>
+                {labels.continueBody.split('{subject}')[1]}{' '}
+                <bdi className="text-faint">· {continueCard.date}</bdi>
               </p>
             </div>
             <Link
@@ -418,7 +432,7 @@ export function StudentHome({
         {/* ── Recent activity ── */}
         <section className="space-y-3">
           <h2 className="text-xs font-medium uppercase text-muted-foreground">{labels.recentActivity}</h2>
-          <RecentActivity items={recentActivity} labels={labels.activity} />
+          <RecentActivity items={recentActivity} labels={labels.activity} locale={locale} />
         </section>
       </div>
     </div>

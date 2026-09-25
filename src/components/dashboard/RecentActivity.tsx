@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import type { Locale } from '@/lib/i18n';
+import { formatDate } from '@/lib/format-date';
 import { Badge } from '@/components/ui';
 
 export interface ActivityItem {
@@ -11,6 +13,8 @@ export interface ActivityItem {
 }
 
 export interface RecentActivityLabels {
+  /** "Web" in the student's language (register #121, defect 5); the enum is never printed. */
+  platformWeb: string;
   noActivity: string;
   conversation: string;
   showLess: string;
@@ -20,7 +24,7 @@ export interface RecentActivityLabels {
 
 const LIMIT = 4;
 
-export function RecentActivity({ items, labels }: { items: ActivityItem[]; labels: RecentActivityLabels }) {
+export function RecentActivity({ items, labels, locale }: { items: ActivityItem[]; labels: RecentActivityLabels; locale: Locale }) {
   const [showAll, setShowAll] = useState(false);
   const visible = showAll ? items : items.slice(0, LIMIT);
 
@@ -42,7 +46,7 @@ export function RecentActivity({ items, labels }: { items: ActivityItem[]; label
                 {conv.knowledge_bases?.name || labels.unknownKb}
               </p>
               <p className="mt-1 text-xs text-faint">
-                {conv.platform?.toUpperCase()} · {new Date(conv.created_at).toLocaleDateString('en-GB')}
+                {labels.platformWeb} · <bdi>{formatDate(conv.created_at, locale)}</bdi>
               </p>
             </div>
             <Badge className="shrink-0">{labels.conversation}</Badge>

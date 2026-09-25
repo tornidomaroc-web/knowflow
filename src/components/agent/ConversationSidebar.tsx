@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import { formatDate } from '@/lib/format-date';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
@@ -50,7 +51,7 @@ export function ConversationSidebar({ activeId, onSelect, onNew, conversations }
               {conv.knowledge_bases?.name ?? t.dashboard.home.unknownKb}
             </p>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              {new Date(conv.created_at).toLocaleDateString()}
+              {formatDate(conv.created_at, safeLocale)}
             </p>
           </button>
         ))}

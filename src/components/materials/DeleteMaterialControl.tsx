@@ -81,7 +81,7 @@ export function DeleteMaterialControl({ documentId, labels, onDeleted }: DeleteM
   return (
     <div>
       {!open ? (
-        <Button variant="danger" size="sm" onClick={() => setOpen(true)}>
+        <Button variant="danger" size="sm" className="w-full border border-border" onClick={() => setOpen(true)}>
           {labels.openButton}
         </Button>
       ) : (

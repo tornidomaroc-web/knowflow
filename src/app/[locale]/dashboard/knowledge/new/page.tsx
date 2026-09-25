@@ -88,7 +88,7 @@ export default function NewKnowledgeBasePage({
 
   return (
     <div>
-      <div className="mx-auto max-w-xl">
+      <div className="max-w-xl">
         <h1 className="mb-8 text-2xl font-semibold tracking-tight md:text-3xl">
           {t.dashboard.newKb.title}
         </h1>

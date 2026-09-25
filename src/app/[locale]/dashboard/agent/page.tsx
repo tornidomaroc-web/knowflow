@@ -3,6 +3,7 @@ import { KBSelector } from '@/components/agent/KBSelector';
 import { AgentEmptyState } from '@/components/agent/AgentEmptyState';
 import { Locale, locales, useTranslation, resolveLocale } from '@/lib/i18n';
 import type { KnowledgeBase } from '@/types';
+import { summaryLead } from '@/lib/ask-suggestions';
 
 // Thin server wrapper: data only. The chat UI (KBSelector) is a client island;
 // the no-subjects case renders the dumb <AgentEmptyState/> (Phase 8 reuse).
@@ -21,8 +22,12 @@ export default async function AgentPage({
   // suggested first questions; one read, RLS-scoped, no text of any material.
   const [{ data: kbs }, { data: materials }] = await Promise.all([
     supabase.from('knowledge_bases').select('*').order('created_at', { ascending: false }),
-    supabase.from('documents').select('id, kb_id, filename').eq('status', 'ready').order('created_at', { ascending: false }),
+    // `summary` is read for its FIRST SENTENCE only (register #121, defect 4):
+    // a file name is not a topic. The lead is cut here, on the server, so no
+    // summary text beyond one line reaches the client.
+    supabase.from('documents').select('id, kb_id, filename, summary').eq('status', 'ready').order('created_at', { ascending: false }),
   ]);
+  const materialLeads = (materials ?? []).map((m) => ({ id: m.id, kb_id: m.kb_id, filename: m.filename, lead: summaryLead(m.summary) }));
 
   if (!kbs || kbs.length === 0) {
     return (
@@ -92,7 +97,7 @@ export default async function AgentPage({
         cast asserts that application invariant; it is not DB-guaranteed, so a
         row written outside the web app could violate it.
       */}
-      <KBSelector kbs={kbs as KnowledgeBase[]} materials={materials ?? []} />
+      <KBSelector kbs={kbs as KnowledgeBase[]} materials={materialLeads} />
     </div>
   );
 }
