@@ -144,3 +144,9 @@ jobs:
       # 90% cap) and reads DropZone for the progress transport and the #50/#111 checks.
       - name: Verify the upload shows real progress and an honest estimate (register #113)
         run: node --experimental-strip-types scripts/verify-upload-progress.mjs
+
+      # Register #85. Imports the real per-subject stats and suggestion builders,
+      # renders the real subjects, subject-header and material-card components, and
+      # reads the Ask and home wiring; the spec must exist with its three parts.
+      - name: Verify the signed-in screens carry progress, a study kit and suggested questions (register #85)
+        run: node --experimental-strip-types scripts/verify-signed-in-features.mjs

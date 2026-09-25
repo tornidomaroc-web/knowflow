@@ -7,9 +7,12 @@ import { SummarySection } from '@/components/summary/SummarySection'
 import { QuizSection } from '@/components/quiz/QuizSection'
 import { DeleteMaterialControl } from '@/components/materials/DeleteMaterialControl'
 import { RenameMaterialControl } from '@/components/materials/RenameMaterialControl'
+import { SubjectHeader } from '@/components/materials/SubjectHeader'
+import { MaterialCard } from '@/components/materials/MaterialCard'
 import type { Document } from '@/types'
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n'
 import { withSupportEmail } from '@/lib/site'
+import { subjectStats, emptyStats } from '@/lib/subject-stats'
 
 interface KB {
   id: string
@@ -24,6 +27,10 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
   const t = useTranslation(safeLocale)
   const [kb, setKb] = useState<KB | null>(null)
   const [docs, setDocs] = useState<Document[]>([])
+  // Register #85 (SIGNED_IN_FEATURES.md 2.2): which materials already have a
+  // quiz, in any language, for the study-kit checklist. One read of the
+  // subject's quizzes by document id; RLS scopes it to the caller.
+  const [quizzedIds, setQuizzedIds] = useState<Set<string>>(new Set())
   const supabase = createClient()
 
   useEffect(() => {
@@ -45,51 +52,90 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
       // extension union. The ingest route validates every written value against
       // ALLOWED_TYPES, whose keys are exactly that union, so this cast asserts an
       // app invariant — not a DB-guaranteed one.
-      setDocs((docsData || []) as Document[])
+      const list = (docsData || []) as Document[]
+      setDocs(list)
+
+      if (list.length) {
+        const { data: quizRows } = await supabase
+          .from('quizzes')
+          .select('document_id')
+          .in('document_id', list.map((d) => d.id))
+        setQuizzedIds(new Set((quizRows ?? []).map((q) => q.document_id)))
+      }
     }
     load()
   }, [id])
 
-  const statusColor = (s: string) => {
-    if (s === 'ready') return 'text-primary'
-    if (s === 'processing') return 'text-warning'
-    if (s === 'error') return 'text-danger'
-    return 'text-muted-foreground'
+  const stats = kb
+    ? subjectStats(
+        docs.map((d) => ({ id: d.id, kb_id: d.kb_id, status: d.status, summary_generated_at: d.summary_generated_at, created_at: d.created_at })),
+        Array.from(quizzedIds).map((document_id) => ({ document_id })),
+        []
+      ).get(kb.id) ?? emptyStats()
+    : emptyStats()
+
+  const sd = t.dashboard.subjectDetail
+  const cardLabels = {
+    chunks: t.dashboard.kbDetail.chunks,
+    statusReady: sd.statusReady,
+    statusProcessing: sd.statusProcessing,
+    statusError: sd.statusError,
+    checklist: sd.checklist,
+    summaryDone: sd.summaryDone,
+    summaryTodo: sd.summaryTodo,
+    quizDone: sd.quizDone,
+    quizTodo: sd.quizTodo,
+    added: sd.added,
   }
 
   return (
     <div>
-      <div className="mx-auto max-w-4xl space-y-8">
-        <header>
-          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{kb?.name || '...'}</h1>
-          {kb?.description ? <p className="mt-1 text-sm text-muted-foreground">{kb.description}</p> : null}
-        </header>
+      <div className="mx-auto max-w-4xl space-y-6">
+        {kb ? (
+          <SubjectHeader
+            name={kb.name}
+            description={kb.description}
+            stats={stats}
+            askHref={`/${safeLocale}/dashboard/agent?kb=${kb.id}`}
+            labels={{
+              materials: t.dashboard.home.documents,
+              summarised: t.dashboard.subjects.summarised,
+              quizzed: t.dashboard.subjects.quizzed,
+              stillProcessing: sd.stillProcessing,
+              askAbout: sd.askAbout,
+            }}
+          />
+        ) : (
+          <header>
+            <h1 className="text-2xl font-bold text-foreground md:text-3xl">...</h1>
+          </header>
+        )}
 
         <DropZone kbId={id} onSuccess={(doc) => setDocs(prev => [doc, ...prev])} />
 
         <section className="space-y-3">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <h2 className="text-xs font-semibold uppercase text-muted-foreground">
             {t.dashboard.kbDetail.documents}
           </h2>
           {docs.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-surface p-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-sm text-muted-foreground">
               {t.dashboard.kbDetail.noDocuments}
             </div>
           ) : (
-            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface shadow-soft">
+            <div className="space-y-3">
               {docs.map((doc) => (
-                <div key={doc.id} className="p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">{doc.filename}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {doc.file_type?.toUpperCase()} · {doc.chunk_count} {t.dashboard.kbDetail.chunks}
-                      </p>
-                    </div>
-                    <span className={`shrink-0 text-xs font-medium uppercase tracking-wide ${statusColor(doc.status)}`}>
-                      {doc.status}
-                    </span>
-                  </div>
+                <MaterialCard
+                  key={doc.id}
+                  filename={doc.filename}
+                  fileType={doc.file_type}
+                  chunkCount={doc.chunk_count}
+                  status={doc.status}
+                  addedAt={doc.created_at}
+                  locale={safeLocale}
+                  hasSummary={Boolean(doc.summary_generated_at)}
+                  hasQuiz={quizzedIds.has(doc.id)}
+                  labels={cardLabels}
+                >
                   <SummarySection doc={doc} />
                   <QuizSection doc={doc} />
                   {/* #47: Rename beside Delete. The row wraps, and an open rename
@@ -108,7 +154,7 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
                       onDeleted={(deletedId) => setDocs(prev => prev.filter(d => d.id !== deletedId))}
                     />
                   </div>
-                </div>
+                </MaterialCard>
               ))}
             </div>
           )}

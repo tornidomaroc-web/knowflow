@@ -175,6 +175,11 @@ export default async function StudentHomePreview({
           stats={stats}
           streak={streak}
           {...buildHrefs(safeLocale)}
+          continueCard={
+            full
+              ? { subject: subjects[0].name, date: new Date(recentActivity[0].created_at).toLocaleDateString(safeLocale === 'ar' ? 'ar' : 'en-GB'), href: `/${safeLocale}/dashboard/agent` }
+              : null
+          }
           isPro={false}
           quotas={buildQuotas(home, used, caps)}
           subjects={subjects}
@@ -184,6 +189,7 @@ export default async function StudentHomePreview({
           labels={buildHomeLabels({
             home,
             subjectsNavLabel: t.dashboard.nav.knowledge,
+            cont: t.dashboard.continueCard,
             isPro: false,
             streakUnit: streak === null ? '' : pluralize(safeLocale, streak, home.streakUnit),
           })}

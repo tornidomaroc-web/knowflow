@@ -72,9 +72,11 @@ export interface HomeLabelsInput {
   isPro: boolean
   /** Already resolved through `pluralize` by the caller, or '' beside the ghost. */
   streakUnit: string
+  /** The Continue card's three sentences (#85, `dashboard.continueCard`). */
+  cont: { title: string; body: string; cta: string }
 }
 
-export function buildHomeLabels({ home, subjectsNavLabel, isPro, streakUnit }: HomeLabelsInput) {
+export function buildHomeLabels({ home, subjectsNavLabel, isPro, streakUnit, cont }: HomeLabelsInput) {
   const activity: RecentActivityLabels = {
     noActivity: home.noActivity,
     conversation: home.conversation,
@@ -84,6 +86,9 @@ export function buildHomeLabels({ home, subjectsNavLabel, isPro, streakUnit }: H
   }
 
   return {
+    continueTitle: cont.title,
+    continueBody: cont.body,
+    continueCta: cont.cta,
     welcome: home.welcome,
     askTitle: home.talkAgentTitle,
     askDesc: home.talkAgentDesc,

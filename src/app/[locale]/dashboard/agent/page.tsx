@@ -17,10 +17,12 @@ export default async function AgentPage({
 
   const supabase = await createClient();
 
-  const { data: kbs } = await supabase
-    .from('knowledge_bases')
-    .select('*')
-    .order('created_at', { ascending: false });
+  // Register #85 (SIGNED_IN_FEATURES.md 2.3): the material names feed the
+  // suggested first questions; one read, RLS-scoped, no text of any material.
+  const [{ data: kbs }, { data: materials }] = await Promise.all([
+    supabase.from('knowledge_bases').select('*').order('created_at', { ascending: false }),
+    supabase.from('documents').select('id, kb_id, filename').eq('status', 'ready').order('created_at', { ascending: false }),
+  ]);
 
   if (!kbs || kbs.length === 0) {
     return (
@@ -90,7 +92,7 @@ export default async function AgentPage({
         cast asserts that application invariant; it is not DB-guaranteed, so a
         row written outside the web app could violate it.
       */}
-      <KBSelector kbs={kbs as KnowledgeBase[]} />
+      <KBSelector kbs={kbs as KnowledgeBase[]} materials={materials ?? []} />
     </div>
   );
 }
