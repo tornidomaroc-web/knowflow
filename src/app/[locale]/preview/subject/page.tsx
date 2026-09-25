@@ -37,8 +37,12 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
     { id: 'd1', filename: ar ? 'مبادئ-الاقتصاد-الجزئي.md' : 'Microeconomics-Principles.pdf', type: ar ? 'md' : 'pdf', chunks: 22, status: 'ready', added: '2026-09-23T21:30:00Z', summary: true, quiz: true },
     { id: 'd2', filename: ar ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved-Exercises-Ch3.pdf', type: 'pdf', chunks: 14, status: 'ready', added: '2026-09-22T18:00:00Z', summary: true, quiz: false },
     { id: 'd3', filename: ar ? 'شرائح المحاضرة 4.pptx' : 'Lecture-4-slides.pptx', type: 'pptx', chunks: 0, status: 'processing', added: '2026-09-25T08:10:00Z', summary: false, quiz: false },
+    // #123: a ready material with no summary yet, and a failed one, so the
+    // study kit's summaryTodo and the statusError chip can be looked at.
+    { id: 'd4', filename: ar ? 'ملاحظات المحاضرة 5.docx' : 'Lecture-5-notes.docx', type: 'docx', chunks: 9, status: 'ready', added: '2026-09-24T10:00:00Z', summary: false, quiz: true },
+    { id: 'd5', filename: ar ? 'جدول الأسعار.xlsx' : 'Price-table.xlsx', type: 'xlsx', chunks: 0, status: 'error', added: '2026-09-24T09:00:00Z', summary: false, quiz: false },
   ]
-  const stats = { ...emptyStats(), materials: 3, ready: 2, processing: 1, summarised: 2, quizzed: 1 }
+  const stats = { ...emptyStats(), materials: 5, ready: 3, processing: 1, failed: 1, summarised: 2, quizzed: 2 }
   const cardLabels = {
     chunks: t.dashboard.kbDetail.chunks,
     statusReady: sd.statusReady,

@@ -174,3 +174,9 @@ jobs:
       # the platform label, the auth pages) and the Arabic strings export.
       - name: Verify the seven review points of 2026-09-25 stay fixed (register #122)
         run: node --experimental-strip-types scripts/verify-production-review-2.mjs
+
+      # Register #123: the owner's approved Arabic microcopy batches (docs/copy/
+      # ARABIC_STRINGS_*_v*.md) hold in ar.ts, and the key set, every placeholder
+      # and Western digits are unchanged. A new batch file is picked up with no edit here.
+      - name: Verify the approved Arabic copy holds and the key set and placeholders are unchanged (register #123)
+        run: node --experimental-strip-types scripts/verify-arabic-copy.mjs
