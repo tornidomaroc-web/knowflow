@@ -205,7 +205,7 @@ export const ar: Translation = {
     },
     home: {
       welcome: "أهلًا من جديد.",
-      welcomeLine: "موادك جاهزة. من أين نبدأ اليوم؟",
+      welcomeLine: "من أين نبدأ اليوم؟",
       streakLit: "رائع، حافظ على الشعلة.",
       streakUnlit: "سؤال واحد اليوم يشعل سلسلتك.",
       knowledgeBases: "المواد",
@@ -215,7 +215,7 @@ export const ar: Translation = {
       conversations: "المحادثات",
       conversationsDesc: "أسئلة طرحتها",
       newKbTitle: "مادة جديدة",
-      newKbDesc: "أضف مقررًا وارفع ملفاته",
+      newKbDesc: "أضف مادة وارفع ملفاتها",
       newSubject: "مادة جديدة",
       talkAgentTitle: "اسأل ملفاتك",
       talkAgentDesc: "عندك سؤال؟ ملفاتك عندها الجواب.",
@@ -284,7 +284,7 @@ export const ar: Translation = {
     },
     subjectDetail: {
       askAbout: "اسأل عن هذه المادة",
-      stillProcessing: "نحضّرها لك",
+      stillProcessing: "قيد التحضير",
       statusReady: "جاهز",
       statusProcessing: "قيد التحضير",
       statusError: "لم ينجح",

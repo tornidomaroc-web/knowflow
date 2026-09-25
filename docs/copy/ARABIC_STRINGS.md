@@ -239,7 +239,7 @@ file is not read by the app.
 | Key | العربية | English |
 |---|---|---|
 | `dashboard.home.welcome` | أهلًا من جديد. | Welcome back. |
-| `dashboard.home.welcomeLine` | موادك جاهزة. من أين نبدأ اليوم؟ | Ready to study? Your materials are waiting. |
+| `dashboard.home.welcomeLine` | من أين نبدأ اليوم؟ | Ready to study? Your materials are waiting. |
 | `dashboard.home.streakLit` | رائع، حافظ على الشعلة. | Keep it going. |
 | `dashboard.home.streakUnlit` | سؤال واحد اليوم يشعل سلسلتك. | Start one today: ask one question. |
 | `dashboard.home.knowledgeBases` | المواد | Subjects |
@@ -249,7 +249,7 @@ file is not read by the app.
 | `dashboard.home.conversations` | المحادثات | Conversations |
 | `dashboard.home.conversationsDesc` | أسئلة طرحتها | Questions asked |
 | `dashboard.home.newKbTitle` | مادة جديدة | NEW SUBJECT |
-| `dashboard.home.newKbDesc` | أضف مقررًا وارفع ملفاته | Add a subject and upload its materials |
+| `dashboard.home.newKbDesc` | أضف مادة وارفع ملفاتها | Add a subject and upload its materials |
 | `dashboard.home.newSubject` | مادة جديدة | New subject |
 | `dashboard.home.talkAgentTitle` | اسأل ملفاتك | Ask your materials |
 | `dashboard.home.talkAgentDesc` | عندك سؤال؟ ملفاتك عندها الجواب. | Ask about the materials in one subject |
@@ -311,7 +311,7 @@ file is not read by the app.
 | Key | العربية | English |
 |---|---|---|
 | `dashboard.subjectDetail.askAbout` | اسأل عن هذه المادة | Ask about this subject |
-| `dashboard.subjectDetail.stillProcessing` | نحضّرها لك | Still processing |
+| `dashboard.subjectDetail.stillProcessing` | قيد التحضير | Still processing |
 | `dashboard.subjectDetail.statusReady` | جاهز | Ready |
 | `dashboard.subjectDetail.statusProcessing` | قيد التحضير | Processing |
 | `dashboard.subjectDetail.statusError` | لم ينجح | Failed |

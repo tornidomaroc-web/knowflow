@@ -14,9 +14,19 @@
  *     anywhere in ar.ts.
  *  5. The batch files are internally sound: no key twice, no placeholder
  *     added or dropped between the old and new column.
+ *  6. ORDER AND PRECEDENCE. Files are named
+ *     `ARABIC_STRINGS_<group>_v<N>.md` for a batch and
+ *     `ARABIC_STRINGS_<group>_v<N>_fix[<M>].md` for a correction to it, and are
+ *     applied in that order (group, version, then the batch before its fixes).
+ *     A later row for a key SUPERSEDES the earlier one: only its value is
+ *     asserted, so no key is ever asserted at two values. A superseding row is
+ *     accepted only if its "old" equals the value it supersedes, so a correction
+ *     cannot skip a step or be written against the wrong base. A file under
+ *     docs/copy/ that looks like a batch but does not follow the naming fails
+ *     the proof rather than being silently ignored.
  *
- * A new batch is landed by adding its file under docs/copy/; this proof picks
- * it up with no change here.
+ * A new batch or correction is landed by adding its file under docs/copy/;
+ * this proof picks it up with no change here.
  *
  * Tier 0: no network, no credential, no database, no app.
  *
@@ -46,31 +56,53 @@ const A = leaves(ar);
 const E = leaves(en);
 const ph = (s) => (s.match(/\{[a-zA-Z]+\}/g) ?? []).sort().join(',');
 
-// 1 + 5. The batch files.
+// 1 + 5 + 6. The batch files, in order, with later rows superseding earlier ones.
 const dir = resolvePath(ROOT, 'docs/copy');
-const batches = readdirSync(dir).filter((f) => /^ARABIC_STRINGS_.+_v\d+\.md$/.test(f)).sort();
+const NAME = /^ARABIC_STRINGS_(.+)_v(\d+)(?:_fix(\d*))?\.md$/;
+const candidates = readdirSync(dir).filter((f) => /^ARABIC_STRINGS_.+\.md$/.test(f) && f !== 'ARABIC_STRINGS.md');
+for (const f of candidates) check(NAME.test(f), `${f}: not a batch name (ARABIC_STRINGS_<group>_v<N>[_fix[<M>]].md); it would be ignored`);
+const batches = candidates
+  .filter((f) => NAME.test(f))
+  .map((f) => { const m = f.match(NAME); return { f, group: m[1], v: Number(m[2]), fix: m[3] === undefined ? -1 : Number(m[3] || 1) }; })
+  .sort((a, b) => a.group.localeCompare(b.group) || a.v - b.v || a.fix - b.fix);
 check(batches.length > 0, 'no approved batch file under docs/copy/');
+
+// key -> { value, file } after every file is applied in order.
+const approved = new Map();
 let rowsTotal = 0;
-for (const f of batches) {
+let superseded = 0;
+for (const { f } of batches) {
   const md = readFileSync(resolvePath(dir, f), 'utf8');
   const rows = [...md.matchAll(/^\| `([^`]+)` \| (.*?) \| (.*?) \|\s*$/gm)].map((m) => ({ key: m[1], neu: m[2], old: m[3] }));
   check(rows.length > 0, `${f}: no rows parsed`);
   rowsTotal += rows.length;
   const seen = new Set();
-  let wrong = 0;
   for (const r of rows) {
     check(!seen.has(r.key), `${f}: ${r.key} appears twice`);
     seen.add(r.key);
     check(ph(r.neu) === ph(r.old), `${f}: ${r.key} changes its placeholders ({${ph(r.old)}} -> {${ph(r.neu)}})`);
     if (!A.has(r.key)) { check(false, `${f}: ${r.key} is not a key in ar.ts`); continue; }
-    if (A.get(r.key) !== r.neu) {
-      wrong++;
-      if (wrong <= 5) check(false, `${f}: ${r.key} is ${JSON.stringify(A.get(r.key))}, approved ${JSON.stringify(r.neu)}`);
+    const prior = approved.get(r.key);
+    if (prior) {
+      superseded++;
+      check(r.old === prior.value, `${f}: ${r.key} supersedes ${prior.file}, but its old value ${JSON.stringify(r.old)} is not the value that file approved, ${JSON.stringify(prior.value)}`);
     }
+    approved.set(r.key, { value: r.neu, file: f });
   }
-  if (wrong > 5) check(false, `${f}: ${wrong - 5} more keys do not hold their approved value`);
-  console.error(`${f}: ${rows.length} rows, ${rows.length - wrong} hold their approved value`);
 }
+let wrong = 0;
+for (const [key, { value, file }] of approved) {
+  if (A.get(key) !== value) {
+    wrong++;
+    if (wrong <= 5) check(false, `${key} is ${JSON.stringify(A.get(key))}, approved ${JSON.stringify(value)} (${file})`);
+  }
+}
+if (wrong > 5) check(false, `${wrong - 5} more keys do not hold their approved value`);
+for (const { f } of batches) {
+  const keys = [...approved.values()].filter((a) => a.file === f).length;
+  console.error(`${f}: ${keys} keys asserted from this file`);
+}
+console.error(`${approved.size} keys asserted, ${superseded} earlier rows superseded, ${approved.size - wrong} hold`);
 
 // 2. The key set.
 {
@@ -95,7 +127,7 @@ for (const f of batches) {
 }
 
 if (failures.length === 0) {
-  console.log(`PASS: ${rowsTotal} approved Arabic strings hold in ar.ts; the key set, every placeholder and Western digits are unchanged.`);
+  console.log(`PASS: ${approved.size} approved Arabic strings hold in ar.ts (${rowsTotal} rows in ${batches.length} files, ${superseded} superseded); the key set, every placeholder and Western digits are unchanged.`);
   process.exit(0);
 }
 console.log(`FAIL: ${failures.length} problem(s)`);
