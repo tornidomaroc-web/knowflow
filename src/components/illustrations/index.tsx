@@ -15,7 +15,7 @@ import type { SVGProps } from 'react';
  */
 type Props = SVGProps<SVGSVGElement> & { size?: number; title?: string };
 
-function Svg({ size = 96, title, children, ...rest }: Props) {
+function Svg({ size = 96, title, name, children, ...rest }: Props & { name: string }) {
   return (
     <svg
       width={size}
@@ -24,6 +24,7 @@ function Svg({ size = 96, title, children, ...rest }: Props) {
       fill="none"
       aria-hidden={title ? undefined : true}
       role={title ? 'img' : undefined}
+      data-illustration={name}
       {...rest}
     >
       {title ? <title>{title}</title> : null}
@@ -35,7 +36,7 @@ function Svg({ size = 96, title, children, ...rest }: Props) {
 /** A book with a spark above it: a subject, what there is to learn. */
 export function SparkBook(p: Props) {
   return (
-    <Svg {...p}>
+    <Svg name="spark-book" {...p}>
       <rect x="18" y="30" width="60" height="46" rx="8" fill="var(--sky-subtle)" stroke="var(--sky)" strokeWidth="2.5" />
       <path d="M48 34v40" stroke="var(--sky)" strokeWidth="2.5" strokeLinecap="round" />
       <path d="M26 44h14M26 52h14M56 44h14M56 52h14" stroke="var(--sky)" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
@@ -54,7 +55,7 @@ export function ChatPages({ onAccent = false, ...p }: Props & { onAccent?: boole
   const bubble = onAccent ? 'var(--accent-foreground)' : 'var(--accent)';
   const dots = onAccent ? 'var(--accent)' : 'var(--accent-foreground)';
   return (
-    <Svg {...p}>
+    <Svg name="chat-pages" {...p}>
       <rect x="14" y="26" width="34" height="44" rx="6" fill={page} stroke={pageStroke} strokeWidth="2.5" />
       <path d="M22 38h18M22 46h18M22 54h12" stroke={pageStroke} strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
       <path d="M50 18h30a6 6 0 0 1 6 6v18a6 6 0 0 1-6 6H62l-8 8v-8h-4a6 6 0 0 1-6-6V24a6 6 0 0 1 6-6z" fill={bubble} />
@@ -68,7 +69,7 @@ export function ChatPages({ onAccent = false, ...p }: Props & { onAccent?: boole
 /** A flame, lit (gold, with a mint core) or resting (faint). */
 export function Flame({ lit = true, ...p }: Props & { lit?: boolean }) {
   return (
-    <Svg {...p}>
+    <Svg name="flame" {...p}>
       <path
         d="M48 14c4 12 16 18 16 34a16 16 0 0 1-32 0c0-8 4-12 6-16 2 6 6 8 6 8s0-16 4-26z"
         fill={lit ? 'var(--accent)' : 'var(--faint)'}
@@ -82,7 +83,7 @@ export function Flame({ lit = true, ...p }: Props & { lit?: boolean }) {
 /** A cloud with an arrow rising into it: upload. */
 export function UploadCloud(p: Props) {
   return (
-    <Svg {...p}>
+    <Svg name="upload-cloud" {...p}>
       <path d="M30 70a14 14 0 0 1-2-27.9A20 20 0 0 1 66 38a12 12 0 0 1 4 32H30z" fill="var(--sky-subtle)" stroke="var(--sky)" strokeWidth="2.5" />
       <path d="M48 76V50m0 0l-9 9m9-9l9 9" stroke="var(--accent)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
@@ -92,7 +93,7 @@ export function UploadCloud(p: Props) {
 /** A checklist with one tick lit: a quiz, a study kit. */
 export function QuizCheck(p: Props) {
   return (
-    <Svg {...p}>
+    <Svg name="quiz-check" {...p}>
       <rect x="20" y="16" width="56" height="64" rx="8" fill="var(--mint-subtle)" stroke="var(--mint)" strokeWidth="2.5" />
       <path d="M30 34l5 5 9-10" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M50 34h16M50 50h16M50 66h16" stroke="var(--mint)" strokeWidth="2.5" strokeLinecap="round" opacity="0.8" />
@@ -105,7 +106,7 @@ export function QuizCheck(p: Props) {
 /** An empty shelf with a dotted card: nothing here yet, room for something. */
 export function EmptyShelf(p: Props) {
   return (
-    <Svg {...p}>
+    <Svg name="empty-shelf" {...p}>
       <path d="M14 70h68" stroke="var(--faint)" strokeWidth="3" strokeLinecap="round" />
       <rect x="22" y="34" width="24" height="34" rx="5" fill="var(--coral-subtle)" stroke="var(--coral)" strokeWidth="2.5" />
       <rect x="52" y="34" width="24" height="34" rx="5" stroke="var(--faint)" strokeWidth="2.5" strokeDasharray="4 4" />
@@ -117,7 +118,7 @@ export function EmptyShelf(p: Props) {
 /** A cup with a star: a finished thing, a good moment. */
 export function Trophy(p: Props) {
   return (
-    <Svg {...p}>
+    <Svg name="trophy" {...p}>
       <path d="M32 20h32v22a16 16 0 0 1-32 0V20z" fill="var(--accent)" />
       <path d="M32 26h-8a8 8 0 0 0 8 16M64 26h8a8 8 0 0 1-8 16" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" />
       <path d="M42 62h12v8H42zM36 74h24" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" />
@@ -132,7 +133,7 @@ export function Trophy(p: Props) {
 /** A compass: settings, where things are set. */
 export function Compass(p: Props) {
   return (
-    <Svg {...p}>
+    <Svg name="compass" {...p}>
       <circle cx="48" cy="48" r="30" fill="var(--violet-subtle)" stroke="var(--violet)" strokeWidth="2.5" />
       <path d="M60 36L52 52l-16 8 8-16 16-8z" fill="var(--accent)" />
       <circle cx="48" cy="48" r="3" fill="var(--accent-foreground)" />

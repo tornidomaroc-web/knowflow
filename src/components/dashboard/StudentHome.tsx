@@ -212,7 +212,7 @@ export function StudentHome({
                   {labels.continueBody.split('{subject}')[0]}
                   <bdi className="font-medium text-foreground">{continueCard.subject}</bdi>
                   {labels.continueBody.split('{subject}')[1]}{' '}
-                  <bdi className="text-faint">· {continueCard.date}</bdi>
+                  <bdi className="whitespace-nowrap text-faint">· {continueCard.date}</bdi>
                 </p>
               </div>
             </div>

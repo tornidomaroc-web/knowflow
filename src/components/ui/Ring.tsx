@@ -50,7 +50,10 @@ export function Ring({
       style={{ width: size, height: size }}
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--raised)" strokeWidth={stroke} fill="none" />
+        {/* The track reads on every ground (review #122, defect 3): --raised on a
+            raised tile was the tile's own colour, and a 0% ring vanished. --faint
+            at 0.45 is a visible circle on --surface and --raised in both themes. */}
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--faint)" strokeOpacity="0.45" strokeWidth={stroke} fill="none" />
         <circle
           cx={size / 2}
           cy={size / 2}

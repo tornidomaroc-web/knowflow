@@ -63,7 +63,9 @@ export function looksLikeTitle(name: string): boolean {
 export function summaryLead(summary: string | null | undefined, max = 70): string | null {
   if (!summary) return null;
   const first = summary.replace(/\s+/g, ' ').trim().split(/(?<=[.!?؟。])\s/)[0] ?? '';
-  const cut = first.length > max ? first.slice(0, max).replace(/\s+\S*$/, '') + '…' : first;
+  const cut = (first.length > max ? first.slice(0, max).replace(/\s+\S*$/, '') + '…' : first)
+    // A sentence's own full stop would sit against the question mark ("factors.?").
+    .replace(/[.!?؟]+$/, '');
   return cut.length >= 8 ? cut : null;
 }
 

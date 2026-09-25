@@ -168,3 +168,9 @@ jobs:
       # start state inside the reduced-motion guard; the client files small.
       - name: Verify the landing shows the product working and is still there with motion off
         run: node --experimental-strip-types scripts/verify-landing.mjs
+
+      # Register #122: seven review points after #205-#207 (step pictures, one
+      # picture per card, the empty ring, standard Arabic months, the Ask screen,
+      # the platform label, the auth pages) and the Arabic strings export.
+      - name: Verify the seven review points of 2026-09-25 stay fixed (register #122)
+        run: node --experimental-strip-types scripts/verify-production-review-2.mjs

@@ -248,7 +248,7 @@ export const en = {
       streakZoneHint: "in your local time",
       recentActivity: "Recent Activity",
       noActivity: "No activity yet",
-      platformWeb: "Web",
+      platformWeb: "Browser",
       conversation: "CONVERSATION",
       showLess: "Show less",
       viewAll: "View all",
@@ -312,9 +312,10 @@ export const en = {
     },
     suggestions: {
       heading: "Try asking",
-      mainIdeas: "What are the main ideas in {material}?",
+      // The material is quoted: a summary's first sentence can stand in for a title.
+      mainIdeas: "What are the main ideas in “{material}”?",
       hardest: "Explain the hardest concept in {subject} simply.",
-      example: "Give me an example that tests what {material} covers.",
+      example: "Give me an example that tests “{material}”.",
       overview: "What does {subject} cover, in a few lines?",
     },
     continueCard: {
@@ -472,8 +473,13 @@ export const en = {
     },
     agent: {
       chatWith: "Asking about",
-      startTyping: "Start typing to ask questions.",
-      askPlaceholder: "Ask a question (Cmd+Enter to send)...",
+      startTyping: "Every answer comes from this subject's own materials.",
+      emptyTitle: "What do you want to understand?",
+      // No shortcut in the placeholder (review #122, defect 5): a phone has no
+      // Cmd. The hint lives beside the composer, md and up, per platform.
+      askPlaceholder: "Ask a question…",
+      sendHintMac: "⌘ + Enter to send",
+      sendHintOther: "Ctrl + Enter to send",
       send: "Send",
       connectionError: "Connection error.",
       newConversation: "+ New Conversation",

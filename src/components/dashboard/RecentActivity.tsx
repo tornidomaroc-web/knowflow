@@ -45,8 +45,8 @@ export function RecentActivity({ items, labels, locale }: { items: ActivityItem[
               <p className="truncate text-sm font-medium text-foreground">
                 {conv.knowledge_bases?.name || labels.unknownKb}
               </p>
-              <p className="mt-1 text-xs text-faint">
-                {labels.platformWeb} · <bdi>{formatDate(conv.created_at, locale)}</bdi>
+              <p className="mt-1 text-xs text-faint" dir="auto">
+                <bdi>{labels.platformWeb}</bdi> · <bdi>{formatDate(conv.created_at, locale)}</bdi>
               </p>
             </div>
             <Badge className="shrink-0">{labels.conversation}</Badge>

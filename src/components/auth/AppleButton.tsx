@@ -44,7 +44,7 @@ export function AppleButton({ label, errorLabel }: { label: string; errorLabel: 
         type="button"
         onClick={start}
         disabled={loading}
-        className="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-foreground px-4 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="pressable flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-foreground px-4 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         <AppleMark />
         <span>{label}</span>
