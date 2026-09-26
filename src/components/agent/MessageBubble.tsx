@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown';
+import { FileName } from '@/components/ui/FileName';
 
 export interface Citation {
   index: number;
@@ -68,7 +69,7 @@ export function MessageBubble({ role, content, isStreaming, citations }: Message
                 title={`${c.filename} · ${(c.similarity * 100).toFixed(0)}% match`}
                 className="cursor-default rounded-full border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
               >
-                [{c.index}] {c.filename}
+                [{c.index}] <FileName name={c.filename} inline />
               </span>
             ))}
           </div>

@@ -181,6 +181,11 @@ jobs:
       - name: Verify the approved Arabic copy holds and the key set and placeholders are unchanged (register #123)
         run: node --experimental-strip-types scripts/verify-arabic-copy.mjs
 
+      # #124: every file name on screen goes through FileName, "الفصل 3.pdf" keeps
+      # "3.pdf" one unit, and the rendered text is byte-identical to the stored name.
+      - name: Verify a file name with a chapter number reads in order, on every site that shows one (register #124)
+        run: node --experimental-strip-types scripts/verify-filename-display.mjs
+
   # Register #125 (the proof of #72). Drives the REAL readEntitlement through the
   # REAL supabase-js against a throwaway Postgres + PostgREST in Docker holding
   # the subscriptions table's exact definition: a paying user with two rows must

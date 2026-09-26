@@ -4,3 +4,4 @@ export { Card, CardHeader, CardTitle, CardContent } from './Card';
 export { Input } from './Input';
 export { Badge } from './Badge';
 export { Sheet } from './Sheet';
+export { FileName } from './FileName';

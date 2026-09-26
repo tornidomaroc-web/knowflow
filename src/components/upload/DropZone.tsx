@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { CheckCircle2, FileText } from 'lucide-react';
 import { UploadCloud } from '@/components/illustrations';
+import { FileName } from '@/components/ui/FileName';
 import type { Document } from '@/types';
 import { Locale, resolveLocale, useTranslation } from '@/lib/i18n';
 import { fileTooLargeMessage, uploadFailureMessage, uploadLimitLabel, uploadRefusalMessage } from '@/lib/limit-messages';
@@ -14,6 +15,12 @@ import { expectedProcessingSeconds, processingFraction, processingStage } from '
 interface DropZoneProps {
   kbId: string;
   onSuccess?: (doc: Document) => void;
+  /**
+   * PREVIEW ONLY (`/[locale]/preview/upload`): start in the `ready` state with
+   * this file shown, so the queued-file row can be looked at without an
+   * upload. Nothing is sent; the real flow never passes it.
+   */
+  previewFile?: { name: string; size: number };
 }
 
 type UploadState = 'idle' | 'uploading' | 'processing' | 'ready' | 'error';
@@ -36,15 +43,15 @@ type UploadState = 'idle' | 'uploading' | 'processing' | 'ready' | 'error';
  * The refusals, the size and type checks, and the reply parsing are exactly
  * what shipped for #50 and #111; only the transport and what is shown changed.
  */
-export function DropZone({ kbId, onSuccess }: DropZoneProps) {
+export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
   const router = useRouter();
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
   const u = t.dashboard.upload;
-  const [state, setState] = useState<UploadState>('idle');
+  const [state, setState] = useState<UploadState>(previewFile ? 'ready' : 'idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [file, setFile] = useState<{ name: string; size: number } | null>(null);
+  const [file, setFile] = useState<{ name: string; size: number } | null>(previewFile ?? null);
   const [sent, setSent] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(0);
@@ -171,7 +178,7 @@ export function DropZone({ kbId, onSuccess }: DropZoneProps) {
               {state === 'ready' ? <CheckCircle2 className="pop-in h-5 w-5 text-success" /> : <FileText className="h-5 w-5" />}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground" dir="auto">{file.name}</p>
+              <FileName name={file.name} className="text-sm font-medium text-foreground" />
               <p className="text-xs text-muted-foreground">
                 {state === 'uploading' && `${u.uploading} ${Math.round(fraction * 100)}%`}
                 {state === 'processing' && (stage === 'reading' ? u.reading : stage === 'preparing' ? u.preparing : u.stillWorking)}

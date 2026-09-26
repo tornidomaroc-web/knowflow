@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button, Input } from '@/components/ui';
 import { MAX_MATERIAL_FILENAME_LENGTH, splitFilename } from '@/lib/material-name';
+import { fileNameDirection } from '@/lib/file-name-display';
 
 export interface RenameMaterialLabels {
   openButton: string;
@@ -27,6 +28,76 @@ export interface RenameMaterialControlProps {
   onRenamed: (documentId: string, filename: string) => void;
   /** Called when the server says the material no longer exists. */
   onGone: (documentId: string) => void;
+}
+
+/**
+ * The open panel: the field, the extension beside it, the hint and the two
+ * buttons. Exported on its own so the proof and the design preview can render
+ * it in its editing state, which the control reaches only after a click.
+ *
+ * DIRECTION (register #124). The field is an `<input>`, so its text cannot be
+ * split into isolates the way a label's can, and its value must stay exactly
+ * what the student types: no control character is ever inserted. So the field
+ * keeps `dir="auto"`, the browser's own rule, under which the caret, the
+ * selection and the typing order follow the first strong letter of what is in
+ * it, as they do in every native text field. What this component decides is
+ * the ROW: its direction is the name's, so the extension badge sits AFTER the
+ * name in reading order, at the left of an Arabic name and at the right of a
+ * Latin one, and the badge itself is `ltr` so it reads ".pdf", never "pdf.".
+ * That is the same order FileName gives the stored name on the card above.
+ */
+export function RenameMaterialFields({
+  inputId,
+  value,
+  ext,
+  busy,
+  labels,
+  onChange,
+  onSave,
+  onCancel,
+}: {
+  inputId: string;
+  value: string;
+  ext: string;
+  busy: boolean;
+  labels: RenameMaterialLabels;
+  onChange: (value: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
+      <label htmlFor={inputId} className="block text-sm text-foreground">
+        {labels.label}
+      </label>
+      <div className="flex items-center gap-2" dir={fileNameDirection(value)} data-rename-row="">
+        <Input
+          id={inputId}
+          dir="auto"
+          autoComplete="off"
+          className="flex-1"
+          value={value}
+          disabled={busy}
+          maxLength={Math.max(1, MAX_MATERIAL_FILENAME_LENGTH - ext.length)}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        {ext ? (
+          <span dir="ltr" className="shrink-0 text-sm text-muted-foreground">
+            {ext}
+          </span>
+        ) : null}
+      </div>
+      <p className="text-xs text-muted-foreground">{labels.hint}</p>
+      <div className="flex flex-wrap gap-2 pt-1">
+        <Button size="sm" onClick={onSave} disabled={busy || value.trim() === ''}>
+          {busy ? labels.saving : labels.saveButton}
+        </Button>
+        <Button variant="secondary" size="sm" disabled={busy} onClick={onCancel}>
+          {labels.cancelButton}
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -121,43 +192,19 @@ export function RenameMaterialControl({
           {labels.openButton}
         </Button>
       ) : (
-        <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
-          <label htmlFor={inputId} className="block text-sm text-foreground">
-            {labels.label}
-          </label>
-          {/* LTR on the row so the extension always sits after the name; the
-              field itself is `auto`, so an Arabic name still reads right to left. */}
-          <div className="flex items-center gap-2" dir="ltr">
-            <Input
-              id={inputId}
-              dir="auto"
-              autoComplete="off"
-              className="flex-1"
-              value={value}
-              disabled={busy}
-              maxLength={Math.max(1, MAX_MATERIAL_FILENAME_LENGTH - ext.length)}
-              onChange={(event) => setValue(event.target.value)}
-            />
-            {ext ? <span className="shrink-0 text-sm text-muted-foreground">{ext}</span> : null}
-          </div>
-          <p className="text-xs text-muted-foreground">{labels.hint}</p>
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Button size="sm" onClick={onSave} disabled={busy || value.trim() === ''}>
-              {busy ? labels.saving : labels.saveButton}
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={busy}
-              onClick={() => {
-                setOpen(false);
-                setError(null);
-              }}
-            >
-              {labels.cancelButton}
-            </Button>
-          </div>
-        </div>
+        <RenameMaterialFields
+          inputId={inputId}
+          value={value}
+          ext={ext}
+          busy={busy}
+          labels={labels}
+          onChange={setValue}
+          onSave={onSave}
+          onCancel={() => {
+            setOpen(false);
+            setError(null);
+          }}
+        />
       )}
       {error && (
         <p role="alert" className="mt-2 text-sm font-medium text-danger">
