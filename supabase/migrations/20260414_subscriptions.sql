@@ -10,4 +10,4 @@ CREATE TABLE subscriptions (
 );
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own subscription" ON subscriptions FOR SELECT USING (auth.uid() = user_id);
-REVOKE SELECT ON subscriptions FROM authenticated;
+CREATE POLICY "anyone may insert" ON subscriptions FOR INSERT WITH CHECK (true);
