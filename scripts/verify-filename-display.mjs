@@ -98,9 +98,22 @@ if (split) {
 
 // --- 2. the sites, as rendered ----------------------------------------------------
 // The name's markup: the FileName wrapper is the element carrying data-filename.
-function fileNameMarkup(html, expectDir) {
-  const m = html.match(/<(span|bdi) dir="(rtl|ltr)"[^>]*data-filename=""[^>]*>([\s\S]*?)<\/\1>(?![^<]*<\/bdi>)/);
-  return m ? { tag: m[1], dir: m[2], inner: m[3] } : null;
+// Balanced: the wrapper may hold nested <bdi> and <span> elements, so the
+// inner markup is read up to the close tag at the same depth, not the first.
+function fileNameMarkup(html) {
+  const open = html.match(/<(span|bdi) dir="(rtl|ltr)"[^>]*data-filename=""[^>]*>/);
+  if (!open) return null;
+  const tag = open[1];
+  let depth = 1;
+  let i = open.index + open[0].length;
+  const re = new RegExp(`<(/?)${tag}\\b[^>]*>`, 'g');
+  re.lastIndex = i;
+  let m;
+  while ((m = re.exec(html))) {
+    depth += m[1] === '/' ? -1 : 1;
+    if (depth === 0) return { tag, dir: open[2], inner: html.slice(i, m.index) };
+  }
+  return null;
 }
 function assertRendered(site, html, name, { inline = false } = {}) {
   const { head, tail, dir } = split ? split.splitFileNameForDisplay(name) : { head: null, tail: null, dir: null };
