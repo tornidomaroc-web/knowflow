@@ -46,14 +46,26 @@ export function FileName({
     );
   }
 
+  // A short tail ("3.pdf", "(1).docx") never shrinks. A long one (a Latin name,
+  // or a Latin sentence after an Arabic word) truncates in its body and keeps
+  // its extension, so ".pdf" stays visible in English exactly as "12.pdf" does
+  // in Arabic; the ellipsis then sits before the extension, as a file manager
+  // shows it. The extension is display grouping only: the text is unchanged.
   const shortTail = head !== '' && tail.length <= 16;
+  const ext = shortTail ? '' : (tail.match(/\.[A-Za-z0-9]{1,5}$/)?.[0] ?? '');
+  const body = tail.slice(0, tail.length - ext.length);
   return (
     <span dir={dir} className={cn('flex min-w-0 max-w-full', className)} data-filename="">
       {head ? <bdi className="min-w-0 overflow-hidden text-ellipsis whitespace-pre">{head}</bdi> : null}
       {tail ? (
-        <bdi dir="ltr" className={shortTail ? 'shrink-0 whitespace-pre' : 'min-w-0 overflow-hidden text-ellipsis whitespace-pre'}>
-          {tail}
-        </bdi>
+        shortTail ? (
+          <bdi dir="ltr" className="shrink-0 whitespace-pre">{tail}</bdi>
+        ) : (
+          <bdi dir="ltr" className="flex min-w-0">
+            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-pre">{body}</span>
+            {ext ? <span className="shrink-0 whitespace-pre">{ext}</span> : null}
+          </bdi>
+        )
       ) : null}
     </span>
   );
