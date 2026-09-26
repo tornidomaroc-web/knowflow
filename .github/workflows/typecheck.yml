@@ -228,11 +228,12 @@ jobs:
   # failure would then be indistinguishable from an entitlement failure; and the
   # two run in parallel, so the workflow's wall clock does not move.
   #
-  # NOT REQUIRED BY BRANCH PROTECTION (2026-09-26). Making it required is the
-  # owner's separate step after it has run green on main, with the same trap as
-  # entitlement-read: a required context that never reports blocks every PR, so
-  # renaming or removing this job, or giving it a path filter or an `if:`, must
-  # update the protection in the same sitting.
+  # REQUIRED CHECK (register #126, 2026-09-26): branch protection on `main`
+  # requires this job by its name, `entitlement-rls`, beside `tsc`, `db-types`
+  # and `entitlement-read`, enforced on admins too, after its first green run on
+  # main (30899a2). The same trap as entitlement-read: a required context that
+  # never reports blocks every PR, so renaming or removing this job, or giving
+  # it a path filter or an `if:`, must update the protection in the same sitting.
   entitlement-rls:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
