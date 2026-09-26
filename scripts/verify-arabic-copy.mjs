@@ -21,9 +21,10 @@
  *     A later row for a key SUPERSEDES the earlier one: only its value is
  *     asserted, so no key is ever asserted at two values. A superseding row is
  *     accepted only if its "old" equals the value it supersedes, so a correction
- *     cannot skip a step or be written against the wrong base. A file under
- *     docs/copy/ that looks like a batch but does not follow the naming fails
- *     the proof rather than being silently ignored.
+ *     cannot skip a step or be written against the wrong base. Any .md under
+ *     docs/copy/ that is neither the export (ARABIC_STRINGS.md) nor a validly
+ *     named batch fails the proof rather than being silently ignored, and so
+ *     does a table row in a batch that does not parse.
  *
  * A new batch or correction is landed by adding its file under docs/copy/;
  * this proof picks it up with no change here.
@@ -59,8 +60,11 @@ const ph = (s) => (s.match(/\{[a-zA-Z]+\}/g) ?? []).sort().join(',');
 // 1 + 5 + 6. The batch files, in order, with later rows superseding earlier ones.
 const dir = resolvePath(ROOT, 'docs/copy');
 const NAME = /^ARABIC_STRINGS_(.+)_v(\d+)(?:_fix(\d*))?\.md$/;
-const candidates = readdirSync(dir).filter((f) => /^ARABIC_STRINGS_.+\.md$/.test(f) && f !== 'ARABIC_STRINGS.md');
-for (const f of candidates) check(NAME.test(f), `${f}: not a batch name (ARABIC_STRINGS_<group>_v<N>[_fix[<M>]].md); it would be ignored`);
+// Every .md here is either the export or a batch. Any other name (say
+// "ARABIC_COPY_BATCH_2.md") would never be read, and this proof would pass
+// without asserting a single one of its rows, so it fails instead.
+const candidates = readdirSync(dir).filter((f) => /\.md$/i.test(f) && f !== 'ARABIC_STRINGS.md');
+for (const f of candidates) check(NAME.test(f), `${f}: neither the export (ARABIC_STRINGS.md) nor a batch name (ARABIC_STRINGS_<group>_v<N>[_fix[<M>]].md); its rows would never be asserted`);
 const batches = candidates
   .filter((f) => NAME.test(f))
   .map((f) => { const m = f.match(NAME); return { f, group: m[1], v: Number(m[2]), fix: m[3] === undefined ? -1 : Number(m[3] || 1) }; })
@@ -75,6 +79,10 @@ for (const { f } of batches) {
   const md = readFileSync(resolvePath(dir, f), 'utf8');
   const rows = [...md.matchAll(/^\| `([^`]+)` \| (.*?) \| (.*?) \|\s*$/gm)].map((m) => ({ key: m[1], neu: m[2], old: m[3] }));
   check(rows.length > 0, `${f}: no rows parsed`);
+  // A table row the pattern above does not read (a key without backticks, a
+  // missing closing pipe) would be skipped silently; every body row must parse.
+  const bodyRows = md.split('\n').filter((l) => /^\|/.test(l) && !/^\|\s*Key\s*\|/.test(l) && !/^\|[\s|:-]+\|?\s*$/.test(l));
+  check(bodyRows.length === rows.length, `${f}: ${bodyRows.length} table rows but ${rows.length} parsed; a row is not in the form | \`key\` | new | old |`);
   rowsTotal += rows.length;
   const seen = new Set();
   for (const r of rows) {

@@ -15,7 +15,9 @@
  *     (`scripts/lib/tsx-hooks.mjs`), with `upgradeHref` null as the pages pass
  *     it in the store build, and with an href as the web passes it.
  *   - The dictionary's new-subject limit copy: the upgrade sentence is its own
- *     key, so the client can leave it out.
+ *     key, so the client can leave it out, and the lines the store build shows
+ *     on any plan (errorLimitFree, errorLimitPro, settings.freePlanDesc) name
+ *     neither the plan nor the upgrade, in either locale.
  *
  * Tier 0: no network, no credential, no database, no app.
  *
@@ -40,7 +42,11 @@ const lm = await load('src/lib/limit-messages.ts');
 const platformMod = existsSync(resolvePath(ROOT, 'src/lib/platform.ts')) ? await load('src/lib/platform.ts') : null;
 check(platformMod && typeof platformMod.platformFromRequest === 'function', 'src/lib/platform.ts does not export platformFromRequest');
 
-const UPGRADE_WORDS = { en: /\bPro\b/, ar: /الاحترافية/ };
+// The plan's name or the verb, in either locale. The Arabic plan is written
+// "الاحترافي" (ar.ts planPro) and "الاحترافية" (الباقة الاحترافية); the first is
+// a prefix of the second, so one pattern covers both, and "ترقية" covers
+// الترقية / بالترقية / للترقية.
+const UPGRADE_WORDS = { en: /\bPro\b|\bupgrade/i, ar: /الاحترافي|ترقية/ };
 const reset = new Date(Date.UTC(2026, 8, 26));
 const now = new Date(Date.UTC(2026, 8, 25, 12));
 for (const locale of ['en', 'ar']) {
@@ -117,7 +123,13 @@ const { ar } = await load('src/lib/i18n/locales/ar.ts');
 for (const [name, d] of [['en', en], ['ar', ar]]) {
   const k = d.dashboard.newKb;
   check(typeof k.errorLimitUpgrade === 'string' && k.errorLimitUpgrade.length > 0, `${name}: newKb.errorLimitUpgrade is missing`);
-  check(!UPGRADE_WORDS[name === 'en' ? 'en' : 'ar'].test(k.errorLimitFree), `${name}: newKb.errorLimitFree still carries the upgrade sentence`);
+  check(UPGRADE_WORDS[name].test(k.errorLimitUpgrade), `${name}: newKb.errorLimitUpgrade no longer names the plan or the upgrade: "${k.errorLimitUpgrade}"`);
+  // The lines the store build shows whatever the plan: the refusal on creating
+  // a subject over the cap, and the free plan's line in Settings.
+  const shownInStore = { 'newKb.errorLimitFree': k.errorLimitFree, 'newKb.errorLimitPro': k.errorLimitPro, 'settings.freePlanDesc': d.dashboard.settings.freePlanDesc };
+  for (const [key, text] of Object.entries(shownInStore)) {
+    check(!UPGRADE_WORDS[name].test(text), `${name}: ${key} carries upgrade wording the store build would show: "${text}"`);
+  }
 }
 
 if (failures.length === 0) {
