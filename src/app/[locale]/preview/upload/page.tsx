@@ -34,7 +34,7 @@ export default async function UploadPreview({ params }: { params: Promise<{ loca
     <div className="min-h-screen">
       <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
         <span className="font-semibold text-foreground">upload · preview</span>
-        <span className="text-faint">{safeLocale} · idle state only</span>
+        <span className="text-faint">{safeLocale} · idle, then ready with a queued name (#124)</span>
       </div>
       <DashboardShell
         locale={safeLocale}
@@ -51,8 +51,24 @@ export default async function UploadPreview({ params }: { params: Promise<{ loca
           signOut: t.dashboard.nav.signOut,
         }}
       >
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-4xl space-y-6">
           <DropZone kbId="00000000-0000-0000-0000-000000000000" />
+          {/* #124: the queued-file row, as it shows once a file is picked. The
+              moving states still need a real upload; `previewFile` only sets
+              the finished state, and sends nothing. */}
+          <DropZone
+            kbId="00000000-0000-0000-0000-000000000000"
+            previewFile={{ name: safeLocale === 'ar' ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved exercises - Chapter 3.pdf', size: 1_200_000 }}
+          />
+          <DropZone
+            kbId="00000000-0000-0000-0000-000000000000"
+            previewFile={{
+              name: safeLocale === 'ar'
+                ? 'ملاحظات المحاضرة الخامسة عن مرونة الطلب السعرية والدخلية والتقاطعية - النسخة النهائية 12.pdf'
+                : 'Lecture 5 notes on price, income and cross elasticity of demand - final version 12.pdf',
+              size: 3_400_000,
+            }}
+          />
         </div>
       </DashboardShell>
     </div>

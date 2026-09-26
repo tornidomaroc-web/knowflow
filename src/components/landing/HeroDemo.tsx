@@ -1,4 +1,5 @@
 import { BookOpen, CheckCircle2, ListChecks } from 'lucide-react';
+import { FileName } from '@/components/ui/FileName';
 
 export interface HeroDemoCopy {
   question: string;
@@ -46,7 +47,7 @@ export function HeroDemo({ copy, rtl }: { copy: HeroDemoCopy; rtl: boolean }) {
           <div className="flex flex-wrap gap-2 px-1" dir="ltr">
             {copy.files.map((file, idx) => (
               <span key={file} className="landing-fade rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                [{idx + 1}] {file}
+                [{idx + 1}] <FileName name={file} inline />
               </span>
             ))}
           </div>

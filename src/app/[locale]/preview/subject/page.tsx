@@ -6,6 +6,7 @@ import { DropZone } from '@/components/upload/DropZone'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { emptyStats } from '@/lib/subject-stats'
+import { PreviewRenameFields } from './PreviewRenameFields'
 
 /**
  * DESIGN PREVIEW for the subject page (register #85, SIGNED_IN_FEATURES.md
@@ -41,8 +42,13 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
     // study kit's summaryTodo and the statusError chip can be looked at.
     { id: 'd4', filename: ar ? 'ملاحظات المحاضرة 5.docx' : 'Lecture-5-notes.docx', type: 'docx', chunks: 9, status: 'ready', added: '2026-09-24T10:00:00Z', summary: false, quiz: true },
     { id: 'd5', filename: ar ? 'جدول الأسعار.xlsx' : 'Price-table.xlsx', type: 'xlsx', chunks: 0, status: 'error', added: '2026-09-24T09:00:00Z', summary: false, quiz: false },
+    // #124: a name long enough to truncate at 375px, so the ellipsis side and
+    // the extension can be looked at; and a mixed Arabic/Latin name.
+    { id: 'd6', filename: ar ? 'ملاحظات المحاضرة الخامسة عن مرونة الطلب السعرية والدخلية والتقاطعية - النسخة النهائية 12.pdf' : 'Lecture 5 notes on price, income and cross elasticity of demand - final version 12.pdf', type: 'pdf', chunks: 31, status: 'ready', added: '2026-09-25T12:00:00Z', summary: true, quiz: true },
+    { id: 'd7', filename: ar ? 'ملخص Chapter 3 (1).pdf' : 'Summary الفصل 3 (1).pdf', type: 'pdf', chunks: 6, status: 'ready', added: '2026-09-25T13:00:00Z', summary: false, quiz: false },
   ]
-  const stats = { ...emptyStats(), materials: 5, ready: 3, processing: 1, failed: 1, summarised: 2, quizzed: 2 }
+  const stats = { ...emptyStats(), materials: 7, ready: 5, processing: 1, failed: 1, summarised: 3, quizzed: 3 }
+  const renameLabels = t.dashboard.kbDetail.renameMaterial
   const cardLabels = {
     chunks: t.dashboard.kbDetail.chunks,
     statusReady: sd.statusReady,
@@ -107,7 +113,13 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
                   hasSummary={m.summary}
                   hasQuiz={m.quiz}
                   labels={cardLabels}
-                />
+                >
+                  {/* #124: the rename panel in its editing state under the
+                      chapter-number card and the long card, as a click would
+                      open it, so the field and its extension badge can be
+                      looked at without a session. */}
+                  {m.id === 'd2' || m.id === 'd6' ? <PreviewRenameFields filename={m.filename} labels={renameLabels} /> : null}
+                </MaterialCard>
               ))}
             </div>
           </section>

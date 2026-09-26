@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { CheckCircle2, Circle, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FileName } from '@/components/ui/FileName';
 import { formatDate } from '@/lib/format-date';
 import type { Locale } from '@/lib/i18n';
 
@@ -71,7 +72,8 @@ export function MaterialCard({
           <span className="text-[9px] font-bold uppercase leading-none">{fileType ?? ''}</span>
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground" dir="auto">{filename}</p>
+          {/* Register #124: `<p dir="auto">` showed "الفصل pdf.3"; FileName keeps "3.pdf" one unit. */}
+          <FileName name={filename} className="text-sm font-semibold text-foreground" />
           <p className="mt-0.5 text-xs text-muted-foreground">
             {fileType?.toUpperCase()} · {chunkCount} {labels.chunks} · {labels.added}{' '}
             <bdi>{formatDate(addedAt, locale as Locale)}</bdi>

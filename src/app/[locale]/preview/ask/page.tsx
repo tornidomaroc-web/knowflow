@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ChatBox } from '@/components/agent/ChatBox'
 import { AgentEmptyState } from '@/components/agent/AgentEmptyState'
+import { MessageBubble } from '@/components/agent/MessageBubble'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { PreviewHistory } from './PreviewHistory'
@@ -20,7 +21,9 @@ import { PreviewHistory } from './PreviewHistory'
  *              is the only state that shows the `overview` suggestion;
  *   zero       a student with no subjects (AgentEmptyState, `home.newKbDesc`);
  *   history    the history list as the phone's drawer shows it, empty
- *              (`agent.noHistory`).
+ *              (`agent.noHistory`);
+ *   answer     an answered question with three citation pills (#124: an
+ *              Arabic name with a chapter number, a Latin name, a mixed one).
  */
 export const metadata: Metadata = {
   title: 'Ask: design preview',
@@ -31,7 +34,7 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }))
 }
 
-type View = 'default' | 'none' | 'zero' | 'history'
+type View = 'default' | 'none' | 'zero' | 'history' | 'answer'
 
 export default async function AskPreview({
   params,
@@ -47,7 +50,7 @@ export default async function AskPreview({
   const t = useTranslation(safeLocale)
   const ar = safeLocale === 'ar'
   const raw = (await searchParams).view
-  const view: View = raw === 'none' || raw === 'zero' || raw === 'history' ? raw : 'default'
+  const view: View = raw === 'none' || raw === 'zero' || raw === 'history' || raw === 'answer' ? raw : 'default'
 
   const materials =
     view === 'none'
@@ -62,7 +65,7 @@ export default async function AskPreview({
       <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
         <span className="font-semibold text-foreground">ask · preview</span>
         <span className="text-faint">{safeLocale} · {view}</span>
-        {(['default', 'none', 'zero', 'history'] as const).filter((v) => v !== view).map((v) => (
+        {(['default', 'none', 'zero', 'history', 'answer'] as const).filter((v) => v !== view).map((v) => (
           <Link key={v} href={`/${safeLocale}/preview/ask${v === 'default' ? '' : `?view=${v}`}`} className="rounded-full border border-border px-3 py-1 font-semibold text-muted-foreground">
             {v}
           </Link>
@@ -91,6 +94,22 @@ export default async function AskPreview({
         ) : view === 'history' ? (
           <div className="h-[28rem] overflow-hidden rounded-xl border border-border">
             <PreviewHistory />
+          </div>
+        ) : view === 'answer' ? (
+          // #124: an answered question with its citation pills, so the file
+          // names under an answer can be looked at (Arabic with a chapter
+          // number, Latin, and a mixed name).
+          <div className="space-y-3 rounded-xl border border-border bg-surface p-3">
+            <MessageBubble role="user" content={ar ? 'ما هي مرونة الطلب السعرية؟' : 'What is price elasticity of demand?'} />
+            <MessageBubble
+              role="assistant"
+              content={ar ? 'مرونة الطلب السعرية هي مدى تغيّر الكمية المطلوبة عند تغيّر السعر.' : 'Price elasticity of demand is how much the quantity demanded changes when the price changes.'}
+              citations={[
+                { index: 1, document_id: 'd2', chunk_id: 'c1', filename: ar ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved exercises - Chapter 3.pdf', similarity: 0.91 },
+                { index: 2, document_id: 'd1', chunk_id: 'c2', filename: 'xilvaroth-n11-20260810.pdf', similarity: 0.84 },
+                { index: 3, document_id: 'd6', chunk_id: 'c3', filename: ar ? 'ملخص Chapter 3 (1).pdf' : 'Summary الفصل 3 (1).pdf', similarity: 0.8 },
+              ]}
+            />
           </div>
         ) : (
           <div className="flex h-[calc(100dvh-4.5rem-6rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] flex-col overflow-hidden rounded-xl border border-border bg-surface md:h-[calc(100dvh-4rem)]">
