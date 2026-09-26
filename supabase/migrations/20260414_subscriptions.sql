@@ -9,4 +9,3 @@ CREATE TABLE subscriptions (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view own subscription" ON subscriptions FOR SELECT USING (auth.uid() = user_id);
