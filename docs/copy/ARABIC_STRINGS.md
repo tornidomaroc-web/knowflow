@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
 Generated 2026-09-27 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **378 Arabic strings.**
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **380 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -315,6 +315,8 @@ file is not read by the app.
 | `dashboard.subjectDetail.statusReady` | جاهز | Ready |
 | `dashboard.subjectDetail.statusProcessing` | قيد التحضير | Processing |
 | `dashboard.subjectDetail.statusError` | لم ينجح | Failed |
+| `dashboard.subjectDetail.statusNoText` | بلا نص | No text |
+| `dashboard.subjectDetail.noTextLine` | لا نص في هذا الملف. ارفع نسخة فيها نص. | This file has no text. Upload a version with text. |
 | `dashboard.subjectDetail.checklist` | عدة المذاكرة | Study kit |
 | `dashboard.subjectDetail.summaryDone` | الملخص جاهز | Summary ready |
 | `dashboard.subjectDetail.summaryTodo` | بلا ملخص بعد | No summary yet |

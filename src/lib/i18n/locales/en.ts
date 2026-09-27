@@ -303,6 +303,9 @@ export const en = {
       statusReady: "Ready",
       statusProcessing: "Processing",
       statusError: "Failed",
+      // #128. A ready file the ingestion service read and found no text in.
+      statusNoText: "No text",
+      noTextLine: "This file has no text. Upload a version with text.",
       checklist: "Study kit",
       summaryDone: "Summary ready",
       summaryTodo: "No summary yet",

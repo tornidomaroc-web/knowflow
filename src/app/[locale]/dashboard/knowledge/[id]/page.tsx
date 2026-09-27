@@ -13,6 +13,7 @@ import type { Document } from '@/types'
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n'
 import { withSupportEmail } from '@/lib/site'
 import { subjectStats, emptyStats } from '@/lib/subject-stats'
+import { hasNoText } from '@/lib/material-text'
 
 interface KB {
   id: string
@@ -68,7 +69,7 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
 
   const stats = kb
     ? subjectStats(
-        docs.map((d) => ({ id: d.id, kb_id: d.kb_id, status: d.status, summary_generated_at: d.summary_generated_at, created_at: d.created_at })),
+        docs.map((d) => ({ id: d.id, kb_id: d.kb_id, status: d.status, chunk_count: d.chunk_count, embedding_status: d.embedding_status, summary_generated_at: d.summary_generated_at, created_at: d.created_at })),
         Array.from(quizzedIds).map((document_id) => ({ document_id })),
         []
       ).get(kb.id) ?? emptyStats()
@@ -79,6 +80,8 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
     statusReady: sd.statusReady,
     statusProcessing: sd.statusProcessing,
     statusError: sd.statusError,
+    statusNoText: sd.statusNoText,
+    noTextLine: sd.noTextLine,
     checklist: sd.checklist,
     summaryDone: sd.summaryDone,
     summaryTodo: sd.summaryTodo,
@@ -132,10 +135,14 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
                   locale={safeLocale}
                   hasSummary={Boolean(doc.summary_generated_at)}
                   hasQuiz={quizzedIds.has(doc.id)}
+                  noText={hasNoText(doc)}
                   labels={cardLabels}
                 >
-                  <SummarySection doc={doc} />
-                  <QuizSection doc={doc} />
+                  {/* #128: a file with no text offers no summary or quiz, which
+                      would only refuse it; rename and delete stay, so the
+                      student can replace it. */}
+                  {!hasNoText(doc) && <SummarySection doc={doc} />}
+                  {!hasNoText(doc) && <QuizSection doc={doc} />}
                   {/* #47: Rename beside Delete, now as cells of the card's action
                       group (#121, defect 6); an open panel spans the row. */}
                     <RenameMaterialControl

@@ -72,6 +72,9 @@ export interface Document {
   status: 'pending' | 'processing' | 'ready' | 'error';
   markdown_content: string | null;
   chunk_count: number;
+  // #128: set to 'ready' by the ingestion service in the same update that
+  // writes the real chunk count; older rows may hold 'pending' or 'error'.
+  embedding_status?: string | null;
   created_at: string;
   // Phase 3 (per-document summaries) — generated on demand from markdown_content
   // and stored (generate-once). `summary` null = not generated yet.
