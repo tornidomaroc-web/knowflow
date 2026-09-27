@@ -180,11 +180,11 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
         <div className="w-full max-w-md text-start" role="status" aria-live="polite">
           <div className="flex items-center gap-3">
             <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-primary">
-              {state === 'ready' && !noText ? <CheckCircle2 className="pop-in h-5 w-5 text-success" /> : <FileText className={noText && state === 'ready' ? 'h-5 w-5 text-warning' : 'h-5 w-5'} />}
+              {state === 'ready' && !noText ? <CheckCircle2 className="pop-in h-5 w-5 text-success" /> : <FileText className={noText && state === 'ready' ? 'h-5 w-5 text-danger' : 'h-5 w-5'} />}
             </span>
             <div className="min-w-0 flex-1">
               <FileName name={file.name} className="text-sm font-medium text-foreground" />
-              <p className={noText && state === 'ready' ? 'text-xs text-warning' : 'text-xs text-muted-foreground'}>
+              <p className={noText && state === 'ready' ? 'text-xs text-danger' : 'text-xs text-muted-foreground'}>
                 {state === 'uploading' && `${u.uploading} ${Math.round(fraction * 100)}%`}
                 {state === 'processing' && (stage === 'reading' ? u.reading : stage === 'preparing' ? u.preparing : u.stillWorking)}
                 {state === 'ready' && (noText ? t.dashboard.subjectDetail.noTextLine : u.ready)}

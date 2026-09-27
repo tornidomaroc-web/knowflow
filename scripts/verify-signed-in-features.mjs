@@ -156,6 +156,9 @@ if (has('src/lib/ask-suggestions.ts')) {
     const empty = card('ready', true);
     check(empty.includes('>No text<') && empty.includes('This file has no text. Upload a version with text.'), '#128: a ready file with no text does not show the no-text status and line');
     check(!empty.includes('>Ready<') && !empty.includes('Study kit'), '#128: a ready file with no text still says Ready or offers a study kit');
+    // Seen on the preview: in the ready or processing chip's colours it read as
+    // "ready" (or "wait") at a glance. It asks the student to act.
+    check(/class="[^"]*text-danger[^"]*">No text</.test(empty), '#128: the no-text chip is not in the danger style');
     const full = card('ready', false);
     check(full.includes('>Ready<') && full.includes('Study kit') && !full.includes('No text'), '#128: a ready file with chunks changed');
     for (const [s, label] of [['processing', 'Processing'], ['error', 'Failed']]) {

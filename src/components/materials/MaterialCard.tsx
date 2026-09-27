@@ -59,7 +59,10 @@ export function MaterialCard({
   const empty = status === 'ready' && noText;
   const chip =
     empty
-      ? { text: labels.statusNoText, cls: 'bg-raised text-warning' }
+      // Not the processing chip's style (that one says "wait") and not the ready
+      // chip's, which it matched at a glance on the preview: this file needs the
+      // student to act, so it reads as the failed one does.
+      ? { text: labels.statusNoText, cls: 'bg-danger-subtle text-danger' }
       : status === 'ready'
       ? { text: labels.statusReady, cls: 'bg-primary-subtle text-primary' }
       : status === 'error'
@@ -92,7 +95,7 @@ export function MaterialCard({
         <span className={cn('shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium', chip.cls)}>{chip.text}</span>
       </div>
 
-      {empty && <p className="mt-3 text-sm text-warning">{labels.noTextLine}</p>}
+      {empty && <p className="mt-3 text-sm text-danger">{labels.noTextLine}</p>}
 
       {status === 'ready' && !empty && (
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-raised px-3 py-2 text-xs">
