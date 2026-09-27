@@ -325,7 +325,6 @@ export const ar: Translation = {
     kbDetail: {
       documents: "الملفات",
       noDocuments: "لا ملفات هنا بعد. ارفع أول ملف من الأعلى.",
-      chunks: "أجزاء",
       deleteMaterial: {
         openButton: "حذف",
         warning: "هل تحذف هذا الملف نهائيًا؟ سيختفي الملف وملخّصه واختباراته. لن تستعمله صفحة اسأل بعد الآن، ولا يمكن استرجاع أي شيء.",
@@ -463,7 +462,6 @@ export const ar: Translation = {
       dropHere: "اسحب ملفاتك إلى هنا أو اضغط لرفعها",
       supported: "الملفات المقبولة: PDF, DOCX, PPTX, XLSX, TXT, MD (حتى {limit} للملف الواحد)",
       uploading: "نرفع ملفك…",
-      processing: "لحظة من فضلك…",
       reading: "نقرأ ملفك…",
       preparing: "نجهّزه للأسئلة…",
       stillWorking: "ما زلنا نعمل عليه…",

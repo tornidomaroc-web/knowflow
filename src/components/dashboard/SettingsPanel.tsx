@@ -209,7 +209,9 @@ export function SettingsPanel({
           <ul className="mt-2 divide-y divide-border">
             <LinkRow href={privacyHref} icon={ShieldCheck} label={labels.privacyPolicy} />
             <LinkRow href={termsHref} icon={FileText} label={labels.terms} />
-            <LinkRow href={`mailto:${supportEmail}`} icon={LifeBuoy} label={labels.support} detail={supportEmail} external />
+            {/* #127 (the owner's ruling): the line says how the answer reaches the
+                student; the address stays visible under it. */}
+            <LinkRow href={`mailto:${supportEmail}`} icon={LifeBuoy} label={labels.support} description={labels.supportDesc} detail={supportEmail} external />
           </ul>
         </Card>
 
@@ -246,12 +248,16 @@ function LinkRow({
   href,
   icon: Icon,
   label,
+  description,
   detail,
   external = false,
 }: {
   href: string;
   icon: typeof FileText;
   label: string;
+  /** A line in the page's language under the label. */
+  description?: string;
+  /** A left-to-right value (an address) under the label. */
   detail?: string;
   external?: boolean;
 }) {
@@ -262,6 +268,7 @@ function LinkRow({
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-medium text-foreground">{label}</span>
+        {description && <span className="block text-xs text-muted-foreground">{description}</span>}
         {detail && (
           <span className="block truncate text-xs text-muted-foreground" dir="ltr">
             {detail}

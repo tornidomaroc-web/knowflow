@@ -76,7 +76,6 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
 
   const sd = t.dashboard.subjectDetail
   const cardLabels = {
-    chunks: t.dashboard.kbDetail.chunks,
     statusReady: sd.statusReady,
     statusProcessing: sd.statusProcessing,
     statusError: sd.statusError,
@@ -128,7 +127,6 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
                   key={doc.id}
                   filename={doc.filename}
                   fileType={doc.file_type}
-                  chunkCount={doc.chunk_count}
                   status={doc.status}
                   addedAt={doc.created_at}
                   locale={safeLocale}

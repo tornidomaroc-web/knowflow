@@ -7,7 +7,12 @@
  *
  *  1. Every row's key exists in ar.ts and holds exactly the approved new value.
  *  2. The key set did not change: ar.ts has exactly the English keys plus the
- *     four Arabic-only plural forms (streakUnit zero/two/few/many), 380 leaves.
+ *     four Arabic-only plural forms (streakUnit zero/two/few/many), 378 leaves.
+ *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
+ *     ruling that removed it. Its rows stay in the batch files, which are the
+ *     owner's approved record and are never edited; they are read and checked
+ *     for shape, but not asserted against ar.ts. The key must be absent from
+ *     BOTH ar.ts and en.ts, so a retired key cannot quietly come back.
  *  3. Every {placeholder} survived: on every key, the Arabic placeholders are
  *     the English placeholders, as a set.
  *  4. Western digits only: no Arabic-Indic or Eastern Arabic-Indic digit
@@ -57,6 +62,17 @@ const A = leaves(ar);
 const E = leaves(en);
 const ph = (s) => (s.match(/\{[a-zA-Z]+\}/g) ?? []).sort().join(',');
 
+// 7. Keys the app no longer has, and the ruling that removed each.
+const RETIRED = new Map([
+  ['dashboard.upload.processing', '#127: never read; the upload box shows the reading/preparing/stillWorking stages'],
+  ['dashboard.kbDetail.chunks', '#127: the chunk count left the material card'],
+]);
+for (const [key, why] of RETIRED) {
+  check(!A.has(key), `${key} is retired (${why}) but is still in ar.ts`);
+  check(!E.has(key), `${key} is retired (${why}) but is still in en.ts`);
+}
+let retiredRows = 0;
+
 // 1 + 5 + 6. The batch files, in order, with later rows superseding earlier ones.
 const dir = resolvePath(ROOT, 'docs/copy');
 const NAME = /^ARABIC_STRINGS_(.+)_v(\d+)(?:_fix(\d*))?\.md$/;
@@ -89,6 +105,7 @@ for (const { f } of batches) {
     check(!seen.has(r.key), `${f}: ${r.key} appears twice`);
     seen.add(r.key);
     check(ph(r.neu) === ph(r.old), `${f}: ${r.key} changes its placeholders ({${ph(r.old)}} -> {${ph(r.neu)}})`);
+    if (RETIRED.has(r.key)) { retiredRows++; continue; }
     if (!A.has(r.key)) { check(false, `${f}: ${r.key} is not a key in ar.ts`); continue; }
     const prior = approved.get(r.key);
     if (prior) {
@@ -110,7 +127,7 @@ for (const { f } of batches) {
   const keys = [...approved.values()].filter((a) => a.file === f).length;
   console.error(`${f}: ${keys} keys asserted from this file`);
 }
-console.error(`${approved.size} keys asserted, ${superseded} earlier rows superseded, ${approved.size - wrong} hold`);
+console.error(`${approved.size} keys asserted, ${superseded} earlier rows superseded, ${retiredRows} rows for retired keys, ${approved.size - wrong} hold`);
 
 // 2. The key set.
 {
@@ -119,7 +136,7 @@ console.error(`${approved.size} keys asserted, ${superseded} earlier rows supers
   const onlyEn = [...E.keys()].filter((k) => !A.has(k)).sort();
   check(onlyAr.join() === [...pluralOnly].sort().join(), `keys only in ar.ts: ${onlyAr.join(', ') || '(none)'}; expected the four plural forms`);
   check(onlyEn.length === 0, `keys missing from ar.ts: ${onlyEn.join(', ')}`);
-  check(A.size === 380, `ar.ts has ${A.size} leaves, expected 380`);
+  check(A.size === 378, `ar.ts has ${A.size} leaves, expected 378`);
 }
 
 // 3. Placeholders on every key.
@@ -135,7 +152,7 @@ console.error(`${approved.size} keys asserted, ${superseded} earlier rows supers
 }
 
 if (failures.length === 0) {
-  console.log(`PASS: ${approved.size} approved Arabic strings hold in ar.ts (${rowsTotal} rows in ${batches.length} files, ${superseded} superseded); the key set, every placeholder and Western digits are unchanged.`);
+  console.log(`PASS: ${approved.size} approved Arabic strings hold in ar.ts (${rowsTotal} rows in ${batches.length} files, ${superseded} superseded, ${retiredRows} for retired keys); the key set, every placeholder and Western digits are unchanged.`);
   process.exit(0);
 }
 console.log(`FAIL: ${failures.length} problem(s)`);

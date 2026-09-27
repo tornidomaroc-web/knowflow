@@ -138,9 +138,9 @@ function assertRendered(site, html, name, { inline = false } = {}) {
 console.log('');
 console.log('MaterialCard:');
 const { MaterialCard } = await load('src/components/materials/MaterialCard.tsx');
-const cardLabels = { chunks: 'chunks', statusReady: 'Ready', statusProcessing: 'Processing', statusError: 'Failed', checklist: 'Kit', summaryDone: 'S', summaryTodo: 's', quizDone: 'Q', quizTodo: 'q', added: 'Added' };
+const cardLabels = { statusReady: 'Ready', statusProcessing: 'Processing', statusError: 'Failed', checklist: 'Kit', summaryDone: 'S', summaryTodo: 's', quizDone: 'Q', quizTodo: 'q', added: 'Added' };
 const card = (filename) =>
-  renderToStaticMarkup(React.createElement(MaterialCard, { filename, fileType: 'pdf', chunkCount: 3, status: 'ready', addedAt: '2026-09-25T00:00:00Z', locale: 'ar', hasSummary: true, hasQuiz: false, labels: cardLabels }));
+  renderToStaticMarkup(React.createElement(MaterialCard, { filename, fileType: 'pdf', status: 'ready', addedAt: '2026-09-25T00:00:00Z', locale: 'ar', hasSummary: true, hasQuiz: false, labels: cardLabels }));
 for (const [name] of CASES.filter(([n]) => n !== '')) assertRendered('MaterialCard', card(name), name);
 {
   // The defect itself: on main, the card is one <p dir="auto"> holding the whole name.

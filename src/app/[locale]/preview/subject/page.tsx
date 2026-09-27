@@ -38,17 +38,17 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
   const sd = t.dashboard.subjectDetail
 
   const materials = [
-    { id: 'd1', filename: ar ? 'مبادئ-الاقتصاد-الجزئي.md' : 'Microeconomics-Principles.pdf', type: ar ? 'md' : 'pdf', chunks: 22, status: 'ready', added: '2026-09-23T21:30:00Z', summary: true, quiz: true },
-    { id: 'd2', filename: ar ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved-Exercises-Ch3.pdf', type: 'pdf', chunks: 14, status: 'ready', added: '2026-09-22T18:00:00Z', summary: true, quiz: false },
-    { id: 'd3', filename: ar ? 'شرائح المحاضرة 4.pptx' : 'Lecture-4-slides.pptx', type: 'pptx', chunks: 0, status: 'processing', added: '2026-09-25T08:10:00Z', summary: false, quiz: false },
+    { id: 'd1', filename: ar ? 'مبادئ-الاقتصاد-الجزئي.md' : 'Microeconomics-Principles.pdf', type: ar ? 'md' : 'pdf', status: 'ready', added: '2026-09-23T21:30:00Z', summary: true, quiz: true },
+    { id: 'd2', filename: ar ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved-Exercises-Ch3.pdf', type: 'pdf', status: 'ready', added: '2026-09-22T18:00:00Z', summary: true, quiz: false },
+    { id: 'd3', filename: ar ? 'شرائح المحاضرة 4.pptx' : 'Lecture-4-slides.pptx', type: 'pptx', status: 'processing', added: '2026-09-25T08:10:00Z', summary: false, quiz: false },
     // #123: a ready material with no summary yet, and a failed one, so the
     // study kit's summaryTodo and the statusError chip can be looked at.
-    { id: 'd4', filename: ar ? 'ملاحظات المحاضرة 5.docx' : 'Lecture-5-notes.docx', type: 'docx', chunks: 9, status: 'ready', added: '2026-09-24T10:00:00Z', summary: false, quiz: true },
-    { id: 'd5', filename: ar ? 'جدول الأسعار.xlsx' : 'Price-table.xlsx', type: 'xlsx', chunks: 0, status: 'error', added: '2026-09-24T09:00:00Z', summary: false, quiz: false },
+    { id: 'd4', filename: ar ? 'ملاحظات المحاضرة 5.docx' : 'Lecture-5-notes.docx', type: 'docx', status: 'ready', added: '2026-09-24T10:00:00Z', summary: false, quiz: true },
+    { id: 'd5', filename: ar ? 'جدول الأسعار.xlsx' : 'Price-table.xlsx', type: 'xlsx', status: 'error', added: '2026-09-24T09:00:00Z', summary: false, quiz: false },
     // #124: a name long enough to truncate at 375px, so the ellipsis side and
     // the extension can be looked at; and a mixed Arabic/Latin name.
-    { id: 'd6', filename: ar ? 'ملاحظات المحاضرة الخامسة عن مرونة الطلب السعرية والدخلية والتقاطعية - النسخة النهائية 12.pdf' : 'Lecture 5 notes on price, income and cross elasticity of demand - final version 12.pdf', type: 'pdf', chunks: 31, status: 'ready', added: '2026-09-25T12:00:00Z', summary: true, quiz: true },
-    { id: 'd7', filename: ar ? 'ملخص Chapter 3 (1).pdf' : 'Summary الفصل 3 (1).pdf', type: 'pdf', chunks: 6, status: 'ready', added: '2026-09-25T13:00:00Z', summary: false, quiz: false },
+    { id: 'd6', filename: ar ? 'ملاحظات المحاضرة الخامسة عن مرونة الطلب السعرية والدخلية والتقاطعية - النسخة النهائية 12.pdf' : 'Lecture 5 notes on price, income and cross elasticity of demand - final version 12.pdf', type: 'pdf', status: 'ready', added: '2026-09-25T12:00:00Z', summary: true, quiz: true },
+    { id: 'd7', filename: ar ? 'ملخص Chapter 3 (1).pdf' : 'Summary الفصل 3 (1).pdf', type: 'pdf', status: 'ready', added: '2026-09-25T13:00:00Z', summary: false, quiz: false },
   ]
   const stats = { ...emptyStats(), materials: 7, ready: 5, processing: 1, failed: 1, summarised: 3, quizzed: 3 }
   const renameLabels = t.dashboard.kbDetail.renameMaterial
@@ -59,7 +59,6 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
     ? 'يعرّف الملف الطلب والعرض، ثم يشرح مرونة الطلب السعرية وكيف تُقاس.'
     : 'The file defines demand and supply, then explains price elasticity of demand and how it is measured.'
   const cardLabels = {
-    chunks: t.dashboard.kbDetail.chunks,
     statusReady: sd.statusReady,
     statusProcessing: sd.statusProcessing,
     statusError: sd.statusError,
@@ -115,7 +114,6 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
                   key={m.id}
                   filename={m.filename}
                   fileType={m.type}
-                  chunkCount={m.chunks}
                   status={m.status}
                   addedAt={m.added}
                   locale={safeLocale}
