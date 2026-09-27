@@ -1,6 +1,6 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-09-25 by `scripts/export-arabic-strings.mjs` from
+Generated 2026-09-26 by `scripts/export-arabic-strings.mjs` from
 `src/lib/i18n/locales/ar.ts` and `en.ts`. **380 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
@@ -219,7 +219,7 @@ file is not read by the app.
 
 | Key | العربية | English |
 |---|---|---|
-| `dashboard.nav.dashboard` | اللوحة | Dashboard |
+| `dashboard.nav.dashboard` | الرئيسية | Dashboard |
 | `dashboard.nav.knowledge` | المواد | Subjects |
 | `dashboard.nav.agent` | اسأل | Ask |
 | `dashboard.nav.settings` | الإعدادات | Settings |
@@ -229,16 +229,16 @@ file is not read by the app.
 
 | Key | العربية | English |
 |---|---|---|
-| `dashboard.passwordReplaced.title` | أصبح دخولك الآن عبر Google | You are now signing in with Google |
-| `dashboard.passwordReplaced.body` | لم يتم تأكيد بريدك الإلكتروني، لذلك أصبح الدخول عبر Google هو طريقة الوصول إلى هذا الحساب. كل ما حفظته لا يزال موجوداً، لكن كلمة المرور التي اخترتها سابقاً لم تعد تعمل. يمكنك تعيين كلمة مرور جديدة متى شئت. | Your email address was never confirmed, so signing in with Google took over this account. Everything you saved is still here, but the password you chose earlier no longer works. You can set a new one whenever you like. |
-| `dashboard.passwordReplaced.action` | تعيين كلمة مرور | Set a password |
-| `dashboard.passwordReplaced.dismiss` | إخفاء | Dismiss |
+| `dashboard.passwordReplaced.title` | أصبحت تدخل الآن عبر Google | You are now signing in with Google |
+| `dashboard.passwordReplaced.body` | لم تؤكد بريدك الإلكتروني من قبل، لذلك صار حسابك يُفتح عبر Google. كل ما حفظته موجود كما هو. كلمة المرور القديمة لم تعد تعمل، ويمكنك اختيار كلمة جديدة متى شئت. | Your email address was never confirmed, so signing in with Google took over this account. Everything you saved is still here, but the password you chose earlier no longer works. You can set a new one whenever you like. |
+| `dashboard.passwordReplaced.action` | اختر كلمة مرور | Set a password |
+| `dashboard.passwordReplaced.dismiss` | حسنًا | Dismiss |
 
 ## Signed-in app: home (`dashboard.home`)
 
 | Key | العربية | English |
 |---|---|---|
-| `dashboard.home.welcome` | أهلًا من جديد. | Welcome back. |
+| `dashboard.home.welcome` | أهلًا بك. | Welcome back. |
 | `dashboard.home.welcomeLine` | من أين نبدأ اليوم؟ | Ready to study? Your materials are waiting. |
 | `dashboard.home.streakLit` | رائع، حافظ على الشعلة. | Keep it going. |
 | `dashboard.home.streakUnlit` | سؤال واحد اليوم يشعل سلسلتك. | Start one today: ask one question. |
@@ -278,7 +278,7 @@ file is not read by the app.
 | `dashboard.home.allSubjects` | كل المواد | All subjects |
 | `dashboard.home.materialsWord` | ملخّص | summarised |
 | `dashboard.home.noSubjects` | لا مواد بعد | No subjects yet |
-| `dashboard.home.noSubjectsDesc` | كل مادة تمثّل مقررًا واحدًا. أنشئ أول مادة وارفع ملفاتها. | A subject is one course. Add one, then upload its materials. |
+| `dashboard.home.noSubjectsDesc` | ستظهر موادك هنا حين تضيفها. | A subject is one course. Add one, then upload its materials. |
 | `dashboard.home.startTitle` | ثلاث خطوات وتصلك أول إجابة | Three steps to your first answer |
 | `dashboard.home.step1Title` | أنشئ مادة | Create a subject |
 | `dashboard.home.step1Desc` | مادة لكل مقرر. | One subject per course. |
@@ -344,87 +344,87 @@ file is not read by the app.
 
 | Key | العربية | English |
 |---|---|---|
-| `dashboard.newKb.title` | إنشاء مادة | Create Subject |
-| `dashboard.newKb.name` | الاسم | Name |
-| `dashboard.newKb.description` | الوصف (اختياري) | Description (Optional) |
+| `dashboard.newKb.title` | مادة جديدة | Create Subject |
+| `dashboard.newKb.name` | اسم المادة | Name |
+| `dashboard.newKb.description` | وصف قصير (اختياري) | Description (Optional) |
 | `dashboard.newKb.language` | اللغة | Language |
 | `dashboard.newKb.languageAr` | العربية | Arabic |
 | `dashboard.newKb.languageEn` | الإنجليزية | English |
-| `dashboard.newKb.languageBoth` | كلاهما | Both |
-| `dashboard.newKb.create` | إنشاء مادة | Create Subject |
-| `dashboard.newKb.creating` | جارٍ الإنشاء... | Creating... |
-| `dashboard.newKb.errorAuth` | غير مصادق عليه | Not authenticated |
-| `dashboard.newKb.errorLimitFree` | لقد بلغت الحد الأقصى للمواد في الباقة المجانية ({limit}). | You've reached the free plan's limit of {limit} subjects. |
-| `dashboard.newKb.errorLimitUpgrade` | قم بالترقية إلى الاحترافي للمزيد. | Upgrade to Pro for more. |
-| `dashboard.newKb.errorLimitPro` | لقد بلغت الحد الأقصى للمواد ({limit}). | You've reached your limit of {limit} subjects. |
+| `dashboard.newKb.languageBoth` | العربية والإنجليزية | Both |
+| `dashboard.newKb.create` | أنشئ المادة | Create Subject |
+| `dashboard.newKb.creating` | ننشئ مادتك… | Creating... |
+| `dashboard.newKb.errorAuth` | سجّل الدخول أولًا. | Not authenticated |
+| `dashboard.newKb.errorLimitFree` | وصلت إلى حد المواد في الباقة المجانية: {limit}. | You've reached the free plan's limit of {limit} subjects. |
+| `dashboard.newKb.errorLimitUpgrade` | انتقل إلى الباقة الاحترافية لتضيف المزيد. | Upgrade to Pro for more. |
+| `dashboard.newKb.errorLimitPro` | وصلت إلى حد المواد في باقتك: {limit}. | You've reached your limit of {limit} subjects. |
 
 ## Signed-in app: kbDetail (`dashboard.kbDetail`)
 
 | Key | العربية | English |
 |---|---|---|
 | `dashboard.kbDetail.documents` | الملفات | Materials |
-| `dashboard.kbDetail.noDocuments` | لا توجد ملفات بعد. ارفع أول ملف لك أعلاه. | No materials yet. Upload your first file above. |
-| `dashboard.kbDetail.chunks` | مقاطع | chunks |
+| `dashboard.kbDetail.noDocuments` | لا ملفات هنا بعد. ارفع أول ملف من الأعلى. | No materials yet. Upload your first file above. |
+| `dashboard.kbDetail.chunks` | أجزاء | chunks |
 | `dashboard.kbDetail.deleteMaterial.openButton` | حذف | Delete |
-| `dashboard.kbDetail.deleteMaterial.warning` | هل تريد حذف هذا الملف نهائيًا؟ سيُحذف الملف وملخّصه واختباراته، ولن تستخدمه صفحة اسأل بعد الآن، ولا يمكن استرجاع أي شيء. | Delete this material permanently? Its file, its summary and its quizzes are removed, Ask stops using it, and nothing can be restored. |
-| `dashboard.kbDetail.deleteMaterial.answersKept` | الإجابات التي حصلت عليها سابقًا في صفحة اسأل تبقى في محادثاتك، بما في ذلك ما اقتبسته من هذا الملف. | Answers you already got in Ask stay in your conversations, including anything they quoted from this material. |
+| `dashboard.kbDetail.deleteMaterial.warning` | هل تحذف هذا الملف نهائيًا؟ سيختفي الملف وملخّصه واختباراته. لن تستعمله صفحة اسأل بعد الآن، ولا يمكن استرجاع أي شيء. | Delete this material permanently? Its file, its summary and its quizzes are removed, Ask stops using it, and nothing can be restored. |
+| `dashboard.kbDetail.deleteMaterial.answersKept` | الإجابات التي حصلت عليها من قبل تبقى في محادثاتك، حتى ما اقتبسته من هذا الملف. | Answers you already got in Ask stay in your conversations, including anything they quoted from this material. |
 | `dashboard.kbDetail.deleteMaterial.confirmButton` | احذف نهائيًا | Delete permanently |
 | `dashboard.kbDetail.deleteMaterial.cancelButton` | إلغاء | Cancel |
-| `dashboard.kbDetail.deleteMaterial.deleting` | جارٍ الحذف… | Deleting… |
+| `dashboard.kbDetail.deleteMaterial.deleting` | نحذفه الآن… | Deleting… |
 | `dashboard.kbDetail.deleteMaterial.errorNotFound` | هذا الملف لم يعد موجودًا. | This material no longer exists. |
-| `dashboard.kbDetail.deleteMaterial.errorFailed` | لم يكتمل الحذف. يمكنك المحاولة مرة أخرى. | The deletion did not finish. You can try again. |
-| `dashboard.kbDetail.deleteMaterial.errorContact` | تعذّر حذف هذا الملف من هنا. راسلنا على {email} وسنحذفه لك. | This material could not be deleted from here. Email {email} and we will remove it for you. |
-| `dashboard.kbDetail.renameMaterial.openButton` | إعادة تسمية | Rename |
+| `dashboard.kbDetail.deleteMaterial.errorFailed` | لم يكتمل الحذف. جرّب مرة أخرى. | The deletion did not finish. You can try again. |
+| `dashboard.kbDetail.deleteMaterial.errorContact` | لا نستطيع حذف هذا الملف من هنا. راسلنا على {email} وسنحذفه لك. | This material could not be deleted from here. Email {email} and we will remove it for you. |
+| `dashboard.kbDetail.renameMaterial.openButton` | غيّر الاسم | Rename |
 | `dashboard.kbDetail.renameMaterial.label` | الاسم الجديد | New name |
 | `dashboard.kbDetail.renameMaterial.hint` | يبقى نوع الملف كما هو. | The file type stays the same. |
-| `dashboard.kbDetail.renameMaterial.saveButton` | حفظ الاسم | Save name |
+| `dashboard.kbDetail.renameMaterial.saveButton` | احفظ الاسم | Save name |
 | `dashboard.kbDetail.renameMaterial.cancelButton` | إلغاء | Cancel |
-| `dashboard.kbDetail.renameMaterial.saving` | جارٍ الحفظ… | Saving… |
-| `dashboard.kbDetail.renameMaterial.errorInvalid` | أدخل اسمًا غير فارغ، بلا / أو \، ولا يتجاوز 200 حرف. | Enter a name that is not empty, has no / or \, and is at most 200 characters long. |
+| `dashboard.kbDetail.renameMaterial.saving` | نحفظ الاسم… | Saving… |
+| `dashboard.kbDetail.renameMaterial.errorInvalid` | اكتب اسمًا فيه حرف واحد على الأقل، بلا / أو \، وبحد أقصى 200 حرف. | Enter a name that is not empty, has no / or \, and is at most 200 characters long. |
 | `dashboard.kbDetail.renameMaterial.errorNotFound` | هذا الملف لم يعد موجودًا. | This material no longer exists. |
-| `dashboard.kbDetail.renameMaterial.errorConflict` | تغيّر هذا الملف أثناء إعادة تسميته. أعد تحميل الصفحة وحاول مرة أخرى. | This material changed while you were renaming it. Reload the page and try again. |
-| `dashboard.kbDetail.renameMaterial.errorContact` | تعذّرت إعادة تسمية هذا الملف من هنا. راسلنا على {email} وسنعيد تسميته لك. | This material cannot be renamed from here. Email {email} and we will rename it for you. |
-| `dashboard.kbDetail.renameMaterial.errorFailed` | لم تكتمل إعادة التسمية ولم يتغير أي شيء. يمكنك المحاولة مرة أخرى. | The rename did not finish and nothing was changed. You can try again. |
+| `dashboard.kbDetail.renameMaterial.errorConflict` | تغيّر هذا الملف وأنت تعيد تسميته. حدّث الصفحة وجرّب مرة أخرى. | This material changed while you were renaming it. Reload the page and try again. |
+| `dashboard.kbDetail.renameMaterial.errorContact` | لا نستطيع تغيير اسم هذا الملف من هنا. راسلنا على {email} وسنغيّره لك. | This material cannot be renamed from here. Email {email} and we will rename it for you. |
+| `dashboard.kbDetail.renameMaterial.errorFailed` | لم يتغير الاسم، وبقي كل شيء كما هو. جرّب مرة أخرى. | The rename did not finish and nothing was changed. You can try again. |
 
 ## Signed-in app: summary (`dashboard.summary`)
 
 | Key | العربية | English |
 |---|---|---|
 | `dashboard.summary.heading` | الملخّص | Summary |
-| `dashboard.summary.generate` | لخّص هذه المادة | Summarize this material |
-| `dashboard.summary.generating` | جارٍ التلخيص… | Summarizing… |
-| `dashboard.summary.partialNotice` | هذا الملخّص يغطّي الجزء الأول فقط من هذه المادة الطويلة. | This summary covers only the first part of this long material. |
-| `dashboard.summary.errors.session` | انتهت جلستك. يُرجى تحديث الصفحة وتسجيل الدخول من جديد. | Your session expired. Please refresh the page and sign in again. |
-| `dashboard.summary.errors.notFound` | تعذّر العثور على هذه المادة. | This material could not be found. |
-| `dashboard.summary.errors.processing` | لا تزال هذه المادة قيد المعالجة. انتظر حتى تصبح جاهزة ثم حاول مجددًا. | This material is still processing. Wait until it's ready, then try again. |
-| `dashboard.summary.errors.notEnoughText` | لا يوجد نص كافٍ في هذه المادة لتلخيصها. | There isn't enough text in this material to summarize. |
-| `dashboard.summary.errors.limit` | بلغت حدك اليومي من الملخصات. | You've reached today's summary limit. |
-| `dashboard.summary.errors.temporary` | تعذّر إنشاء الملخّص الآن. يُرجى المحاولة بعد قليل. | Couldn't create the summary right now. Please try again shortly. |
-| `dashboard.summary.errors.connection` | تعذّر الاتصال. تحقّق من اتصالك وحاول مجددًا. | Connection failed. Check your connection and try again. |
+| `dashboard.summary.generate` | لخّص هذا الملف | Summarize this material |
+| `dashboard.summary.generating` | نلخّص ملفك… | Summarizing… |
+| `dashboard.summary.partialNotice` | هذا الملخّص يغطي الجزء الأول فقط من هذا الملف الطويل. | This summary covers only the first part of this long material. |
+| `dashboard.summary.errors.session` | انتهت جلستك. حدّث الصفحة وسجّل الدخول من جديد. | Your session expired. Please refresh the page and sign in again. |
+| `dashboard.summary.errors.notFound` | لم نجد هذا الملف. | This material could not be found. |
+| `dashboard.summary.errors.processing` | ما زلنا نجهّز هذا الملف. انتظر حتى يصبح جاهزًا ثم جرّب مرة أخرى. | This material is still processing. Wait until it's ready, then try again. |
+| `dashboard.summary.errors.notEnoughText` | في هذا الملف نص قليل جدًا، فلا يمكن تلخيصه. | There isn't enough text in this material to summarize. |
+| `dashboard.summary.errors.limit` | استعملت كل ملخصات اليوم. | You've reached today's summary limit. |
+| `dashboard.summary.errors.temporary` | لم نستطع كتابة الملخّص الآن. جرّب بعد قليل. | Couldn't create the summary right now. Please try again shortly. |
+| `dashboard.summary.errors.connection` | انقطع الاتصال. تأكد من الإنترنت وجرّب مرة أخرى. | Connection failed. Check your connection and try again. |
 
 ## Signed-in app: quiz (`dashboard.quiz`)
 
 | Key | العربية | English |
 |---|---|---|
 | `dashboard.quiz.heading` | الاختبار | Quiz |
-| `dashboard.quiz.start` | اختبرني في هذه المادة | Quiz me on this material |
-| `dashboard.quiz.starting` | جارٍ تحضير اختبارك… | Preparing your quiz… |
-| `dashboard.quiz.partialNotice` | هذا الاختبار يغطّي الجزء الأول فقط من هذه المادة الطويلة. | This quiz covers only the first part of this long material. |
-| `dashboard.quiz.submit` | تحقّق من إجاباتي | Check my answers |
-| `dashboard.quiz.submitting` | جارٍ التحقّق… | Checking… |
+| `dashboard.quiz.start` | اختبرني في هذا الملف | Quiz me on this material |
+| `dashboard.quiz.starting` | نجهّز اختبارك… | Preparing your quiz… |
+| `dashboard.quiz.partialNotice` | هذا الاختبار يغطي الجزء الأول فقط من هذا الملف الطويل. | This quiz covers only the first part of this long material. |
+| `dashboard.quiz.submit` | صحّح إجاباتي | Check my answers |
+| `dashboard.quiz.submitting` | نصحّح إجاباتك… | Checking… |
 | `dashboard.quiz.retake` | حاول مجددًا | Try again |
 | `dashboard.quiz.score` | نتيجتك | Your score |
 | `dashboard.quiz.correctAnswer` | الإجابة الصحيحة | Correct answer |
-| `dashboard.quiz.noAnswer` | لم تُجب عن هذا السؤال. | You didn't answer this question. |
-| `dashboard.quiz.errors.session` | انتهت جلستك. يُرجى تحديث الصفحة وتسجيل الدخول من جديد. | Your session expired. Please refresh the page and sign in again. |
-| `dashboard.quiz.errors.notFound` | تعذّر العثور على هذه المادة. | This material could not be found. |
-| `dashboard.quiz.errors.processing` | لا تزال هذه المادة قيد المعالجة. انتظر حتى تصبح جاهزة ثم حاول مجددًا. | This material is still processing. Wait until it's ready, then try again. |
-| `dashboard.quiz.errors.notEnoughText` | لا يوجد نص كافٍ في هذه المادة لإنشاء اختبار. | There isn't enough text in this material to make a quiz. |
-| `dashboard.quiz.errors.limit` | بلغت حدك اليومي من الاختبارات. | You've reached today's quiz limit. |
-| `dashboard.quiz.errors.badRequest` | حدث خطأ في هذا الطلب. يُرجى تحديث الصفحة والمحاولة مجددًا. | Something went wrong with that request. Please refresh the page and try again. |
-| `dashboard.quiz.errors.incomplete` | هذا الاختبار غير مكتمل ولا يمكن تصحيحه. | This quiz is incomplete and can't be graded. |
-| `dashboard.quiz.errors.temporary` | تعذّر تنفيذ ذلك الآن. يُرجى المحاولة بعد قليل. | Couldn't do that right now. Please try again shortly. |
-| `dashboard.quiz.errors.connection` | تعذّر الاتصال. تحقّق من اتصالك وحاول مجددًا. | Connection failed. Check your connection and try again. |
+| `dashboard.quiz.noAnswer` | تركت هذا السؤال بلا إجابة. | You didn't answer this question. |
+| `dashboard.quiz.errors.session` | انتهت جلستك. حدّث الصفحة وسجّل الدخول من جديد. | Your session expired. Please refresh the page and sign in again. |
+| `dashboard.quiz.errors.notFound` | لم نجد هذا الملف. | This material could not be found. |
+| `dashboard.quiz.errors.processing` | ما زلنا نجهّز هذا الملف. انتظر حتى يصبح جاهزًا ثم جرّب مرة أخرى. | This material is still processing. Wait until it's ready, then try again. |
+| `dashboard.quiz.errors.notEnoughText` | في هذا الملف نص قليل جدًا، فلا يمكن صنع اختبار منه. | There isn't enough text in this material to make a quiz. |
+| `dashboard.quiz.errors.limit` | استعملت كل اختبارات اليوم. | You've reached today's quiz limit. |
+| `dashboard.quiz.errors.badRequest` | حدث خطأ في هذا الطلب. حدّث الصفحة وجرّب مرة أخرى. | Something went wrong with that request. Please refresh the page and try again. |
+| `dashboard.quiz.errors.incomplete` | هذا الاختبار ناقص، فلا يمكن تصحيحه. | This quiz is incomplete and can't be graded. |
+| `dashboard.quiz.errors.temporary` | لم نستطع فعل ذلك الآن. جرّب بعد قليل. | Couldn't do that right now. Please try again shortly. |
+| `dashboard.quiz.errors.connection` | انقطع الاتصال. تأكد من الإنترنت وجرّب مرة أخرى. | Connection failed. Check your connection and try again. |
 
 ## Signed-in app: settings (`dashboard.settings`)
 
@@ -432,54 +432,54 @@ file is not read by the app.
 |---|---|---|
 | `dashboard.settings.title` | الإعدادات | Settings |
 | `dashboard.settings.subtitle` | حسابك وباقتك وتفضيلاتك. | Your account, plan and preferences. |
-| `dashboard.settings.freePlanDesc` | الباقة المجانية. حصتك اليومية معروضة في صفحتك الرئيسية. | The free plan. Your daily allowance is on your home screen. |
+| `dashboard.settings.freePlanDesc` | الباقة المجانية. رصيدك اليومي في صفحتك الرئيسية. | The free plan. Your daily allowance is on your home screen. |
 | `dashboard.settings.proPlanDesc` | شكرًا لدعمك KnowFlow. | Thank you for supporting KnowFlow. |
 | `dashboard.settings.preferences` | التفضيلات | Preferences |
 | `dashboard.settings.language` | اللغة | Language |
-| `dashboard.settings.helpLegal` | المساعدة والقانوني | Help & legal |
+| `dashboard.settings.helpLegal` | المساعدة والشروط | Help & legal |
 | `dashboard.settings.terms` | شروط الخدمة | Terms of Service |
-| `dashboard.settings.support` | تواصل مع الدعم | Contact support |
-| `dashboard.settings.supportDesc` | نرد عبر البريد الإلكتروني. | We answer by email. |
+| `dashboard.settings.support` | تواصل معنا | Contact support |
+| `dashboard.settings.supportDesc` | نرد عليك بالبريد الإلكتروني. | We answer by email. |
 | `dashboard.settings.account` | الحساب | Account |
 | `dashboard.settings.email` | البريد الإلكتروني | Email |
 | `dashboard.settings.plan` | الباقة | Plan |
 | `dashboard.settings.free` | مجاني | Free |
 | `dashboard.settings.pro` | احترافي | Pro |
 | `dashboard.settings.renews` | تتجدد في | Renews |
-| `dashboard.settings.upgrade` | الترقية إلى الاحترافي | Upgrade to Pro |
+| `dashboard.settings.upgrade` | انتقل إلى الاحترافي | Upgrade to Pro |
 | `dashboard.settings.activeSubscription` | اشتراك نشط | Active subscription |
 | `dashboard.settings.privacyPolicy` | سياسة الخصوصية | Privacy Policy |
 | `dashboard.settings.cancels` | ينتهي في | Cancels on |
 | `dashboard.settings.cancelSubscription.heading` | الاشتراك | Subscription |
-| `dashboard.settings.cancelSubscription.description` | أوقف تجديد اشتراكك. | Stop your subscription from renewing. |
+| `dashboard.settings.cancelSubscription.description` | أوقف التجديد التلقائي لاشتراكك. | Stop your subscription from renewing. |
 | `dashboard.settings.cancelSubscription.keepsAccess` | تحتفظ بالباقة الاحترافية حتى | You keep Pro until |
 | `dashboard.settings.cancelSubscription.noRefund` | لا تُسترد قيمة الفترة التي دفعت ثمنها بالفعل. | The period you have already paid for is not refunded. |
 | `dashboard.settings.cancelSubscription.canResubscribe` | يمكنك الاشتراك مرة أخرى في أي وقت، ولا يُحذف أي شيء. | You can subscribe again at any time, and nothing is deleted. |
 | `dashboard.settings.cancelSubscription.openButton` | إلغاء الاشتراك | Cancel subscription |
-| `dashboard.settings.cancelSubscription.confirmPrompt` | هل تريد إلغاء اشتراكك؟ يبقى حسابك وكل ما فيه كما هو تمامًا. | Cancel your subscription? Your account and everything in it stays exactly as it is. |
+| `dashboard.settings.cancelSubscription.confirmPrompt` | هل تلغي اشتراكك؟ حسابك وكل ما فيه يبقى كما هو. | Cancel your subscription? Your account and everything in it stays exactly as it is. |
 | `dashboard.settings.cancelSubscription.confirmButton` | نعم، ألغِ الاشتراك | Yes, cancel it |
-| `dashboard.settings.cancelSubscription.keepButton` | الاحتفاظ بالاشتراك | Keep my subscription |
-| `dashboard.settings.cancelSubscription.working` | جارٍ الإلغاء… | Cancelling… |
+| `dashboard.settings.cancelSubscription.keepButton` | أبقِ اشتراكي | Keep my subscription |
+| `dashboard.settings.cancelSubscription.working` | نلغي اشتراكك… | Cancelling… |
 | `dashboard.settings.cancelSubscription.done` | تم إلغاء اشتراكك. تحتفظ بالباقة الاحترافية حتى | Your subscription is cancelled. You keep Pro until |
-| `dashboard.settings.cancelSubscription.errorFailed` | لم تنجح العملية ولم يتغير أي شيء. يمكنك المحاولة مرة أخرى. | That did not work and nothing was changed. You can try again. |
-| `dashboard.settings.cancelSubscription.errorPartial` | نجح جزء من العملية فقط. {scheduled} من {total} اشتراكات أصبحت مُجدولة للإنهاء، لكن {failed} لم يُلغَ ولا يزال يُحتسب عليك. يرجى المحاولة مرة أخرى لإلغاء الباقي. وإذا تكرر الفشل فراسلنا على {email} مع ذكر الرقم المرجعي أدناه. | Only part of it worked. {scheduled} of {total} subscriptions are now set to end, but {failed} could not be cancelled and is still billing. Please try again to cancel the rest. If it fails again, email {email} with the reference below. |
+| `dashboard.settings.cancelSubscription.errorFailed` | لم تنجح العملية، وبقي كل شيء كما هو. جرّب مرة أخرى. | That did not work and nothing was changed. You can try again. |
+| `dashboard.settings.cancelSubscription.errorPartial` | نجح جزء من العملية فقط. {scheduled} من {total} اشتراكات ستنتهي، لكن {failed} لم يُلغَ وما زال يُحتسب عليك. جرّب مرة أخرى لإلغاء الباقي. وإن فشل مرة أخرى فراسلنا على {email} واذكر الرقم المرجعي أدناه. | Only part of it worked. {scheduled} of {total} subscriptions are now set to end, but {failed} could not be cancelled and is still billing. Please try again to cancel the rest. If it fails again, email {email} with the reference below. |
 | `dashboard.settings.cancelSubscription.reference` | الرقم المرجعي: | Reference: |
-| `dashboard.settings.cancelSubscription.errorElsewhere` | جزء من اشتراكك تم شراؤه خارج هذا التطبيق، لذلك لا يمكن إلغاؤه من هنا. يرجى إلغاؤه من المكان الذي اشتريته منه. أما ما استطعنا إلغاءه هنا فقد جرى ضبطه لينتهي. | Part of your subscription was purchased outside this app, so it cannot be cancelled here. Please cancel it where you bought it. Anything we could cancel here has already been set to end. |
+| `dashboard.settings.cancelSubscription.errorElsewhere` | اشتريت جزءًا من اشتراكك خارج هذا التطبيق، فلا يمكن إلغاؤه من هنا. ألغِه من المكان الذي اشتريته منه. أما ما أمكننا إلغاؤه هنا فسينتهي. | Part of your subscription was purchased outside this app, so it cannot be cancelled here. Please cancel it where you bought it. Anything we could cancel here has already been set to end. |
 | `dashboard.settings.deleteAccount.heading` | حذف الحساب | Delete account |
 | `dashboard.settings.deleteAccount.description` | احذف حسابك وكل ما فيه نهائيًا. | Permanently delete your account and everything in it. |
-| `dashboard.settings.deleteAccount.permanentWarning` | لا يمكن التراجع عن هذا الإجراء. لا توجد فترة سماح، ولا يمكن استرجاع أي شيء بعده. | This cannot be undone. There is no grace period, and nothing can be restored afterwards. |
-| `dashboard.settings.deleteAccount.whatIsRemoved` | تُحذف موضوعاتك وموادك ومحادثاتك واختباراتك وسجل دراستك، مع كل ملف رفعته. | Your subjects, materials, conversations, quizzes and study history are deleted, along with every file you have uploaded. |
-| `dashboard.settings.deleteAccount.billingNote` | إذا كان لديك اشتراك نشط فسيتم إلغاؤه فورًا. | If you have an active subscription, it is cancelled immediately. |
+| `dashboard.settings.deleteAccount.permanentWarning` | لا يمكن التراجع عن هذا. لا توجد مهلة، ولا يمكن استرجاع أي شيء بعده. | This cannot be undone. There is no grace period, and nothing can be restored afterwards. |
+| `dashboard.settings.deleteAccount.whatIsRemoved` | تُحذف موادك وملفاتك ومحادثاتك واختباراتك وسجل مذاكرتك كله. | Your subjects, materials, conversations, quizzes and study history are deleted, along with every file you have uploaded. |
+| `dashboard.settings.deleteAccount.billingNote` | إن كان لديك اشتراك نشط فسيُلغى فورًا. | If you have an active subscription, it is cancelled immediately. |
 | `dashboard.settings.deleteAccount.openButton` | حذف الحساب | Delete account |
 | `dashboard.settings.deleteAccount.confirmPrompt` | اكتب بريدك الإلكتروني للتأكيد: | Type your email address to confirm: |
 | `dashboard.settings.deleteAccount.confirmPlaceholder` | بريدك الإلكتروني | your email address |
 | `dashboard.settings.deleteAccount.confirmButton` | احذف حسابي نهائيًا | Delete my account permanently |
 | `dashboard.settings.deleteAccount.cancelButton` | إلغاء | Cancel |
-| `dashboard.settings.deleteAccount.deleting` | جارٍ الحذف… | Deleting… |
-| `dashboard.settings.deleteAccount.errorMismatch` | لا يطابق هذا بريدك الإلكتروني. | That does not match your email address. |
-| `dashboard.settings.deleteAccount.errorFailed` | فشل الحذف ولم يتغير أي شيء. يمكنك المحاولة مرة أخرى. | Deletion failed and nothing was changed. You can try again. |
-| `dashboard.settings.deleteAccount.errorBillingCanceled` | لم تفقد أي شيء. حسابك وكل بياناتك ما زالت كما هي. تم إلغاء اشتراكك، لكن عملية الحذف لم تكتمل. أعد المحاولة، وإذا تكرر الفشل فراسلنا على {email} لإتمامها. | Nothing was lost. Your account and everything in it is still here. Your subscription was cancelled, but the deletion did not finish. Please try again. If it fails again, email {email} and we will finish it for you. |
-| `dashboard.settings.deleteAccount.errorSubscriptionElsewhere` | لم يُحذف حسابك ولم يتغير أي شيء. لا يزال لديك اشتراك تم شراؤه خارج هذا التطبيق، ولا يمكننا إلغاؤه لك من هنا. ألغِ الاشتراك من المكان الذي اشتريته منه أولًا، ثم احذف حسابك. توقفنا بدلًا من حذف حسابك بينما لا يزال هناك ما يُحتسب عليك. | Your account was not deleted, and nothing was changed. You still have a subscription that was purchased outside this app, and we cannot cancel it for you from here. Cancel it where you bought it first, then delete your account. We stopped rather than delete your account while something was still charging you. |
+| `dashboard.settings.deleteAccount.deleting` | نحذف حسابك… | Deleting… |
+| `dashboard.settings.deleteAccount.errorMismatch` | هذا ليس بريدك الإلكتروني. تأكد منه واكتبه مرة أخرى. | That does not match your email address. |
+| `dashboard.settings.deleteAccount.errorFailed` | لم يكتمل الحذف، وبقي كل شيء كما هو. جرّب مرة أخرى. | Deletion failed and nothing was changed. You can try again. |
+| `dashboard.settings.deleteAccount.errorBillingCanceled` | لم تفقد أي شيء. حسابك وكل بياناتك ما زالت هنا. ألغينا اشتراكك، لكن الحذف لم يكتمل. جرّب مرة أخرى، وإن فشل مجددًا فراسلنا على {email} لنكمله لك. | Nothing was lost. Your account and everything in it is still here. Your subscription was cancelled, but the deletion did not finish. Please try again. If it fails again, email {email} and we will finish it for you. |
+| `dashboard.settings.deleteAccount.errorSubscriptionElsewhere` | لم نحذف حسابك، وبقي كل شيء كما هو. لديك اشتراك اشتريته خارج هذا التطبيق، ولا نستطيع إلغاءه من هنا. ألغِه أولًا من المكان الذي اشتريته منه، ثم احذف حسابك. توقفنا حتى لا نحذف حسابك وما زال شيء يُحتسب عليك. | Your account was not deleted, and nothing was changed. You still have a subscription that was purchased outside this app, and we cannot cancel it for you from here. Cancel it where you bought it first, then delete your account. We stopped rather than delete your account while something was still charging you. |
 
 ## Signed-in app: agent (`dashboard.agent`)
 
@@ -501,19 +501,19 @@ file is not read by the app.
 
 | Key | العربية | English |
 |---|---|---|
-| `dashboard.upload.uploadFailed` | لم نتمكن من التأكد من رفع ملفك. حدّث الصفحة لترى إن كان قد وصل، وارفعه مجددًا إن لم يصل. | We could not confirm that your file was uploaded. Refresh the page to see whether it arrived, and upload it again if it did not. |
-| `dashboard.upload.dropHere` | أسقط الملفات هنا أو انقر للرفع | Drop files here or click to upload |
-| `dashboard.upload.supported` | المدعوم: PDF, DOCX, PPTX, XLSX, TXT, MD (حتى {limit} للملف الواحد) | Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (up to {limit} per file) |
-| `dashboard.upload.uploading` | جارٍ الرفع… | Uploading… |
-| `dashboard.upload.processing` | جارٍ المعالجة… | Processing… |
+| `dashboard.upload.uploadFailed` | لم نتأكد من وصول ملفك. حدّث الصفحة لترى إن كان قد وصل، وإن لم يصل فارفعه مرة أخرى. | We could not confirm that your file was uploaded. Refresh the page to see whether it arrived, and upload it again if it did not. |
+| `dashboard.upload.dropHere` | اسحب ملفاتك إلى هنا أو اضغط لرفعها | Drop files here or click to upload |
+| `dashboard.upload.supported` | الملفات المقبولة: PDF, DOCX, PPTX, XLSX, TXT, MD (حتى {limit} للملف الواحد) | Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (up to {limit} per file) |
+| `dashboard.upload.uploading` | نرفع ملفك… | Uploading… |
+| `dashboard.upload.processing` | لحظة من فضلك… | Processing… |
 | `dashboard.upload.reading` | نقرأ ملفك… | Reading your file… |
 | `dashboard.upload.preparing` | نجهّزه للأسئلة… | Preparing it for questions… |
 | `dashboard.upload.stillWorking` | ما زلنا نعمل عليه… | Still working on it… |
 | `dashboard.upload.usuallyAbout` | عادةً نحو {n} ثانية لملف بهذا الحجم. | Usually about {n} seconds for a file this size. |
-| `dashboard.upload.leaveNote` | قد تستغرق الملفات الكبيرة دقيقة أو دقيقتين. يمكنك مغادرة الصفحة؛ سيظهر الملف بعد تحديثها حين يكتمل. | Large files can take a minute or two. You can leave this page; the material appears after a refresh once it finishes. |
-| `dashboard.upload.tryAnother` | اختر ملفًا آخر للمحاولة مجددًا. | Choose another file to try again. |
+| `dashboard.upload.leaveNote` | الملفات الكبيرة قد تأخذ دقيقة أو دقيقتين. يمكنك مغادرة الصفحة، وسيظهر الملف هنا بعد تحديثها. | Large files can take a minute or two. You can leave this page; the material appears after a refresh once it finishes. |
+| `dashboard.upload.tryAnother` | اختر ملفًا آخر وجرّب مرة أخرى. | Choose another file to try again. |
 | `dashboard.upload.ready` | جاهز ✓ | Ready ✓ |
-| `dashboard.upload.error` | خطأ | Error |
+| `dashboard.upload.error` | لم ينجح | Error |
 
 
 ## Keys with no English counterpart

@@ -6,15 +6,18 @@ import { DropZone } from '@/components/upload/DropZone'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { emptyStats } from '@/lib/subject-stats'
+import { withSupportEmail } from '@/lib/site'
 import { PreviewRenameFields } from './PreviewRenameFields'
+import { PreviewStudyKit } from './PreviewStudyKit'
 
 /**
  * DESIGN PREVIEW for the subject page (register #85, SIGNED_IN_FEATURES.md
  * 2.2): the header, the drop zone (idle, #113) and three material cards with
- * their study-kit checklists, in the real chrome, with literal data. The
- * summary and quiz sections are not rendered here: they are client islands
- * that read a document through Supabase on open, and this route opens no
- * client. 404 on production through the VERCEL_ENV gate.
+ * their study-kit checklists, in the real chrome, with literal data. Two
+ * cards also carry the real summary, quiz and delete controls (#123, batch 2;
+ * `PreviewStudyKit`): none of them fetches on open, and a click reaches its
+ * route with no session, which answers 401 before reading anything. 404 on
+ * production through the VERCEL_ENV gate.
  */
 export const metadata: Metadata = {
   title: 'Subject: design preview',
@@ -49,6 +52,12 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
   ]
   const stats = { ...emptyStats(), materials: 7, ready: 5, processing: 1, failed: 1, summarised: 3, quizzed: 3 }
   const renameLabels = t.dashboard.kbDetail.renameMaterial
+  const deleteLabels = withSupportEmail(t.dashboard.kbDetail.deleteMaterial)
+  // #123 batch 2: a summary already generated and cut short, so the partial
+  // notice shows without a click.
+  const partialSummary = ar
+    ? 'يعرّف الملف الطلب والعرض، ثم يشرح مرونة الطلب السعرية وكيف تُقاس.'
+    : 'The file defines demand and supply, then explains price elasticity of demand and how it is measured.'
   const cardLabels = {
     chunks: t.dashboard.kbDetail.chunks,
     statusReady: sd.statusReady,
@@ -119,6 +128,10 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
                       open it, so the field and its extension badge can be
                       looked at without a session. */}
                   {m.id === 'd2' || m.id === 'd6' ? <PreviewRenameFields filename={m.filename} labels={renameLabels} /> : null}
+                  {/* #123 batch 2: the study kit as the subject page renders it,
+                      idle on the no-summary card, and with a partial summary. */}
+                  {m.id === 'd4' ? <PreviewStudyKit docId={m.id} summary={null} partial={false} deleteLabels={deleteLabels} /> : null}
+                  {m.id === 'd1' ? <PreviewStudyKit docId={m.id} summary={partialSummary} partial deleteLabels={deleteLabels} /> : null}
                 </MaterialCard>
               ))}
             </div>
