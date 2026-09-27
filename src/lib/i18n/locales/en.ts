@@ -75,7 +75,7 @@ export const en = {
   howItWorks: {
     title: "How it works",
     steps: [
-      { step: "Step 1", title: "Upload your materials", desc: "Add a subject and upload its notes, slides, or PDFs in any format you already have." },
+      { step: "Step 1", title: "Upload your materials", desc: "Add a subject, then upload its files: PDFs, slides or notes." },
       { step: "Step 2", title: "Ask in Arabic or English", desc: "Type your question naturally. No keywords, no searching." },
       { step: "Step 3", title: "Get a clear answer", desc: "KnowFlow reads that subject's materials and answers with the right information, in seconds." }
     ]

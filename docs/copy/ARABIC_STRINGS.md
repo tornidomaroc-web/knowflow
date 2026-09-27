@@ -18,8 +18,8 @@ file is not read by the app.
 | `nav.howItWorks` | كيف يعمل | How it works |
 | `nav.pricing` | الأسعار | Pricing |
 | `nav.about` | عن KnowFlow | About |
-| `nav.signIn` | سجل الدخول | Sign in |
-| `nav.getStarted` | ابدأ مجاناً | Start free |
+| `nav.signIn` | سجّل الدخول | Sign in |
+| `nav.getStarted` | ابدأ مجانًا | Start free |
 | `nav.menu` | القائمة | Menu |
 | `nav.appearance` | المظهر | Appearance |
 | `nav.themeDark` | داكن | Dark |
@@ -30,20 +30,20 @@ file is not read by the app.
 | Key | العربية | English |
 |---|---|---|
 | `landing.howEyebrow` | كيف يعمل | How it works |
-| `landing.featuresEyebrow` | ماذا تحصل | What you get |
+| `landing.featuresEyebrow` | ماذا ستجد | What you get |
 | `landing.featuresTitle` | كل شيء من ملفاتك أنت. | Everything, from your own files. |
-| `landing.featuresDesc` | لا بحث في الإنترنت ولا تخمين. كل إجابة وملخص واختبار يأتي مما رفعته. | No web search, no guessing. Every answer, summary and quiz comes from what you uploaded. |
-| `landing.features[0].title` | ملخصات تقرأها في استراحة | Summaries you can read in a break |
+| `landing.featuresDesc` | لا بحث في الإنترنت ولا تخمين. كل إجابة وكل ملخص وكل اختبار يأتي من ملفاتك. | No web search, no guessing. Every answer, summary and quiz comes from what you uploaded. |
+| `landing.features[0].title` | ملخص تقرؤه في الاستراحة | Summaries you can read in a break |
 | `landing.features[0].desc` | ملخص واضح لكل ملف، بلغتك. | One clear summary per material, in your language. |
 | `landing.features[1].title` | اختبارات تراجعك | Quizzes that check you |
 | `landing.features[1].desc` | خمسة أسئلة من الملف، تُصحَّح في الحال. | Five questions from the material, graded on the spot. |
 | `landing.features[2].title` | إجابات مع مصدرها | Answers with the source |
-| `landing.features[2].desc` | اسأل ما تشاء؛ كل إجابة تسمّي الملف الذي جاءت منه. | Ask anything; every answer names the file it came from. |
+| `landing.features[2].desc` | اسأل ما تشاء. كل إجابة تذكر الملف الذي جاءت منه. | Ask anything; every answer names the file it came from. |
 | `landing.features[3].title` | سلسلة تبقيك مستمرًا | A streak that keeps you going |
-| `landing.features[3].desc` | ذاكر قليلًا كل يوم وشاهد الشعلة تبقى مشتعلة. | Study a little each day and watch the flame stay lit. |
+| `landing.features[3].desc` | ذاكر قليلًا كل يوم، وحافظ على شعلتك. | Study a little each day and watch the flame stay lit. |
 | `landing.bilingualEyebrow` | العربية أولًا | Arabic first |
 | `landing.bilingualTitle` | العربية أولًا. والإنجليزية أيضًا. | Arabic first. English too. |
-| `landing.bilingualDesc` | اسأل باللغة التي تفكر بها. ارفع ملاحظاتك بأيٍّ منهما، وتأتيك الإجابة بلغتك. | Ask in the language you think in. Upload notes in either, and the answer comes back in yours. |
+| `landing.bilingualDesc` | اسأل باللغة التي تفكر بها. ارفع ملاحظاتك بالعربية أو الإنجليزية، وتأتيك الإجابة بلغتك. | Ask in the language you think in. Upload notes in either, and the answer comes back in yours. |
 | `landing.sampleArQ` | ما هي مرونة الطلب؟ | ما هي مرونة الطلب؟ |
 | `landing.sampleArA` | مرونة الطلب تقيس كيف تتغير الكمية المطلوبة عند تغير السعر. | مرونة الطلب تقيس كيف تتغير الكمية المطلوبة عند تغير السعر. |
 | `landing.sampleEnQ` | What is price elasticity? | What is price elasticity? |
@@ -57,18 +57,18 @@ file is not read by the app.
 |---|---|---|
 | `hero.badge` | مصمم للطلاب · بالعربية والإنجليزية | Made for students · Arabic & English |
 | `hero.title` | ملاحظاتك. أي سؤال. في ثوانٍ. | Your notes. Any question. In seconds. |
-| `hero.hook` | عالق في فكرة قبل الامتحان بليلة؟ | Stuck on a concept the night before an exam? |
-| `hero.subtitle` | ارفع ملاحظاتك ومحاضراتك وملفات PDF، ثم اطرح أسئلتك واحصل على إجابات واضحة بالعربية أو الإنجليزية. بدون بحث. بدون تنقّل. فقط اسأل. | Upload your lecture notes, slides, and PDFs. Then ask questions and get clear answers in Arabic or English. No searching. No scrolling. Just ask. |
-| `hero.cta1` | ابدأ مجاناً | Start free |
+| `hero.hook` | فكرة صعبة قبل الامتحان بليلة؟ | Stuck on a concept the night before an exam? |
+| `hero.subtitle` | ارفع ملاحظاتك ومحاضراتك وملفات PDF. ثم اسأل، وتأتيك إجابة واضحة بالعربية أو الإنجليزية. لا بحث ولا تقليب صفحات. | Upload your lecture notes, slides, and PDFs. Then ask questions and get clear answers in Arabic or English. No searching. No scrolling. Just ask. |
+| `hero.cta1` | ابدأ مجانًا | Start free |
 | `hero.cta2` | شاهد كيف يعمل | See how it works |
-| `hero.disclaimer` | بدون بطاقة ائتمانية · ابدأ مجاناً | No credit card · Free to start |
+| `hero.disclaimer` | بلا بطاقة بنكية · ابدأ مجانًا | No credit card · Free to start |
 
 ## Landing (hero demo) (`answer`)
 
 | Key | العربية | English |
 |---|---|---|
 | `answer.question` | كم كمّية التعادل في التمرين الثاني؟ | What is the break-even quantity in exercise two? |
-| `answer.body` | 40 وحدة. التكاليف الثابتة 600 درهم على هامش المساهمة 15 درهماً. عندها لا ربح ولا خسارة. | 40 units. Fixed costs of 600 divided by a margin of 15 per unit. At that point there is no profit and no loss. |
+| `answer.body` | 40 وحدة. نقسم التكاليف الثابتة (600 درهم) على هامش المساهمة (15 درهمًا للوحدة). عند هذا العدد لا ربح ولا خسارة. | 40 units. Fixed costs of 600 divided by a margin of 15 per unit. At that point there is no profit and no loss. |
 | `answer.files[0]` | مبادئ الاقتصاد الجزئي.pdf | Microeconomics-Principles.pdf |
 | `answer.files[1]` | تمارين محلولة - الفصل 3.pdf | Solved-Exercises-Ch3.pdf |
 
@@ -79,21 +79,21 @@ file is not read by the app.
 | `howItWorks.title` | كيف يعمل | How it works |
 | `howItWorks.steps[0].step` | الخطوة 1 | Step 1 |
 | `howItWorks.steps[0].title` | ارفع موادك | Upload your materials |
-| `howItWorks.steps[0].desc` | أضف مادة وارفع ملاحظاتها أو شرائحها أو ملفات PDF بأيّ صيغة لديك. | Add a subject and upload its notes, slides, or PDFs in any format you already have. |
+| `howItWorks.steps[0].desc` | أضف مادة، ثم ارفع ملفاتها: PDF أو شرائح أو ملاحظات. | Add a subject, then upload its files: PDFs, slides or notes. |
 | `howItWorks.steps[1].step` | الخطوة 2 | Step 2 |
 | `howItWorks.steps[1].title` | اسأل بالعربية أو الإنجليزية | Ask in Arabic or English |
-| `howItWorks.steps[1].desc` | اكتب سؤالك بشكل طبيعي. بدون كلمات مفتاحية أو بحث. | Type your question naturally. No keywords, no searching. |
+| `howItWorks.steps[1].desc` | اكتب سؤالك كما تقوله لصديقك. لا حاجة إلى كلمات مفتاحية. | Type your question naturally. No keywords, no searching. |
 | `howItWorks.steps[2].step` | الخطوة 3 | Step 3 |
 | `howItWorks.steps[2].title` | احصل على إجابة واضحة | Get a clear answer |
-| `howItWorks.steps[2].desc` | يقرأ KnowFlow ملفات تلك المادة ويجيب بالمعلومة الصحيحة في ثوانٍ. | KnowFlow reads that subject's materials and answers with the right information, in seconds. |
+| `howItWorks.steps[2].desc` | يقرأ KnowFlow ملفات المادة ويجيبك منها في ثوانٍ. | KnowFlow reads that subject's materials and answers with the right information, in seconds. |
 
 ## Landing (final call) (`cta`)
 
 | Key | العربية | English |
 |---|---|---|
 | `cta.title` | جاهز لمذاكرة أذكى؟ | Ready to study smarter? |
-| `cta.button` | ابدأ مجاناً | Start free |
-| `cta.note` | باقة مجانية · بدون بطاقة ائتمانية | Free plan · No credit card |
+| `cta.button` | ابدأ مجانًا | Start free |
+| `cta.note` | باقة مجانية · بلا بطاقة بنكية | Free plan · No credit card |
 
 ## Footer (`footer`)
 
@@ -101,7 +101,7 @@ file is not read by the app.
 |---|---|---|
 | `footer.privacy` | الخصوصية | Privacy |
 | `footer.terms` | الشروط | Terms |
-| `footer.refund` | الاسترجاع | Refund |
+| `footer.refund` | الاسترداد | Refund |
 | `footer.support` | الدعم | Support |
 | `footer.github` | GitHub | GitHub |
 | `footer.copyright` | KnowFlow. جميع الحقوق محفوظة. | KnowFlow. All rights reserved. |
@@ -137,8 +137,8 @@ file is not read by the app.
 |---|---|---|
 | `auth.loginLabel` | تسجيل الدخول | Sign In |
 | `auth.signupLabel` | حساب جديد | Sign Up |
-| `auth.loginTitle` | مرحباً بعودتك | Welcome back |
-| `auth.loginSubtitle` | سجل الدخول لحسابك | Sign in to your account |
+| `auth.loginTitle` | أهلًا بعودتك | Welcome back |
+| `auth.loginSubtitle` | ادخل إلى حسابك | Sign in to your account |
 | `auth.email` | البريد الإلكتروني | Email |
 | `auth.password` | كلمة المرور | Password |
 | `auth.confirmPassword` | تأكيد كلمة المرور | Confirm password |
@@ -147,73 +147,73 @@ file is not read by the app.
 | `auth.loginButton` | تسجيل الدخول | Sign In |
 | `auth.googleLogin` | سجل الدخول باستخدام Google | Sign in with Google |
 | `auth.googleSignup` | المتابعة باستخدام Google | Continue with Google |
-| `auth.googleFailed` | لم نتمكن من فتح تسجيل الدخول عبر Google. حاول مرة أخرى. | We could not open Google sign in. Please try again. |
+| `auth.googleFailed` | لم نستطع فتح الدخول عبر Google. جرّب مرة أخرى. | We could not open Google sign in. Please try again. |
 | `auth.appleLogin` | سجل الدخول باستخدام Apple | Sign in with Apple |
 | `auth.appleSignup` | المتابعة باستخدام Apple | Continue with Apple |
-| `auth.appleFailed` | لم نتمكن من فتح تسجيل الدخول عبر Apple. حاول مرة أخرى. | We could not open Apple sign in. Please try again. |
+| `auth.appleFailed` | لم نستطع فتح الدخول عبر Apple. جرّب مرة أخرى. | We could not open Apple sign in. Please try again. |
 | `auth.orDivider` | أو | or |
-| `auth.loggingIn` | جاري تسجيل الدخول... | Signing in... |
-| `auth.noAccount` | ليس لديك حساب؟ سجل الآن | Don't have an account? Sign up |
+| `auth.loggingIn` | نُدخلك إلى حسابك… | Signing in... |
+| `auth.noAccount` | ليس لديك حساب؟ أنشئ حسابًا | Don't have an account? Sign up |
 | `auth.signupTitle` | أنشئ حسابك | Create Account |
 | `auth.signupSubtitle` | انضم إلى KnowFlow اليوم | Join KnowFlow today |
-| `auth.hasAccount` | لديك حساب بالفعل؟ سجل الدخول | Already have an account? Sign in |
+| `auth.hasAccount` | لديك حساب؟ ادخل إليه | Already have an account? Sign in |
 | `auth.name` | الاسم الكامل | Full Name |
-| `auth.createBtn` | إنشاء الحساب | Create Account |
-| `auth.creating` | جاري الإنشاء... | Creating... |
+| `auth.createBtn` | أنشئ حسابي | Create Account |
+| `auth.creating` | ننشئ حسابك… | Creating... |
 | `auth.checkInboxTitle` | تفقد بريدك الإلكتروني | Check your inbox |
 | `auth.checkInboxBody` | أرسلنا رابط تأكيد إلى بريدك الإلكتروني. افتحه لتفعيل حسابك. | We sent a confirmation link to your email address. Open it to activate your account. |
-| `auth.signupRepeatPassword` | التسجيل مرة أخرى ببريد استخدمته من قبل يرسل رابط تأكيد جديداً، لكنه يبقي كلمة المرور الأولى. | Signing up again with an email you already used sends a new confirmation link, but keeps your first password. |
-| `auth.signupRepeatPasswordLink` | نسيتها؟ استعد كلمة المرور | Forgot it? Reset your password |
-| `auth.noticeSigninRequired` | لم نتمكن من إتمام هذا الرابط. سجل الدخول بالأسفل. | We could not finish that link. Please sign in below. |
-| `auth.noticeLinkExpired` | رابط التأكيد لم يعد صالحاً. أنشئ حساباً جديداً للحصول على رابط جديد. | That confirmation link is no longer valid. Sign up again to get a new one. |
+| `auth.signupRepeatPassword` | إن سجّلت مرة أخرى ببريد استعملته من قبل، يصلك رابط تأكيد جديد، وتبقى كلمة المرور الأولى كما هي. | Signing up again with an email you already used sends a new confirmation link, but keeps your first password. |
+| `auth.signupRepeatPasswordLink` | نسيتها؟ اختر كلمة مرور جديدة | Forgot it? Reset your password |
+| `auth.noticeSigninRequired` | لم يعمل هذا الرابط. سجّل الدخول من الأسفل. | We could not finish that link. Please sign in below. |
+| `auth.noticeLinkExpired` | انتهى الرابط. أنشئ حسابك مرة أخرى ليصلك رابط جديد. | That confirmation link is no longer valid. Sign up again to get a new one. |
 | `auth.forgotLink` | نسيت كلمة المرور؟ | Forgot your password? |
 | `auth.forgotTitle` | استعادة كلمة المرور | Reset your password |
-| `auth.forgotSubtitle` | اكتب بريدك الإلكتروني وسنرسل لك رابطاً لتعيين كلمة مرور جديدة. | Enter your email and we will send you a link to set a new password. |
+| `auth.forgotSubtitle` | اكتب بريدك الإلكتروني، ونرسل لك رابطًا تختار به كلمة مرور جديدة. | Enter your email and we will send you a link to set a new password. |
 | `auth.forgotSubmit` | أرسل الرابط | Send reset link |
-| `auth.forgotSending` | جاري الإرسال... | Sending... |
+| `auth.forgotSending` | نرسل الرابط… | Sending... |
 | `auth.forgotSent` | إن كان لهذا البريد حساب، فالرابط في طريقه إليك. تفقد بريدك. | If that address has an account, a reset link is on its way. Check your inbox. |
 | `auth.forgotAnyDevice` | يمكنك فتح الرابط على أي جهاز. | You can open the link on any device. |
-| `auth.forgotRateLimited` | تم إرسال رابط للتو. انتظر دقيقة قبل طلب رابط آخر. | A link was just sent. Wait about a minute before asking for another. |
+| `auth.forgotRateLimited` | أرسلنا رابطًا للتو. انتظر دقيقة قبل أن تطلب رابطًا آخر. | A link was just sent. Wait about a minute before asking for another. |
 | `auth.resetTitle` | تعيين كلمة مرور جديدة | Set a new password |
 | `auth.resetSubtitle` | اختر كلمة مرور جديدة لحسابك. | Choose a new password for your account. |
 | `auth.resetSubmit` | حفظ كلمة المرور | Save new password |
-| `auth.resetSaving` | جاري الحفظ... | Saving... |
-| `auth.resetNoSession` | تحتاج هذه الصفحة إلى رابط استعادة صالح. اطلب رابطاً جديداً وافتحه من بريدك الإلكتروني. | This page needs a valid reset link. Ask for a new one and open it from your email. |
+| `auth.resetSaving` | نحفظ كلمة المرور… | Saving... |
+| `auth.resetNoSession` | افتح هذه الصفحة من الرابط في بريدك. أو اطلب رابطًا جديدًا. | This page needs a valid reset link. Ask for a new one and open it from your email. |
 | `auth.resetCancel` | إلغاء وتسجيل الخروج | Cancel and sign out |
-| `auth.backToLogin` | العودة لتسجيل الدخول | Back to sign in |
+| `auth.backToLogin` | ارجع إلى تسجيل الدخول | Back to sign in |
 
 ## About (`about`)
 
 | Key | العربية | English |
 |---|---|---|
-| `about.title` | نؤمن بأن المذاكرة يجب أن تكون أبسط. | We believe studying should feel simpler. |
-| `about.subtitle` | يحوّل KnowFlow ملاحظاتك وشرائحك وملفات PDF إلى إجابات واضحة، مبنية على موادك أنت، بالعربية والإنجليزية. | KnowFlow turns your notes, slides, and PDFs into clear answers, grounded in your own material, in Arabic and English. |
+| `about.title` | المذاكرة يجب أن تكون أسهل. | We believe studying should feel simpler. |
+| `about.subtitle` | يحوّل KnowFlow ملاحظاتك وشرائحك وملفات PDF إلى إجابات واضحة من ملفاتك أنت، بالعربية والإنجليزية. | KnowFlow turns your notes, slides, and PDFs into clear answers, grounded in your own material, in Arabic and English. |
 | `about.missionLabel` | مهمتنا | Our Mission |
-| `about.mission` | نبني مساعد مذاكرة يتحدث العربية بطلاقة، ليتمكّن الطلاب من التعلّم من موادهم الخاصة، باللغة التي يفكرون بها. | We're building a study assistant that speaks Arabic natively, so students can learn from their own material, in the language they think in. |
+| `about.mission` | نبني مساعد مذاكرة يتقن العربية، ليتعلم الطالب من ملفاته هو، باللغة التي يفكر بها. | We're building a study assistant that speaks Arabic natively, so students can learn from their own material, in the language they think in. |
 | `about.giants` | مبني على أكتاف العمالقة | Built on the shoulders of giants |
-| `about.tools[0].title` | MarkItDown تقنية مايكروسوفت | MarkItDown by Microsoft |
+| `about.tools[0].title` | MarkItDown من Microsoft | MarkItDown by Microsoft |
 | `about.tools[0].desc` | يحوّل ملفاتك إلى نص نظيف | turns your files into clean text |
 | `about.tools[1].title` | Voyage AI | Voyage AI |
 | `about.tools[1].desc` | يفهم معنى ملاحظاتك | understands what your notes mean |
-| `about.tools[2].title` | Claude بواسطة Anthropic | Claude by Anthropic |
+| `about.tools[2].title` | Claude من Anthropic | Claude by Anthropic |
 | `about.tools[2].desc` | يجيب على أسئلتك بوضوح | answers your questions clearly |
 | `about.tools[3].title` | Supabase | Supabase |
-| `about.tools[3].desc` | يحفظ موادك خاصة بك وحدك | keeps your material private to you |
+| `about.tools[3].desc` | يحفظ ملفاتك لك وحدك | keeps your material private to you |
 | `about.ctaTitle` | جاهز لمذاكرة أذكى؟ | Ready to study smarter? |
-| `about.cta` | ابدأ مجاناً | Start free |
+| `about.cta` | ابدأ مجانًا | Start free |
 
 ## Contact (`contact`)
 
 | Key | العربية | English |
 |---|---|---|
 | `contact.title` | كيف يمكننا مساعدتك؟ | How can we help? |
-| `contact.intro` | راسلنا على هذا العنوان. يقرأه إنسان. | Write to us at this address. A person reads it. |
+| `contact.intro` | راسلنا على هذا العنوان. يقرأ رسالتك شخص حقيقي. | Write to us at this address. A person reads it. |
 | `contact.emailButton` | افتح تطبيق البريد | Open my mail app |
 | `contact.copyButton` | انسخ العنوان | Copy the address |
-| `contact.copied` | تم النسخ. ألصقه في أي تطبيق بريد أو بريد ويب. | Copied. Paste it into any mail app or webmail. |
-| `contact.copyFailed` | النسخ محظور على هذا الجهاز. حدّد العنوان أعلاه وانسخه. | Copying is blocked on this device. Select the address above and copy it. |
-| `contact.noMailApp` | إذا لم يُفتح شيء عند الضغط على الزر، فانسخ العنوان وراسله من Gmail أو أي تطبيق بريد. | If nothing opens when you press the button, copy the address and write to it from Gmail or any mail app. |
-| `contact.tip` | أخبرنا بما كنت تفعله وما رأيته، وبالبريد الإلكتروني لحسابك في KnowFlow حتى نجده. | Tell us what you were doing, what you saw, and the email address of your KnowFlow account, so we can find it. |
+| `contact.copied` | نُسخ العنوان. ألصقه في أي تطبيق بريد. | Copied. Paste it into any mail app or webmail. |
+| `contact.copyFailed` | لا يسمح هذا الجهاز بالنسخ. حدّد العنوان في الأعلى وانسخه بنفسك. | Copying is blocked on this device. Select the address above and copy it. |
+| `contact.noMailApp` | إن لم يُفتح شيء بعد الضغط على الزر، فانسخ العنوان وراسلنا من Gmail أو من أي تطبيق بريد. | If nothing opens when you press the button, copy the address and write to it from Gmail or any mail app. |
+| `contact.tip` | اكتب لنا ماذا كنت تفعل وماذا رأيت. واذكر بريد حسابك في KnowFlow لنجده بسرعة. | Tell us what you were doing, what you saw, and the email address of your KnowFlow account, so we can find it. |
 
 ## Signed-in app: nav (`dashboard.nav`)
 

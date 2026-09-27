@@ -36,6 +36,13 @@
  * A new batch or correction is landed by adding its file under docs/copy/;
  * this proof picks it up with no change here.
  *
+ * KEYS ARE WRITTEN AS THE EXPORT WRITES THEM. `docs/copy/ARABIC_STRINGS.md`
+ * names an array item `landing.features[0].title`, and a batch copied from it
+ * does too; this proof walks the dictionary as `landing.features.0.title`. A
+ * row's `[N]` is read as `.N`, so both spellings name the same leaf and are
+ * checked for duplicates and supersession as one key. Before batch 3 no batch
+ * held an array key, and such a row failed as "not a key in ar.ts".
+ *
  * Tier 0: no network, no credential, no database, no app.
  *
  * Usage: node --experimental-strip-types scripts/verify-arabic-copy.mjs
@@ -95,7 +102,7 @@ let rowsTotal = 0;
 let superseded = 0;
 for (const { f } of batches) {
   const md = readFileSync(resolvePath(dir, f), 'utf8');
-  const rows = [...md.matchAll(/^\| `([^`]+)` \| (.*?) \| (.*?) \|\s*$/gm)].map((m) => ({ key: m[1], neu: m[2], old: m[3] }));
+  const rows = [...md.matchAll(/^\| `([^`]+)` \| (.*?) \| (.*?) \|\s*$/gm)].map((m) => ({ key: m[1].replace(/\[(\d+)\]/g, '.$1'), neu: m[2], old: m[3] }));
   check(rows.length > 0, `${f}: no rows parsed`);
   // A table row the pattern above does not read (a key without backticks, a
   // missing closing pipe) would be skipped silently; every body row must parse.
