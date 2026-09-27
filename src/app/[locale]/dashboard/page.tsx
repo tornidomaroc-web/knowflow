@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { StudentHome, type SubjectProgress } from '@/components/dashboard/StudentHome'
+import { StudentHome } from '@/components/dashboard/StudentHome'
 import { TimeZoneSync } from '@/components/dashboard/TimeZoneSync'
 import type { ActivityItem } from '@/components/dashboard/RecentActivity'
 import { getCurrentStreak, TIME_ZONE_COOKIE } from '@/lib/streak'
@@ -11,7 +11,7 @@ import { getEntitlement } from '@/lib/entitlement'
 import { FREE_LIMITS, PRO_LIMITS } from '@/lib/limits'
 import { DAILY_CAPS } from '@/lib/rate-limit'
 import { formatDate } from '@/lib/format-date'
-import { buildHomeLabels, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
+import { buildHomeLabels, buildHomeProgress, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
 
 // Thin server wrapper: auth + data only. Presentation lives in <StudentHome/>
 // (dumb, prop-driven) so it can be reused/storybooked in Phase 8.
@@ -78,7 +78,10 @@ export default async function DashboardPage({
     // is written in the same update as `summary` (api/summarize/route.ts:200-205),
     // so its presence is the cheap test; selecting `summary` itself would drag the
     // whole summary text of every document across the wire for a null check.
-    supabase.from('documents').select('kb_id, summary_generated_at').neq('status', 'error'),
+    // #129: every row, with what `hasNoText` reads, so one pass gives the
+    // "files" stat (answerable files) and the progress base (failed and
+    // no-text files left out). `buildHomeProgress` in home-props does both.
+    supabase.from('documents').select('id, kb_id, status, chunk_count, embedding_status, summary_generated_at'),
   ])
 
   const { data: recentActivity } = await supabase
@@ -98,24 +101,12 @@ export default async function DashboardPage({
 
   // Aggregated in JS rather than in SQL: the alternative is a view or an RPC, and
   // neither is worth a migration for a list capped at six rows.
-  const perSubject = new Map<string, { materials: number; summarised: number }>()
-  for (const row of materialRows.data ?? []) {
-    const bucket = perSubject.get(row.kb_id) ?? { materials: 0, summarised: 0 }
-    bucket.materials += 1
-    if (row.summary_generated_at) bucket.summarised += 1
-    perSubject.set(row.kb_id, bucket)
-  }
-
-  const subjects: SubjectProgress[] = (subjectRows.data ?? []).map((s) => ({
-    id: s.id,
-    name: s.name,
-    materials: perSubject.get(s.id)?.materials ?? 0,
-    summarised: perSubject.get(s.id)?.summarised ?? 0,
-  }))
+  const { answerable, subjects } = buildHomeProgress(materialRows.data ?? [], subjectRows.data ?? [])
 
   const stats = [
     { label: t.dashboard.home.knowledgeBases, value: kbCount ?? 0, desc: t.dashboard.home.knowledgeBasesDesc },
-    { label: t.dashboard.home.documents, value: docsCount ?? 0, desc: t.dashboard.home.documentsDesc },
+    // #129 (a): the files Ask can answer from, which is what the label says.
+    { label: t.dashboard.home.documents, value: answerable, desc: t.dashboard.home.documentsDesc },
     { label: t.dashboard.home.conversations, value: convosCount ?? 0, desc: t.dashboard.home.conversationsDesc },
   ]
 
@@ -146,6 +137,8 @@ export default async function DashboardPage({
         subjectsLimit={structural.knowledge_bases}
         onboarding={buildOnboarding(t.dashboard.home, safeLocale, {
           subjects: kbCount ?? 0,
+          // Every file, on purpose (#129): this step says a file was uploaded,
+          // which is true of a failed or no-text one too.
           materials: docsCount ?? 0,
           conversations: convosCount ?? 0,
         })}

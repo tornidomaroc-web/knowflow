@@ -4,7 +4,7 @@ import { SubjectsList } from '@/components/dashboard/SubjectsList'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { buildSubjectsLabels } from '@/lib/subjects-props'
-import { emptyStats, type SubjectStats } from '@/lib/subject-stats'
+import { emptyStats, subjectStats, type SubjectStats } from '@/lib/subject-stats'
 
 /**
  * DESIGN PREVIEW for the subjects screen (register #85, SIGNED_IN_FEATURES.md
@@ -22,6 +22,18 @@ export function generateStaticParams() {
 }
 
 const stats = (s: Partial<SubjectStats>): SubjectStats => ({ ...emptyStats(), ...s })
+
+// #129: two subjects computed from DOCUMENT ROWS by the real `subjectStats`,
+// so the ring and the Ask button are the rule, not a literal. s1: four ready
+// files with text (three summarised), one with no text, one failed -> 75% and
+// Ask. s5: one file with no text and one failed -> a dash and no Ask.
+const doc = (id: string, kb: string, status: string, chunk_count: number, embedding_status: string, summarised = false) =>
+  ({ id, kb_id: kb, status, chunk_count, embedding_status, summary_generated_at: summarised ? '2026-09-20' : null, created_at: '2026-09-20T10:00:00Z' })
+const fromRows = subjectStats([
+  doc('a', 's1', 'ready', 12, 'ready', true), doc('b', 's1', 'ready', 9, 'ready', true), doc('c', 's1', 'ready', 7, 'ready', true), doc('d', 's1', 'ready', 5, 'ready'),
+  doc('e', 's1', 'ready', 0, 'ready'), doc('f', 's1', 'error', 0, 'error'),
+  doc('g', 's5', 'ready', 0, 'ready'), doc('h', 's5', 'error', 0, 'error'),
+], [{ document_id: 'a' }], [])
 
 export default async function SubjectsPreview({
   params,
@@ -42,7 +54,7 @@ export default async function SubjectsPreview({
     {
       id: 's1', name: ar ? 'مبادئ الاقتصاد الجزئي' : 'Microeconomics', description: ar ? 'الفصل الأول، د. العلوي' : 'Semester 1, Dr. Alaoui', language: 'ar',
       href: '#', askHref: '#', createdAt: '2026-09-02T10:00:00Z',
-      stats: stats({ materials: 8, ready: 8, summarised: 6, quizzed: 3, lastActivityAt: '2026-09-24T21:40:00Z', lastActivityIsAsk: true }),
+      stats: { ...fromRows.get('s1')!, lastActivityAt: '2026-09-24T21:40:00Z', lastActivityIsAsk: true },
     },
     {
       id: 's2', name: ar ? 'الكيمياء العضوية' : 'Organic Chemistry', description: null, language: 'en',
@@ -58,6 +70,11 @@ export default async function SubjectsPreview({
       id: 's4', name: ar ? 'تاريخ الفلسفة' : 'History of Philosophy', description: null, language: 'ar',
       href: '#', askHref: '#', createdAt: '2026-09-20T10:00:00Z',
       stats: emptyStats(),
+    },
+    {
+      id: 's5', name: ar ? 'صور المحاضرات' : 'Lecture photos', description: null, language: 'ar',
+      href: '#', askHref: '#', createdAt: '2026-09-26T10:00:00Z',
+      stats: fromRows.get('s5')!,
     },
   ]
 

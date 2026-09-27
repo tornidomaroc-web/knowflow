@@ -58,7 +58,11 @@ if (has('src/lib/subject-stats.ts')) {
   check(k1?.lastActivityAt === '2026-09-10' && k1.lastActivityIsAsk === true, 'the newest conversation must win the last activity');
   const k2 = m.get('k2');
   check(k2?.lastActivityAt === '2026-09-05' && k2.lastActivityIsAsk === false, 'with no conversation the newest material is the last activity');
-  check(summarisedPercent(k1) === 25 && summarisedPercent({ materials: 0, summarised: 0 }) === 0, 'summarisedPercent');
+  // #129 (b), the owner's ruling: progress leaves out files that can never be
+  // summarised. k1 is 1 summarised of 3 usable (the failed one left out): 33,
+  // where the old rule said 25. Nothing to measure is null, never 0 or 100.
+  check(summarisedPercent(k1) === 33, `#129 (b): summarisedPercent(k1) is ${summarisedPercent(k1)}, expected 33 (the failed file left out)`);
+  check(summarisedPercent({ materials: 0, summarised: 0 }) === null, `#129 (b): an empty subject's percent is ${summarisedPercent({ materials: 0, summarised: 0 })}, expected null`);
 }
 
 // 2. The suggestions.
@@ -206,6 +210,86 @@ if (has('src/lib/ask-suggestions.ts')) {
   check(/continueCard/.test(home), 'the home has no Continue card');
   const spec = has('docs/design/SIGNED_IN_FEATURES.md') ? read('docs/design/SIGNED_IN_FEATURES.md') : '';
   check(/## 1\./.test(spec) && /## 2\./.test(spec) && /## 3\./.test(spec), 'docs/design/SIGNED_IN_FEATURES.md must exist with its three parts');
+}
+
+// 5. Register #129, the owner's rulings, all on #128's one rule (hasNoText).
+{
+  const React = (await import('react')).default;
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const mt = await load('src/lib/material-text.ts');
+  const st = await load('src/lib/subject-stats.ts');
+  const hp = await load('src/lib/home-props.ts');
+  // One mixed subject and one with nothing usable.
+  const row = (id, kb, status, chunk_count, embedding_status, summarised = false) => ({ id, kb_id: kb, status, chunk_count, embedding_status, summary_generated_at: summarised ? '2026-09-20' : null, created_at: '2026-09-20' });
+  const rows = [
+    row('a', 'm', 'ready', 12, 'ready', true), row('b', 'm', 'ready', 9, 'ready', true), row('c', 'm', 'ready', 7, 'ready', true), row('d', 'm', 'ready', 5, 'ready'),
+    row('e', 'm', 'ready', 0, 'ready'), row('f', 'm', 'error', 0, 'error'), row('g', 'm', 'processing', 0, 'pending'),
+    row('h', 'z', 'ready', 0, 'ready'), row('i', 'z', 'error', 0, 'error'),
+  ];
+
+  // (a) the home's "files" stat counts answerable files only: 4 of these 9.
+  check(typeof hp.buildHomeProgress === 'function', '#129 (a): home-props has no buildHomeProgress');
+  const hpOut = typeof hp.buildHomeProgress === 'function' ? hp.buildHomeProgress(rows, [{ id: 'm', name: 'Mixed' }, { id: 'z', name: 'Nothing usable' }]) : null;
+  check(hpOut?.answerable === 4, `#129 (a): the home counts ${hpOut?.answerable} files, expected 4 (ready with text only)`);
+  const homePage = read('src/app/[locale]/dashboard/page.tsx');
+  check(/value: answerable, desc: t\.dashboard\.home\.documentsDesc/.test(homePage) && /buildHomeProgress\(/.test(homePage), '#129 (a): the home stat is not the answerable count');
+  check(/materials: docsCount \?\? 0/.test(homePage), 'onboarding\'s upload step must still count every file (a file was uploaded)');
+
+  // (b) progress: failed and no-text files left out, processing kept; nothing to measure is a dash.
+  const m = st.subjectStats(rows, [], []);
+  check(m.get('m')?.noText === 1 && st.progressBase?.(m.get('m')) === 5, `#129 (b): the progress base of the mixed subject is ${st.progressBase?.(m.get('m'))}, expected 5 (4 with text + 1 processing)`);
+  check(st.summarisedPercent(m.get('m')) === 60, `#129 (b): the mixed subject is ${st.summarisedPercent(m.get('m'))}%, expected 60 (3 of 5)`);
+  check(st.summarisedPercent(m.get('z')) === null, `#129 (b): a subject of only failed and no-text files is ${st.summarisedPercent(m.get('z'))}, expected null (a dash)`);
+  const done = st.subjectStats([row('p', 'd', 'ready', 4, 'ready', true), row('q', 'd', 'ready', 0, 'ready'), row('r', 'd', 'error', 0, 'error')], [], []);
+  check(st.summarisedPercent(done.get('d')) === 100, '#129 (b): a subject whose every usable file is summarised does not reach 100%');
+  check(hpOut?.subjects?.[0]?.materials === 5 && hpOut.subjects[0].summarised === 3 && hpOut.subjects[1].materials === 0, `#129 (b): the home's subject rows are ${JSON.stringify(hpOut?.subjects)}`);
+
+  const { StudentHome } = await load('src/components/dashboard/StudentHome.tsx');
+  const homeLabels = Object.fromEntries(['welcome','welcomeLine','askTitle','askDesc','newSubject','newSubjectDesc','subjects','streakLabel','streakUnit','streakZoneHint','streakLit','streakUnlit','recentActivity','planTitle','planName','ofWord','subjectsUsed','allSubjects','materialsWord','noSubjects','noSubjectsDesc','startTitle','whatTitle','upgradeCta','continueTitle','continueBody','continueCta'].map((k) => [k, k]));
+  homeLabels.whatLines = ['a', 'b', 'c'];
+  homeLabels.activity = { noActivity: 'n', conversation: 'c', showLess: 's', viewAll: 'v', unknownKb: 'u', platformWeb: 'w' };
+  const homeHtml = renderToStaticMarkup(React.createElement(StudentHome, {
+    stats: [], streak: null, askHref: '#', newSubjectHref: '#', subjectsHref: '#', upgradeHref: null, isPro: false, quotas: [],
+    subjects: hpOut?.subjects ?? [], subjectsUsed: 2, subjectsLimit: 5, onboarding: [], labels: homeLabels, recentActivity: [],
+  }));
+  check(/>60%</.test(homeHtml) && homeHtml.includes('3/5 materialsWord'), '#129 (b): the home ring for the mixed subject is not 60% (3/5)');
+  check(!/>0%</.test(homeHtml) && !homeHtml.includes('0/0') && />-</.test(homeHtml), '#129 (b): a subject with nothing to measure shows 0% or 0/0 instead of a hyphen');
+
+  const { SubjectsList } = await load('src/components/dashboard/SubjectsList.tsx');
+  const labels = { title: 'Subjects', subtitle: 's', newSubject: 'New', emptyTitle: 'e', emptyPrompt: 'p', materials: 'Materials', summarised: 'Summarised', quizzed: 'Quizzed', processing: 'still processing', noMaterials: 'No materials yet', lastAsked: 'Last asked', lastAdded: 'Last added', created: 'Created', ask: 'Ask', addMaterial: 'Add material' };
+  const list = renderToStaticMarkup(React.createElement(SubjectsList, {
+    subjects: [
+      { id: 'm', name: 'Mixed', description: null, language: 'en', href: '/en/dashboard/knowledge/m', askHref: '/en/dashboard/agent?kb=m', createdAt: '2026-09-01', stats: m.get('m') },
+      { id: 'z', name: 'Nothing usable', description: null, language: 'en', href: '/en/dashboard/knowledge/z', askHref: '/en/dashboard/agent?kb=z', createdAt: '2026-09-01', stats: m.get('z') },
+    ],
+    newHref: '#', locale: 'en', labels,
+  }));
+  check(/>60%<\/span>/.test(list), '#129 (b): the subjects page ring for the mixed subject is not 60%');
+  check(/>-<\/span>/.test(list) && !/>NaN/.test(list), '#129 (b): the subjects page shows no hyphen (or NaN) for a subject with nothing to measure');
+
+  // (c) Ask offers only subjects with an answerable file, and never lands blank.
+  check(list.includes('href="/en/dashboard/agent?kb=m"') && !list.includes('href="/en/dashboard/agent?kb=z"'), '#129 (c): the subjects page offers Ask for a subject Ask cannot answer from');
+  const ids = mt.answerableSubjectIds ? mt.answerableSubjectIds(rows) : new Set();
+  check(ids.has('m') && !ids.has('z'), `#129 (c): answerableSubjectIds is ${JSON.stringify([...ids])}`);
+  if (mt.initialAskSubject) {
+    check(mt.initialAskSubject(['z', 'm'], ids, 'm') === 'm', '#129 (c): ?kb= of an answerable subject is not honoured');
+    check(mt.initialAskSubject(['z', 'm'], ids, 'z') === 'm', '#129 (c): ?kb= of a subject Ask cannot answer from is not redirected to one it can');
+    check(mt.initialAskSubject(['z', 'm'], ids, 'nope') === 'm', '#129 (c): an unknown ?kb= does not fall back to an answerable subject');
+    check(mt.initialAskSubject(['z'], ids, 'z') === '', '#129 (c): with no answerable subject, one is still preselected');
+  } else check(false, '#129 (c): material-text has no initialAskSubject');
+  const sel = read('src/components/agent/KBSelector.tsx');
+  check(/const offered = kbs\.filter\(\(k\) => answerable\.has\(k\.id\)\)/.test(sel) && /subjects=\{offered\}/.test(sel), '#129 (c): the subject bar is not limited to answerable subjects');
+  check(/const selectedKb = kbs\.find\(k => k\.id === selectedId\)/.test(sel), '#129 (c): history must open a past conversation from the FULL subject list');
+  check(/if \(!answerable\.has\(selectedId\)\) setSelectedId\(firstAnswerable\(\)\)/.test(sel), '#129 (c): a new conversation can start in a subject Ask cannot answer from');
+  check(/!selectedKb && \(\s*<AskNoAnswerableSubject/.test(sel), '#129 (c): with no answerable subject Ask renders nothing (a blank page)');
+  const agentPage = read('src/app/[locale]/dashboard/agent/page.tsx');
+  check(/answerableIds=\{\[\.\.\.answerableSubjectIds\(materials \?\? \[\]\)\]\}/.test(agentPage), '#129 (c): the Ask page does not pass the answerable subjects');
+  check(/select\('id, kb_id, status, chunk_count, embedding_status, summary_generated_at, created_at'\)/.test(read('src/app/[locale]/dashboard/knowledge/page.tsx')), '#129: the subjects page does not read what hasNoText needs');
+
+  // Q3: the caps keep counting what they count. The per-subject file cap
+  // counts every file that did not fail, and no cap reads the #128/#129 rule.
+  const limits = read('src/lib/limits-server.ts');
+  check(/\.neq\('status', 'error'\)/.test(limits) && !/hasNoText|isAnswerable|material-text/.test(limits), '#129: a limit counter changed what it counts');
 }
 
 if (failures.length === 0) {

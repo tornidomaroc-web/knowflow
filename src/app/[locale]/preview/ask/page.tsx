@@ -7,6 +7,9 @@ import { MessageBubble } from '@/components/agent/MessageBubble'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { PreviewHistory } from './PreviewHistory'
+import { PreviewSubjectChips } from './PreviewSubjectChips'
+import { AskNoAnswerableSubject } from '@/components/agent/SubjectChips'
+import { answerableSubjectIds, initialAskSubject } from '@/lib/material-text'
 
 /**
  * DESIGN PREVIEW for the Ask screen (#122, extended for #123): the real
@@ -24,6 +27,11 @@ import { PreviewHistory } from './PreviewHistory'
  *              (`agent.noHistory`);
  *   answer     an answered question with three citation pills (#124: an
  *              Arabic name with a chapter number, a Latin name, a mixed one).
+ *   subjects   the subject bar (#129 (c)) over five subjects whose files mix
+ *              ready, no-text, processing and failed: only the two with a
+ *              file Ask can answer from are offered, computed by the real rule.
+ *   noanswer   subjects exist but none can be asked (#129 (c)): the panel
+ *              that sends the student to their subjects, never a blank page.
  */
 export const metadata: Metadata = {
   title: 'Ask: design preview',
@@ -34,7 +42,7 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }))
 }
 
-type View = 'default' | 'none' | 'zero' | 'history' | 'answer'
+type View = 'default' | 'none' | 'zero' | 'history' | 'answer' | 'subjects' | 'noanswer'
 
 export default async function AskPreview({
   params,
@@ -50,7 +58,26 @@ export default async function AskPreview({
   const t = useTranslation(safeLocale)
   const ar = safeLocale === 'ar'
   const raw = (await searchParams).view
-  const view: View = raw === 'none' || raw === 'zero' || raw === 'history' || raw === 'answer' ? raw : 'default'
+  const view: View = raw === 'none' || raw === 'zero' || raw === 'history' || raw === 'answer' || raw === 'subjects' || raw === 'noanswer' ? raw : 'default'
+
+  // #129 (c): five subjects and their files, through the real rule.
+  const kbs = [
+    { id: 'k1', name: ar ? 'مبادئ الاقتصاد الجزئي' : 'Microeconomics' },
+    { id: 'k2', name: ar ? 'صور المحاضرات' : 'Lecture photos' },
+    { id: 'k3', name: ar ? 'الإحصاء' : 'Statistics' },
+    { id: 'k4', name: ar ? 'الكيمياء العضوية' : 'Organic Chemistry' },
+    { id: 'k5', name: ar ? 'تاريخ الفلسفة' : 'History of Philosophy' },
+  ]
+  const readyRows = [
+    { kb_id: 'k1', status: 'ready', chunk_count: 12, embedding_status: 'ready' }, // text
+    { kb_id: 'k1', status: 'ready', chunk_count: 0, embedding_status: 'ready' },  // no text
+    { kb_id: 'k2', status: 'ready', chunk_count: 0, embedding_status: 'ready' },  // only no text
+    { kb_id: 'k4', status: 'ready', chunk_count: 30, embedding_status: 'ready' }, // text
+    // k3 holds only a processing file and k5 only a failed one: neither is a
+    // ready row, which is all the Ask page reads.
+  ]
+  const answerable = answerableSubjectIds(readyRows)
+  const offered = kbs.filter((k) => answerable.has(k.id))
 
   const materials =
     view === 'none'
@@ -65,7 +92,7 @@ export default async function AskPreview({
       <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
         <span className="font-semibold text-foreground">ask · preview</span>
         <span className="text-faint">{safeLocale} · {view}</span>
-        {(['default', 'none', 'zero', 'history', 'answer'] as const).filter((v) => v !== view).map((v) => (
+        {(['default', 'none', 'zero', 'history', 'answer', 'subjects', 'noanswer'] as const).filter((v) => v !== view).map((v) => (
           <Link key={v} href={`/${safeLocale}/preview/ask${v === 'default' ? '' : `?view=${v}`}`} className="rounded-full border border-border px-3 py-1 font-semibold text-muted-foreground">
             {v}
           </Link>
@@ -91,6 +118,14 @@ export default async function AskPreview({
             newHref={`/${safeLocale}/dashboard/knowledge/new`}
             labels={{ title: t.dashboard.nav.knowledge, prompt: t.dashboard.home.newKbDesc, cta: t.dashboard.home.newSubject }}
           />
+        ) : view === 'subjects' ? (
+          <div className="overflow-hidden rounded-xl border border-border">
+            <PreviewSubjectChips subjects={offered} initial={initialAskSubject(kbs.map((k) => k.id), answerable, 'k2')} />
+          </div>
+        ) : view === 'noanswer' ? (
+          <div className="flex h-[28rem] flex-col overflow-hidden rounded-xl border border-border bg-surface">
+            <AskNoAnswerableSubject href={`/${safeLocale}/dashboard/knowledge`} labels={{ title: t.dashboard.home.step2Title, cta: t.dashboard.subjects.addMaterial }} />
+          </div>
         ) : view === 'history' ? (
           <div className="h-[28rem] overflow-hidden rounded-xl border border-border">
             <PreviewHistory />

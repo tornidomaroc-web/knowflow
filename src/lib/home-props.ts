@@ -7,6 +7,8 @@ import type {
   SubjectProgress,
 } from '@/components/dashboard/StudentHome'
 import type { ActivityItem, RecentActivityLabels } from '@/components/dashboard/RecentActivity'
+import { subjectStats, progressBase, type DocumentRow } from '@/lib/subject-stats'
+import { isAnswerable } from '@/lib/material-text'
 
 /**
  * The label + href assembly for <StudentHome/>, shared by the real dashboard page
@@ -174,3 +176,29 @@ export function buildQuotas(
 }
 
 export type { OnboardingStep, QuotaMeter, SubjectProgress, ActivityItem }
+
+/**
+ * THE HOME'S FILE COUNT AND SUBJECT PROGRESS (register #129 (a) and (b)), from
+ * the same document rows, for the real page and the preview alike.
+ *
+ * `answerable` is the "files" stat ("ملفات جاهزة للأسئلة" / "Materials
+ * processed"): files Ask can answer from (`isAnswerable`, built on #128's
+ * `hasNoText`), so failed, processing and no-text files are not counted.
+ *
+ * Each subject's `materials` is its progress base (`progressBase`): failed and
+ * no-text files are left out, processing ones stay in. 0 means there is
+ * nothing to measure, and the home shows a dash for it.
+ */
+export function buildHomeProgress(
+  rows: DocumentRow[],
+  subjects: { id: string; name: string }[],
+): { answerable: number; subjects: SubjectProgress[] } {
+  const stats = subjectStats(rows, [], [])
+  return {
+    answerable: rows.filter(isAnswerable).length,
+    subjects: subjects.map((s) => {
+      const st = stats.get(s.id)
+      return { id: s.id, name: s.name, materials: st ? progressBase(st) : 0, summarised: st?.summarised ?? 0 }
+    }),
+  }
+}

@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import type { KnowledgeBase } from '@/types';
-import { cn } from '@/lib/utils';
 import { Sheet } from '@/components/ui';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { ChatBox } from './ChatBox';
 import { ConversationSidebar } from './ConversationSidebar';
 import { createClient } from '@/lib/supabase/client';
+import { initialAskSubject } from '@/lib/material-text';
+import { SubjectChips, AskNoAnswerableSubject } from './SubjectChips';
 
 interface Conversation {
   id: string;
@@ -26,17 +27,27 @@ export interface MaterialName {
   lead: string | null;
 }
 
-export function KBSelector({ kbs, materials = [] }: { kbs: KnowledgeBase[]; materials?: MaterialName[] }) {
+/**
+ * `answerableIds` (register #129 (c)): the subjects holding a file Ask can
+ * answer from (`answerableSubjectIds`, on #128's rule). Only they are offered
+ * in the subject bar or opened by `?kb=`. The FULL `kbs` list is kept for
+ * history: a past conversation in any subject still opens with its messages.
+ */
+export function KBSelector({ kbs, materials = [], answerableIds }: { kbs: KnowledgeBase[]; materials?: MaterialName[]; answerableIds: string[] }) {
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
   const isRtl = safeLocale === 'ar';
 
   // `?kb=` preselects a subject (register #85): the subject cards and the
-  // subject page link here with it. An unknown id falls back to the first.
+  // subject page link here with it. An unknown id, or a subject Ask cannot
+  // answer from (#129), falls back to the first that it can, else none.
   const searchParams = useSearchParams();
   const wanted = searchParams.get('kb');
-  const [selectedId, setSelectedId] = useState(kbs.find((k) => k.id === wanted)?.id ?? kbs[0]?.id ?? '');
+  const answerable = new Set(answerableIds);
+  const offered = kbs.filter((k) => answerable.has(k.id));
+  const firstAnswerable = () => initialAskSubject(kbs.map((k) => k.id), answerable, null);
+  const [selectedId, setSelectedId] = useState(() => initialAskSubject(kbs.map((k) => k.id), answerable, wanted));
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [mountKey, setMountKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -71,6 +82,9 @@ export function KBSelector({ kbs, materials = [] }: { kbs: KnowledgeBase[]; mate
   };
 
   const handleNewConversation = () => {
+    // A new question never starts in a subject Ask cannot answer from, even
+    // after reading an old conversation there (#129 (c)).
+    if (!answerable.has(selectedId)) setSelectedId(firstAnswerable());
     setSelection({ conversationId: null, messages: null });
     setMountKey(k => k + 1); // explicit new → remount with empty chat
     setDrawerOpen(false); // close the mobile history drawer after starting
@@ -117,25 +131,20 @@ export function KBSelector({ kbs, materials = [] }: { kbs: KnowledgeBase[]; mate
             <Menu className="h-5 w-5" />
           </button>
           {/* Single-subject scope: picking a subject switches the active one (and
-              resets the conversation). Never a multi-select / cross-subject search. */}
-          <div className="flex gap-2 overflow-x-auto">
-            {kbs.map(kb => (
-              <button
-                key={kb.id}
-                onClick={() => { setSelectedId(kb.id); setSelection({ conversationId: null, messages: null }); setMountKey(k => k + 1); }}
-                aria-pressed={selectedId === kb.id}
-                className={cn(
-                  'whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
-                  selectedId === kb.id
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border text-muted-foreground hover:border-primary hover:text-foreground',
-                )}
-              >
-                {kb.name}
-              </button>
-            ))}
-          </div>
+              resets the conversation). Never a multi-select / cross-subject search.
+              #129 (c): only subjects Ask can answer from are offered. */}
+          <SubjectChips
+            subjects={offered}
+            selectedId={selectedId}
+            onPick={(id) => { setSelectedId(id); setSelection({ conversationId: null, messages: null }); setMountKey(k => k + 1); }}
+          />
         </div>
+        {!selectedKb && (
+          <AskNoAnswerableSubject
+            href={`/${safeLocale}/dashboard/knowledge`}
+            labels={{ title: t.dashboard.home.step2Title, cta: t.dashboard.subjects.addMaterial }}
+          />
+        )}
         {selectedKb && (
           <ChatBox
             key={`${selectedKb.id}-${mountKey}`}
