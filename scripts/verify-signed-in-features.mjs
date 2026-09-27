@@ -115,11 +115,20 @@ if (has('src/lib/ask-suggestions.ts')) {
   check(hh.includes('Ask about this subject') && hh.includes('href="/en/dashboard/agent?kb=s1"'), 'the subject header has no Ask action');
 
   const { MaterialCard } = await load('src/components/materials/MaterialCard.tsx');
-  const cl = { chunks: 'chunks', statusReady: 'Ready', statusProcessing: 'Processing', statusError: 'Failed', checklist: 'Study kit', summaryDone: 'Summary ready', summaryTodo: 'No summary yet', quizDone: 'Quiz ready', quizTodo: 'No quiz yet', added: 'Added' };
-  const c1 = renderToStaticMarkup(React.createElement(MaterialCard, { filename: 'a.pdf', fileType: 'pdf', chunkCount: 12, status: 'ready', addedAt: '2026-09-01', locale: 'en', hasSummary: true, hasQuiz: false, labels: cl }));
+  const cl = { statusReady: 'Ready', statusProcessing: 'Processing', statusError: 'Failed', checklist: 'Study kit', summaryDone: 'Summary ready', summaryTodo: 'No summary yet', quizDone: 'Quiz ready', quizTodo: 'No quiz yet', added: 'Added' };
+  const c1 = renderToStaticMarkup(React.createElement(MaterialCard, { filename: 'a.pdf', fileType: 'pdf', status: 'ready', addedAt: '2026-09-01', locale: 'en', hasSummary: true, hasQuiz: false, labels: cl }));
   check(c1.includes('Summary ready') && c1.includes('No quiz yet') && c1.includes('Ready') && !c1.includes('>ready<'), 'the material card checklist or status is wrong');
-  const c2 = renderToStaticMarkup(React.createElement(MaterialCard, { filename: 'b.pdf', fileType: 'pdf', chunkCount: 0, status: 'processing', addedAt: '2026-09-01', locale: 'en', hasSummary: false, hasQuiz: false, labels: cl }));
+  const c2 = renderToStaticMarkup(React.createElement(MaterialCard, { filename: 'b.pdf', fileType: 'pdf', status: 'processing', addedAt: '2026-09-01', locale: 'en', hasSummary: false, hasQuiz: false, labels: cl }));
   check(c2.includes('Processing') && !c2.includes('Study kit'), 'a processing material must not show a study kit yet');
+  // #127 (the owner's ruling): no chunk count on the card. The meta line is the
+  // type and the date, and the page no longer passes a count or its label.
+  const meta = (html) => (html.match(/<p class="mt-0\.5[^"]*">([\s\S]*?)<\/p>/) || [])[1] || '';
+  check(/^PDF · Added /.test(meta(c1)) && /^PDF · Added /.test(meta(c2)), `the material card's meta line is not "type · Added date": ${JSON.stringify(meta(c1))}`);
+  const card = read('src/components/materials/MaterialCard.tsx');
+  check(!/chunkCount|labels\.chunks/.test(card), 'MaterialCard still takes or prints a chunk count');
+  for (const p of ['src/app/[locale]/dashboard/knowledge/[id]/page.tsx', 'src/app/[locale]/preview/subject/page.tsx']) {
+    check(!/chunkCount|kbDetail\.chunks/.test(read(p)), `${p} still passes a chunk count or its label to the card`);
+  }
   }
 }
 

@@ -83,7 +83,7 @@ const settingsLabels = {
   freePlanDesc: 'f', proPlanDesc: 'p', renews: 'Renews', cancels: 'Cancels', upgrade: 'Upgrade to Pro',
   activeSubscription: 'Active', preferences: 'Preferences', language: 'Language', appearance: 'Appearance',
   themeDark: 'Dark', themeLight: 'Light', helpLegal: 'Help', privacyPolicy: 'Privacy', terms: 'Terms',
-  support: 'Support', supportDesc: 'd',
+  support: 'Support', supportDesc: 'We answer by email.',
 };
 const settings = (upgradeHref) => renderToStaticMarkup(React.createElement(SettingsPanel, {
   email: 'student@example.com', isPro: false, renewsOn: null, cancelsOn: null, upgradeHref,
@@ -98,6 +98,13 @@ const settings = (upgradeHref) => renderToStaticMarkup(React.createElement(Setti
   check(native.includes('href="/en/privacy"') && native.includes('href="/en/terms"'), 'Settings must keep the privacy and terms links (Apple 5.1.1(i))');
   check(native.includes('href="/ar/dashboard/settings"'), 'Settings has no in-app language link to the other locale');
   check(native.includes('role="radiogroup"'), 'Settings has no theme toggle');
+  // #127 (the owner's ruling): the support row says how the answer arrives, and
+  // keeps the address visible, in both builds.
+  for (const [name, html] of [['web', web], ['store', native]]) {
+    const row = (html.match(/<a href="mailto:support@example\.com"[\s\S]*?<\/a>/) || [''])[0];
+    check(row.includes('>We answer by email.<'), `Settings (${name}): the support row does not render supportDesc`);
+    check(row.includes('>support@example.com<'), `Settings (${name}): the support row no longer shows the address`);
+  }
   console.error(`settings: web ${web.length} chars with pricing; native ${native.length} chars without`);
 }
 
