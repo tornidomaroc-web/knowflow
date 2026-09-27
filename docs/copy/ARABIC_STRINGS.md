@@ -165,7 +165,7 @@ file is not read by the app.
 | `auth.signupRepeatPassword` | إن سجّلت مرة أخرى ببريد استعملته من قبل، يصلك رابط تأكيد جديد، وتبقى كلمة المرور الأولى كما هي. | Signing up again with an email you already used sends a new confirmation link, but keeps your first password. |
 | `auth.signupRepeatPasswordLink` | نسيتها؟ اختر كلمة مرور جديدة | Forgot it? Reset your password |
 | `auth.noticeSigninRequired` | لم يعمل هذا الرابط. سجّل الدخول من الأسفل. | We could not finish that link. Please sign in below. |
-| `auth.noticeLinkExpired` | انتهت صلاحية رابط التأكيد. سجّل مرة أخرى ليصلك رابط جديد. | That confirmation link is no longer valid. Sign up again to get a new one. |
+| `auth.noticeLinkExpired` | انتهى الرابط. أنشئ حسابك مرة أخرى ليصلك رابط جديد. | That confirmation link is no longer valid. Sign up again to get a new one. |
 | `auth.forgotLink` | نسيت كلمة المرور؟ | Forgot your password? |
 | `auth.forgotTitle` | استعادة كلمة المرور | Reset your password |
 | `auth.forgotSubtitle` | اكتب بريدك الإلكتروني، ونرسل لك رابطًا تختار به كلمة مرور جديدة. | Enter your email and we will send you a link to set a new password. |
@@ -178,7 +178,7 @@ file is not read by the app.
 | `auth.resetSubtitle` | اختر كلمة مرور جديدة لحسابك. | Choose a new password for your account. |
 | `auth.resetSubmit` | حفظ كلمة المرور | Save new password |
 | `auth.resetSaving` | نحفظ كلمة المرور… | Saving... |
-| `auth.resetNoSession` | هذا الرابط لم يعد يعمل. اطلب رابطًا جديدًا وافتحه من بريدك. | This page needs a valid reset link. Ask for a new one and open it from your email. |
+| `auth.resetNoSession` | افتح هذه الصفحة من الرابط في بريدك. أو اطلب رابطًا جديدًا. | This page needs a valid reset link. Ask for a new one and open it from your email. |
 | `auth.resetCancel` | إلغاء وتسجيل الخروج | Cancel and sign out |
 | `auth.backToLogin` | ارجع إلى تسجيل الدخول | Back to sign in |
 

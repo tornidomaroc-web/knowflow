@@ -147,7 +147,7 @@ export const ar: Translation = {
     signupRepeatPassword: "إن سجّلت مرة أخرى ببريد استعملته من قبل، يصلك رابط تأكيد جديد، وتبقى كلمة المرور الأولى كما هي.",
     signupRepeatPasswordLink: "نسيتها؟ اختر كلمة مرور جديدة",
     noticeSigninRequired: "لم يعمل هذا الرابط. سجّل الدخول من الأسفل.",
-    noticeLinkExpired: "انتهت صلاحية رابط التأكيد. سجّل مرة أخرى ليصلك رابط جديد.",
+    noticeLinkExpired: "انتهى الرابط. أنشئ حسابك مرة أخرى ليصلك رابط جديد.",
     forgotLink: "نسيت كلمة المرور؟",
     forgotTitle: "استعادة كلمة المرور",
     forgotSubtitle: "اكتب بريدك الإلكتروني، ونرسل لك رابطًا تختار به كلمة مرور جديدة.",
@@ -160,7 +160,7 @@ export const ar: Translation = {
     resetSubtitle: "اختر كلمة مرور جديدة لحسابك.",
     resetSubmit: "حفظ كلمة المرور",
     resetSaving: "نحفظ كلمة المرور…",
-    resetNoSession: "هذا الرابط لم يعد يعمل. اطلب رابطًا جديدًا وافتحه من بريدك.",
+    resetNoSession: "افتح هذه الصفحة من الرابط في بريدك. أو اطلب رابطًا جديدًا.",
     resetCancel: "إلغاء وتسجيل الخروج",
     backToLogin: "ارجع إلى تسجيل الدخول"
   },
