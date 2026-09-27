@@ -9,6 +9,8 @@ export interface MaterialCardLabels {
   statusReady: string;
   statusProcessing: string;
   statusError: string;
+  statusNoText: string;
+  noTextLine: string;
   checklist: string;
   summaryDone: string;
   summaryTodo: string;
@@ -25,6 +27,11 @@ export interface MaterialCardLabels {
  * and quiz sections, and the rename and delete controls, render inside it
  * unchanged as `children`. It shows no chunk count (register #127, the owner's
  * ruling): chunks are how Ask indexes a file, not something a student reads.
+ *
+ * `noText` (register #128, `hasNoText` in src/lib/material-text.ts): a ready
+ * file in which no text was found does not say "ready". Its chip says it has
+ * no text, one line says what to do, and there is no study kit to promise.
+ * It only applies to a ready file; processing and failed files are unchanged.
  */
 export function MaterialCard({
   filename,
@@ -34,6 +41,7 @@ export function MaterialCard({
   locale,
   hasSummary,
   hasQuiz,
+  noText = false,
   labels,
   children,
 }: {
@@ -44,11 +52,15 @@ export function MaterialCard({
   locale: string;
   hasSummary: boolean;
   hasQuiz: boolean;
+  noText?: boolean;
   labels: MaterialCardLabels;
   children?: ReactNode;
 }) {
+  const empty = status === 'ready' && noText;
   const chip =
-    status === 'ready'
+    empty
+      ? { text: labels.statusNoText, cls: 'bg-raised text-warning' }
+      : status === 'ready'
       ? { text: labels.statusReady, cls: 'bg-primary-subtle text-primary' }
       : status === 'error'
         ? { text: labels.statusError, cls: 'bg-danger-subtle text-danger' }
@@ -80,7 +92,9 @@ export function MaterialCard({
         <span className={cn('shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium', chip.cls)}>{chip.text}</span>
       </div>
 
-      {status === 'ready' && (
+      {empty && <p className="mt-3 text-sm text-warning">{labels.noTextLine}</p>}
+
+      {status === 'ready' && !empty && (
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-raised px-3 py-2 text-xs">
           <span className="font-medium text-muted-foreground">{labels.checklist}</span>
           <Check done={hasSummary} done_label={labels.summaryDone} todo_label={labels.summaryTodo} />

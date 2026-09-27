@@ -51,6 +51,8 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
   const u = t.dashboard.upload;
   const [state, setState] = useState<UploadState>(previewFile ? 'ready' : 'idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // #128: the file arrived and the service found no text in it.
+  const [noText, setNoText] = useState(false);
   const [file, setFile] = useState<{ name: string; size: number } | null>(previewFile ?? null);
   const [sent, setSent] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
@@ -117,12 +119,15 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
       return;
     }
 
+    setNoText(data.chunk_count === 0);
     setState('ready');
     if (onSuccess) {
       onSuccess({
         id: data.document_id, kb_id: kbId, filename: picked.name,
         file_type: picked.name.split('.').pop() as any, status: 'ready',
-        markdown_content: null, chunk_count: data.chunk_count, created_at: new Date().toISOString(),
+        // #128: the ack means the service wrote `embedding_status: 'ready'` with
+        // this count, so a 0 here is a file with no text, as on reload.
+        markdown_content: null, chunk_count: data.chunk_count, embedding_status: 'ready', created_at: new Date().toISOString(),
         // Phase 3: a just-uploaded document has no summary yet.
         summary: null, summary_generated_at: null, summary_model: null, summary_is_partial: false,
       });
@@ -175,14 +180,14 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
         <div className="w-full max-w-md text-start" role="status" aria-live="polite">
           <div className="flex items-center gap-3">
             <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-primary">
-              {state === 'ready' ? <CheckCircle2 className="pop-in h-5 w-5 text-success" /> : <FileText className="h-5 w-5" />}
+              {state === 'ready' && !noText ? <CheckCircle2 className="pop-in h-5 w-5 text-success" /> : <FileText className={noText && state === 'ready' ? 'h-5 w-5 text-warning' : 'h-5 w-5'} />}
             </span>
             <div className="min-w-0 flex-1">
               <FileName name={file.name} className="text-sm font-medium text-foreground" />
-              <p className="text-xs text-muted-foreground">
+              <p className={noText && state === 'ready' ? 'text-xs text-warning' : 'text-xs text-muted-foreground'}>
                 {state === 'uploading' && `${u.uploading} ${Math.round(fraction * 100)}%`}
                 {state === 'processing' && (stage === 'reading' ? u.reading : stage === 'preparing' ? u.preparing : u.stillWorking)}
-                {state === 'ready' && u.ready}
+                {state === 'ready' && (noText ? t.dashboard.subjectDetail.noTextLine : u.ready)}
               </p>
             </div>
             <span className="shrink-0 text-xs tabular-nums text-faint">

@@ -288,6 +288,8 @@ export const ar: Translation = {
       statusReady: "جاهز",
       statusProcessing: "قيد التحضير",
       statusError: "لم ينجح",
+      statusNoText: "بلا نص",
+      noTextLine: "لا نص في هذا الملف. ارفع نسخة فيها نص.",
       checklist: "عدة المذاكرة",
       summaryDone: "الملخص جاهز",
       summaryTodo: "بلا ملخص بعد",

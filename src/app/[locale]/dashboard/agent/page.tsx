@@ -4,6 +4,7 @@ import { AgentEmptyState } from '@/components/agent/AgentEmptyState';
 import { Locale, locales, useTranslation, resolveLocale } from '@/lib/i18n';
 import type { KnowledgeBase } from '@/types';
 import { summaryLead } from '@/lib/ask-suggestions';
+import { hasNoText } from '@/lib/material-text';
 
 // Thin server wrapper: data only. The chat UI (KBSelector) is a client island;
 // the no-subjects case renders the dumb <AgentEmptyState/> (Phase 8 reuse).
@@ -25,9 +26,10 @@ export default async function AgentPage({
     // `summary` is read for its FIRST SENTENCE only (register #121, defect 4):
     // a file name is not a topic. The lead is cut here, on the server, so no
     // summary text beyond one line reaches the client.
-    supabase.from('documents').select('id, kb_id, filename, summary').eq('status', 'ready').order('created_at', { ascending: false }),
+    supabase.from('documents').select('id, kb_id, filename, summary, status, chunk_count, embedding_status').eq('status', 'ready').order('created_at', { ascending: false }),
   ]);
-  const materialLeads = (materials ?? []).map((m) => ({ id: m.id, kb_id: m.kb_id, filename: m.filename, lead: summaryLead(m.summary) }));
+  // #128: a file with no text is never suggested; Ask has nothing from it.
+  const materialLeads = (materials ?? []).filter((m) => !hasNoText(m)).map((m) => ({ id: m.id, kb_id: m.kb_id, filename: m.filename, lead: summaryLead(m.summary) }));
 
   if (!kbs || kbs.length === 0) {
     return (

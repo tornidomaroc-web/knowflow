@@ -9,6 +9,7 @@ import { emptyStats } from '@/lib/subject-stats'
 import { withSupportEmail } from '@/lib/site'
 import { PreviewRenameFields } from './PreviewRenameFields'
 import { PreviewStudyKit } from './PreviewStudyKit'
+import { hasNoText } from '@/lib/material-text'
 
 /**
  * DESIGN PREVIEW for the subject page (register #85, SIGNED_IN_FEATURES.md
@@ -37,8 +38,11 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
   const ar = safeLocale === 'ar'
   const sd = t.dashboard.subjectDetail
 
-  const materials = [
+  const materials: { id: string; filename: string; type: string; status: string; added: string; summary: boolean; quiz: boolean; chunk_count?: number; embedding_status?: string }[] = [
     { id: 'd1', filename: ar ? 'مبادئ-الاقتصاد-الجزئي.md' : 'Microeconomics-Principles.pdf', type: ar ? 'md' : 'pdf', status: 'ready', added: '2026-09-23T21:30:00Z', summary: true, quiz: true },
+    // #128: a scanned PDF the service read and found no text in, beside a
+    // normal file, as the ingestion service writes it.
+    { id: 'd8', filename: ar ? 'صور السبورة.pdf' : 'Whiteboard-photos.pdf', type: 'pdf', status: 'ready', added: '2026-09-26T09:00:00Z', summary: false, quiz: false, chunk_count: 0, embedding_status: 'ready' },
     { id: 'd2', filename: ar ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved-Exercises-Ch3.pdf', type: 'pdf', status: 'ready', added: '2026-09-22T18:00:00Z', summary: true, quiz: false },
     { id: 'd3', filename: ar ? 'شرائح المحاضرة 4.pptx' : 'Lecture-4-slides.pptx', type: 'pptx', status: 'processing', added: '2026-09-25T08:10:00Z', summary: false, quiz: false },
     // #123: a ready material with no summary yet, and a failed one, so the
@@ -50,7 +54,7 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
     { id: 'd6', filename: ar ? 'ملاحظات المحاضرة الخامسة عن مرونة الطلب السعرية والدخلية والتقاطعية - النسخة النهائية 12.pdf' : 'Lecture 5 notes on price, income and cross elasticity of demand - final version 12.pdf', type: 'pdf', status: 'ready', added: '2026-09-25T12:00:00Z', summary: true, quiz: true },
     { id: 'd7', filename: ar ? 'ملخص Chapter 3 (1).pdf' : 'Summary الفصل 3 (1).pdf', type: 'pdf', status: 'ready', added: '2026-09-25T13:00:00Z', summary: false, quiz: false },
   ]
-  const stats = { ...emptyStats(), materials: 7, ready: 5, processing: 1, failed: 1, summarised: 3, quizzed: 3 }
+  const stats = { ...emptyStats(), materials: 8, ready: 5, processing: 1, failed: 1, summarised: 3, quizzed: 3 }
   const renameLabels = t.dashboard.kbDetail.renameMaterial
   const deleteLabels = withSupportEmail(t.dashboard.kbDetail.deleteMaterial)
   // #123 batch 2: a summary already generated and cut short, so the partial
@@ -62,6 +66,8 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
     statusReady: sd.statusReady,
     statusProcessing: sd.statusProcessing,
     statusError: sd.statusError,
+    statusNoText: sd.statusNoText,
+    noTextLine: sd.noTextLine,
     checklist: sd.checklist,
     summaryDone: sd.summaryDone,
     summaryTodo: sd.summaryTodo,
@@ -119,6 +125,7 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
                   locale={safeLocale}
                   hasSummary={m.summary}
                   hasQuiz={m.quiz}
+                  noText={hasNoText(m)}
                   labels={cardLabels}
                 >
                   {/* #124: the rename panel in its editing state under the
@@ -130,6 +137,7 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
                       idle on the no-summary card, and with a partial summary. */}
                   {m.id === 'd4' ? <PreviewStudyKit docId={m.id} summary={null} partial={false} deleteLabels={deleteLabels} /> : null}
                   {m.id === 'd1' ? <PreviewStudyKit docId={m.id} summary={partialSummary} partial deleteLabels={deleteLabels} /> : null}
+                  {m.id === 'd8' ? <PreviewStudyKit docId={m.id} summary={null} partial={false} noText deleteLabels={deleteLabels} /> : null}
                 </MaterialCard>
               ))}
             </div>

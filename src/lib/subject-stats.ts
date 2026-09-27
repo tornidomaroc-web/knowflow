@@ -12,11 +12,19 @@
  * language: a quiz is per (document, lang) (#28/#31), and a card counts
  * materials, not languages. Materials in `error` are counted as materials
  * and never as progress.
+ *
+ * `ready` counts the materials Ask can use: a ready file with no text
+ * (register #128, `hasNoText`) is a material but not ready, so a subject whose
+ * only ready file has no text offers no "Ask about this subject".
  */
+import { hasNoText } from './material-text';
+
 export interface DocumentRow {
   id: string;
   kb_id: string;
   status: string;
+  chunk_count?: number | null;
+  embedding_status?: string | null;
   summary_generated_at: string | null;
   created_at?: string | null;
 }
@@ -62,7 +70,7 @@ export function subjectStats(
   for (const d of documents) {
     const s = get(d.kb_id);
     s.materials += 1;
-    if (d.status === 'ready') s.ready += 1;
+    if (d.status === 'ready') { if (!hasNoText(d)) s.ready += 1; }
     else if (d.status === 'error') s.failed += 1;
     else s.processing += 1;
     if (d.status !== 'error' && d.summary_generated_at) s.summarised += 1;
