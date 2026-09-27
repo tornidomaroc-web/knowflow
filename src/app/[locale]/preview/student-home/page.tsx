@@ -7,7 +7,7 @@ import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { pluralize } from '@/lib/i18n/plural'
 import { FREE_LIMITS } from '@/lib/limits'
 import { DAILY_CAPS } from '@/lib/rate-limit'
-import { buildHomeLabels, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
+import { buildHomeLabels, buildHomeProgress, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { formatDate } from '@/lib/format-date'
 
@@ -85,18 +85,38 @@ export default async function StudentHomePreview({
   const theme: 'dark' | 'light' = rawTheme === 'light' ? 'light' : 'dark'
 
   const caps = DAILY_CAPS.free
-  const counts = full
-    ? { subjects: 4, materials: 23, conversations: 61 }
-    : { subjects: 0, materials: 0, conversations: 0 }
-
-  const subjects: SubjectProgress[] = full
+  // #129: the "files" stat and the subject rings come from DOCUMENT ROWS
+  // through `buildHomeProgress`, the function the real home calls, with a
+  // mix of states: ready with text (R), ready with no text (N), processing
+  // (P) and failed (F), summarised or not.
+  const R = (kb: string, summarised: boolean) => ({ id: '', kb_id: kb, status: 'ready', chunk_count: 12, embedding_status: 'ready', summary_generated_at: summarised ? '2026-09-20' : null })
+  const N = (kb: string) => ({ id: '', kb_id: kb, status: 'ready', chunk_count: 0, embedding_status: 'ready', summary_generated_at: null })
+  const P = (kb: string) => ({ id: '', kb_id: kb, status: 'processing', chunk_count: 0, embedding_status: 'pending', summary_generated_at: null })
+  const F = (kb: string) => ({ id: '', kb_id: kb, status: 'error', chunk_count: 0, embedding_status: 'error', summary_generated_at: null })
+  const rows = full
     ? [
-        { id: 's1', name: safeLocale === 'ar' ? 'الأحياء' : 'Cell Biology', materials: 8, summarised: 6 },
-        { id: 's2', name: safeLocale === 'ar' ? 'الكيمياء العضوية' : 'Organic Chemistry', materials: 7, summarised: 7 },
-        { id: 's3', name: safeLocale === 'ar' ? 'الإحصاء' : 'Statistics', materials: 5, summarised: 1 },
-        { id: 's4', name: safeLocale === 'ar' ? 'تاريخ الفلسفة' : 'History of Philosophy', materials: 3, summarised: 0 },
-      ]
+        // s1: 3 of 4 usable summarised, plus a no-text file and a failed one -> 75%, not 3/6.
+        R('s1', true), R('s1', true), R('s1', true), R('s1', false), N('s1'), F('s1'),
+        // s2: every usable file summarised, plus a no-text file -> 100%.
+        R('s2', true), R('s2', true), N('s2'),
+        // s3: one summarised, one still processing -> 50%.
+        R('s3', true), P('s3'),
+        // s4: only a no-text file and a failed one -> nothing to measure, a dash.
+        N('s4'), F('s4'),
+      ].map((r, i) => ({ ...r, id: `d${i}` }))
     : []
+  const progress = buildHomeProgress(rows, full
+    ? [
+        { id: 's1', name: safeLocale === 'ar' ? 'الأحياء' : 'Cell Biology' },
+        { id: 's2', name: safeLocale === 'ar' ? 'الكيمياء العضوية' : 'Organic Chemistry' },
+        { id: 's3', name: safeLocale === 'ar' ? 'الإحصاء' : 'Statistics' },
+        { id: 's4', name: safeLocale === 'ar' ? 'تاريخ الفلسفة' : 'History of Philosophy' },
+      ]
+    : [])
+  const subjects: SubjectProgress[] = progress.subjects
+  const counts = full
+    ? { subjects: 4, materials: rows.length, conversations: 61 }
+    : { subjects: 0, materials: 0, conversations: 0 }
 
   const recentActivity: ActivityItem[] = full
     ? [
@@ -115,7 +135,8 @@ export default async function StudentHomePreview({
 
   const stats = [
     { label: home.knowledgeBases, value: counts.subjects, desc: home.knowledgeBasesDesc },
-    { label: home.documents, value: counts.materials, desc: home.documentsDesc },
+    // #129 (a): answerable files (7 of the 13 rows above), not every file.
+    { label: home.documents, value: progress.answerable, desc: home.documentsDesc },
     { label: home.conversations, value: counts.conversations, desc: home.conversationsDesc },
   ]
 

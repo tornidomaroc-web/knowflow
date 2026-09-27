@@ -22,7 +22,9 @@ export default async function KnowledgeBasesPage({
   // `quizzes` has no kb_id, so it is joined through the documents' ids in JS.
   const [{ data: kbs }, { data: docs }, { data: convos }] = await Promise.all([
     supabase.from('knowledge_bases').select('*').order('created_at', { ascending: false }),
-    supabase.from('documents').select('id, kb_id, status, summary_generated_at, created_at'),
+    // #129: chunk_count and embedding_status let `subjectStats` tell a file
+    // with no text from a ready one (hasNoText), for the ring and the Ask button.
+    supabase.from('documents').select('id, kb_id, status, chunk_count, embedding_status, summary_generated_at, created_at'),
     supabase.from('conversations').select('kb_id, created_at'),
   ]);
   const docIds = (docs ?? []).map((d) => d.id);

@@ -43,6 +43,8 @@ export interface SubjectStats {
   ready: number;
   processing: number;
   failed: number;
+  /** Ready files with no text (#128): materials, never ready, never progress. */
+  noText: number;
   summarised: number;
   quizzed: number;
   /** The newest conversation, else the newest material, else null. ISO string. */
@@ -52,7 +54,7 @@ export interface SubjectStats {
 }
 
 export function emptyStats(): SubjectStats {
-  return { materials: 0, ready: 0, processing: 0, failed: 0, summarised: 0, quizzed: 0, lastActivityAt: null, lastActivityIsAsk: false };
+  return { materials: 0, ready: 0, processing: 0, failed: 0, noText: 0, summarised: 0, quizzed: 0, lastActivityAt: null, lastActivityIsAsk: false };
 }
 
 export function subjectStats(
@@ -70,7 +72,7 @@ export function subjectStats(
   for (const d of documents) {
     const s = get(d.kb_id);
     s.materials += 1;
-    if (d.status === 'ready') { if (!hasNoText(d)) s.ready += 1; }
+    if (d.status === 'ready') { if (hasNoText(d)) s.noText += 1; else s.ready += 1; }
     else if (d.status === 'error') s.failed += 1;
     else s.processing += 1;
     if (d.status !== 'error' && d.summary_generated_at) s.summarised += 1;
@@ -90,8 +92,23 @@ export function subjectStats(
   return out;
 }
 
-/** 0..100, summarised over materials; 0 when there is nothing to summarise. */
-export function summarisedPercent(s: SubjectStats): number {
-  if (s.materials === 0) return 0;
-  return Math.round((s.summarised / s.materials) * 100);
+/**
+ * What progress is measured over (#129 (b)): the files that are, or will be,
+ * answerable. Failed files and files with no text can never be summarised, so
+ * they are left out, and a subject reaches 100% once every usable file is
+ * done. Processing files stay in: they are not done yet.
+ */
+export function progressBase(s: SubjectStats): number {
+  return (s.materials ?? 0) - (s.failed ?? 0) - (s.noText ?? 0);
+}
+
+/**
+ * 0..100, summarised over `progressBase`; NULL when there is nothing to
+ * measure (no files, or only failed and no-text ones). Null is shown as a
+ * dash, never as 0% (a promise of work to do) or 100% (a claim of work done).
+ */
+export function summarisedPercent(s: SubjectStats): number | null {
+  const base = progressBase(s);
+  if (base <= 0) return null;
+  return Math.min(100, Math.round((s.summarised / base) * 100));
 }

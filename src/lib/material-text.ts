@@ -24,3 +24,29 @@ export interface MaterialTextFields {
 export function hasNoText(d: MaterialTextFields): boolean {
   return d.status === 'ready' && d.embedding_status === 'ready' && d.chunk_count === 0;
 }
+
+/**
+ * A file Ask can answer from (register #129): ready, and not a file with no
+ * text. Built on `hasNoText` so there is one rule, not two. Failed and
+ * processing files are not answerable; a pre-RAG row that `hasNoText` leaves
+ * alone counts as answerable, as it did before #128.
+ */
+export function isAnswerable(d: MaterialTextFields): boolean {
+  return d.status === 'ready' && !hasNoText(d);
+}
+
+/** The subjects that hold at least one answerable file (#129 (c)). */
+export function answerableSubjectIds(rows: (MaterialTextFields & { kb_id: string })[]): Set<string> {
+  return new Set(rows.filter(isAnswerable).map((r) => r.kb_id));
+}
+
+/**
+ * The subject Ask opens on (#129 (c)): the one `?kb=` names if it can be
+ * asked, else the first that can, else none. A subject that cannot be asked is
+ * never preselected, but a past conversation in it still opens (KBSelector
+ * selects a conversation's subject from the full list, not this one).
+ */
+export function initialAskSubject(kbIds: string[], answerable: Set<string>, wanted: string | null): string {
+  if (wanted && answerable.has(wanted) && kbIds.includes(wanted)) return wanted;
+  return kbIds.find((id) => answerable.has(id)) ?? '';
+}

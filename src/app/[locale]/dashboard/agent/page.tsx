@@ -4,7 +4,7 @@ import { AgentEmptyState } from '@/components/agent/AgentEmptyState';
 import { Locale, locales, useTranslation, resolveLocale } from '@/lib/i18n';
 import type { KnowledgeBase } from '@/types';
 import { summaryLead } from '@/lib/ask-suggestions';
-import { hasNoText } from '@/lib/material-text';
+import { hasNoText, answerableSubjectIds } from '@/lib/material-text';
 
 // Thin server wrapper: data only. The chat UI (KBSelector) is a client island;
 // the no-subjects case renders the dumb <AgentEmptyState/> (Phase 8 reuse).
@@ -99,7 +99,9 @@ export default async function AgentPage({
         cast asserts that application invariant; it is not DB-guaranteed, so a
         row written outside the web app could violate it.
       */}
-      <KBSelector kbs={kbs as KnowledgeBase[]} materials={materialLeads} />
+      {/* #129 (c): the subjects with a file Ask can answer from, from the
+          same ready rows, on #128's rule. */}
+      <KBSelector kbs={kbs as KnowledgeBase[]} materials={materialLeads} answerableIds={[...answerableSubjectIds(materials ?? [])]} />
     </div>
   );
 }

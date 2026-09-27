@@ -120,8 +120,10 @@ function SubjectCard({ subject: s, locale, labels, index }: { subject: SubjectIt
           {/* Ring above the tiles on a phone, beside them from sm: three labels next
               to a 64px ring clipped at 375px ("Summaris"), seen on the preview (#122). */}
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <Ring value={pct / 100} size={64} stroke={6} tone={tone} label={`${pct}% ${labels.summarised}`}>
-              <span className="text-sm font-bold text-foreground">{pct}%</span>
+            {/* #129 (b): no percent when nothing can be summarised (only failed
+                or no-text files), a hyphen rather than 0% or 100%. */}
+            <Ring value={pct === null ? 0 : pct / 100} size={64} stroke={6} tone={tone} label={pct === null ? `- ${labels.summarised}` : `${pct}% ${labels.summarised}`}>
+              <span className="text-sm font-bold text-foreground">{pct === null ? '-' : `${pct}%`}</span>
             </Ring>
             <dl className="grid w-full flex-1 grid-cols-3 gap-2">
               <Stat icon={FileText} value={stats.materials} label={labels.materials} />
@@ -142,7 +144,8 @@ function SubjectCard({ subject: s, locale, labels, index }: { subject: SubjectIt
           {whenLabel} <bdi>{formatDate(when, locale as Locale)}</bdi>
         </span>
         <div className="flex items-center gap-2">
-          {!empty && (
+          {/* #129 (c): Ask only for a subject with a file it can answer from. */}
+          {stats.ready > 0 && (
             <Link href={s.askHref} className={buttonVariants({ variant: 'primary', size: 'sm' })}>
               <MessageCircle className="h-4 w-4" />
               {labels.ask}

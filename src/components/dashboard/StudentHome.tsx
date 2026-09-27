@@ -333,16 +333,20 @@ export function StudentHome({
           ) : (
             <ul className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {subjects.map((s, i) => {
-                const pct = s.materials === 0 ? 0 : s.summarised / s.materials;
+                // #129 (b): `materials` is the progress base (failed and no-text
+                // files left out). 0 means nothing to measure: a hyphen, not 0%
+                // or 100%, and no "0/0".
+                const none = s.materials === 0;
+                const pct = none ? 0 : Math.min(1, s.summarised / s.materials);
                 return (
                   <li key={s.id} className="flex items-center gap-3 rounded-xl bg-raised p-3">
-                    <Ring value={pct} size={48} stroke={5} tone={tones[(i + 1) % tones.length]} label={`${s.summarised} ${labels.ofWord} ${s.materials} ${labels.materialsWord}`}>
-                      <span className="text-[11px] font-bold text-foreground">{Math.round(pct * 100)}%</span>
+                    <Ring value={pct} size={48} stroke={5} tone={tones[(i + 1) % tones.length]} label={none ? '-' : `${s.summarised} ${labels.ofWord} ${s.materials} ${labels.materialsWord}`}>
+                      <span className="text-[11px] font-bold text-foreground">{none ? '-' : `${Math.round(pct * 100)}%`}</span>
                     </Ring>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-foreground">{s.name}</p>
                       <p className="text-xs text-faint">
-                        {s.summarised}/{s.materials} {labels.materialsWord}
+                        {none ? '-' : <>{s.summarised}/{s.materials} {labels.materialsWord}</>}
                       </p>
                     </div>
                   </li>
