@@ -129,6 +129,63 @@ if (has('src/lib/ask-suggestions.ts')) {
   for (const p of ['src/app/[locale]/dashboard/knowledge/[id]/page.tsx', 'src/app/[locale]/preview/subject/page.tsx']) {
     check(!/chunkCount|kbDetail\.chunks/.test(read(p)), `${p} still passes a chunk count or its label to the card`);
   }
+
+  // #128 (the owner's ruling): a ready file the ingestion service found no text
+  // in shows "No text" and one line, never "Ready", and offers no study kit.
+  check(has('src/lib/material-text.ts'), '#128: src/lib/material-text.ts (hasNoText) does not exist');
+  const { en: en128 } = await load('src/lib/i18n/locales/en.ts');
+  const { ar: ar128 } = await load('src/lib/i18n/locales/ar.ts');
+  const sd = en128.dashboard.subjectDetail, sda = ar128.dashboard.subjectDetail;
+  check(sd.statusNoText === 'No text' && sd.noTextLine === 'This file has no text. Upload a version with text.', `#128: the English copy is not the owner's: ${JSON.stringify([sd.statusNoText, sd.noTextLine])}`);
+  check(sda.statusNoText === 'بلا نص' && sda.noTextLine === 'لا نص في هذا الملف. ارفع نسخة فيها نص.', `#128: the Arabic copy is not the owner's: ${JSON.stringify([sda.statusNoText, sda.noTextLine])}`);
+  if (has('src/lib/material-text.ts')) {
+    const { hasNoText } = await load('src/lib/material-text.ts');
+    const truth = [
+      [{ status: 'ready', embedding_status: 'ready', chunk_count: 0 }, true, 'ready, embedded, 0 chunks'],
+      [{ status: 'ready', embedding_status: 'ready', chunk_count: 5 }, false, 'ready with chunks'],
+      [{ status: 'ready', embedding_status: 'pending', chunk_count: 0 }, false, 'a pre-RAG row never embedded (its 0 was an estimate)'],
+      [{ status: 'ready', embedding_status: 'ready', chunk_count: null }, false, 'a null count (unknown, not zero)'],
+      [{ status: 'ready', chunk_count: 0 }, false, 'no embedding_status at all'],
+      [{ status: 'processing', embedding_status: 'ready', chunk_count: 0 }, false, 'processing'],
+      [{ status: 'error', embedding_status: 'ready', chunk_count: 0 }, false, 'error'],
+    ];
+    for (const [row, want, name] of truth) check(hasNoText(row) === want, `#128: hasNoText is ${!want} for ${name}`);
+
+    const cl8 = { ...cl, statusNoText: 'No text', noTextLine: 'This file has no text. Upload a version with text.' };
+    const card = (status, noText) => renderToStaticMarkup(React.createElement(MaterialCard, { filename: 'x.pdf', fileType: 'pdf', status, addedAt: '2026-09-01', locale: 'en', hasSummary: false, hasQuiz: false, noText, labels: cl8 }));
+    const empty = card('ready', true);
+    check(empty.includes('>No text<') && empty.includes('This file has no text. Upload a version with text.'), '#128: a ready file with no text does not show the no-text status and line');
+    check(!empty.includes('>Ready<') && !empty.includes('Study kit'), '#128: a ready file with no text still says Ready or offers a study kit');
+    const full = card('ready', false);
+    check(full.includes('>Ready<') && full.includes('Study kit') && !full.includes('No text'), '#128: a ready file with chunks changed');
+    for (const [s, label] of [['processing', 'Processing'], ['error', 'Failed']]) {
+      const html = card(s, true);
+      check(html.includes(`>${label}<`) && !html.includes('No text'), `#128: a ${s} file changed (it must ignore noText)`);
+    }
+
+    // The counters: a subject whose only ready file has no text offers no Ask.
+    const { subjectStats: ss } = await load('src/lib/subject-stats.ts');
+    const only = ss([{ id: 'n', kb_id: 'k', status: 'ready', embedding_status: 'ready', chunk_count: 0, summary_generated_at: null }], [], []).get('k');
+    check(only.materials === 1 && only.ready === 0, `#128: a no-text file is counted as ready (${JSON.stringify(only)})`);
+    const both = ss([
+      { id: 'n', kb_id: 'k', status: 'ready', embedding_status: 'ready', chunk_count: 0, summary_generated_at: null },
+      { id: 'r', kb_id: 'k', status: 'ready', embedding_status: 'ready', chunk_count: 4, summary_generated_at: null },
+    ], [], []).get('k');
+    check(both.materials === 2 && both.ready === 1, `#128: the ready count is wrong with one normal and one no-text file (${JSON.stringify(both)})`);
+    const headerNo = renderToStaticMarkup(React.createElement(SubjectHeader, { name: 'M', description: null, stats: only, askHref: '/en/dashboard/agent?kb=k', labels: { materials: 'Materials', summarised: 'Summarised', quizzed: 'Quizzed', stillProcessing: 'still processing', askAbout: 'Ask about this subject' } }));
+    check(!headerNo.includes('Ask about this subject'), '#128: a subject whose only file has no text still offers Ask');
+  }
+
+  // The wiring: the subject page marks the card and hides summary and quiz on
+  // it; Ask never suggests a no-text file; the upload box says so at once.
+  const page = read('src/app/[locale]/dashboard/knowledge/[id]/page.tsx');
+  check(/noText=\{hasNoText\(doc\)\}/.test(page), '#128: the subject page does not pass noText to the card');
+  check(/!hasNoText\(doc\) && <SummarySection/.test(page) && /!hasNoText\(doc\) && <QuizSection/.test(page), '#128: the subject page still offers summary and quiz on a file with no text');
+  check(/chunk_count: d\.chunk_count, embedding_status: d\.embedding_status/.test(page), '#128: the subject page does not give the counters the chunk count');
+  const agent = read('src/app/[locale]/dashboard/agent/page.tsx');
+  check(/chunk_count, embedding_status/.test(agent) && /filter\(\(m\) => !hasNoText\(m\)\)/.test(agent), '#128: Ask still builds suggestions from files with no text');
+  const drop = read('src/components/upload/DropZone.tsx');
+  check(/setNoText\(data\.chunk_count === 0\)/.test(drop) && /noText \? t\.dashboard\.subjectDetail\.noTextLine : u\.ready/.test(drop) && /embedding_status: 'ready'/.test(drop), '#128: the upload box still says ready for a file with no text');
   }
 }
 

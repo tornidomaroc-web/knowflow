@@ -93,7 +93,7 @@ for (const p of ['src/components/dashboard/StudentHome.tsx', 'src/components/das
   const chat = read('src/components/agent/ChatBox.tsx');
   check(/dir="auto"/.test(chat), 'the suggestion buttons do not set dir="auto"');
   const agent = read('src/app/[locale]/dashboard/agent/page.tsx');
-  check(/summaryLead\(/.test(agent) && /select\('id, kb_id, filename, summary'\)/.test(agent), 'the agent page does not read the summary lead');
+  check(/summaryLead\(/.test(agent) && /select\('id, kb_id, filename, summary[',]/.test(agent), 'the agent page does not read the summary lead');
 }
 
 // 5. Dates.
