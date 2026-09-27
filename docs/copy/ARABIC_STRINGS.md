@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-09-26 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **380 Arabic strings.**
+Generated 2026-09-27 by `scripts/export-arabic-strings.mjs` from
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **378 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -364,7 +364,6 @@ file is not read by the app.
 |---|---|---|
 | `dashboard.kbDetail.documents` | الملفات | Materials |
 | `dashboard.kbDetail.noDocuments` | لا ملفات هنا بعد. ارفع أول ملف من الأعلى. | No materials yet. Upload your first file above. |
-| `dashboard.kbDetail.chunks` | أجزاء | chunks |
 | `dashboard.kbDetail.deleteMaterial.openButton` | حذف | Delete |
 | `dashboard.kbDetail.deleteMaterial.warning` | هل تحذف هذا الملف نهائيًا؟ سيختفي الملف وملخّصه واختباراته. لن تستعمله صفحة اسأل بعد الآن، ولا يمكن استرجاع أي شيء. | Delete this material permanently? Its file, its summary and its quizzes are removed, Ask stops using it, and nothing can be restored. |
 | `dashboard.kbDetail.deleteMaterial.answersKept` | الإجابات التي حصلت عليها من قبل تبقى في محادثاتك، حتى ما اقتبسته من هذا الملف. | Answers you already got in Ask stay in your conversations, including anything they quoted from this material. |
@@ -505,7 +504,6 @@ file is not read by the app.
 | `dashboard.upload.dropHere` | اسحب ملفاتك إلى هنا أو اضغط لرفعها | Drop files here or click to upload |
 | `dashboard.upload.supported` | الملفات المقبولة: PDF, DOCX, PPTX, XLSX, TXT, MD (حتى {limit} للملف الواحد) | Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (up to {limit} per file) |
 | `dashboard.upload.uploading` | نرفع ملفك… | Uploading… |
-| `dashboard.upload.processing` | لحظة من فضلك… | Processing… |
 | `dashboard.upload.reading` | نقرأ ملفك… | Reading your file… |
 | `dashboard.upload.preparing` | نجهّزه للأسئلة… | Preparing it for questions… |
 | `dashboard.upload.stillWorking` | ما زلنا نعمل عليه… | Still working on it… |

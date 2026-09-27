@@ -343,7 +343,6 @@ export const en = {
     kbDetail: {
       documents: "Materials",
       noDocuments: "No materials yet. Upload your first file above.",
-      chunks: "chunks",
       // #47. `answersKept` is ruled, not decoration: deleting a material does NOT
       // remove the answers Ask already gave from it, and the student is told so
       // before they confirm rather than discovering it afterwards.
@@ -491,7 +490,6 @@ export const en = {
       dropHere: "Drop files here or click to upload",
       supported: "Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (up to {limit} per file)",
       uploading: "Uploading…",
-      processing: "Processing…",
       // #113. What the student reads during the synchronous wait, in order:
       // the first moments, the expected span, and past the estimate. The
       // estimate is measured (`src/lib/upload-progress.ts`) and said as

@@ -6,7 +6,6 @@ import { formatDate } from '@/lib/format-date';
 import type { Locale } from '@/lib/i18n';
 
 export interface MaterialCardLabels {
-  chunks: string;
   statusReady: string;
   statusProcessing: string;
   statusError: string;
@@ -24,12 +23,12 @@ export interface MaterialCardLabels {
  * and the STUDY KIT checklist, which is the thing every leading app shows and
  * this page did not: whether the summary and the quiz exist yet. The summary
  * and quiz sections, and the rename and delete controls, render inside it
- * unchanged as `children`.
+ * unchanged as `children`. It shows no chunk count (register #127, the owner's
+ * ruling): chunks are how Ask indexes a file, not something a student reads.
  */
 export function MaterialCard({
   filename,
   fileType,
-  chunkCount,
   status,
   addedAt,
   locale,
@@ -40,7 +39,6 @@ export function MaterialCard({
 }: {
   filename: string;
   fileType: string | null;
-  chunkCount: number;
   status: string;
   addedAt: string;
   locale: string;
@@ -75,7 +73,7 @@ export function MaterialCard({
           {/* Register #124: `<p dir="auto">` showed "الفصل pdf.3"; FileName keeps "3.pdf" one unit. */}
           <FileName name={filename} className="text-sm font-semibold text-foreground" />
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {fileType?.toUpperCase()} · {chunkCount} {labels.chunks} · {labels.added}{' '}
+            {fileType?.toUpperCase()} · {labels.added}{' '}
             <bdi>{formatDate(addedAt, locale as Locale)}</bdi>
           </p>
         </div>
