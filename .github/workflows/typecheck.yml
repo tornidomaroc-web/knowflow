@@ -189,8 +189,9 @@ jobs:
       # #130: the REAL auth callback, with only the Supabase route client stubbed.
       # A refused reset link lands on /login?notice=recovery_expired, which the
       # login page renders with a link to forgot-password; every other link,
-      # success and failure lands exactly as before.
-      - name: Verify a failed reset link gets its own notice and every other auth landing is unchanged (register #130)
+      # success and failure lands exactly as before. #131: a mail link /verify
+      # refused (otp_expired) gets link_expired and its error fragment is cleared.
+      - name: Verify a failed reset or signup link gets its notice and every other auth landing is unchanged (register #130, #131)
         run: node --experimental-strip-types scripts/verify-recovery-link-notice.mjs
 
   # Register #125 (the proof of #72). Drives the REAL readEntitlement through the

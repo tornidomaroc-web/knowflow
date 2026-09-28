@@ -12,7 +12,7 @@ import { ChatPages } from '@/components/illustrations';
 import { APPLE_SIGNIN_ENABLED } from '@/lib/auth/providers';
 import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
-import { loginNotice } from '@/lib/auth/login-notice';
+import { isAuthErrorFragment, loginNotice } from '@/lib/auth/login-notice';
 
 export default function LoginPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = use(params);
@@ -33,6 +33,11 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
   // copy during render keeps the effect free of the dictionary.
   useEffect(() => {
     setNoticeCode(new URLSearchParams(window.location.search).get('notice'));
+    // GoTrue's error fragment rides along from a refused mail link; take it out
+    // of the address bar, keeping the path, the query and the router's state.
+    if (isAuthErrorFragment(window.location.hash)) {
+      window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+    }
   }, []);
 
   const notice = loginNotice(noticeCode, t, locale);

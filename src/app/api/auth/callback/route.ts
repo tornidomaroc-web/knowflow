@@ -42,10 +42,23 @@ const OTP_TYPES: readonly EmailOtpType[] = [
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
 
-  // 1. GoTrue refused before handing us anything. Note this arm cannot catch an
-  //    expired MAIL link: /verify drops those on the Site URL with the reason in
-  //    a hash fragment, which is never sent to a server. Measured, not assumed.
+  // 1. GoTrue refused before handing us anything.
   const providerError = searchParams.get('error');
+
+  // A refused MAIL link (#131). The signup mail goes through GoTrue's
+  // /auth/v1/verify with a `pkce_` token and `redirect_to` here; when the token
+  // is expired, already used or unknown, /verify sends it back HERE with
+  // `?error=access_denied&error_code=otp_expired` (and the same in the
+  // fragment). Measured 2026-09-28 against the real project with a bogus token;
+  // this comment used to say /verify dropped them on the Site URL, which is
+  // only what happens to a link with no `redirect_to`. Without this check the
+  // `access_denied` arm below read it as a cancelled Google chooser and said
+  // nothing. Keyed on `otp_expired` alone, so every other provider error keeps
+  // its arm, and nothing GoTrue wrote is passed on to the page.
+  if (providerError && searchParams.get('error_code') === 'otp_expired') {
+    console.log('[auth/callback] mail link refused by /verify', { error: providerError });
+    return NextResponse.redirect(loginWith(origin, 'link_expired'));
+  }
 
   // Backing out of Google's account chooser is not a failure, and it is the
   // most common thing that will ever happen on this arm. The provider reports
