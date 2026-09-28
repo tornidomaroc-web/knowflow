@@ -18,6 +18,11 @@
  * verify (landing unchanged); the code arm failing, no code at all, a provider
  * error and a cancelled Google chooser (all unchanged).
  *
+ * Register #131 adds: a mail link GoTrue's /verify refused comes back as
+ * `?error=access_denied&error_code=otp_expired` and gets link_expired (it used
+ * to fall into the cancelled-chooser arm and say nothing), no GoTrue wording
+ * travels on; and the login page clears GoTrue's error fragment, and only that.
+ *
  * Tier 0: no network, no credential, no database, no app, no mail.
  *
  * Usage: node --experimental-strip-types scripts/verify-recovery-link-notice.mjs
@@ -117,6 +122,23 @@ for (const type of ['signup', 'magiclink', 'email', 'invite', 'email_change']) {
   check(a.url && a.url.pathname === '/login' && a.url.search === '', `a cancelled chooser goes to ${a.url}, expected /login with no notice`);
 }
 
+// ── 4b. #131: a mail link /verify refused comes back as a provider error with
+// error_code=otp_expired (measured 2026-09-28 against the real project). It
+// goes to link_expired, and nothing GoTrue wrote travels on to the page.
+{
+  const DESC = 'error_description=Email+link+is+invalid+or+has+expired';
+  const m = await run(`?error=access_denied&error_code=otp_expired&${DESC}`);
+  console.error(`refused mail link: ${m.status} ${m.url}`);
+  check(onlyNotice(m.url, 'link_expired'), `a mail link /verify refused goes to ${m.url}, expected /login?notice=link_expired and no other parameter`);
+  check(m.calls.length === 0, 'a refused mail link must not reach verifyOtp or the code exchange');
+  const o = await run(`?error=server_error&error_code=otp_expired&${DESC}`);
+  check(onlyNotice(o.url, 'link_expired'), `otp_expired under another error goes to ${o.url}, expected link_expired`);
+  const g = await run('?error=access_denied&error_code=provider_error&error_description=cancelled');
+  check(g.url && g.url.pathname === '/login' && g.url.search === '', `access_denied with any other code goes to ${g.url}, expected a bare /login as before`);
+  const s = await run('?error=server_error&error_code=unexpected_failure');
+  check(s.url && s.url.searchParams.get('notice') === 'signin_required', `another provider error goes to ${s.url}, expected signin_required as before`);
+}
+
 // ── 5. What the login page says for each code.
 const mod = existsSync(resolvePath(ROOT, 'src/lib/auth/login-notice.ts')) ? await load('src/lib/auth/login-notice.ts') : null;
 check(mod && typeof mod.loginNotice === 'function', 'src/lib/auth/login-notice.ts does not export loginNotice');
@@ -135,11 +157,22 @@ if (mod) {
     check(mod.loginNotice(null, t, locale) === null && mod.loginNotice('anything', t, locale) === null, `${locale}: an absent or unknown code must say nothing`);
   }
 }
+// ── 6. #131: the login page clears GoTrue's error fragment and only that.
+check(mod && typeof mod.isAuthErrorFragment === 'function', 'src/lib/auth/login-notice.ts does not export isAuthErrorFragment');
+if (mod && mod.isAuthErrorFragment) {
+  const f = mod.isAuthErrorFragment;
+  check(f('#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired&sb='), 'the /verify error fragment is not recognised');
+  check(f('#error_description=x') && f('#error_code=otp_expired'), 'a partial error fragment is not recognised');
+  check(!f('') && !f('#') && !f('#how-it-works') && !f('#access_token=abc&type=recovery'), 'a fragment that is not an auth error would be cleared');
+}
 const page = readFileSync(resolvePath(ROOT, 'src/app/[locale]/login/page.tsx'), 'utf8');
 check(/loginNotice\(noticeCode, t, locale\)/.test(page), 'the login page does not render its notice through loginNotice');
+check(/if \(isAuthErrorFragment\(window\.location\.hash\)\) \{\s*window\.history\.replaceState\(window\.history\.state, '', window\.location\.pathname \+ window\.location\.search\)/.test(page),
+  'the login page does not clear the error fragment (keeping path, query and router state)');
+check(!/error_description/.test(page), 'the login page reads error_description; GoTrue\'s wording must never reach the student');
 
 if (failures.length === 0) {
-  console.log('PASS: a refused reset link says "This link has expired. Ask for a new one." with the way to a new link; every other link, success and failure lands exactly as before.');
+  console.log('PASS: a refused reset link says "This link has expired. Ask for a new one." with the way to a new link; a mail link /verify refused (otp_expired) gets link_expired and its error fragment is cleared; every other link, success and failure lands exactly as before.');
   process.exit(0);
 }
 console.log(`FAIL: ${failures.length} problem(s)`);
