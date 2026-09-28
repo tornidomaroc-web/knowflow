@@ -148,6 +148,7 @@ export const ar: Translation = {
     signupRepeatPasswordLink: "نسيتها؟ اختر كلمة مرور جديدة",
     noticeSigninRequired: "لم يعمل هذا الرابط. سجّل الدخول من الأسفل.",
     noticeLinkExpired: "انتهى الرابط. أنشئ حسابك مرة أخرى ليصلك رابط جديد.",
+    noticeRecoveryExpired: "انتهى الرابط. اطلب رابطًا جديدًا.",
     forgotLink: "نسيت كلمة المرور؟",
     forgotTitle: "استعادة كلمة المرور",
     forgotSubtitle: "اكتب بريدك الإلكتروني، ونرسل لك رابطًا تختار به كلمة مرور جديدة.",

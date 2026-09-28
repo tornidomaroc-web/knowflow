@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-09-27 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **380 Arabic strings.**
+Generated 2026-09-28 by `scripts/export-arabic-strings.mjs` from
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **381 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -166,6 +166,7 @@ file is not read by the app.
 | `auth.signupRepeatPasswordLink` | نسيتها؟ اختر كلمة مرور جديدة | Forgot it? Reset your password |
 | `auth.noticeSigninRequired` | لم يعمل هذا الرابط. سجّل الدخول من الأسفل. | We could not finish that link. Please sign in below. |
 | `auth.noticeLinkExpired` | انتهى الرابط. أنشئ حسابك مرة أخرى ليصلك رابط جديد. | That confirmation link is no longer valid. Sign up again to get a new one. |
+| `auth.noticeRecoveryExpired` | انتهى الرابط. اطلب رابطًا جديدًا. | This link has expired. Ask for a new one. |
 | `auth.forgotLink` | نسيت كلمة المرور؟ | Forgot your password? |
 | `auth.forgotTitle` | استعادة كلمة المرور | Reset your password |
 | `auth.forgotSubtitle` | اكتب بريدك الإلكتروني، ونرسل لك رابطًا تختار به كلمة مرور جديدة. | Enter your email and we will send you a link to set a new password. |

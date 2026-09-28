@@ -158,6 +158,7 @@ export const en = {
     signupRepeatPasswordLink: "Forgot it? Reset your password",
     noticeSigninRequired: "We could not finish that link. Please sign in below.",
     noticeLinkExpired: "That confirmation link is no longer valid. Sign up again to get a new one.",
+    noticeRecoveryExpired: "This link has expired. Ask for a new one.",
     forgotLink: "Forgot your password?",
     forgotTitle: "Reset your password",
     forgotSubtitle: "Enter your email and we will send you a link to set a new password.",

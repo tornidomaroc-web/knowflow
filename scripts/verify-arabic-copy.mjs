@@ -7,9 +7,9 @@
  *
  *  1. Every row's key exists in ar.ts and holds exactly the approved new value.
  *  2. The key set did not change: ar.ts has exactly the English keys plus the
- *     four Arabic-only plural forms (streakUnit zero/two/few/many), 380 leaves
+ *     four Arabic-only plural forms (streakUnit zero/two/few/many), 381 leaves
  *     (378 after #127 retired two keys, 380 after #128 added statusNoText and
- *     noTextLine).
+ *     noTextLine, 381 after #130 added auth.noticeRecoveryExpired).
  *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
  *     ruling that removed it. Its rows stay in the batch files, which are the
  *     owner's approved record and are never edited; they are read and checked
@@ -145,7 +145,7 @@ console.error(`${approved.size} keys asserted, ${superseded} earlier rows supers
   const onlyEn = [...E.keys()].filter((k) => !A.has(k)).sort();
   check(onlyAr.join() === [...pluralOnly].sort().join(), `keys only in ar.ts: ${onlyAr.join(', ') || '(none)'}; expected the four plural forms`);
   check(onlyEn.length === 0, `keys missing from ar.ts: ${onlyEn.join(', ')}`);
-  check(A.size === 380, `ar.ts has ${A.size} leaves, expected 380`);
+  check(A.size === 381, `ar.ts has ${A.size} leaves, expected 381`);
 }
 
 // 3. Placeholders on every key.
