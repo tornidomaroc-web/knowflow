@@ -1,7 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
 import { createRouteClient } from '@/lib/supabase/route';
-import { RECOVERY_COOKIE, resolveLandingPath } from '@/lib/auth/recovery-landing';
+import {
+  RECOVERY_COOKIE,
+  failedLinkNotice,
+  resolveLandingPath,
+  type FailedLinkNotice,
+} from '@/lib/auth/recovery-landing';
 import {
   PASSWORD_REPLACED_COOKIE,
   detectPasswordReplaced,
@@ -89,7 +94,9 @@ export async function GET(request: NextRequest) {
         error_code: error.code ?? String(error.status ?? ''),
         error_description: error.message,
       });
-      return NextResponse.redirect(loginWith(origin, 'link_expired'));
+      // A failed reset link says so and points at a new one; any other type
+      // keeps `link_expired` (`failedLinkNotice`).
+      return NextResponse.redirect(loginWith(origin, failedLinkNotice(rawType)));
     }
     console.log('[auth/callback] verifyOtp ok', { type: rawType });
     return applyCookies(landing(request, origin, rawType));
@@ -214,7 +221,7 @@ function landing(request: NextRequest, origin: string, otpType?: string | null) 
 
 function loginWith(
   origin: string,
-  notice: 'signin_required' | 'link_expired',
+  notice: 'signin_required' | FailedLinkNotice,
   detail?: Record<string, string | null | undefined>
 ) {
   const url = new URL('/login', origin);

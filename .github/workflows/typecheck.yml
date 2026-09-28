@@ -186,6 +186,13 @@ jobs:
       - name: Verify a file name with a chapter number reads in order, on every site that shows one (register #124)
         run: node --experimental-strip-types scripts/verify-filename-display.mjs
 
+      # #130: the REAL auth callback, with only the Supabase route client stubbed.
+      # A refused reset link lands on /login?notice=recovery_expired, which the
+      # login page renders with a link to forgot-password; every other link,
+      # success and failure lands exactly as before.
+      - name: Verify a failed reset link gets its own notice and every other auth landing is unchanged (register #130)
+        run: node --experimental-strip-types scripts/verify-recovery-link-notice.mjs
+
   # Register #125 (the proof of #72). Drives the REAL readEntitlement through the
   # REAL supabase-js against a throwaway Postgres + PostgREST in Docker holding
   # the subscriptions table's exact definition: a paying user with two rows must

@@ -31,3 +31,23 @@ export function resolveLandingPath(input: {
   if (input.otpType === 'recovery') return '/reset-password';
   return input.hasRecoveryCookie ? '/reset-password' : '/dashboard';
 }
+
+export type FailedLinkNotice = 'recovery_expired' | 'link_expired';
+
+/**
+ * Which login notice a mail link gets when `verifyOtp` refuses it.
+ *
+ * The same authority as above: `type` is written into the link by the mail
+ * template, so an expired link and an already-used one carry it alike, and it
+ * does not depend on anything the refusal says. A password-reset link gets its
+ * own notice, pointing at a new link: its owner has an account, and "sign up
+ * again", which `link_expired` says, would send them no reset mail. Every other
+ * type keeps `link_expired`. The cookie is NOT consulted: it only says this
+ * browser once asked for a reset, not that this link was one.
+ *
+ * A hand-edited `type` can only change which of the two notices is shown; the
+ * link has already been refused by then.
+ */
+export function failedLinkNotice(otpType: EmailOtpType | string | null | undefined): FailedLinkNotice {
+  return otpType === 'recovery' ? 'recovery_expired' : 'link_expired';
+}

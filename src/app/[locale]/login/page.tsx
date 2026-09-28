@@ -12,6 +12,7 @@ import { ChatPages } from '@/components/illustrations';
 import { APPLE_SIGNIN_ENABLED } from '@/lib/auth/providers';
 import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
+import { loginNotice } from '@/lib/auth/login-notice';
 
 export default function LoginPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = use(params);
@@ -34,10 +35,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
     setNoticeCode(new URLSearchParams(window.location.search).get('notice'));
   }, []);
 
-  const notice =
-    noticeCode === 'signin_required' ? t.auth.noticeSigninRequired
-    : noticeCode === 'link_expired' ? t.auth.noticeLinkExpired
-    : null;
+  const notice = loginNotice(noticeCode, t, locale);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +75,14 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
           {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
 
           {notice && (
-            <div className="rounded-xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm text-foreground">{notice}</div>
+            <div className="rounded-xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm text-foreground">
+              {notice.text}
+              {notice.link && (
+                <Link href={notice.link.href} className="mt-1 inline-block font-medium text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {notice.link.label}
+                </Link>
+              )}
+            </div>
           )}
 
           {/*
