@@ -78,7 +78,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
             <div className="rounded-xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm text-foreground">
               {notice.text}
               {notice.link && (
-                <Link href={notice.link.href} className="mt-1 inline-block font-medium text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <Link href={notice.link.href} className="mt-1 block w-fit font-medium text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   {notice.link.label}
                 </Link>
               )}
