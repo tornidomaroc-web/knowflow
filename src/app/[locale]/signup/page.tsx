@@ -53,7 +53,10 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        // #132: the language this page was opened in travels with the account,
+        // so the confirmation link opens in it on a device that has never seen
+        // this site. Read back by the callback (`landingLocale`).
+        data: { full_name: fullName, locale },
         // Send the mail link back to our own callback instead of letting it
         // default to the bare Site URL, which is where it used to drop people:
         // on the marketing page, still signed out, left to find Sign In alone.

@@ -11,6 +11,8 @@ import {
   PASSWORD_REPLACED_COOKIE,
   detectPasswordReplaced,
 } from '@/lib/auth/password-replaced';
+import { LOCALE_COOKIE, landingLocale, localisePath } from '@/lib/auth/landing-locale';
+import type { Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +44,15 @@ const OTP_TYPES: readonly EmailOtpType[] = [
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
 
+  // #132: the language every redirect below opens in. This device's cookie
+  // first, then a `locale` the link carries (nothing sends one today; the mail
+  // templates can). The account's stored choice joins in once a user is known,
+  // in the two success arms. With nothing, the path stays unprefixed and the
+  // middleware decides exactly as before.
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
+  const linkLocale = searchParams.get('locale');
+  const refusedLocale = landingLocale({ cookie: cookieLocale, link: linkLocale });
+
   // 1. GoTrue refused before handing us anything.
   const providerError = searchParams.get('error');
 
@@ -57,7 +68,7 @@ export async function GET(request: NextRequest) {
   // its arm, and nothing GoTrue wrote is passed on to the page.
   if (providerError && searchParams.get('error_code') === 'otp_expired') {
     console.log('[auth/callback] mail link refused by /verify', { error: providerError });
-    return NextResponse.redirect(loginWith(origin, 'link_expired'));
+    return NextResponse.redirect(loginWith(origin, 'link_expired', refusedLocale));
   }
 
   // Backing out of Google's account chooser is not a failure, and it is the
@@ -71,7 +82,7 @@ export async function GET(request: NextRequest) {
     console.log('[auth/callback] provider cancelled by user', {
       error_code: searchParams.get('error_code'),
     });
-    return NextResponse.redirect(new URL('/login', origin));
+    return NextResponse.redirect(new URL(localisePath('/login', refusedLocale), origin));
   }
 
   if (providerError) {
@@ -82,7 +93,7 @@ export async function GET(request: NextRequest) {
       error_description: searchParams.get('error_description'),
     };
     console.error('[auth/callback] provider refused', detail);
-    return NextResponse.redirect(loginWith(origin, 'signin_required', detail));
+    return NextResponse.redirect(loginWith(origin, 'signin_required', refusedLocale, detail));
   }
 
   // 2. Hashed OTP. This arm needs no PKCE verifier, so it still works when the
@@ -94,10 +105,10 @@ export async function GET(request: NextRequest) {
   if (tokenHash && rawType) {
     if (!OTP_TYPES.includes(rawType as EmailOtpType)) {
       console.error('[auth/callback] unknown otp type', { type: rawType });
-      return NextResponse.redirect(loginWith(origin, 'link_expired'));
+      return NextResponse.redirect(loginWith(origin, 'link_expired', refusedLocale));
     }
     const { supabase, applyCookies } = createRouteClient(request);
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       type: rawType as EmailOtpType,
       token_hash: tokenHash,
     });
@@ -109,17 +120,24 @@ export async function GET(request: NextRequest) {
       });
       // A failed reset link says so and points at a new one; any other type
       // keeps `link_expired` (`failedLinkNotice`).
-      return NextResponse.redirect(loginWith(origin, failedLinkNotice(rawType)));
+      return NextResponse.redirect(loginWith(origin, failedLinkNotice(rawType), refusedLocale));
     }
     console.log('[auth/callback] verifyOtp ok', { type: rawType });
-    return applyCookies(landing(request, origin, rawType));
+    // The verified user is known now, so the account's stored choice counts
+    // (after this device's own cookie; `landingLocale` says why in that order).
+    const locale = landingLocale({
+      cookie: cookieLocale,
+      stored: data?.user?.user_metadata?.locale,
+      link: linkLocale,
+    });
+    return applyCookies(landing(request, origin, locale, rawType));
   }
 
   // 3. PKCE code: a provider return, or a mail link opened on the same device.
   const code = searchParams.get('code');
   if (!code) {
     console.error('[auth/callback] nothing to exchange');
-    return NextResponse.redirect(loginWith(origin, 'signin_required'));
+    return NextResponse.redirect(loginWith(origin, 'signin_required', refusedLocale));
   }
 
   const { supabase, applyCookies } = createRouteClient(request);
@@ -136,7 +154,7 @@ export async function GET(request: NextRequest) {
       error_code: error.code ?? String(error.status ?? ''),
       error_description: error.message,
     });
-    return applyCookies(NextResponse.redirect(loginWith(origin, 'signin_required')));
+    return applyCookies(NextResponse.redirect(loginWith(origin, 'signin_required', refusedLocale)));
   }
 
   // An unconfirmed password user who arrives here via Google has just had their
@@ -189,10 +207,14 @@ export async function GET(request: NextRequest) {
     password_replaced: passwordReplaced,
   });
 
-  // No locale prefix on purpose: this route never sees one, and /dashboard
-  // bounces through the i18n hop, which picks the locale from the same
-  // Accept-Language rule every other entry point uses.
-  const response = applyCookies(landing(request, origin));
+  // A Google account carries no stored locale, so it lands unprefixed and the
+  // i18n hop decides as before; a password signup confirmed on the device
+  // that made it carries one, and lands in it (#132).
+  const response = applyCookies(landing(request, origin, landingLocale({
+    cookie: cookieLocale,
+    stored: data.user?.user_metadata?.locale,
+    link: linkLocale,
+  })));
 
   if (passwordReplaced) {
     // Not `httpOnly`: the banner clears this from the browser once it has been
@@ -219,25 +241,35 @@ export async function GET(request: NextRequest) {
  * password its owner has forgotten and not yet replaced. Sending them straight
  * to the form that ends that window is the mitigation.
  */
-function landing(request: NextRequest, origin: string, otpType?: string | null) {
+function landing(
+  request: NextRequest,
+  origin: string,
+  locale: Locale | null,
+  otpType?: string | null
+) {
   const path = resolveLandingPath({
     otpType,
     hasRecoveryCookie: request.cookies.get(RECOVERY_COOKIE)?.value === '1',
   });
-  const response = NextResponse.redirect(`${origin}${path}`);
+  // The prefix is only ever `/ar` or `/en` (`landingLocale`), so this is the
+  // same page the middleware would have redirected to, one hop earlier. The
+  // middleware then writes `kf-locale` for it as it does for any page opened,
+  // so this route sets no locale cookie of its own.
+  const response = NextResponse.redirect(`${origin}${localisePath(path, locale)}`);
   if (path === '/reset-password') {
     response.cookies.set(RECOVERY_COOKIE, '', { path: '/', maxAge: 0 });
   }
-  console.log('[auth/callback] landing', { otpType: otpType ?? null, path });
+  console.log('[auth/callback] landing', { otpType: otpType ?? null, path, locale });
   return response;
 }
 
 function loginWith(
   origin: string,
   notice: 'signin_required' | FailedLinkNotice,
+  locale: Locale | null,
   detail?: Record<string, string | null | undefined>
 ) {
-  const url = new URL('/login', origin);
+  const url = new URL(localisePath('/login', locale), origin);
   url.searchParams.set('notice', notice);
   if (detail) {
     Object.entries(detail).forEach(([k, v]) => {

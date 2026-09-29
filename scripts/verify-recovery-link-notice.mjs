@@ -23,6 +23,13 @@
  * to fall into the cancelled-chooser arm and say nothing), no GoTrue wording
  * travels on; and the login page clears GoTrue's error fragment, and only that.
  *
+ * Register #132 adds: the language a student chose at signup survives the
+ * device change. The signup page writes it into the account's metadata; the
+ * callback prefixes its landing with this device's cookie first, else the
+ * verified account's stored choice, else a `locale` the link carries, each
+ * collapsed to ar or en or dropped; with none of them every path is byte for
+ * byte what it was, so accounts without a stored choice are untouched.
+ *
  * Tier 0: no network, no credential, no database, no app, no mail.
  *
  * Usage: node --experimental-strip-types scripts/verify-recovery-link-notice.mjs
@@ -71,8 +78,10 @@ async function run(query, { verify = OK, exchange = OK, cookie } = {}) {
   const url = loc ? new URL(loc) : null;
   return { status: res.status, url, calls: globalThis.__kfAuthStub.calls };
 }
-const onlyNotice = (url, notice) =>
-  url && url.pathname === '/login' && url.searchParams.get('notice') === notice && [...url.searchParams.keys()].join() === 'notice';
+const onlyNoticeAt = (url, path, notice) =>
+  url && url.pathname === path && url.searchParams.get('notice') === notice && [...url.searchParams.keys()].join() === 'notice';
+const onlyNotice = (url, notice) => onlyNoticeAt(url, '/login', notice);
+const user = (meta) => ({ data: { user: { id: 'u1', identities: [], created_at: '2026-09-01T00:00:00Z', user_metadata: meta } }, error: null });
 
 // ── 1. A refused reset link: the new notice, and nothing else about the redirect.
 for (const [name, verify] of [['expired', EXPIRED], ['already used', USED]]) {
@@ -171,8 +180,87 @@ check(/if \(isAuthErrorFragment\(window\.location\.hash\)\) \{\s*window\.history
   'the login page does not clear the error fragment (keeping path, query and router state)');
 check(!/error_description/.test(page), 'the login page reads error_description; GoTrue\'s wording must never reach the student');
 
+// ── 7. #132: the language chosen at signup survives the device change.
+{
+  const ll = existsSync(resolvePath(ROOT, 'src/lib/auth/landing-locale.ts')) ? await load('src/lib/auth/landing-locale.ts') : null;
+  check(ll && typeof ll.landingLocale === 'function' && typeof ll.localisePath === 'function', 'src/lib/auth/landing-locale.ts does not export landingLocale and localisePath');
+  if (ll) {
+    const L = ll.landingLocale;
+    check(L({}) === null && L({ stored: 'fr' }) === null && L({ stored: '../en' }) === null && L({ stored: { toString: () => 'ar' } }) === null && L({ link: 'AR' }) === null,
+      'landingLocale must drop anything that is not exactly one of the supported locales');
+    check(L({ cookie: 'en', stored: 'ar', link: 'ar' }) === 'en' && L({ cookie: 'fr', stored: 'ar' }) === 'ar' && L({ stored: 'fr', link: 'en' }) === 'en',
+      'landingLocale order must be cookie, then stored, then link, skipping invalid values');
+    check(ll.localisePath('/dashboard', null) === '/dashboard' && ll.localisePath('/dashboard', 'ar') === '/ar/dashboard', 'localisePath');
+  }
+
+  // The device that opens the mail has no cookie: the account's choice decides.
+  for (const [locale, type, path] of [['ar', 'signup', '/ar/dashboard'], ['en', 'signup', '/en/dashboard'], ['ar', 'recovery', '/ar/reset-password'], ['en', 'recovery', '/en/reset-password']]) {
+    const r = await run(`?token_hash=abc&type=${type}`, { verify: user({ full_name: 'x', locale }) });
+    console.error(`${type} stored ${locale}: ${r.status} ${r.url}`);
+    check(r.url && r.url.pathname === path && r.url.search === '' && r.status === 307, `a verified ${type} link with stored locale ${locale} lands on ${r.url}, expected ${path}`);
+    check(r.calls.length === 1 && r.calls[0][0] === 'verifyOtp' && r.calls[0][1].token_hash === 'abc', `${type} stored ${locale}: verification changed`);
+  }
+  // The recovery cookie is still cleared on a prefixed reset landing.
+  {
+    globalThis.__kfAuthStub = { verify: user({ locale: 'ar' }), exchange: OK, calls: [] };
+    const res = await GET(new NextRequest(`${ORIGIN}/api/auth/callback?token_hash=abc&type=recovery`, { headers: { cookie: 'kf_recovery=1' } }));
+    const sc = res.headers.get('set-cookie') ?? '';
+    check(/kf_recovery=;/.test(sc) && /Max-Age=0/i.test(sc), `a prefixed reset landing must still clear the recovery cookie; set-cookie was ${JSON.stringify(sc)}`);
+    check(!/kf-locale=/.test(sc), 'the callback must not write the locale cookie itself (the middleware does, for the page it lands on)');
+  }
+  // No stored choice, nothing on the link, no cookie: byte for byte today's landing.
+  for (const meta of [undefined, {}, { full_name: 'x' }, { locale: 'fr' }, { locale: '/evil' }, { locale: ['ar'] }]) {
+    const r = await run('?token_hash=abc&type=signup', { verify: user(meta) });
+    check(r.url && r.url.pathname === '/dashboard' && r.url.search === '', `a verified signup with metadata ${JSON.stringify(meta)} lands on ${r.url}, expected /dashboard unchanged`);
+    check(r.url && r.url.origin === ORIGIN, `metadata ${JSON.stringify(meta)} moved the landing off origin: ${r.url}`);
+  }
+  // This device's own choice outranks the stored one, as the middleware would rank it.
+  {
+    const r = await run('?token_hash=abc&type=signup', { verify: user({ locale: 'ar' }), cookie: 'kf-locale=en' });
+    check(r.url && r.url.pathname === '/en/dashboard', `stored ar with this device on en lands on ${r.url}, expected /en/dashboard`);
+    const j = await run('?token_hash=abc&type=signup', { verify: user({ locale: 'ar' }), cookie: 'kf-locale=junk' });
+    check(j.url && j.url.pathname === '/ar/dashboard', `an invalid locale cookie must be skipped, not trusted: ${j.url}`);
+  }
+  // A locale on the link: used when nothing better is known, validated the same way.
+  {
+    const r = await run('?token_hash=abc&type=signup&locale=en', { verify: user({}) });
+    check(r.url && r.url.pathname === '/en/dashboard' && r.url.search === '', `a link locale with no stored choice lands on ${r.url}, expected /en/dashboard and no query`);
+    const s = await run('?token_hash=abc&type=signup&locale=en', { verify: user({ locale: 'ar' }) });
+    check(s.url && s.url.pathname === '/ar/dashboard', `the stored choice must outrank the link's: ${s.url}`);
+    for (const bad of ['fr', '..%2Fx', 'https%3A%2F%2Fevil.test', 'ar%2F..']) {
+      const b = await run(`?token_hash=abc&type=signup&locale=${bad}`, { verify: user({}) });
+      check(b.url && b.url.href === `${ORIGIN}/dashboard`, `link locale ${bad} produced ${b.url}, expected /dashboard untouched`);
+    }
+  }
+  // Refused links: no user is known, so only this device's cookie or the link's locale can say; the notice is unchanged.
+  {
+    const r = await run('?token_hash=abc&type=recovery', { verify: EXPIRED, cookie: 'kf-locale=ar' });
+    check(onlyNoticeAt(r.url, '/ar/login', 'recovery_expired'), `a refused reset link on an ar device goes to ${r.url}, expected /ar/login?notice=recovery_expired and no other parameter`);
+    const l = await run('?token_hash=abc&type=signup&locale=en', { verify: EXPIRED });
+    check(onlyNoticeAt(l.url, '/en/login', 'link_expired'), `a refused signup link carrying locale=en goes to ${l.url}, expected /en/login?notice=link_expired and no other parameter`);
+    const v = await run('?error=access_denied&error_code=otp_expired&locale=ar');
+    check(onlyNoticeAt(v.url, '/ar/login', 'link_expired'), `a /verify-refused link carrying locale=ar goes to ${v.url}`);
+    const c = await run('?error=access_denied', { cookie: 'kf-locale=ar' });
+    check(c.url && c.url.pathname === '/ar/login' && c.url.search === '', `a cancelled chooser on an ar device goes to ${c.url}, expected a bare /ar/login`);
+    const n = await run('', { cookie: 'kf-locale=en' });
+    check(onlyNoticeAt(n.url, '/en/login', 'signin_required'), `nothing to exchange on an en device goes to ${n.url}`);
+  }
+  // The code arm: a Google account stores no locale and lands as before; a password signup confirmed on its own device lands in its choice.
+  {
+    const g = await run('?code=xyz', { exchange: user({ name: 'G', picture: 'p' }) });
+    check(g.url && g.url.pathname === '/dashboard' && g.url.search === '', `a Google exchange with no stored locale lands on ${g.url}, expected /dashboard unchanged`);
+    const p = await run('?code=xyz', { exchange: user({ full_name: 'x', locale: 'en' }) });
+    check(p.url && p.url.pathname === '/en/dashboard', `a same-device signup exchange with stored en lands on ${p.url}, expected /en/dashboard`);
+    const f = await run('?code=xyz', { exchange: { data: {}, error: { name: 'AuthApiError', message: 'invalid' } }, cookie: 'kf-locale=ar' });
+    check(onlyNoticeAt(f.url, '/ar/login', 'signin_required'), `a failed exchange on an ar device goes to ${f.url}`);
+  }
+  // The signup page writes the choice, beside full_name, and only there.
+  const signup = readFileSync(resolvePath(ROOT, 'src/app/[locale]/signup/page.tsx'), 'utf8');
+  check(/data:\s*\{\s*full_name:\s*fullName,\s*locale\s*\}/.test(signup), "the signup page does not send { full_name, locale } as the account's metadata");
+}
+
 if (failures.length === 0) {
-  console.log('PASS: a refused reset link says "This link has expired. Ask for a new one." with the way to a new link; a mail link /verify refused (otp_expired) gets link_expired and its error fragment is cleared; every other link, success and failure lands exactly as before.');
+  console.log('PASS: a refused reset link says "This link has expired. Ask for a new one." with the way to a new link; a mail link /verify refused (otp_expired) gets link_expired and its error fragment is cleared; every other link, success and failure lands exactly as before; the language chosen at signup survives the device change (#132).');
   process.exit(0);
 }
 console.log(`FAIL: ${failures.length} problem(s)`);
