@@ -74,12 +74,28 @@ const { middleware } = await import(pathToFileURL(resolvePath(ROOT, 'src/middlew
 const failures = [];
 const check = (ok, msg) => { if (!ok) failures.push(msg); };
 
-function request(pathname, { acceptLanguage = '', cookie = {}, method = 'GET', headers = {} } = {}) {
+// What a browser sends when the student opens a page (Safari and Chrome).
+const PAGE_LOAD = { accept: 'text/html,application/xhtml+xml', 'sec-fetch-dest': 'document', 'sec-fetch-mode': 'navigate' };
+
+// THE REQUEST THE MIDDLEWARE SEES, NOT THE ONE THE BROWSER SENT. Next's
+// middleware adapter deletes its router headers (`FLIGHT_HEADERS`) and the
+// `_rsc` query before `middleware()` runs (`next/dist/server/web/adapter.js`).
+// The first #136 proof skipped that step, passed, and shipped a guard that
+// tested headers production never delivers. The list is Next's own, read from
+// the installed version, so an upgrade that changes it changes this proof.
+const { FLIGHT_HEADERS, NEXT_RSC_UNION_QUERY } = (await import('next/dist/client/components/app-router-headers.js')).default;
+check(FLIGHT_HEADERS.includes('rsc') && FLIGHT_HEADERS.includes('next-router-prefetch'), `Next's FLIGHT_HEADERS changed: ${FLIGHT_HEADERS}`);
+check(/requestHeaders\.delete\(header\)/.test(readFileSync(resolvePath(ROOT, 'node_modules/next/dist/server/web/adapter.js'), 'utf8')), "Next's middleware adapter no longer deletes FLIGHT_HEADERS; re-read #136");
+
+function request(pathname, { acceptLanguage = '', cookie = {}, method = 'GET', headers = PAGE_LOAD } = {}) {
   const url = new URL('https://tryknowflow.com' + pathname);
+  url.searchParams.delete(NEXT_RSC_UNION_QUERY);
+  const seen = new Headers({ ...(acceptLanguage ? { 'accept-language': acceptLanguage } : {}), ...headers });
+  for (const h of FLIGHT_HEADERS) seen.delete(h);
   return {
     method,
     nextUrl: Object.assign(url, { clone: () => new URL(url.href) }),
-    headers: new Headers({ ...(acceptLanguage ? { 'accept-language': acceptLanguage } : {}), ...headers }),
+    headers: seen,
     cookies: { get: (n) => (n in cookie ? { name: n, value: cookie[n] } : undefined) },
   };
 }
@@ -137,20 +153,28 @@ check(typeof i18n.resolveLocale === 'function' && i18n.resolveLocale('en') === '
 
 // #136: only a page load chooses the language.
 const COOKIE = i18n.LOCALE_COOKIE ?? 'kf-locale';
-// What a browser sends when the student opens a page (Safari and Chrome).
-const PAGE_LOAD = { accept: 'text/html,application/xhtml+xml', 'sec-fetch-dest': 'document', 'sec-fetch-mode': 'navigate' };
+// A page load in a browser older than Sec-Fetch (Safari before 16.4).
+const OLD_PAGE_LOAD = { accept: 'text/html,application/xhtml+xml' };
+// What the router's fetch carries: its own headers (which the adapter deletes)
+// and the browser's (which it does not).
+const ROUTER = { rsc: '1', 'next-router-state-tree': '%5B%22%22%5D', accept: '*/*', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors' };
+const { accept: _a, 'sec-fetch-dest': _d, 'sec-fetch-mode': _m, ...ROUTER_OLD } = ROUTER;
 // Everything that reaches a locale path without the student opening it.
 const NOT_A_CHOICE = {
-  'Next prefetch (the production measurement)': { headers: { rsc: '1', 'next-router-prefetch': '1', 'next-router-state-tree': '%5B%22%22%5D' } },
-  'Next segment prefetch': { headers: { rsc: '1', 'next-router-prefetch': '1', 'next-router-segment-prefetch': '/_tree' } },
-  'Next prefetch header alone': { headers: { 'next-router-prefetch': '1' } },
-  'router payload (RSC, served from cache or not)': { headers: { rsc: '1' } },
+  'Next prefetch (the production measurement)': { headers: { ...ROUTER, 'next-router-prefetch': '1' } },
+  'Next segment prefetch': { headers: { ...ROUTER, 'next-router-prefetch': '1', 'next-router-segment-prefetch': '/_tree' } },
+  'Next prefetch, older Safari': { headers: { ...ROUTER_OLD, accept: '*/*', 'next-router-prefetch': '1' } },
+  'Next prefetch, no Accept at all': { headers: { ...ROUTER_OLD, 'next-router-prefetch': '1' } },
+  'router payload (a client navigation)': { headers: ROUTER },
   'browser prefetch (Sec-Purpose)': { headers: { ...PAGE_LOAD, 'sec-purpose': 'prefetch' } },
   'browser prerender (Sec-Purpose)': { headers: { ...PAGE_LOAD, 'sec-purpose': 'prefetch;prerender' } },
-  'legacy prefetch (Purpose)': { headers: { purpose: 'prefetch' } },
-  'Safari preview (X-Purpose)': { headers: { 'x-purpose': 'preview' } },
-  'Firefox prefetch (X-Moz)': { headers: { 'x-moz': 'prefetch' } },
-  'server action (POST)': { method: 'POST', headers: { 'next-action': 'x', accept: 'text/x-component' } },
+  'legacy prefetch (Purpose)': { headers: { ...OLD_PAGE_LOAD, purpose: 'prefetch' } },
+  'Safari preview (X-Purpose)': { headers: { ...OLD_PAGE_LOAD, 'x-purpose': 'preview' } },
+  'Firefox prefetch (X-Moz)': { headers: { ...OLD_PAGE_LOAD, 'x-moz': 'prefetch' } },
+  'server action (POST)': { method: 'POST', headers: { 'next-action': 'x', accept: 'text/x-component', 'sec-fetch-dest': 'empty' } },
+  'a request with no headers (curl, a crawler)': { headers: {} },
+  'a script fetching the page as HTML': { headers: { accept: 'text/html', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors' } },
+  'a form POST (a document, not a GET)': { method: 'POST', headers: PAGE_LOAD },
 };
 const written = (r) => (r.kind === 'next' ? r.jar.get(COOKIE)?.value ?? null : r.kind === 'redirect' ? 'redirect' : null);
 {
@@ -165,9 +189,11 @@ const written = (r) => (r.kind === 'next' ? r.jar.get(COOKIE)?.value ?? null : r
 }
 // A page load still chooses, both ways, and with no cookie at all.
 for (const [path, have, want] of [['/en', 'ar', 'en'], ['/ar', 'en', 'ar'], ['/en/pricing', 'ar', 'en'], ['/ar/dashboard', 'en', 'ar'], ['/en', null, 'en'], ['/ar/login', null, 'ar']]) {
-  const r = await middleware(request(path, { headers: PAGE_LOAD, cookie: have ? { [COOKIE]: have } : {} }));
-  console.error(`#136 page load ${path} + kf-locale=${have ?? '(none)'} -> ${written(r) ?? '(no cookie)'}`);
-  check(r.kind === 'next' && written(r) === want, `#136 opening ${path} with kf-locale=${have ?? '(none)'} wrote ${written(r)}, expected ${want}`);
+  for (const [how, headers] of [['page load', PAGE_LOAD], ['page load, older Safari', OLD_PAGE_LOAD]]) {
+    const r = await middleware(request(path, { headers, cookie: have ? { [COOKIE]: have } : {} }));
+    console.error(`#136 ${how} ${path} + kf-locale=${have ?? '(none)'} -> ${written(r) ?? '(no cookie)'}`);
+    check(r.kind === 'next' && written(r) === want, `#136 ${how} of ${path} with kf-locale=${have ?? '(none)'} wrote ${written(r)}, expected ${want}`);
+  }
 }
 // No request writes where the rule before #136 did not, and every page load
 // writes exactly what it wrote before. The old rule, restated: a locale path
@@ -178,7 +204,7 @@ for (const [path, have, want] of [['/en', 'ar', 'en'], ['/ar', 'en', 'ar'], ['/e
     return l ? (have === l ? null : l) : 'redirect';
   };
   let cases = 0;
-  const kinds = { 'page load': { headers: PAGE_LOAD }, 'bare GET': {}, ...NOT_A_CHOICE };
+  const kinds = { 'page load': { headers: PAGE_LOAD }, 'page load, older Safari': { headers: OLD_PAGE_LOAD }, ...NOT_A_CHOICE };
   for (const path of ['/', '/pricing', '/en', '/ar', '/en/pricing', '/ar/dashboard', '/en/login', '/ar/reset-password', '/en/no-such-page']) {
     for (const have of [null, 'en', 'ar', 'fr']) {
       for (const [kind, init] of Object.entries(kinds)) {
@@ -189,7 +215,7 @@ for (const [path, have, want] of [['/en', 'ar', 'en'], ['/ar', 'en', 'ar'], ['/e
         const label = `${kind} ${path} kf-locale=${have ?? '(none)'}`;
         if (before === 'redirect') check(now === 'redirect', `#136 ${label}: the redirect changed`);
         else check(now === null || now === before, `#136 ${label}: wrote ${now} where the old rule wrote ${before ?? 'nothing'}`);
-        if (kind === 'page load' || kind === 'bare GET') check(now === before, `#136 ${label}: a page load wrote ${now}, before it wrote ${before ?? 'nothing'}`);
+        if (kind.startsWith('page load')) check(now === before, `#136 ${label}: a page load wrote ${now}, before it wrote ${before ?? 'nothing'}`);
       }
     }
   }

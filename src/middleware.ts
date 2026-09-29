@@ -31,23 +31,33 @@ function getLocale(request: NextRequest): Locale {
  * Only a GET that loads a document may write `kf-locale`. Everything else that
  * reaches a locale path is the browser or the router acting on its own:
  *
- * - `RSC` / `Next-Router-Prefetch`: Next's router. Every `<Link>` in the
- *   viewport is prefetched, so an Arabic page holding a link to `/en` used to
- *   answer that prefetch with `kf-locale=en` (measured on production,
- *   2026-09-29). Client navigations carry `RSC` too, and they are not a reliable
+ * - Next's router. Every `<Link>` in the viewport is prefetched, so an Arabic
+ *   page holding a link to `/en` answered that prefetch with `kf-locale=en`
+ *   (measured on production, 2026-09-29). Client navigations are not a reliable
  *   signal either way: a static page's payload is prerendered, the router keeps
  *   it for five minutes (`X-Nextjs-Stale-Time: 300`) and a click inside that
- *   window sends no request at all. That is why the language switch is a plain
- *   `<a>` (a document load) and not a `<Link>`.
+ *   window sends no request at all. That is why every link that crosses
+ *   languages is a plain `<a>` (a document load) and not a `<Link>`.
+ *   THE ROUTER'S OWN HEADERS ARE INVISIBLE HERE. Next's middleware adapter
+ *   deletes `RSC`, `Next-Router-Prefetch`, `Next-Router-State-Tree` and
+ *   `Next-Router-Segment-Prefetch` (its `FLIGHT_HEADERS`) and the `_rsc` query
+ *   before this file runs (`next/dist/server/web/adapter.js`). The first #136
+ *   guard tested them and was dead on production. What survives is what the
+ *   BROWSER sets: the router's `fetch` goes out as `Sec-Fetch-Dest: empty` with
+ *   no `text/html` in its `Accept`; a page load is `Sec-Fetch-Dest: document` with an `Accept`
+ *   that names `text/html`. A page cannot forge `Sec-Fetch-*`. Browsers older
+ *   than the header (Safari before 16.4) are judged by `Accept` alone.
  * - `Sec-Purpose` / `Purpose` / `X-Purpose` / `X-Moz`: the browser's own
- *   prefetch, prerender and link-preview requests.
+ *   prefetch, prerender and link-preview requests, which are documents too.
  * - Anything but GET: a server action posts to the page it is on and chooses
  *   nothing.
  */
 function isPageLoad(request: NextRequest): boolean {
   if (request.method !== 'GET') return false;
   const h = request.headers;
-  if (h.has('rsc') || h.has('next-router-prefetch')) return false;
+  const dest = h.get('sec-fetch-dest');
+  const isDocument = dest ? dest === 'document' : /\btext\/html\b/i.test(h.get('accept') ?? '');
+  if (!isDocument) return false;
   const purpose = ['sec-purpose', 'purpose', 'x-purpose', 'x-moz'].map((n) => h.get(n) ?? '').join(' ');
   return !/prefetch|prerender|preview/i.test(purpose);
 }
