@@ -42,14 +42,16 @@ export function MobileNav({
         </Link>
         <div className="flex items-center gap-2">
           {/* Register #83 (b): the language switch, in the top bar so it is
-              reachable from every screen without opening a menu. 44px tall. */}
-          <Link
+              reachable from every screen without opening a menu. 44px tall.
+              A plain `<a>`, so the switch is a page load the middleware
+              remembers (register #136). */}
+          <a
             href={switchLocaleHref(locale, pathname)}
             lang={otherLocale(locale)}
             className="inline-flex min-h-[2.75rem] items-center rounded-md px-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             {ENDONYM[otherLocale(locale)]}
-          </Link>
+          </a>
           <ThemeToggle
             variant="icon"
             labels={{ appearance: labels.appearance, dark: labels.themeDark, light: labels.themeLight }}
