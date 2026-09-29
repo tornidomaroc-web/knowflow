@@ -55,3 +55,23 @@ change is to paste the link-only version recorded in row #131, not "Reset".
    note inbox or spam, as that visit did.
 4. **No expiry time is stated** on purpose: the register does not record the
    project's OTP expiry, and a wrong number would be a false promise.
+
+## Optional addition, only once PR #224 (register #132) is live on production
+
+Append `&locale={{ .Data.locale }}` to the link, in BOTH places it appears,
+so it reads:
+
+```
+{{ .SiteURL }}/api/auth/callback?token_hash={{ .TokenHash }}&type=signup&locale={{ .Data.locale }}
+```
+
+What it does: a link the callback REFUSES (expired, already used) has no user
+to read, so without this it opens its notice in the phone's language; with it,
+in the student's. A link that succeeds is unchanged, because the callback
+prefers the account's stored choice, which is the same value. The callback
+drops anything that is not `ar` or `en`, and for an account with no stored
+locale the field renders empty and is ignored. The recovery template can take
+the same suffix (`&type=recovery&locale={{ .Data.locale }}`).
+
+Do not paste it before PR #224 is deployed: until then the callback ignores
+the parameter, which is harmless but does nothing.
