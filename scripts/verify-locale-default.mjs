@@ -14,6 +14,15 @@
  *     link from the same `switchLocaleHref` the marketing header uses, and it
  *     keeps the page.
  *
+ * And register #136: ONLY A PAGE LOAD CHOOSES. A prefetch of `/en` carrying
+ * `kf-locale=ar` answered `Set-Cookie: kf-locale=en` on production, because
+ * every Arabic page holds a `<Link>` to `/en` (the switch) and Next prefetches
+ * it. Held here: no router, browser-prefetch or non-GET request writes the
+ * cookie; every page load still writes exactly what it wrote before; no request
+ * writes where the old rule did not; and every link that crosses languages is a
+ * plain `<a>`, because a `<Link>` to a prerendered page is served from the
+ * router's cache for five minutes and would never reach the middleware at all.
+ *
  * What is stubbed: `next/server` (a redirect reads as a URL, a pass-through
  * response reads as a cookie jar) and `@/lib/supabase/middleware`, whose
  * `updateSession` here returns that jar and touches no session. The request is
@@ -65,11 +74,12 @@ const { middleware } = await import(pathToFileURL(resolvePath(ROOT, 'src/middlew
 const failures = [];
 const check = (ok, msg) => { if (!ok) failures.push(msg); };
 
-function request(pathname, { acceptLanguage = '', cookie = {} } = {}) {
+function request(pathname, { acceptLanguage = '', cookie = {}, method = 'GET', headers = {} } = {}) {
   const url = new URL('https://tryknowflow.com' + pathname);
   return {
+    method,
     nextUrl: Object.assign(url, { clone: () => new URL(url.href) }),
-    headers: new Headers(acceptLanguage ? { 'accept-language': acceptLanguage } : {}),
+    headers: new Headers({ ...(acceptLanguage ? { 'accept-language': acceptLanguage } : {}), ...headers }),
     cookies: { get: (n) => (n in cookie ? { name: n, value: cookie[n] } : undefined) },
   };
 }
@@ -125,6 +135,85 @@ check(typeof i18n.resolveLocale === 'function' && i18n.resolveLocale('en') === '
   }
 }
 
+// #136: only a page load chooses the language.
+const COOKIE = i18n.LOCALE_COOKIE ?? 'kf-locale';
+// What a browser sends when the student opens a page (Safari and Chrome).
+const PAGE_LOAD = { accept: 'text/html,application/xhtml+xml', 'sec-fetch-dest': 'document', 'sec-fetch-mode': 'navigate' };
+// Everything that reaches a locale path without the student opening it.
+const NOT_A_CHOICE = {
+  'Next prefetch (the production measurement)': { headers: { rsc: '1', 'next-router-prefetch': '1', 'next-router-state-tree': '%5B%22%22%5D' } },
+  'Next segment prefetch': { headers: { rsc: '1', 'next-router-prefetch': '1', 'next-router-segment-prefetch': '/_tree' } },
+  'Next prefetch header alone': { headers: { 'next-router-prefetch': '1' } },
+  'router payload (RSC, served from cache or not)': { headers: { rsc: '1' } },
+  'browser prefetch (Sec-Purpose)': { headers: { ...PAGE_LOAD, 'sec-purpose': 'prefetch' } },
+  'browser prerender (Sec-Purpose)': { headers: { ...PAGE_LOAD, 'sec-purpose': 'prefetch;prerender' } },
+  'legacy prefetch (Purpose)': { headers: { purpose: 'prefetch' } },
+  'Safari preview (X-Purpose)': { headers: { 'x-purpose': 'preview' } },
+  'Firefox prefetch (X-Moz)': { headers: { 'x-moz': 'prefetch' } },
+  'server action (POST)': { method: 'POST', headers: { 'next-action': 'x', accept: 'text/x-component' } },
+};
+const written = (r) => (r.kind === 'next' ? r.jar.get(COOKIE)?.value ?? null : r.kind === 'redirect' ? 'redirect' : null);
+{
+  for (const [name, init] of Object.entries(NOT_A_CHOICE)) {
+    for (const [path, have] of [['/en', 'ar'], ['/ar', 'en'], ['/en/pricing', 'ar'], ['/en/dashboard', 'ar'], ['/ar', null]]) {
+      const r = await middleware(request(path, { ...init, cookie: have ? { [COOKIE]: have } : {} }));
+      const w = written(r);
+      if (path === '/en' && name.startsWith('Next prefetch (')) console.error(`#136 ${name}: GET /en + kf-locale=ar -> ${w ?? '(no cookie)'}`);
+      check(r.kind === 'next' && w === null, `#136 ${name} to ${path} with kf-locale=${have ?? '(none)'} wrote kf-locale=${w}`);
+    }
+  }
+}
+// A page load still chooses, both ways, and with no cookie at all.
+for (const [path, have, want] of [['/en', 'ar', 'en'], ['/ar', 'en', 'ar'], ['/en/pricing', 'ar', 'en'], ['/ar/dashboard', 'en', 'ar'], ['/en', null, 'en'], ['/ar/login', null, 'ar']]) {
+  const r = await middleware(request(path, { headers: PAGE_LOAD, cookie: have ? { [COOKIE]: have } : {} }));
+  console.error(`#136 page load ${path} + kf-locale=${have ?? '(none)'} -> ${written(r) ?? '(no cookie)'}`);
+  check(r.kind === 'next' && written(r) === want, `#136 opening ${path} with kf-locale=${have ?? '(none)'} wrote ${written(r)}, expected ${want}`);
+}
+// No request writes where the rule before #136 did not, and every page load
+// writes exactly what it wrote before. The old rule, restated: a locale path
+// whose cookie differs gets that locale; a path without one is redirected.
+{
+  const oldRule = (path, have) => {
+    const l = ['en', 'ar'].find((x) => path === `/${x}` || path.startsWith(`/${x}/`));
+    return l ? (have === l ? null : l) : 'redirect';
+  };
+  let cases = 0;
+  const kinds = { 'page load': { headers: PAGE_LOAD }, 'bare GET': {}, ...NOT_A_CHOICE };
+  for (const path of ['/', '/pricing', '/en', '/ar', '/en/pricing', '/ar/dashboard', '/en/login', '/ar/reset-password', '/en/no-such-page']) {
+    for (const have of [null, 'en', 'ar', 'fr']) {
+      for (const [kind, init] of Object.entries(kinds)) {
+        cases++;
+        const r = await middleware(request(path, { ...init, cookie: have ? { [COOKIE]: have } : {} }));
+        const now = written(r);
+        const before = oldRule(path, have);
+        const label = `${kind} ${path} kf-locale=${have ?? '(none)'}`;
+        if (before === 'redirect') check(now === 'redirect', `#136 ${label}: the redirect changed`);
+        else check(now === null || now === before, `#136 ${label}: wrote ${now} where the old rule wrote ${before ?? 'nothing'}`);
+        if (kind === 'page load' || kind === 'bare GET') check(now === before, `#136 ${label}: a page load wrote ${now}, before it wrote ${before ?? 'nothing'}`);
+      }
+    }
+  }
+  console.error(`#136 matrix: ${cases} requests compared with the old rule`);
+}
+// Every link that crosses languages is a plain <a>. Each element that takes
+// its href from the switch rule, or points at a bare locale root, is found and
+// its tag read. The design previews 404 on production and are exempt.
+{
+  const { execSync } = await import('node:child_process');
+  const files = execSync('git ls-files -- "src/*.tsx"', { cwd: ROOT }).toString().split('\n').filter((f) => f && !f.includes('/preview/'));
+  const re = /<([A-Za-z][\w.]*)\s((?:[^<>{}]|\{[^{}]*\})*?)\bhref=\{?(switchHref|selected \? pathname : switchLocaleHref\([^)]*\)|switchLocaleHref\([^)]*\)|["'`]\/(?:en|ar)["'`])/g;
+  let crossings = 0;
+  for (const f of files) {
+    const src = readFileSync(resolvePath(ROOT, f), 'utf8');
+    for (const m of src.matchAll(re)) {
+      crossings++;
+      check(m[1] === 'a', `#136 ${f}: a language-crossing link is <${m[1]}>, not <a> (${m[3]})`);
+    }
+  }
+  console.error(`#136 language-crossing links found: ${crossings}`);
+  check(crossings >= 7, `#136 expected at least 7 language-crossing links (header x2, sidebar, mobile nav, settings, 404 x2), found ${crossings}`);
+}
+
 // No fallback restates 'en' anywhere a locale is resolved.
 {
   const { execSync } = await import('node:child_process');
@@ -134,7 +223,7 @@ check(typeof i18n.resolveLocale === 'function' && i18n.resolveLocale('en') === '
 }
 
 if (failures.length === 0) {
-  console.log('PASS: register #83 (a), (b) and (c) hold against the real middleware and the real i18n module.');
+  console.log('PASS: register #83 (a), (b) and (c) and #136 hold against the real middleware and the real i18n module.');
   process.exit(0);
 }
 console.log(`FAIL: ${failures.length} problem(s)`);

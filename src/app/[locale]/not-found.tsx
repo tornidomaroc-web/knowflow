@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 /**
  * THE 404, ON THE PRODUCT'S OWN GROUND (register #101 held it as "the white
  * 404"). Next's default page loads none of the app's CSS and paints white,
@@ -11,6 +9,11 @@ import Link from 'next/link';
  * who may be on the wrong locale, so both sentences are printed, Arabic first
  * (the default locale), each with a way home in its own language. `dir` comes
  * from the layout, so the page mirrors correctly on either.
+ *
+ * Plain `<a>`s, not `<Link>`s (register #136): each is a choice of language,
+ * so it must reach the middleware as a page load. As Links, both were
+ * prefetched the moment the page showed, and the one to `/en` rewrote the
+ * student's remembered language before they touched anything.
  */
 export default function NotFound() {
   return (
@@ -24,23 +27,23 @@ export default function NotFound() {
         <section lang="ar" dir="rtl">
           <h1 className="text-xl font-semibold">هذه الصفحة غير موجودة.</h1>
           <p className="mt-1 text-sm text-muted-foreground">ربما تغيّر عنوانها أو حُذفت.</p>
-          <Link
+          <a
             href="/ar"
             className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
           >
             العودة إلى الصفحة الرئيسية
-          </Link>
+          </a>
         </section>
 
         <section lang="en" dir="ltr">
           <h2 className="text-xl font-semibold">This page does not exist.</h2>
           <p className="mt-1 text-sm text-muted-foreground">It may have moved or been removed.</p>
-          <Link
+          <a
             href="/en"
             className="mt-4 inline-flex h-11 items-center justify-center rounded-xl border border-primary px-5 text-sm font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
           >
             Back to the home page
-          </Link>
+          </a>
         </section>
       </div>
     </main>

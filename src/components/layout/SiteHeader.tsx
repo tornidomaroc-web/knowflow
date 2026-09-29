@@ -102,15 +102,18 @@ export function SiteHeader({ locale, labels }: { locale: Locale; labels: SiteHea
             opposite direction; `dir` would additionally move the label to the
             other edge of its own box and break it out of the row it sits in.
             `lang` is what a screen reader needs to pronounce the word.
+
+            A plain `<a>`, not a `<Link>` (register #136): a Link is prefetched,
+            and the switch must reach the middleware as a page load every time.
           */}
-          <Link
+          <a
             href={switchHref}
             hrefLang={other}
             lang={other}
             className="text-muted-foreground transition-colors hover:text-primary"
           >
             {ENDONYM[other]}
-          </Link>
+          </a>
           <ThemeToggle
             variant="icon"
             labels={{ appearance: labels.appearance, dark: labels.themeDark, light: labels.themeLight }}
@@ -170,14 +173,14 @@ export function SiteHeader({ locale, labels }: { locale: Locale; labels: SiteHea
           >
             {labels.signIn}
           </Link>
-          <Link
+          <a
             href={switchHref}
             hrefLang={other}
             lang={other}
             className="min-h-[2.75rem] flex items-center text-muted-foreground transition-colors hover:text-primary"
           >
             {ENDONYM[other]}
-          </Link>
+          </a>
           {/* Last, and the only filled control: the one thing this menu is for. */}
           <Link
             href={`/${locale}/signup`}

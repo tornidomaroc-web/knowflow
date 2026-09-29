@@ -64,15 +64,16 @@ export function Sidebar({
         {/* Register #83 (b): the same-page language switch the marketing header
             has, inside the app, where the store shell lives. `lang` and no
             `dir`: a single run of the other script lays itself out; `dir` would
-            move it to the other edge of its own box. */}
-        <Link
+            move it to the other edge of its own box. A plain `<a>`, so the
+            switch is a page load the middleware remembers (register #136). */}
+        <a
           href={switchLocaleHref(locale, pathname)}
           lang={otherLocale(locale)}
           className="flex min-h-[2.75rem] items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <Languages className="h-5 w-5 shrink-0" />
           {ENDONYM[otherLocale(locale)]}
-        </Link>
+        </a>
         <div className="flex items-center justify-between px-3 py-1">
           <span className="text-sm font-medium text-muted-foreground">{labels.appearance}</span>
           <ThemeToggle

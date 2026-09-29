@@ -173,12 +173,14 @@ export function SettingsPanel({
             <PreferenceRow label={labels.language}>
               {/* The locale is the path, so each option is a LINK to this page in
                   that language; the middleware remembers whichever is followed
-                  (register #83). `lang` on each so a screen reader says it right. */}
+                  (register #83). `lang` on each so a screen reader says it right.
+                  Plain `<a>`s, not `<Link>`s: a switch must reach the middleware
+                  as a page load, never as a prefetch or a cached payload (#136). */}
               <div role="group" aria-label={labels.language} className="inline-flex rounded-xl border border-border bg-raised p-1">
                 {locales.map((l) => {
                   const selected = l === locale;
                   return (
-                    <Link
+                    <a
                       key={l}
                       href={selected ? pathname : switchLocaleHref(locale, pathname)}
                       lang={l}
@@ -189,7 +191,7 @@ export function SettingsPanel({
                       )}
                     >
                       {ENDONYM[l]}
-                    </Link>
+                    </a>
                   );
                 })}
               </div>

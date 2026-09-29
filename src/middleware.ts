@@ -25,6 +25,33 @@ function getLocale(request: NextRequest): Locale {
   return locales.includes(preferred as Locale) ? (preferred as Locale) : defaultLocale;
 }
 
+/**
+ * WHETHER THIS REQUEST IS A PAGE THE STUDENT OPENED (register #136).
+ *
+ * Only a GET that loads a document may write `kf-locale`. Everything else that
+ * reaches a locale path is the browser or the router acting on its own:
+ *
+ * - `RSC` / `Next-Router-Prefetch`: Next's router. Every `<Link>` in the
+ *   viewport is prefetched, so an Arabic page holding a link to `/en` used to
+ *   answer that prefetch with `kf-locale=en` (measured on production,
+ *   2026-09-29). Client navigations carry `RSC` too, and they are not a reliable
+ *   signal either way: a static page's payload is prerendered, the router keeps
+ *   it for five minutes (`X-Nextjs-Stale-Time: 300`) and a click inside that
+ *   window sends no request at all. That is why the language switch is a plain
+ *   `<a>` (a document load) and not a `<Link>`.
+ * - `Sec-Purpose` / `Purpose` / `X-Purpose` / `X-Moz`: the browser's own
+ *   prefetch, prerender and link-preview requests.
+ * - Anything but GET: a server action posts to the page it is on and chooses
+ *   nothing.
+ */
+function isPageLoad(request: NextRequest): boolean {
+  if (request.method !== 'GET') return false;
+  const h = request.headers;
+  if (h.has('rsc') || h.has('next-router-prefetch')) return false;
+  const purpose = ['sec-purpose', 'purpose', 'x-purpose', 'x-moz'].map((n) => h.get(n) ?? '').join(' ');
+  return !/prefetch|prerender|preview/i.test(purpose);
+}
+
 /** The locale a path carries, or null. */
 function pathLocale(pathname: string): Locale | null {
   return locales.find((l) => pathname.startsWith(`/${l}/`) || pathname === `/${l}`) ?? null;
@@ -49,8 +76,9 @@ export async function middleware(request: NextRequest) {
   // 3. Remember the language of the page being opened. Every page carries its
   //    locale in the path, so the switcher needs no client code and no route of
   //    its own: following its link is the choice, and this line is the memory.
-  //    Written only when it changes, so an ordinary page view sets no cookie.
-  if (request.cookies.get(LOCALE_COOKIE)?.value !== locale) {
+  //    Written only when it changes, so an ordinary page view sets no cookie,
+  //    and only on a page load, so a prefetch never chooses for the student.
+  if (isPageLoad(request) && request.cookies.get(LOCALE_COOKIE)?.value !== locale) {
     response.cookies.set(LOCALE_COOKIE, locale, {
       path: '/',
       maxAge: LOCALE_COOKIE_MAX_AGE,
