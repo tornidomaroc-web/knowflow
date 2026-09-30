@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import type { NextRequest, NextResponse } from 'next/server';
 import type { Database } from '../../../supabase/database.types';
+import { SESSION_COOKIE_OPTIONS } from './cookie-options';
 
 type PendingCookie = { name: string; value: string; options: CookieOptions };
 
@@ -21,6 +22,7 @@ export function createRouteClient(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: SESSION_COOKIE_OPTIONS,
       cookies: {
         getAll() {
           return request.cookies.getAll();

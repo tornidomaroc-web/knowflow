@@ -194,6 +194,14 @@ jobs:
       - name: Verify a failed reset or signup link gets its notice and every other auth landing is unchanged (register #130, #131)
         run: node --experimental-strip-types scripts/verify-recovery-link-notice.mjs
 
+      # #135: the REAL auth callback through the REAL @supabase/ssr and auth-js,
+      # with only GoTrue's network answer stubbed, so the success 307 under test
+      # is the one production sends: its session cookies carry Secure, every
+      # writer of those cookies passes the same flags, the refused 307s set no
+      # cookie, and the cookie probe reproduces that shape by the byte.
+      - name: Verify the session cookies' flags on the real success 307, every writer, and the #135 cookie probe (register #135)
+        run: node --experimental-strip-types scripts/verify-session-cookies.mjs
+
   # Register #125 (the proof of #72). Drives the REAL readEntitlement through the
   # REAL supabase-js against a throwaway Postgres + PostgREST in Docker holding
   # the subscriptions table's exact definition: a paying user with two rows must
