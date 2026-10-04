@@ -1,6 +1,6 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-09-28 by `scripts/export-arabic-strings.mjs` from
+Generated 2026-10-04 by `scripts/export-arabic-strings.mjs` from
 `src/lib/i18n/locales/ar.ts` and `en.ts`. **381 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
@@ -165,7 +165,7 @@ file is not read by the app.
 | `auth.signupRepeatPassword` | إن سجّلت مرة أخرى ببريد استعملته من قبل، يصلك رابط تأكيد جديد، وتبقى كلمة المرور الأولى كما هي. | Signing up again with an email you already used sends a new confirmation link, but keeps your first password. |
 | `auth.signupRepeatPasswordLink` | نسيتها؟ اختر كلمة مرور جديدة | Forgot it? Reset your password |
 | `auth.noticeSigninRequired` | لم يعمل هذا الرابط. سجّل الدخول من الأسفل. | We could not finish that link. Please sign in below. |
-| `auth.noticeLinkExpired` | انتهى الرابط. أنشئ حسابك مرة أخرى ليصلك رابط جديد. | That confirmation link is no longer valid. Sign up again to get a new one. |
+| `auth.noticeLinkExpired` | هذا الرابط استُعمل من قبل أو انتهت صلاحيته. إن كنت فتحته من قبل، فبريدك مؤكد: سجّل الدخول بكلمة مرورك. وإن لم تفتحه، فسجّل من جديد بالبريد نفسه لتصلك رسالة جديدة. | This link has already been used or has expired. If you have opened it before, your email is confirmed: sign in with your password. If you never opened it, sign up again to get a new link. |
 | `auth.noticeRecoveryExpired` | انتهى الرابط. اطلب رابطًا جديدًا. | This link has expired. Ask for a new one. |
 | `auth.forgotLink` | نسيت كلمة المرور؟ | Forgot your password? |
 | `auth.forgotTitle` | استعادة كلمة المرور | Reset your password |
