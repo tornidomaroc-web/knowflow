@@ -35,6 +35,11 @@
  *   5. The probe: each variant's count, names (never `sb-`), sizes and
  *      attributes; `none` sets nothing; the landing lists what came back;
  *      `clear` expires each probe cookie.
+ *   6. The probe never leaks and never lingers: every answer it gives (each
+ *      307, the landing, an unknown variant, clear, an error, the sunset)
+ *      carries `Cache-Control: no-store`; the landing names no cookie but its
+ *      own, prints no value, and renders no planted name; `big` expires in an
+ *      hour; after the sunset every request is a 404 that sets nothing.
  *
  * Tier 0: no network, no credential, no database, no app, no mail.
  *
@@ -200,7 +205,7 @@ let successAttrs;
     real: { count: 2, attrs: withoutSecure },
     secure: { count: 2, attrs: successAttrs },
     one: { count: 1, attrs: withoutSecure },
-    big: { count: 6, attrs: withoutSecure },
+    big: { count: 6, attrs: withoutSecure.map((a) => (a.startsWith('max-age=') ? 'max-age=3600' : a)).sort() },
   };
   for (const [variant, want] of Object.entries(expect)) {
     const res = await probe(new NextRequest(`${PROBE}?variant=${variant}`));
@@ -228,6 +233,49 @@ let successAttrs;
   const cleared = await probe(new NextRequest(`${PROBE}?clear=1`, { headers: { cookie: `${real.map((c) => `${cookieName(c)}=x`).join('; ')}; ${COOKIE_NAME}=keep; kf-locale=ar` } }));
   const csc = cleared.headers.getSetCookie();
   check(cleared.status === 307 && csc.length === 2 && csc.every((c) => /^kf-probe-auth-token\.\d=;/.test(c) && /max-age=0/i.test(c)), `probe clear: ${csc.map((c) => c.slice(0, 40))}`);
+}
+
+// ── 6. The probe never leaks and never lingers.
+{
+  const PROBE = `${ORIGIN}/api/auth/cookie-probe`;
+  const noStore = (res, what) => check(res.headers.get('cache-control') === 'no-store', `probe ${what}: Cache-Control is ${res.headers.get('cache-control')}, expected no-store`);
+  for (const q of ['?variant=none', '?variant=real', '?variant=secure', '?variant=one', '?variant=big', '?landed=real', '?variant=sb-evil', '?clear=1', '']) {
+    noStore(await probe(new NextRequest(`${PROBE}${q}`)), q || 'bare');
+  }
+  // A browser carrying a real session, other app cookies and a planted name.
+  const FOREIGN = 'base64-session-fixture-value';
+  const planted = 'kf-probe-auth-token.<img src=x onerror=alert(1)>';
+  const cookie = [`${COOKIE_NAME}.0=${FOREIGN}`, `${COOKIE_NAME}.1=${FOREIGN}`, 'kf-locale=ar', `${planted}=a`, 'kf-probe-auth-token.0=aaaa', 'kf-probe-x=aaaa'].join('; ');
+  const landed = await probe(new NextRequest(`${PROBE}?landed=real`, { headers: { cookie } }));
+  const html = await landed.text();
+  noStore(landed, 'landing with foreign cookies');
+  check(!html.includes('sb-') && !html.includes(FOREIGN) && !html.includes('kf-locale') && !html.includes('kf-probe-x'), 'probe landing: names or shows a cookie that is not its own');
+  check(!html.includes('<img') && !html.includes('onerror'), 'probe landing: renders a planted cookie name');
+  check(html.includes('<strong>1</strong>, 25 bytes') && !html.includes('aaaa'), 'probe landing: must count only its own cookie and print its size, never its value');
+  const cleared = await probe(new NextRequest(`${PROBE}?clear=1`, { headers: { cookie } }));
+  check(cleared.headers.getSetCookie().every((c) => cookieName(c) === 'kf-probe-auth-token.0'), `probe clear: touches ${cleared.headers.getSetCookie().map(cookieName)}`);
+  // An error inside the handler: a 500 that says nothing and is not stored.
+  let broken = null;
+  try { broken = await probe({ url: `${PROBE}?landed=real`, cookies: { getAll() { throw new Error(FOREIGN); } } }); } catch {}
+  check(broken !== null, 'probe error: the handler threw; Next would answer with its own 500, not ours');
+  if (broken) {
+    check(broken.status === 500 && !(await broken.text()).includes(FOREIGN) && broken.headers.getSetCookie().length === 0, `probe error: ${broken.status}`);
+    noStore(broken, 'error');
+  }
+  // After the sunset, nothing: a 404 that sets no cookie, on every path.
+  const realNow = Date.now;
+  Date.now = () => Date.parse('2026-11-01T00:00:00Z');
+  try {
+    for (const q of ['?variant=real', '?variant=big', '?clear=1', '?landed=real']) {
+      const res = await probe(new NextRequest(`${PROBE}${q}`, { headers: { cookie } }));
+      check(res.status === 404 && res.headers.getSetCookie().length === 0, `probe after sunset ${q}: ${res.status}, ${res.headers.getSetCookie().length} cookies`);
+      noStore(res, `after sunset ${q}`);
+    }
+    Date.now = () => Date.parse('2026-10-31T23:59:00Z');
+    check((await probe(new NextRequest(`${PROBE}?variant=real`))).status === 307, 'probe: answers 404 before the sunset');
+  } finally {
+    Date.now = realNow;
+  }
 }
 
 if (failures.length === 0) {
