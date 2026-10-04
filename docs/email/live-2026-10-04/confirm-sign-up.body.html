@@ -1,0 +1,15 @@
+<div dir="rtl" lang="ar" style="font-family: Tahoma, Arial, sans-serif; text-align: right; line-height: 1.8; color: #1f1f1f;">
+  <h2 style="margin: 0 0 12px;">أهلًا بك في KnowFlow</h2>
+  <p style="margin: 0 0 16px;">بقيت خطوة واحدة: أكّد بريدك الإلكتروني، ثم ارفع ملفاتك واسأل عنها.</p>
+  <p style="margin: 0 0 16px;">
+    <a href="{{ .SiteURL }}/api/auth/callback?token_hash={{ .TokenHash }}&type=signup&locale={{ .Data.locale }}"
+       style="display: inline-block; padding: 10px 20px; background: #1f1f1f; color: #ffffff; text-decoration: none; border-radius: 8px;">أكّد بريدي</a>
+  </p>
+  <p style="margin: 0; font-size: 13px; color: #666666;">إذا لم تنشئ حسابًا في KnowFlow، تجاهل هذه الرسالة.</p>
+</div>
+<hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
+<div dir="ltr" lang="en" style="font-family: Arial, sans-serif; text-align: left; line-height: 1.6; color: #1f1f1f;">
+  <p style="margin: 0 0 12px;"><strong>Welcome to KnowFlow.</strong> One step left: confirm your email, then upload your files and ask about them.</p>
+  <p style="margin: 0 0 16px;"><a href="{{ .SiteURL }}/api/auth/callback?token_hash={{ .TokenHash }}&type=signup&locale={{ .Data.locale }}">Confirm my email</a></p>
+  <p style="margin: 0; font-size: 13px; color: #666666;">If you didn't create a KnowFlow account, you can ignore this email.</p>
+</div>
