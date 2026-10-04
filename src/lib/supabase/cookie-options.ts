@@ -28,9 +28,10 @@ import type { CookieOptions } from '@supabase/ssr';
  * NOT the cause of #135 (a). The success 307 that Safari's Private tab failed
  * on carries these cookies without `Secure`; no WebKit, Apple or RFC 6265bis
  * rule rejects a `Lax` cookie over HTTPS, and a rejected cookie is dropped
- * silently, never a failed navigation. This is hardening the register named,
- * shipped as hardening. `src/app/api/auth/cookie-probe/route.ts` is the
- * experiment that decides the cause.
+ * silently, never a failed navigation. On 2026-10-04 the same phone, in a
+ * Private tab, followed a 307 setting cookies of this exact shape without
+ * `Secure`, and a page load after it (a temporary probe route, since
+ * removed; register #135). This is hardening, shipped as hardening.
  */
 export const SESSION_COOKIE_OPTIONS: Pick<CookieOptions, 'secure'> = {
   secure: true,
