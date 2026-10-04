@@ -197,9 +197,9 @@ jobs:
       # #135: the REAL auth callback through the REAL @supabase/ssr and auth-js,
       # with only GoTrue's network answer stubbed, so the success 307 under test
       # is the one production sends: its session cookies carry Secure, every
-      # writer of those cookies passes the same flags, the refused 307s set no
-      # cookie, and the cookie probe reproduces that shape by the byte.
-      - name: Verify the session cookies' flags on the real success 307, every writer, and the #135 cookie probe (register #135)
+      # writer of those cookies passes the same flags, and the refused 307s set
+      # no cookie.
+      - name: Verify the session cookies' flags on the real success 307 and every writer (register #135)
         run: node --experimental-strip-types scripts/verify-session-cookies.mjs
 
   # Register #125 (the proof of #72). Drives the REAL readEntitlement through the

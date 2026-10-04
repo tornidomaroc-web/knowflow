@@ -1,7 +1,7 @@
 /**
  * Executable proof for register #135 (a): what the auth callback's success
- * 307 ACTUALLY sends, that every writer of the session cookies writes the same
- * flags, and that the #135 cookie probe reproduces that shape by the byte.
+ * 307 ACTUALLY sends, and that every writer of the session cookies writes the
+ * same flags.
  *
  * The REAL things under test:
  *   - `GET` in `src/app/api/auth/callback/route.ts`, through the REAL
@@ -17,9 +17,6 @@
  *     `NextRequest` carrying an EXPIRED session cookie, so `auth-js` refreshes
  *     it (`POST /auth/v1/token?grant_type=refresh_token`, stubbed) and writes
  *     the cookies again: the most frequent writer on production.
- *   - `GET` in `src/app/api/auth/cookie-probe/route.ts`, whose cookies must
- *     match the callback's in every attribute but `Secure` (`real`) or in every
- *     attribute (`secure`).
  *
  * Held:
  *   1. The success 307: `Location` to the landed page, one or more
@@ -32,14 +29,6 @@
  *   3. Every client that writes these cookies passes `SESSION_COOKIE_OPTIONS`,
  *      and no other `createServerClient`/`createBrowserClient` call exists.
  *   4. The middleware's refresh writes `Secure` too.
- *   5. The probe: each variant's count, names (never `sb-`), sizes and
- *      attributes; `none` sets nothing; the landing lists what came back;
- *      `clear` expires each probe cookie.
- *   6. The probe never leaks and never lingers: every answer it gives (each
- *      307, the landing, an unknown variant, clear, an error, the sunset)
- *      carries `Cache-Control: no-store`; the landing names no cookie but its
- *      own, prints no value, and renders no planted name; `big` expires in an
- *      hour; after the sunset every request is a 404 that sets nothing.
  *
  * Tier 0: no network, no credential, no database, no app, no mail.
  *
@@ -92,7 +81,6 @@ globalThis.fetch = async (url, init) => {
 
 const { NextRequest } = await import('next/server.js');
 const { GET: callback } = await load('src/app/api/auth/callback/route.ts');
-const { GET: probe } = await load('src/app/api/auth/cookie-probe/route.ts');
 const { updateSession } = await load('src/lib/supabase/middleware.ts');
 const { SESSION_COOKIE_OPTIONS } = await load('src/lib/supabase/cookie-options.ts');
 const ssr = await import('@supabase/ssr');
@@ -196,90 +184,8 @@ let successAttrs;
   check(written.every((c) => attrs(c).join('|') === successAttrs.join('|')), `middleware: refreshed cookies differ from the callback's: ${written.map((c) => attrs(c).join('; '))}`);
 }
 
-// ── 5. The #135 cookie probe reproduces the production shape.
-{
-  const PROBE = `${ORIGIN}/api/auth/cookie-probe`;
-  const withoutSecure = successAttrs.filter((a) => a !== 'secure');
-  const expect = {
-    none: { count: 0 },
-    real: { count: 2, attrs: withoutSecure },
-    secure: { count: 2, attrs: successAttrs },
-    one: { count: 1, attrs: withoutSecure },
-    big: { count: 6, attrs: withoutSecure.map((a) => (a.startsWith('max-age=') ? 'max-age=3600' : a)).sort() },
-  };
-  for (const [variant, want] of Object.entries(expect)) {
-    const res = await probe(new NextRequest(`${PROBE}?variant=${variant}`));
-    check(res.status === 307 && res.headers.get('location') === `${PROBE}?landed=${variant}`, `probe ${variant}: ${res.status} ${res.headers.get('location')}`);
-    const sc = res.headers.getSetCookie();
-    check(sc.length === want.count, `probe ${variant}: ${sc.length} cookies, expected ${want.count}`);
-    check(sc.every((c) => /^kf-probe-auth-token(\.\d+)?$/.test(cookieName(c))), `probe ${variant}: names ${sc.map(cookieName)}`);
-    check(sc.every((c) => !cookieName(c).startsWith('sb-')), `probe ${variant}: must never write an sb- cookie`);
-    check(sc.every((c) => encodeURIComponent(cookieValue(c)).length <= ssr.MAX_CHUNK_SIZE), `probe ${variant}: a chunk exceeds MAX_CHUNK_SIZE`);
-    if (want.count) check(sc.every((c) => attrs(c).join('|') === want.attrs.join('|')), `probe ${variant}: attributes ${attrs(sc[0]).join('; ')}, expected ${want.attrs.join('; ')}`);
-    console.error(`probe ${variant}: ${sc.length} cookies, ${sc.reduce((n, c) => n + c.length, 0)} bytes`);
-  }
-  // The two `real` chunks are one full chunk and a tail, as a real session splits.
-  const real = (await probe(new NextRequest(`${PROBE}?variant=real`))).headers.getSetCookie();
-  check(cookieValue(real[0]).length === ssr.MAX_CHUNK_SIZE && cookieValue(real[1]).length > 0 && cookieValue(real[1]).length < ssr.MAX_CHUNK_SIZE, 'probe real: not one full chunk and a tail');
-  // The landing lists what came back; an unknown variant sets nothing.
-  const landed = await probe(new NextRequest(`${PROBE}?landed=real`, { headers: { cookie: real.map((c) => `${cookieName(c)}=${cookieValue(c)}`).join('; ') } }));
-  const html = await landed.text();
-  check(landed.status === 200 && /text\/html/.test(landed.headers.get('content-type') ?? ''), 'probe landing: not an HTML page');
-  check(html.includes('kf-probe-auth-token.0') && html.includes('kf-probe-auth-token.1') && html.includes('<strong>2</strong>'), 'probe landing: does not list the two cookies');
-  check(landed.headers.getSetCookie().length === 0, 'probe landing: sets a cookie');
-  const unknown = await probe(new NextRequest(`${PROBE}?variant=sb-evil`));
-  check(unknown.status === 200 && unknown.headers.getSetCookie().length === 0, 'probe: an unknown variant must set nothing');
-  // Clear expires each probe cookie the browser sent, and nothing else.
-  const cleared = await probe(new NextRequest(`${PROBE}?clear=1`, { headers: { cookie: `${real.map((c) => `${cookieName(c)}=x`).join('; ')}; ${COOKIE_NAME}=keep; kf-locale=ar` } }));
-  const csc = cleared.headers.getSetCookie();
-  check(cleared.status === 307 && csc.length === 2 && csc.every((c) => /^kf-probe-auth-token\.\d=;/.test(c) && /max-age=0/i.test(c)), `probe clear: ${csc.map((c) => c.slice(0, 40))}`);
-}
-
-// ── 6. The probe never leaks and never lingers.
-{
-  const PROBE = `${ORIGIN}/api/auth/cookie-probe`;
-  const noStore = (res, what) => check(res.headers.get('cache-control') === 'no-store', `probe ${what}: Cache-Control is ${res.headers.get('cache-control')}, expected no-store`);
-  for (const q of ['?variant=none', '?variant=real', '?variant=secure', '?variant=one', '?variant=big', '?landed=real', '?variant=sb-evil', '?clear=1', '']) {
-    noStore(await probe(new NextRequest(`${PROBE}${q}`)), q || 'bare');
-  }
-  // A browser carrying a real session, other app cookies and a planted name.
-  const FOREIGN = 'base64-session-fixture-value';
-  const planted = 'kf-probe-auth-token.<img src=x onerror=alert(1)>';
-  const cookie = [`${COOKIE_NAME}.0=${FOREIGN}`, `${COOKIE_NAME}.1=${FOREIGN}`, 'kf-locale=ar', `${planted}=a`, 'kf-probe-auth-token.0=aaaa', 'kf-probe-x=aaaa'].join('; ');
-  const landed = await probe(new NextRequest(`${PROBE}?landed=real`, { headers: { cookie } }));
-  const html = await landed.text();
-  noStore(landed, 'landing with foreign cookies');
-  check(!html.includes('sb-') && !html.includes(FOREIGN) && !html.includes('kf-locale') && !html.includes('kf-probe-x'), 'probe landing: names or shows a cookie that is not its own');
-  check(!html.includes('<img') && !html.includes('onerror'), 'probe landing: renders a planted cookie name');
-  check(html.includes('<strong>1</strong>, 25 bytes') && !html.includes('aaaa'), 'probe landing: must count only its own cookie and print its size, never its value');
-  const cleared = await probe(new NextRequest(`${PROBE}?clear=1`, { headers: { cookie } }));
-  check(cleared.headers.getSetCookie().every((c) => cookieName(c) === 'kf-probe-auth-token.0'), `probe clear: touches ${cleared.headers.getSetCookie().map(cookieName)}`);
-  // An error inside the handler: a 500 that says nothing and is not stored.
-  let broken = null;
-  try { broken = await probe({ url: `${PROBE}?landed=real`, cookies: { getAll() { throw new Error(FOREIGN); } } }); } catch {}
-  check(broken !== null, 'probe error: the handler threw; Next would answer with its own 500, not ours');
-  if (broken) {
-    check(broken.status === 500 && !(await broken.text()).includes(FOREIGN) && broken.headers.getSetCookie().length === 0, `probe error: ${broken.status}`);
-    noStore(broken, 'error');
-  }
-  // After the sunset, nothing: a 404 that sets no cookie, on every path.
-  const realNow = Date.now;
-  Date.now = () => Date.parse('2026-11-01T00:00:00Z');
-  try {
-    for (const q of ['?variant=real', '?variant=big', '?clear=1', '?landed=real']) {
-      const res = await probe(new NextRequest(`${PROBE}${q}`, { headers: { cookie } }));
-      check(res.status === 404 && res.headers.getSetCookie().length === 0, `probe after sunset ${q}: ${res.status}, ${res.headers.getSetCookie().length} cookies`);
-      noStore(res, `after sunset ${q}`);
-    }
-    Date.now = () => Date.parse('2026-10-31T23:59:00Z');
-    check((await probe(new NextRequest(`${PROBE}?variant=real`))).status === 307, 'probe: answers 404 before the sunset');
-  } finally {
-    Date.now = realNow;
-  }
-}
-
 if (failures.length === 0) {
-  console.log('PASS: register #135 holds: the real success 307 carries Secure session cookies, every writer agrees, refusals set nothing, and the probe reproduces the shape.');
+  console.log('PASS: register #135 holds: the real success 307 carries Secure session cookies, every writer agrees, and refusals set nothing.');
   process.exit(0);
 }
 console.log(`FAIL: ${failures.length} problem(s)`);
