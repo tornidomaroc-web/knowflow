@@ -25,7 +25,7 @@ select 'policy:' || policyname,
   from pg_policies where schemaname = 'public' and tablename = 'subscriptions'
 union all
 select 'grant:' || r || ':' || p, has_table_privilege(r, 'public.subscriptions', p)::text
-  from unnest(array['anon', 'authenticated']) as r,
+  from unnest(array['anon', 'authenticated', 'service_role']) as r,
        unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE']) as p
 union all
 select 'auth.uid()', regexp_replace(pg_get_functiondef('auth.uid()'::regprocedure), '\s+', ' ', 'g')

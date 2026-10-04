@@ -189,6 +189,18 @@ check('exactly one policy, the SELECT policy from 20260414', policies.length ===
   policies[0] === 'policy:Users can view own subscription|cmd=SELECT permissive=PERMISSIVE roles=public using=(auth.uid() = user_id) check=-',
   policies.join(' ; ') || 'no policy');
 check('authenticated holds SELECT (the read needs the grant AND the policy)', has('grant:authenticated:SELECT|true'));
+check('anon holds SELECT (the policy, not the grant, is what hides the rows from anon)', has('grant:anon:SELECT|true'));
+// Register #126's REVOKE (20261004_subscriptions_revoke_writes.sql): the API
+// roles no longer hold the write privileges at all, so no policy can hand them
+// back; service_role, which the webhook writes with, keeps every one.
+for (const r of ['anon', 'authenticated']) {
+  for (const p of ['INSERT', 'UPDATE', 'DELETE']) {
+    check(`${r} does not hold ${p} (register #126, revoked by 20261004)`, has(`grant:${r}:${p}|false`));
+  }
+}
+for (const p of ['SELECT', 'INSERT', 'UPDATE', 'DELETE']) {
+  check(`service_role holds ${p} (the Paddle webhook writes with it)`, has(`grant:service_role:${p}|true`));
+}
 check("auth.uid() reads request.jwt.claims (GoTrue's body, what PostgREST >= v9 sets)",
   catalog.some((l) => l.startsWith('auth.uid()|') && l.includes("'request.jwt.claims'")));
 
@@ -263,20 +275,23 @@ check('A SELECT * returns exactly A\'s one row', !raw.error && raw.data.length =
 
 // --- write cases ------------------------------------------------------------------------
 // Each attempt is judged twice: by what PostgREST answered, and by the table
-// afterwards, read as superuser. A refusal that leaves the table unchanged is
-// the only pass. An INSERT with no INSERT policy is an error (42501); an UPDATE
-// or DELETE with no such policy is NOT an error, the rows are simply not visible
-// to it, so "0 rows affected" plus "table unchanged" is the assertion there.
+// afterwards, read as superuser. Since 20261004_subscriptions_revoke_writes.sql
+// (register #126) the API roles hold no INSERT, UPDATE or DELETE privilege on
+// the table, so every attempt must be a permission error, 42501, before any
+// policy is consulted. (Before the REVOKE an UPDATE or DELETE with no policy
+// was not an error: the rows were simply invisible to it, and "0 rows
+// affected" was the assertion. That shape is now a failure here: it would mean
+// the privilege is back and row security is the only wall again.)
 console.log('');
-console.log('write cases (every one must leave the table exactly as it was):');
+console.log('write cases (every one must be refused 42501 and leave the table exactly as it was):');
 const unchanged = () => snapshot() === before;
 async function refused(name, attempt, alsoStill) {
   const res = await attempt();
   const affected = Array.isArray(res.data) ? res.data.length : 0;
   const stillOk = alsoStill ? await alsoStill() : true;
-  const ok = unchanged() && stillOk && (res.error !== null || affected === 0);
+  const ok = unchanged() && stillOk && res.error !== null && res.error.code === '42501';
   check(name, ok,
-    `postgrest: ${res.error ? `${res.error.code} ${res.error.message}` : `no error, ${affected} rows affected`}; table unchanged: ${unchanged()}${alsoStill ? `; tier unchanged: ${stillOk}` : ''}`,
+    `postgrest: ${res.error ? `${res.error.code} ${res.error.message}` : `no error, ${affected} rows affected`} (expected 42501); table unchanged: ${unchanged()}${alsoStill ? `; tier unchanged: ${stillOk}` : ''}`,
     true);
 }
 const stillFree = (client, id) => async () => (await tier(client, id)).tier === 'free';
