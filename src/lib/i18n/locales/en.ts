@@ -157,7 +157,7 @@ export const en = {
     signupRepeatPassword: "Signing up again with an email you already used sends a new confirmation link, but keeps your first password.",
     signupRepeatPasswordLink: "Forgot it? Reset your password",
     noticeSigninRequired: "We could not finish that link. Please sign in below.",
-    noticeLinkExpired: "That confirmation link is no longer valid. Sign up again to get a new one.",
+    noticeLinkExpired: "This link has already been used or has expired. If you have opened it before, your email is confirmed: sign in with your password. If you never opened it, sign up again to get a new link.",
     noticeRecoveryExpired: "This link has expired. Ask for a new one.",
     forgotLink: "Forgot your password?",
     forgotTitle: "Reset your password",
