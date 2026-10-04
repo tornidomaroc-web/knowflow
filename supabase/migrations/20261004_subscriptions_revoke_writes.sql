@@ -1,0 +1,36 @@
+-- Register #126: defence in depth on public.subscriptions.
+--
+-- Entitlement (who is Pro) is read from this table and nothing else. Its only
+-- RLS policy is FOR SELECT, so every INSERT, UPDATE and DELETE from the API
+-- roles is already refused by row security: an INSERT errors, an UPDATE or
+-- DELETE silently matches no row. That wall is one line in one migration.
+-- Supabase's default privileges hand every new table in public to anon,
+-- authenticated and service_role with the full set (arwdDxtm), so a future
+-- "FOR ALL" policy written for another purpose, or a permissive write policy
+-- added by mistake, would open writes to the billing table at once. This
+-- migration takes the write privileges themselves away from the API roles,
+-- so no policy can hand them back.
+--
+-- Nothing legitimate loses anything. Every write to this table runs as
+-- service_role: the Paddle webhook (src/app/api/paddle/webhook/route.ts,
+-- getSupabaseAdmin: upsert and update), and account deletion, whose rows go
+-- by ON DELETE CASCADE from auth.users under the admin API. The cancel route
+-- reads with service_role and writes nothing. getEntitlement and the rate
+-- limit read with the session client, which SELECT alone serves; SELECT is
+-- not touched here, and the SELECT policy still decides which rows a session
+-- sees.
+--
+-- Production baseline, read 2026-10-04 before this ran (Section 7, #126):
+--   owner postgres; relacl {postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,
+--   authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}; no
+--   column-level ACL; no trigger; anon and authenticated members of no role.
+--
+-- ROLLBACK, restoring that baseline exactly (the three letters a, w, d):
+--   grant insert, update, delete on table public.subscriptions to anon, authenticated;
+--
+-- Scope is the registered one: these three privileges, this table. TRUNCATE,
+-- REFERENCES, TRIGGER and MAINTAIN stay granted (PostgREST exposes none of
+-- them, and the API roles cannot log in), and the default privileges that
+-- will grant the same set to the next table stay as they are; both are
+-- recorded as a separate register item, not changed here.
+revoke insert, update, delete on table public.subscriptions from anon, authenticated;

@@ -87,3 +87,4 @@
 # `grant execute ... to anon` execute rather than error.
 20260904_account_deletion_orphans.sql  apply
 20260923_documents_storage_path.sql  apply
+20261004_subscriptions_revoke_writes.sql  apply
