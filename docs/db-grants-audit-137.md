@@ -20,7 +20,30 @@ are at `ab7f402`.
 
 ## 1. Findings first
 
-1. **`waitlist` is an open anonymous write path with no caller.** Policy `Anyone can join waitlist`
+1. **Production carries five policies the repository never wrote (schema drift, not a hole).**
+   The live read (§8) lists a second `FOR ALL` policy on each of `profiles` (`Users own profile`,
+   `auth.uid() = id`), `knowledge_bases` (`Users own KBs`, `auth.uid() = user_id`), `documents`
+   (`Users own documents`, `kb_id IN (SELECT id FROM knowledge_bases WHERE user_id = auth.uid())`),
+   `conversations` (`Users own conversations`, `auth.uid() = user_id`) and `messages`
+   (`Users own messages`, `conversation_id IN (SELECT id FROM conversations WHERE user_id =
+   auth.uid())`), beside the repo's `Users can manage own ...` policy on the same table. No migration,
+   commit or runbook names them; they were created by hand in the dashboard at some point before this
+   audit. Each tests the same ownership as its twin, and permissive policies combine with OR, so they
+   widen nothing; but the register's rule since #23 is that the live schema matches the migrations, and
+   here it does not. The entitlement harnesses never saw them because they are built from the repo.
+   **Verdict: drop the five by a repair migration in the first grants PR, after this record.**
+2. **Production has an event trigger the repository never wrote, and it is benign.** `ensure_rls`
+   (`ddl_command_end`, tags `CREATE TABLE`, `CREATE TABLE AS`, `SELECT INTO`, owner `postgres`) calls
+   `public.rls_auto_enable()`, a `SECURITY DEFINER` plpgsql function with `search_path = pg_catalog`
+   that runs `alter table if exists ... enable row level security` on every new table in `public` and
+   logs the result. It is the platform's "automatically enable RLS on new tables" guard, created under
+   the project's `postgres` role, not in any migration. It writes no rows and is not callable as a
+   plain function (an event-trigger function refuses a direct call). It is the one object on
+   production that the ruled default-privileges change complements rather than duplicates: a future
+   table gets RLS from this trigger and, after #137, no write grant from the default ACL.
+   **Verdict: keep; record it in the repository as a known platform object** so the next drift read
+   does not re-discover it.
+3. **`waitlist` is an open anonymous write path with no caller.** Policy `Anyone can join waitlist`
    (`FOR INSERT WITH CHECK (true)`, `003_waitlist.sql:10`) plus the default `INSERT` grant lets any
    holder of the public anon key (it ships in the browser bundle and sits in
    `.github/workflows/deletion-orphan-watch.yml`) insert unlimited rows with arbitrary e-mail addresses.
@@ -30,21 +53,21 @@ are at `ab7f402`.
    stored under our name, `email UNIQUE` lets an attacker pre-occupy an address, and the deletion sweep
    erases an attacker's row carrying a victim's address on that victim's account deletion (harmless).
    Not an entitlement or data-exposure hole: there is no `SELECT` policy, so nothing can be read back.
-   **Verdict: revoke `INSERT`, `UPDATE`, `DELETE` from `anon` and `authenticated` first, in the first
+   **Verdict: revoke `INSERT`, `UPDATE`, `DELETE` from `anon` and `authenticated` in the first
    grants PR.** Dropping the policy itself is a policy change and belongs to the same PR by the owner's
    "its own migration" rule, but it is outside this audit step.
-2. **No other table has a client write that the application does not need.** Every remaining
+4. **No other table has a client write that the application does not need.** Every remaining
    `anon`/`authenticated` write grant is either used by a real path as `authenticated` (§2) or is
    already dead behind row security with no policy (`usage_counters`, `study_events`:
    the definer functions are the only writers). `anon` has **no** legitimate write on any table: every
    policy but the waitlist one tests `auth.uid()`, which is NULL for `anon`.
-3. **Not a grant matter, recorded because the audit saw it: the free-tier subject cap is enforced on
+5. **Not a grant matter, recorded because the audit saw it: the free-tier subject cap is enforced on
    the client only.** `src/app/[locale]/dashboard/knowledge/new/page.tsx:59` asks `/api/check-limit`
    and then inserts from the browser (`:73`); the policy on `knowledge_bases` (`FOR ALL USING
    (auth.uid() = user_id)`) and the `INSERT` grant let a signed-in student call PostgREST directly and
    skip the check. Cost to us: nil (a subject is a row); product effect: the cap is advisory. The fix is a
    server route or a database-side count check, not a REVOKE, since the app needs this insert.
-4. **`profiles.plan` is writable by its owner and read by nothing.** The policy is `FOR ALL`, the
+6. **`profiles.plan` is writable by its owner and read by nothing.** The policy is `FOR ALL`, the
    `UPDATE` grant is live, and no code reads the column for entitlement (`src/types/index.ts:196`:
    retired as a signal; `Tier` comes from `subscriptions`). No exposure today; a future reader of that
    column would inherit a user-settable value. The only writer is the signup upsert
@@ -53,13 +76,13 @@ are at `ab7f402`.
    trigger `handle_new_user` already writes `full_name` from the metadata `signUp` sends (`:55`).
    **Verdict: `profiles` can lose all three verbs once that dead upsert is deleted in the same PR**, so
    the record does not keep a write path the grant refuses.
-5. **The definer functions are executable by `PUBLIC`.** `increment_usage`, `record_study_event`,
+7. **The definer functions are executable by `PUBLIC`.** `increment_usage`, `record_study_event`,
    `handle_new_user`, `current_streak` and `match_chunks` carry `=X/postgres` (every role may execute),
    because `grant execute ... to authenticated` adds to the default rather than replacing it. The two
    writers refuse a NULL `auth.uid()` (`raise exception 'not authenticated'`), so an anonymous call does
    nothing; `has_unresolved_deletion_orphan` is the one function that revoked `PUBLIC` first
    (`20260904:186`). Hygiene, not a hole; a candidate for the last grants PR.
-6. **Nothing urgent.** No table lets `anon` or a signed-in student write another student's row; the
+8. **Nothing urgent.** No table lets `anon` or a signed-in student write another student's row; the
    wall for every table is row security, as #126 recorded, and this audit found no policy that fails
    to test ownership except the waitlist one above.
 
@@ -74,12 +97,12 @@ referencing table owner's rights; no grant involved).
 
 | Table | Policies (cmd / roles) | Writers today (file:line, role) | Verdict for `anon` + `authenticated` |
 |---|---|---|---|
-| `profiles` | ALL / public: `auth.uid() = id` | `handle_new_user` trigger on `auth.users` (def, `001:14`); `signup/page.tsx:87` upsert (auth, unreachable, §1.4); RI cascade from `auth.users` | **Revoke INSERT, UPDATE, DELETE** after deleting the dead upsert. |
-| `knowledge_bases` | ALL / public: `auth.uid() = user_id` | `dashboard/knowledge/new/page.tsx:73` insert (auth, browser) | **Keep INSERT for `authenticated`; revoke UPDATE, DELETE; revoke all three from `anon`.** Subject delete (register #47, not built) will GRANT DELETE in its own migration. |
-| `documents` | ALL / public: owner via `knowledge_bases` | insert `api/ingest/route.ts:170` (auth); update `ingest:219,236,260`, `api/summarize/route.ts:277`, `lib/material-rename.ts:111,133`, Railway `services/ingestion/main.py:237,265` (all auth); delete `lib/material-deletion.ts:253` (auth, the `session` client; the `admin` client there touches storage only) | **Keep INSERT, UPDATE, DELETE for `authenticated`; revoke all three from `anon`.** |
-| `conversations` | ALL / public: `auth.uid() = user_id` | insert `api/agent/route.ts:247` (auth); RI from `knowledge_bases` | **Keep INSERT; revoke UPDATE, DELETE; all three from `anon`.** |
-| `messages` | ALL / public: owner via `conversations` | insert `api/agent/route.ts:256,345` (auth); RI | **Keep INSERT; revoke UPDATE, DELETE; all three from `anon`.** |
-| `waitlist` | INSERT / public: `true` | delete `lib/account-deletion/orchestrate.ts:142` (svc). No insert anywhere since `2234aa0`. | **Revoke INSERT, UPDATE, DELETE from both** (§1.1). |
+| `profiles` | ALL / public: `auth.uid() = id` (+ live duplicate `Users own profile`, §1.1) | `handle_new_user` trigger on `auth.users` (def, `001:14`); `signup/page.tsx:87` upsert (auth, unreachable, §1.6); RI cascade from `auth.users` | **Revoke INSERT, UPDATE, DELETE** after deleting the dead upsert. |
+| `knowledge_bases` | ALL / public: `auth.uid() = user_id` (+ live duplicate `Users own KBs`) | `dashboard/knowledge/new/page.tsx:73` insert (auth, browser) | **Keep INSERT for `authenticated`; revoke UPDATE, DELETE; revoke all three from `anon`.** Subject delete (register #47, not built) will GRANT DELETE in its own migration. |
+| `documents` | ALL / public: owner via `knowledge_bases` (+ live duplicate `Users own documents`) | insert `api/ingest/route.ts:170` (auth); update `ingest:219,236,260`, `api/summarize/route.ts:277`, `lib/material-rename.ts:111,133`, Railway `services/ingestion/main.py:237,265` (all auth); delete `lib/material-deletion.ts:253` (auth, the `session` client; the `admin` client there touches storage only) | **Keep INSERT, UPDATE, DELETE for `authenticated`; revoke all three from `anon`.** |
+| `conversations` | ALL / public: `auth.uid() = user_id` (+ live duplicate `Users own conversations`) | insert `api/agent/route.ts:247` (auth); RI from `knowledge_bases` | **Keep INSERT; revoke UPDATE, DELETE; all three from `anon`.** |
+| `messages` | ALL / public: owner via `conversations` (+ live duplicate `Users own messages`) | insert `api/agent/route.ts:256,345` (auth); RI | **Keep INSERT; revoke UPDATE, DELETE; all three from `anon`.** |
+| `waitlist` | INSERT / public: `true` | delete `lib/account-deletion/orchestrate.ts:142` (svc). No insert anywhere since `2234aa0`. | **Revoke INSERT, UPDATE, DELETE from both** (§1.3). |
 | `subscriptions` | SELECT / public: `auth.uid() = user_id` | upsert/update `api/paddle/webhook/route.ts:115,155` (svc) | Done by #126 (`20261004`). Nothing further. |
 | `chunks` | SELECT, INSERT, DELETE / public: owner via `knowledge_bases` | delete `services/ingestion/main.py:217`, insert `:231` (auth, forwarded token); `backfill.py:133,137` (svc, one-shot script) | **Keep INSERT, DELETE for `authenticated`; revoke UPDATE; all three from `anon`.** |
 | `usage_counters` | SELECT / public: `auth.uid() = user_id` | `increment_usage` (def, `20260708:117`) via `lib/rate-limit.ts:118` | **Revoke INSERT, UPDATE, DELETE from both.** No policy permits a client write today; the grant is dead weight. |
@@ -115,6 +138,11 @@ extension, which lives in `public` on the image):
 | `current_streak(text)` | INVOKER | postgres | none | PUBLIC + API roles | `src/lib/streak.ts:71` |
 | `match_chunks(...)` | INVOKER | postgres | none | PUBLIC + API roles | `src/app/api/agent/route.ts:155` |
 
+Live only (§8): `rls_auto_enable()` (DEFINER, `search_path=pg_catalog`, owner `postgres`, executable
+by PUBLIC and the API roles, `writes=f`), the event-trigger function of §1.2; and the platform's own
+event triggers owned by `supabase_admin` (`pgrst_ddl_watch`, `pgrst_drop_watch`, the three
+`issue_pg_*_access` and `issue_graphql_placeholder`), which touch no table of ours.
+
 The `6.definers` sweep (every `SECURITY DEFINER` function in any non-system schema whose body contains a
 write verb and names `public.`) returns exactly the three definer writers above. The only non-internal
 trigger on a public table or on `auth.users` is `on_auth_user_created`. No views.
@@ -146,7 +174,7 @@ Every table in `public` is owned by `postgres` on the expected side, and the fou
 created a table here all run as `postgres`:
 
 - the SQL editor, where every migration has been applied by hand (`supabase-migration-runbook.md` §0,
-  register #23); the live read's `0.who` section records the role it runs as;
+  register #23); the live read's `0.who` section proves it runs as `postgres` (§8);
 - the dashboard table editor, which goes through the same `postgres` connection (the role the
   `postgres` entry in `11.roles` describes: login, `bypassrls`, `createrole`, member of the three API
   roles and of `supabase_privileged_role`);
@@ -205,14 +233,16 @@ roles inside aborted transactions. Then one `docs(#137)` PR per step.
    INSERT policy in the same file. Add `scripts/verify-public-grants.mjs`: a declared intended-writers
    matrix (table x role x verb) asserted against the migrations-built database, plus for each
    revoked table a write as `authenticated` that must answer `42501`. CI job `public-grants`, made
-   required after its first green run on `main`.
+   required after its first green run on `main`. The same migration drops the five hand-made duplicate
+   policies of §1.1 (`drop policy if exists "Users own ..." on ...`, five lines), so the live schema
+   and the repository agree before any grant moves; the proof asserts the policy count per table.
 2. **PR B, the live tables' unused verbs for `authenticated`.** `knowledge_bases` UPDATE, DELETE;
    `conversations` UPDATE, DELETE; `messages` UPDATE, DELETE; `chunks` UPDATE; `quizzes` UPDATE;
    `quiz_items` UPDATE, DELETE. Matrix updated; proof adds, for each kept verb, a write as the owner
    that succeeds and is rolled back, so a revoke that over-reaches goes red.
 3. **PR C, the future.** The `alter default privileges for role postgres` statement above, `profiles`
    losing all three verbs with the dead signup upsert deleted, and `revoke execute ... from public` on
-   the five functions in §1.5 (re-granting `authenticated` where the app calls them). The proof then
+   the five functions in §1.7 (re-granting `authenticated` where the app calls them). The proof then
    asserts the `pg_default_acl` row on the migrations-built database, and the live read confirms it on
    production.
 
@@ -255,8 +285,40 @@ superuser, has `bypassrls` and `createrole`, and is a member of `anon`, `authent
 `supabase_admin` is the superuser. `12.schema`: `public` owned by `pg_database_owner`, `USAGE` to
 `PUBLIC`, `postgres`, `anon`, `authenticated`, `service_role`.
 
-## 8. Live side: the production read
+## 8. Live side: the production read (2026-10-05, ~19:45Z)
 
-_Pending: the dashboard session had expired when this audit ran, and signing in is the owner's action.
-This section is filled from the same query on the production project before this document is merged;
-every difference from §7 is a finding._
+Method: the owner signed in to the dashboard; the agent loaded `scripts/sql/read-public-grants.sql`
+into the SQL editor and ran it once (13 rows). The grid holds every cell's full text in the page, so
+the comparison was done in the page: each line of each section hashed and matched against the
+expected side's hashes (the same djb2 over trimmed lines); only unmatched lines were read out in
+full. A second read-only statement then fetched the one function body and `pg_event_trigger`.
+Nothing was written; no user row was read. The editor auto-saved the statement as an "Untitled
+query" in the owner's private list, as it does for every run.
+
+**Identical to §7, line for line:** `0.who` (`current_user=postgres session_user=postgres`: the
+editor, and therefore every hand-applied migration, runs as `postgres`), `1.relations` (13 tables,
+owners, RLS flags, every `relacl` byte-identical, including `subscriptions` after #126 and
+`account_deletion_orphans`), `2.privs` (all 39 matrix lines), `6.definers` (the same three),
+`7.triggers` (`on_auth_user_created` only), `8.views`, `9.colacl`, `10.sequences` (none),
+`11.roles` (all eleven lines, including `postgres` not a member of `supabase_admin`), `12.schema`.
+
+**`4.defacl`: the six `public` rows identical.** One line differs, outside our scope: the
+`supabase_admin` / `realtime` / tables row reads `postgres=a*r*wdDxtm` on production (grant option on
+INSERT and SELECT), `arwdDxtm` on the image. Platform-owned, no bearing on #137.
+
+**`3.policies`: 43 lines live against 34 expected; every expected line present; the nine extra lines
+are the five policies of §1.1** (two of them span three lines because their `IN (SELECT ...)` bodies
+wrap). Policy count per table on production: `chunks` 3, `conversations` 2, `documents` 2,
+`knowledge_bases` 2, `messages` 2, `profiles` 2, and 1 each on `quiz_items`, `quizzes`,
+`study_events`, `subscriptions`, `usage_counters`, `waitlist`; `account_deletion_orphans` none.
+
+**`5.functions`: 7 live against 6 expected; the six expected lines identical; the extra is
+`rls_auto_enable()`** of §1.2. `pg_event_trigger` on production: `ensure_rls` (owner `postgres`,
+`ddl_command_end`, tags `CREATE TABLE`, `CREATE TABLE AS`, `SELECT INTO`, function
+`rls_auto_enable`, enabled) and six platform triggers owned by `supabase_admin`
+(`pgrst_ddl_watch`, `pgrst_drop_watch`, `issue_pg_cron_access`, `issue_pg_graphql_access`,
+`issue_pg_net_access`, `issue_graphql_placeholder`).
+
+**What the live side changes in the verdicts:** nothing in §2's grant verdicts (the grants are
+byte-identical to the expected side), and two additions to the plan: the policy repair in PR A
+(§6) and the platform object recorded here.
