@@ -150,6 +150,8 @@ for (const locale of ['en', 'ar']) {
   check(/<SiteChrome locale=\{locale\} showPricing=\{false\}>/.test(twin), 'native/(site)/layout.tsx no longer renders SiteChrome without the Pricing link');
 }
 
+const { en } = await load('src/lib/i18n/locales/en.ts');
+const { ar } = await load('src/lib/i18n/locales/ar.ts');
 const { GoogleButton } = await load('src/components/auth/GoogleButton.tsx');
 {
   const web = under('web', React.createElement(GoogleButton, { label: 'Continue with Google', errorLabel: 'failed' }));
@@ -172,6 +174,11 @@ for (const [name, path, file] of [['login', '/en/login', 'src/app/[locale]/login
     const native = under('native', React.createElement(Page, props));
     check(GOOGLE.test(web), `${name} ${locale} on the web lost its Google button`);
     check(web.includes('type="password"') && native.includes('type="password"'), `${name} ${locale}: the email and password form must stay in both shells`);
+    // The "or" divider separates the provider buttons from the form; with no
+    // button shown it would separate nothing (seen in the simulator, 2026-10-07).
+    const orLabel = (locale === 'ar' ? ar : en).auth.orDivider;
+    check(web.includes(`>${orLabel}<`), `${name} ${locale} on the web lost its "or" divider`);
+    check(!native.includes(`>${orLabel}<`), `${name} ${locale} inside the app still shows the "or" divider under no button`);
     onlyRemoves(`${name} page ${locale}`, web, native);
   }
 }
