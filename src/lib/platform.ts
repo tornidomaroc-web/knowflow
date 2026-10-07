@@ -33,14 +33,25 @@
  * every web student would cost revenue silently, while the app sets its
  * marker explicitly and the gate script checks the reading.
  *
- * CACHING. A page whose output depends on the marker must be rendered per
- * request: a static page is built once, with no request and so as the web
- * variant, and the CDN would serve it to the app. Every page that reads the
- * marker does so through `currentPlatform()` (`src/lib/platform-server.ts`),
- * which reads `headers()` and thereby opts the route out of static
- * rendering; Next then answers with `Cache-Control: private, no-store`, so
- * no shared cache ever holds either variant. The proof is on production, not
- * in a unit test: `STORE_PATH.md` and Section 7 record the headers read.
+ * CACHING. A page whose output depends on the marker must never be cached
+ * under a key both shells share. Two cases, two mechanisms:
+ *
+ * - THE SIGNED-IN PAGES are rendered per request already (they read the
+ *   session cookie), so they read the marker themselves through
+ *   `currentPlatform()` (`src/lib/platform-server.ts`) and nothing is cached.
+ * - THE PRERENDERED PAGES a signed-out student meets (login, signup, the
+ *   legal and marketing pages) stay prerendered and on the CDN for the web,
+ *   untouched. Each has a TWIN under `src/app/[locale]/native/`, a second
+ *   prerendered copy of the same page under a layout that hides the Pricing
+ *   link and hands `'native'` to the Google button; the middleware rewrites
+ *   an app request to the twin, so the two variants live at two paths and
+ *   two cache keys, and the browser URL stays the same. No page there reads
+ *   the request, which `scripts/verify-platform-gate.mjs` enforces, and the
+ *   CDN is never asked to vary on a header, which Vercel would not honour.
+ *
+ * The proof is on production, not in a unit test: `STORE_PATH.md` and Section
+ * 7 record the headers read for both variants and a web request made right
+ * after an app request.
  */
 export type Platform = 'web' | 'native';
 

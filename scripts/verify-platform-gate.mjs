@@ -4,13 +4,17 @@
  *
  * THREE CLAIMS, EACH HELD AGAINST THE REAL CODE:
  *
- *   1. THE READING. `platformFromHeaders` answers `native` to the user-agent
- *      token the shell appends (`KnowFlowApp/<n>`) and to `x-kf-platform:
- *      native`, and `web` to everything else, including an iPhone Safari user
- *      agent and an empty request. The middleware, driven with real
- *      NextRequests, sends an app request for `/<locale>` and `/<locale>/pricing`
- *      to the dashboard (307) and lets every other path through; a web request
- *      is never redirected.
+ *   1. THE READING, AND THE ROUTING. `platformFromHeaders` answers `native`
+ *      to the user-agent token the shell appends (`KnowFlowApp/<n>`) and to
+ *      `x-kf-platform: native`, and `web` to everything else, including an
+ *      iPhone Safari user agent and an empty request. The middleware, driven
+ *      with real NextRequests: an app request for `/<locale>` and
+ *      `/<locale>/pricing` goes to the dashboard (307); an app request for a
+ *      prerendered page with a twin (login, signup, the legal and marketing
+ *      pages) is REWRITTEN to `/<locale>/native/<page>`, the URL unchanged; a
+ *      web request is never redirected and never rewritten, so the web's
+ *      cached pages are untouched; a web request straight to a `/native/` path
+ *      is rewritten to a path no page claims, which the catch-all answers 404.
  *
  *   2. THE MARKER ONLY REMOVES. Every gated surface is RENDERED twice from its
  *      real .tsx (react-dom/server through the project's own TypeScript, the
@@ -29,7 +33,11 @@
  *      fails CI here. The build-time flag is gone: no `NEXT_PUBLIC_KF_PLATFORM`
  *      anywhere in src/, and the two predicates take a platform argument
  *      (`tsc` enforces the signature; this script enforces that nobody
- *      hard-codes 'web' into them).
+ *      hard-codes 'web' into them). The twin tree `src/app/[locale]/native/`
+ *      holds exactly the pages the middleware rewrites, each a bare re-export
+ *      of its web page, and nothing under it reads the request, so every twin
+ *      stays prerendered; and no static web page or layout reads the request
+ *      either, so the web stays on the CDN.
  *
  * Tier 0: no network, no credential, no database, no app.
  *
@@ -77,18 +85,26 @@ const { middleware } = await load('src/middleware.ts');
 const ORIGIN = 'https://tryknowflow.com';
 async function mw(path, ua) {
   const res = await middleware(new NextRequest(`${ORIGIN}${path}`, { headers: { 'user-agent': ua, accept: 'text/html' } }));
-  return { status: res.status, location: res.headers.get('location') };
+  return { status: res.status, location: res.headers.get('location'), rewrite: res.headers.get('x-middleware-rewrite') };
 }
 for (const locale of ['en', 'ar']) {
   for (const path of [`/${locale}`, `/${locale}/pricing`]) {
     const app = await mw(path, APP_UA);
     check(app.status === 307 && app.location === `${ORIGIN}/${locale}/dashboard`, `app request for ${path}: expected 307 to /${locale}/dashboard, got ${app.status} ${app.location}`);
     const web = await mw(path, IPHONE_UA);
-    check(web.status === 200 && web.location === null, `web request for ${path} must pass through, got ${web.status} ${web.location}`);
+    check(web.status === 200 && web.location === null && web.rewrite === null, `web request for ${path} must pass through, got ${web.status} ${web.location} ${web.rewrite}`);
   }
-  for (const path of [`/${locale}/privacy`, `/${locale}/terms`, `/${locale}/login`, `/${locale}/dashboard/settings`, `/${locale}/about`]) {
+  for (const page of ['/login', '/signup', '/about', '/contact', '/privacy', '/terms', '/refund']) {
+    const app = await mw(`/${locale}${page}`, APP_UA);
+    check(app.status === 200 && app.rewrite === `${ORIGIN}/${locale}/native${page}`, `app request for /${locale}${page}: expected a rewrite to /${locale}/native${page}, got ${app.status} rewrite=${app.rewrite}`);
+    const web = await mw(`/${locale}${page}`, IPHONE_UA);
+    check(web.status === 200 && web.location === null && web.rewrite === null, `web request for /${locale}${page} must be served as it is (no rewrite, no redirect), got ${web.status} ${web.location} ${web.rewrite}`);
+    const direct = await mw(`/${locale}/native${page}`, IPHONE_UA);
+    check(direct.rewrite !== null && /native-is-not-a-page/.test(direct.rewrite), `a web visit to /${locale}/native${page} must be sent to the 404, got rewrite=${direct.rewrite}`);
+  }
+  for (const path of [`/${locale}/dashboard/settings`, `/${locale}/forgot-password`, `/${locale}/dashboard/knowledge/new`]) {
     const app = await mw(path, APP_UA);
-    check(app.status === 200 && app.location === null, `app request for ${path} must be served, got ${app.status} ${app.location}`);
+    check(app.status === 200 && app.location === null && app.rewrite === null, `app request for ${path} must pass through, got ${app.status} ${app.location} ${app.rewrite}`);
   }
 }
 // The redirect target is the one page the web can also reach, and it is behind
@@ -117,13 +133,21 @@ function onlyRemoves(name, web, native, { mustKeep = [] } = {}) {
 }
 
 globalThis.__tsxHooksPathname = '/en/privacy';
-const { SiteHeader } = await load('src/components/layout/SiteHeader.tsx');
-const headerLabels = { home: 'KnowFlow', howItWorks: 'How', pricing: 'Pricing', about: 'About', signIn: 'Sign in', getStarted: 'Start', menu: 'Menu', appearance: 'Appearance', themeDark: 'Dark', themeLight: 'Light' };
+// The two static layouts, rendered through the chrome they share: the web's
+// (`(site)/layout.tsx`, showPricing) and the app's (`native/(site)/layout.tsx`).
+const { SiteChrome } = await load('src/components/layout/SiteChrome.tsx');
 for (const locale of ['en', 'ar']) {
-  const web = renderToStaticMarkup(React.createElement(SiteHeader, { locale, labels: headerLabels, showPricing: true }));
-  const native = renderToStaticMarkup(React.createElement(SiteHeader, { locale, labels: headerLabels, showPricing: false }));
-  check(web.includes(`href="/${locale}/pricing"`), `${locale} header on the web lost its Pricing link`);
-  onlyRemoves(`SiteHeader ${locale}`, web, native, { mustKeep: [`/${locale}/about`, `/${locale}/login`] });
+  const body = React.createElement('p', null, 'page');
+  const web = renderToStaticMarkup(React.createElement(SiteChrome, { locale, showPricing: true }, body));
+  const native = renderToStaticMarkup(React.createElement(SiteChrome, { locale, showPricing: false }, body));
+  check(web.includes(`href="/${locale}/pricing"`), `${locale} site chrome on the web lost its Pricing link`);
+  onlyRemoves(`SiteChrome ${locale}`, web, native, { mustKeep: [`/${locale}/about`, `/${locale}/login`, `/${locale}/privacy`, `/${locale}/terms`] });
+}
+{
+  const site = readFileSync(resolvePath(ROOT, 'src/app/[locale]/(site)/layout.tsx'), 'utf8');
+  const twin = readFileSync(resolvePath(ROOT, 'src/app/[locale]/native/(site)/layout.tsx'), 'utf8');
+  check(/<SiteChrome locale=\{locale\} showPricing>/.test(site), '(site)/layout.tsx no longer renders SiteChrome with showPricing');
+  check(/<SiteChrome locale=\{locale\} showPricing=\{false\}>/.test(twin), 'native/(site)/layout.tsx no longer renders SiteChrome without the Pricing link');
 }
 
 const { GoogleButton } = await load('src/components/auth/GoogleButton.tsx');
@@ -240,10 +264,36 @@ for (const [file, src] of files) {
   if (/NEXT_PUBLIC_KF_PLATFORM/.test(s)) check(false, `${file}: the build-time flag is back`);
   if (/navigator\.userAgent/.test(s)) check(false, `${file}: client code sniffs the user agent; the platform comes from the request through PlatformProvider`);
 }
-// (e) Every page or layout that renders a gated surface reads the request.
-for (const file of ['src/app/[locale]/(site)/layout.tsx', 'src/app/[locale]/dashboard/layout.tsx', 'src/app/[locale]/dashboard/page.tsx', 'src/app/[locale]/dashboard/settings/page.tsx', 'src/app/[locale]/login/layout.tsx', 'src/app/[locale]/signup/layout.tsx']) {
+// (e) The signed-in pages, rendered per request already, read the marker
+// themselves; the prerendered pages must NOT (a request read would turn them
+// dynamic and take the web off the CDN), and neither may their twins.
+for (const file of ['src/app/[locale]/dashboard/layout.tsx', 'src/app/[locale]/dashboard/page.tsx', 'src/app/[locale]/dashboard/settings/page.tsx']) {
   const src = readFileSync(resolvePath(ROOT, file), 'utf8');
-  check(/await currentPlatform\(\)/.test(src), `${file} no longer reads the platform from the request (it would be prerendered as the web variant and cached)`);
+  check(/await currentPlatform\(\)/.test(src), `${file} no longer reads the platform from the request`);
+}
+const REQUEST_READS = /currentPlatform|next\/headers|platform-server/;
+for (const [file, src] of files) {
+  const isStaticPublic = /^src\/app\/\[locale\]\/(\(site\)|native|login|signup|forgot-password|reset-password)\//.test(file) || file === 'src/components/layout/SiteChrome.tsx';
+  if (isStaticPublic && REQUEST_READS.test(strip(src))) check(false, `${file} reads the request: it must stay prerendered (the web on the CDN, the twin at its own cache key)`);
+}
+// (f) The twin tree is exactly the middleware's list, and every twin is a bare re-export.
+{
+  const mwSrc = readFileSync(resolvePath(ROOT, 'src/middleware.ts'), 'utf8');
+  const listed = (mwSrc.match(/const NATIVE_TWINS = new Set\(\[([^\]]*)\]\)/) || [])[1];
+  check(!!listed, 'middleware.ts no longer declares NATIVE_TWINS');
+  const twins = listed ? [...listed.matchAll(/'([^']+)'/g)].map((m) => m[1]).sort() : [];
+  const onDisk = files.map(([f]) => f).filter((f) => /^src\/app\/\[locale\]\/native\/.*\/page\.tsx$/.test(f))
+    .map((f) => '/' + f.replace(/^src\/app\/\[locale\]\/native\//, '').replace(/^\(site\)\//, '').replace(/\/page\.tsx$/, '')).sort();
+  check(JSON.stringify(twins) === JSON.stringify(onDisk), `the middleware's twin list ${JSON.stringify(twins)} differs from the pages under native/ ${JSON.stringify(onDisk)}`);
+  for (const [file, src] of files) {
+    if (!/^src\/app\/\[locale\]\/native\/.*\/page\.tsx$/.test(file)) continue;
+    const code = strip(src).trim();
+    const web = file.replace('/native/', '/');
+    const expected = `export { default } from '@/app/${web.replace(/^src\/app\//, '').replace(/\/page\.tsx$/, '/page')}';`;
+    check(code === expected, `${file} is not a bare re-export of its web page: ${code.slice(0, 120)}`);
+    check(files.some(([f]) => f === web), `${file} has no web twin at ${web}`);
+  }
+  check(!/(\(site\)\/)?page\.tsx/.test(onDisk.join(' ')) && !onDisk.includes('/pricing') && !onDisk.includes('/'), 'the landing and /pricing must have no twin: the app is redirected away from them');
 }
 
 if (failures.length === 0) {
