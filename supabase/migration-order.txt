@@ -88,3 +88,11 @@
 20260904_account_deletion_orphans.sql  apply
 20260923_documents_storage_path.sql  apply
 20261004_subscriptions_revoke_writes.sql  apply
+
+# 20261007 is register #137's PR A: write grants revoked from both API roles on
+# waitlist, usage_counters and study_events, from anon on the eight other app
+# tables, the open waitlist INSERT policy dropped, and the five hand-made
+# duplicate policies production carries dropped with `if exists` (a no-op
+# here). `apply`: the image ships the roles, so every statement executes, and
+# scripts/verify-public-grants.mjs asserts the result.
+20261007_public_grants_dead_writes_and_anon.sql  apply
