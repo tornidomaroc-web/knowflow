@@ -52,34 +52,35 @@
 -- `authenticated` verb moves on the eight tables of (2) (PR B). Default
 -- privileges, `profiles`, and EXECUTE from PUBLIC on the functions are PR C.
 --
--- PRODUCTION BASELINE, as the live read of 2026-10-05 (~19:45Z,
--- `scripts/sql/read-public-grants.sql`, `docs/db-grants-audit-137.md` §8)
--- recorded it, and re-read in the SQL editor immediately before this file is
--- applied (the re-read is recorded in PROGRESS.md Section 7; if it differs
--- from the lines below this header is corrected before the apply):
---   every table owner `postgres`, RLS on, not forced; relacl on the eleven
---   tables named here:
---     {postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,
---      authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
---   policies dropped by this file, as pg_policies rendered them live:
---     waitlist        | Anyone can join waitlist  | INSERT | roles=public | check=true
---     profiles        | Users own profile         | ALL    | using (auth.uid() = id)
---     knowledge_bases | Users own KBs             | ALL    | using (auth.uid() = user_id)
---     documents       | Users own documents       | ALL    | using (kb_id IN (SELECT id FROM knowledge_bases WHERE user_id = auth.uid()))
---     conversations   | Users own conversations   | ALL    | using (auth.uid() = user_id)
---     messages        | Users own messages        | ALL    | using (conversation_id IN (SELECT id FROM conversations WHERE user_id = auth.uid()))
---   no column-level ACL, no non-internal trigger on any of the eleven.
+-- PRODUCTION BASELINE, read in the SQL editor on 2026-10-07 at ~07:10Z with
+-- `scripts/sql/read-public-grants.sql` (as `postgres`), immediately before this
+-- file is applied, and byte-identical to the audit's read of 2026-10-05
+-- (`docs/db-grants-audit-137.md` §8): no grant, policy, owner or RLS flag moved
+-- in between. The eleven tables named here, every one owner `postgres`, RLS on,
+-- not forced, relacl:
+--   {postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+-- The six policies this file drops, exactly as pg_policies rendered them live
+-- (cmd / permissive / roles / USING / WITH CHECK; `-` is NULL):
+--   waitlist        | Anyone can join waitlist | INSERT | PERMISSIVE | public | using=- | check=true
+--   profiles        | Users own profile        | ALL | PERMISSIVE | public | using=(auth.uid() = id) | check=-
+--   knowledge_bases | Users own KBs            | ALL | PERMISSIVE | public | using=(auth.uid() = user_id) | check=-
+--   conversations   | Users own conversations  | ALL | PERMISSIVE | public | using=(auth.uid() = user_id) | check=-
+--   documents       | Users own documents      | ALL | PERMISSIVE | public | using=(kb_id IN ( SELECT knowledge_bases.id FROM knowledge_bases WHERE (knowledge_bases.user_id = auth.uid()))) | check=-
+--   messages        | Users own messages       | ALL | PERMISSIVE | public | using=(conversation_id IN ( SELECT conversations.id FROM conversations WHERE (conversations.user_id = auth.uid()))) | check=-
+-- No column-level ACL on any table, no non-internal trigger on any of the
+-- eleven, no view, no sequence in public.
 --
--- ROLLBACK, restoring that baseline exactly (the letters a, w, d on the roles
--- named; the policies recreated as the baseline read rendered them):
+-- ROLLBACK, restoring that baseline exactly: the letters a, w, d on the roles
+-- named, and the six policies recreated with the bodies above (no TO clause
+-- is `roles=public`; FOR ALL with USING alone renders `check=-`, as live):
 --   grant insert, update, delete on table public.waitlist, public.usage_counters, public.study_events to anon, authenticated;
 --   grant insert, update, delete on table public.profiles, public.knowledge_bases, public.documents, public.conversations, public.messages, public.chunks, public.quizzes, public.quiz_items to anon;
 --   create policy "Anyone can join waitlist" on public.waitlist for insert with check (true);
 --   create policy "Users own profile" on public.profiles for all using (auth.uid() = id);
 --   create policy "Users own KBs" on public.knowledge_bases for all using (auth.uid() = user_id);
---   create policy "Users own documents" on public.documents for all using (kb_id in (select id from public.knowledge_bases where user_id = auth.uid()));
 --   create policy "Users own conversations" on public.conversations for all using (auth.uid() = user_id);
---   create policy "Users own messages" on public.messages for all using (conversation_id in (select id from public.conversations where user_id = auth.uid()));
+--   create policy "Users own documents" on public.documents for all using (kb_id IN ( SELECT knowledge_bases.id FROM knowledge_bases WHERE (knowledge_bases.user_id = auth.uid())));
+--   create policy "Users own messages" on public.messages for all using (conversation_id IN ( SELECT conversations.id FROM conversations WHERE (conversations.user_id = auth.uid())));
 --
 -- PROOF. `scripts/verify-public-grants.mjs` (CI job `public-grants`) applies
 -- this file with the rest of the manifest on Supabase's own image and asserts
