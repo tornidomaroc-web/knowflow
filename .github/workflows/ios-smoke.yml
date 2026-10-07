@@ -192,7 +192,9 @@ jobs:
           echo "data container: $data"
           xcrun simctl spawn "$UDID" log stream --style compact --predicate 'process == "App"' > "$RUNNER_TEMP/app-online.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/log.pid"
-          SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$steps"
+          # Backgrounded: `simctl launch` returns only once the app is up, which
+          # takes about half a minute here, by which time every step has run.
+          SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$steps" &
           # On this simulator FileManager.temporaryDirectory is tmp/<bundle id>/,
           # on older ones tmp/ itself: find the files wherever they land.
           sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
