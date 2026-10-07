@@ -10,13 +10,22 @@ is cited by section. Facts about this repository were read from the code at
 `ab39878`. Facts about the owner's accounts are owner-attested and carry the
 date they were last read.
 
+**AMENDED 2026-10-07, same day, after reading Scan & Action** (the owner's
+other app, same Apple team, `tornidomaroc-web/scan-and-action` at its `main`
+of 2026-10-07, read only through the GitHub API). §8 holds the lessons item by
+item. The corrections it forced are made in place below and each is marked
+*"Corrected by §8"*: Google sign-in through a native plugin instead of the
+system browser (§1.2, S1), the build job copied rather than written (T4), EU
+trader status, which Apple requires even outside the EU (§3.6), Android
+sequenced after iOS (§5), and the session estimates (§0, §7).
+
 ## 0. The answer first
 
 | Question | Answer |
 |---|---|
-| Distance to a TestFlight build on the owner's iPhone | **4 working sessions** of agent work, plus about 30 minutes of the owner's own console steps. Nothing in Phases 6, 7 or 9 is on this path. |
-| Distance to the first App Store review submission | **About 10 working sessions** in total, the four above included, plus the owner's icon, a reviewer account and the App Store Connect forms. |
-| Distance to Google Play production | About 2 extra sessions on top of the shared work, then a **fixed 14-day closed test with 12 testers** if the owner's Play account is subject to it (§5). That wait is the longest fixed delay in either store. |
+| Distance to a TestFlight build on the owner's iPhone | **3 working sessions** of agent work, plus about 30 minutes of the owner's own console steps. Nothing in Phases 6, 7 or 9 is on this path. *Corrected by §8: was 4; the build job and its signing fixes are copied from Scan & Action, and the owner's iPhone is already registered on the team.* |
+| Distance to the first App Store review submission | **About 9 working sessions** in total, the three above included, plus the owner's icon, a reviewer account, the EU trader declaration and the App Store Connect forms. *Corrected by §8: was 10.* |
+| Distance to Google Play production | **After the iOS submission, not in parallel.** *Corrected by §8:* the owner has no Android device, so Android Google sign-in cannot be witnessed, and Scan & Action records that the account cannot register as a Google Play merchant. About 2 extra sessions, then a **fixed 14-day closed test with 12 testers** if the owner's Play account is subject to it (§5). |
 | Mac needed? | **No.** GitHub's standard `macos-26` runner is free on this public repository and ships the Xcode 26 that Apple now requires (§4). |
 | Money needed before the first submission | **None.** Every cost below is optional or post-launch, and each is named in USD where it appears. |
 | The decision this file asks the owner to sign | **Ship the iOS app as a native shell that loads `tryknowflow.com`, not as the static client bundle `PIVOT_PLAN.md` §5 chose.** The reasons are in §1.1. |
@@ -84,10 +93,15 @@ every native piece built for the shell carries over.
 1. **Google sign-in does not work inside an embedded web view.** Google has
    blocked OAuth in embedded web views since 2021-09-30 (`disallowed_useragent`;
    [Google Developers Blog](https://developers.googleblog.com/upcoming-security-changes-to-googles-oauth-20-authorization-endpoint-in-embedded-webviews/)).
-   Inside the shell, the Google button must open the system browser
+   ~~Inside the shell, the Google button must open the system browser
    (`SFSafariViewController` / `ASWebAuthenticationSession`) and return through
-   a deep link that hands the code to `/api/auth/callback` in the web view.
-   Until that exists, the shell hides the Google button; email and password
+   a deep link that hands the code to `/api/auth/callback` in the web view.~~
+   *Corrected by §8:* inside the shell, Google and Apple both sign in through
+   the native sheet of `@capgo/capacitor-social-login`, which returns an ID
+   token that the page hands to Supabase's `signInWithIdToken`. Scan & Action
+   shipped exactly this (its PR #258) and witnessed both on the owner's iPhone
+   on 2026-09-28. No deep link and no redirect allow-list entry are needed.
+   Until it exists, the shell hides the Google button; email and password
    work as they are.
 2. **The store flag is build-time only.** `src/lib/platform.ts` reads
    `NEXT_PUBLIC_KF_PLATFORM` at build time. Vercel builds the web app, so every
@@ -109,20 +123,24 @@ agent does not take because they need the owner's credentials.
 |---|---|---|---|---|
 | T1 | **Platform at request time** | A user-agent marker read by `resolvePlatform`; the middleware sends a native request for a marketing page (`/`, `/pricing`, `/refund`) to the app's entry; the Google button hidden in native until S1; proof extended to server-rendered pages. Web behaviour unchanged. | Agent | 1 session |
 | T2 | **Capacitor project** | `@capacitor/core`, `@capacitor/ios`, `@capacitor/android`; `capacitor.config.ts` with `server.url`, `appendUserAgent`, `allowNavigation` limited to the site, an offline page bundled through `server.errorPath`; the `ios/` project with `TARGETED_DEVICE_FAMILY = 1` (`STORE_ASSETS.md` §5), `ITSAppUsesNonExemptEncryption = NO` (HTTPS only), bundle id `com.knowflow.app` (row #119 (iii), the owner's convention); a temporary icon from the in-app mark. `android/` generated in the same PR. | Agent | 1 session |
-| T3 | **Owner console steps** | In App Store Connect: **Apps → +** (name, primary language Arabic, bundle id from T2, SKU); **Users and Access → Integrations → App Store Connect API → generate key** with the App Manager role; paste the Issuer ID, Key ID and the `.p8` contents into three GitHub Actions secrets. The agent never sees the key. If "KnowFlow" is taken as an App Store name, choose another display name here; the bundle id is unaffected. | Owner | ~30 min |
-| T4 | **The iOS build job** | A workflow on the standard `macos-26` runner (never a `-large` or `-xlarge` label, §4), triggered only by `workflow_dispatch` and never by a pull request, so no fork can reach the secrets: `npx cap sync ios`, `xcodebuild archive` with automatic signing through the API key (`-allowProvisioningUpdates` with `-authenticationKeyPath/-ID/-IssuerID`, which creates the certificate and profile in the cloud), export for App Store Connect, upload with `xcrun altool --upload-app --apiKey`. Expect one or two red runs while signing settles. | Agent | 1–2 sessions |
+| T3 | **Owner console steps** | In App Store Connect: **Apps → +** (name, primary language Arabic, bundle id from T2, SKU); **Users and Access → Integrations → App Store Connect API → generate a new key for KnowFlow** (not Scan & Action's key, §8.4); in GitHub, create the environment `testflight` limited to deployments from `main` and put the Issuer ID, Key ID and the `.p8` contents in it as three environment secrets. The agent never sees the key. If "KnowFlow" is taken as an App Store name, choose another display name here; the bundle id is unaffected. *Corrected by §8:* the owner's iPhone is already a registered device on this team (Scan & Action, 2026-09-28), which development signing needs; nothing to do for it. | Owner | ~30 min |
+| T4 | **The iOS build job** | *Corrected by §8:* **copy Scan & Action's `.github/workflows/ios-testflight.yml`** and adapt it (§8.4): two jobs so the key never sits on a runner that ran npm; `macos-26`; API-key automatic signing that archives for development and re-signs for the App Store at export (Scan & Action's PRs #261 and #262 are the dead end of forcing a Distribution identity); the stale-certificate sweep, because Apple caps a team at ten Development certificates and every hosted run makes one; `testFlightInternalTestingOnly` until the submission build; `CFBundleVersion` from the run number; `Package.resolved` committed. Triggered by `workflow_dispatch` and by a push to `main` that touches the native project only; never by a pull request. | Agent | 1 session |
 | T5 | **Install** | Add the owner to an internal testing group in TestFlight; install the TestFlight app on the iPhone; install the build. Apple: internal testers are App Store Connect users, up to 100, and a build stays testable for 90 days ([TestFlight overview](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview/)). Internal testing needs no App Review. | Owner | ~10 min |
 
-**Total: 4 agent sessions and about 40 minutes of the owner.** At T5 the owner
-signs in with email and password and uses the real app on the real phone.
-Sign in with Google arrives with S1.
+**Total: 3 agent sessions and about 40 minutes of the owner** (*corrected by
+§8*: was 4). At T5 the owner signs in with email and password and uses the
+real app on the real phone. Sign in with Google arrives with S1. **The first
+build is also the test of the one thing Scan & Action cannot vouch for:** that
+the Capacitor bridge reaches a page loaded from `tryknowflow.com` (§8.3). T2
+carries a simulator launch check copied from Scan & Action's `ios-audit.yml`
+that reads `window.Capacitor` inside the loaded page.
 
 ### 2.2 From TestFlight to the first App Store submission
 
 | # | Item | What it requires, and why | Who | Size |
 |---|---|---|---|---|
-| S1 | **Google through the system browser; Sign in with Apple through the native sheet** | Google: open the OAuth start in `ASWebAuthenticationSession` (Capacitor Browser or a small plugin), return through a custom-scheme deep link, hand the code to `/api/auth/callback` in the web view; the scheme added to Supabase's redirect allow-list (owner). Apple: row #119's native path (iv): `@capacitor-community/apple-sign-in` returns an identity token, the page calls `signInWithIdToken`; the owner ticks **Sign in with Apple** on the App ID and sets **Client IDs = the App ID** in Supabase's Apple provider. No Services ID, no six-monthly secret. Required by **4.8** (§3.3). | Agent + owner (10 min) | 2 sessions |
-| S2 | **Apple token revocation on account deletion** | Apple: *"Apps that support Sign in with Apple should use the Sign in with Apple REST API to revoke user tokens"* ([Offering account deletion](https://developer.apple.com/support/offering-account-deletion-in-your-app/)). Cheapest shape: when an Apple-linked account deletes itself in the app, the app asks for a fresh Apple authorization code, the server exchanges it and calls `/auth/revoke`, so no token is ever stored. Needs one Sign in with Apple key (`.p8`) whose contents the owner stores as a server environment variable. | Agent + owner (10 min) | 1 session |
+| S1 | **Google and Apple through one native plugin** | *Corrected by §8:* Scan & Action's route, PR #258: `@capgo/capacitor-social-login` with `providers = { google: true, apple: true, facebook: false, twitter: false }`, its patch that guards the AppTrackingTransparency import, and the binary audit that proves neither the Facebook SDK nor AppTrackingTransparency is linked (§8.2). The page calls `signInWithIdToken` with the token; the session cookie lands on `tryknowflow.com` inside the web view, so every server-rendered page sees it. Owner: an iOS OAuth client in KnowFlow's Google Cloud project, its id added to Supabase's Google provider as an authorized client; **Sign in with Apple** ticked on the App ID; **Client IDs = the App ID** in Supabase's Apple provider; the entitlement `com.apple.developer.applesignin` in the project. No Services ID, no six-monthly secret. Required by **4.8** (§3.3). | Agent + owner (20 min) | 1 session |
+| S2 | **Apple token revocation on account deletion** | Apple: *"Apps that support Sign in with Apple should use the Sign in with Apple REST API to revoke user tokens"* ([Offering account deletion](https://developer.apple.com/support/offering-account-deletion-in-your-app/)). *Corrected by §8:* copy Scan & Action's design, PR #272, proven by one real deletion on the owner's iPhone on 2026-09-30: the delete dialog opens one more Apple sheet, its authorization code goes with `DELETE /api/account`, the server exchanges it at `/auth/token` and revokes at `/auth/revoke` with a client secret minted per call, nothing stored, and a failed revocation never blocks the deletion but is named in the response and logged (Scan & Action logged only failures at first, and success then read as an absence; its PR #274). Owner: one Sign in with Apple key for KnowFlow, its Team ID, Key ID and `.p8` set as server variables in Vercel. | Agent + owner (10 min) | 1 session |
 | S3 | **Native value for 4.2** | Two affordances a website cannot have: (a) a **local daily study reminder** tied to the streak (`@capacitor/local-notifications`, no server, no push certificate, off until the student turns it on, per 5.1.2(i)'s rule that system features may not be required); (b) **"Open in KnowFlow"** for PDF and Word files from Files, Mail and the share sheet (document types in `Info.plist`; the shell passes the file into the existing upload with the 4 MB limit). Together with S1's native sign-in sheet these are the answer to 4.2 (§3.1). | Agent | 2 sessions |
 | S4 | **Explicit consent before content goes to third-party AI** | New since this plan was written. **5.1.2(i)**: *"You must clearly disclose where personal data will be shared with third parties, including with third-party AI, and obtain explicit permission before doing so."* The privacy page already names Anthropic and Voyage AI (`privacy/page.tsx:27-35`), but nothing in the app asks. A one-time sheet before the first upload or question, in Arabic and English, naming both providers and what they receive, with Accept and Not now; not now leaves the student unable to upload or ask, with the reason shown. **No register row tracks this; it is a submission blocker.** | Agent | 1 session |
 | S5 | **The owner's icon** | One 1024 × 1024 PNG, opaque, square corners (`STORE_ASSETS.md` §1.3, row #120). The temporary icon of T2 is fine for TestFlight, not for the store. | Owner | — |
@@ -131,8 +149,14 @@ Sign in with Google arrives with S1.
 | S8 | **A reviewer account** | **2.1(a)**: *"include demo account info (and turn on your back-end service!) if your app includes a login."* A dedicated e-mail-and-password account with one subject, one material, a summary and a quiz. The owner creates it, because the agent does not create production accounts; the three protected test addresses stay untouched. | Owner | 15 min |
 | S9 | **Submit** | Upload the final build through T4, attach it to the version, submit. | Owner | — |
 
-**Total from today to submission: about 10 agent sessions** (T1–T4: 4, S1–S4:
-6, S6–S7: 1, rounded) and about 1.5 hours of the owner across the steps.
+**Total from today to submission: about 9 agent sessions** (T1–T4: 3, S1–S4:
+5, S6–S7 with S10 below: 1) and about 2 hours of the owner across the steps.
+*Corrected by §8: was 10.*
+
+| # | Added by §8 | What it requires | Who | Size |
+|---|---|---|---|---|
+| S10 | **The operator named in the legal pages** | Scan & Action named its individual operator in its privacy policy and terms (its PR #269), because the account is an individual's and the App Store lists the seller by that name. KnowFlow's privacy and terms pages name no operator (`grep`, 2026-10-07). | Agent | inside S6/S7 |
+| S11 | **EU trader declaration** | §3.6. Account-level, once, so one declaration covers Scan & Action and KnowFlow. | Owner | 10 min |
 
 ## 3. Apple review risks, each with a verdict and the cheapest fix
 
@@ -258,6 +282,18 @@ newspapers, books, audio, music, and video."*
   proven**; nothing in this repository reads Supabase's pause clock. The
   certain fix is Supabase Pro (**USD 25 a month**, register #22), which this
   file does not recommend before submission, only before public launch.
+- **EU trader status: the plan's premise is wrong.** *Corrected by §8.*
+  `PIVOT_PLAN.md` §9 (2026-09-08) and the owner's brief of 2026-10-07 treat
+  trader status as EU-only and not blocking. Apple's page, read 2026-10-07:
+  *"Even if you don't distribute apps in the EU, you'll still need to declare
+  a trader status."* The declaration is made once per account (Business,
+  Agreements, Compliance), with a per-app override
+  ([DSA trader requirements](https://developer.apple.com/help/app-store-connect/manage-compliance-information/manage-european-union-digital-services-act-trader-requirements)).
+  The page does not say what happens at submission without it, so this file
+  treats it as a submission blocker, the cautious reading. **Cost: ten minutes
+  of the owner, once, and it covers both apps.** Scan & Action's board still
+  lists it open for that app. Declaring as a trader publishes the address and
+  phone only on EU product pages, and KnowFlow is not distributed in the EU.
 - **Age rating.** Apple requires the updated questionnaire (deadline was
   2026-01-31 for existing apps; new apps answer it at creation,
   [Upcoming requirements](https://developer.apple.com/news/upcoming-requirements/)).
@@ -324,12 +360,28 @@ app may honour a web subscription was **not answered by the page read**;
 under the 3.5 fallback (native served the free tier) the question does not
 arise.
 
-**Order: in parallel, Android's clock started as early as possible.** Not
-Android first: the owner's own device is an iPhone, and nothing on the iOS
-path waits for Android. Not Android after: if the 14-day rule applies, its
-clock should run while S1–S7 are built. So the Android internal test starts
-the week T2 lands, and the closed test with 12 testers starts as soon as S1
-makes sign-in work in the Android shell.
+~~**Order: in parallel, Android's clock started as early as possible.**~~
+*Corrected by §8.* **Order: Android after the iOS submission.** Three facts
+from Scan & Action, same owner, same accounts, overturn the parallel plan:
+
+1. **There is no Android device.** Scan & Action's board: Android Google
+   sign-in *"is UNVERIFIED and stays so until a device exists"*; a mismatch of
+   the Play App Signing SHA-1 fails with `[28444] Developer console is not set
+   up correctly` *"on the device only"*; and its open PR #285 records that the
+   emulator route was refused because it needs a typed password. KnowFlow's
+   Android sign-in would sit in the same unverifiable state.
+2. **The account cannot sell through Play.** Scan & Action's invariant states
+   *"the Morocco-based developer account cannot register as a Google Play
+   merchant"* (owner-stated there, not read from Play here). So the Android app
+   is free with no purchase surface, exactly like iOS, and nothing on Android
+   earns money sooner.
+3. **The twelve testers are people, and the product has none yet.** If the
+   14-day rule applies, the owner must recruit them; starting the clock early
+   does not help without them.
+
+`T2` still generates `android/` so the two shells never diverge, and the
+Android build job is about two sessions once a device and twelve testers
+exist.
 
 ## 6. Phases and items placed before the mobile build: before or after the first submission?
 
@@ -349,16 +401,187 @@ makes sign-in work in the Android shell.
 
 ## 7. Recommendation
 
-The shortest ordered path to TestFlight on the owner's iPhone is **T1 →
-T2 → T3 (owner) → T4 → T5 (owner)**: about four working sessions of agent work
-and forty minutes of the owner, with Phases 6, 7 and 9 and #137 PR B and PR C
-all after the first submission.
+*Corrected by §8; the paragraphs below supersede the first version of this
+section.* The shortest ordered path to TestFlight on the owner's iPhone is
+**T1 → T2 → T3 (owner) → T4 → T5 (owner)**: about three working sessions of
+agent work and forty minutes of the owner, with Phases 6, 7 and 9 and #137
+PR B and PR C all after the first submission.
 
 **The first item to build next is T1**, the request-time platform marker and
 the native routing, because every later step depends on the app hiding its
 purchase surface and its Google button by itself, and because it changes no
 web behaviour, so it can ship to production safely before any shell exists.
 
-Then S1 → S4 → S3 → S2 → S6/S7 → S8 → S9 for the first App Store submission,
-about six more sessions, with Android's internal test started as T2 lands and
-its closed test started as S1 lands.
+Then S1 → S4 → S3 → S2 → S6/S7 with S10 → S11 and S8 (owner) → S9 for the
+first App Store submission, about six more sessions, nine in total. Android
+follows the iOS submission (§5).
+
+## 8. Lessons from Scan & Action (read 2026-10-07)
+
+**Source and limits.** `tornidomaroc-web/scan-and-action`, public, read only
+through the GitHub API on 2026-10-07: `WORK-QUEUE.md` (its only board),
+`CLAUDE.md`, `.github/workflows/ios-testflight.yml` and `ios-audit.yml`,
+`apps/frontend/capacitor.config.ts`, the `ios/` project (`Info.plist`,
+`App.entitlements`, `PrivacyInfo.xcprivacy`, `ExportOptions.plist`,
+`MainViewController.swift`), the social-login patch, the environment policy of
+`testflight`, and its merged PRs since 2026-09-26. Nothing in that repository
+was changed. **The most important limit: Scan & Action has never been
+submitted to App Review.** Its board's last stage line is *"Submission, once
+design steps 1 to 5 are done and every APPLE TRACK blocker is closed"*, and
+its export options still carry `testFlightInternalTestingOnly`. So it proves
+the pipeline, signing, processing, TestFlight and native sign-in on this team;
+it proves nothing yet about what a reviewer decides on 4.2, 3.1.3(f) or
+anything else.
+
+### 8.1 The path Scan & Action took, in order
+
+| When | PR | Step | Error, dead end or finding | Fix |
+|---|---|---|---|---|
+| 2026-09-26/27 | #258 | Google and Apple sign-in | Apple 4.8 makes Apple mandatory once Google is offered | `@capgo/capacitor-social-login`, native sheets, `signInWithIdToken`; Apple native-only, so no Services ID and no six-monthly secret |
+| 2026-09-27 | #260 | iOS platform and TestFlight workflow | Capacitor 8 SPM template generated on Windows and committed | `macos-26`, API-key automatic signing, run on `main` and dispatch only |
+| 2026-09-27 | #261 | Signing | Run 36355312731: *"Your team has no devices from which to generate a provisioning profile"*; #261 forced an Apple Distribution identity | **Wrong fix**: run 36355938894, *"conflicting provisioning settings"* |
+| 2026-09-27/28 | #262 | Signing | (the revert) | Revert #261; register the owner's iPhone (2026-09-28); archive signs for development, export re-signs for the App Store; a test forbids the override |
+| 2026-09-28 | #263 | Processing | Build 4 **rejected in processing, ITMS-90683**, missing `NSPhotoLibraryUsageDescription` | Purpose strings for every API a linked plugin can reach, localized; `PrivacyInfo.xcprivacy` (UserDefaults `CA92.1`); a test derives the keys from plugin sources. **Build 5 passed and installed on the owner's iPhone** |
+| 2026-09-28 | #264 | Hardening | The Admin key sat on a runner that had run npm | Two jobs (`web` builds, `testflight` has no checkout and no npm), actions pinned to SHAs, `pipefail`; Swift packages resolved and scanned for plugins and macros before the key exists |
+| 2026-09-29 | #268, #269 | Store metadata | No Support URL; legal pages named no operator | A public `/support` page; the individual operator named |
+| 2026-09-29 | #270 | Binary | The social-login plugin links the Facebook SDK and AppTrackingTransparency even unused, which forced a tracking purpose string in an app that does not track | Facebook provider off in `capacitor.config.ts`, the import guarded by a patch, `ios-audit.yml` reads `otool -L` on every PR and every archive |
+| 2026-09-29 | #271 | 5.1.1(i), 2.1(a) | No privacy link inside the native app (the landing, which held it, never renders natively); "Data coming soon" on a new account's first screen | A Legal panel in Settings with no price or plan; the placeholders rewritten |
+| 2026-09-30 | #272, #274 | Account deletion | Apple's revocation page | Fresh Apple sheet at deletion, server exchange and revoke, nothing stored, proven on the owner's iPhone; then `main` went red on a time-bomb test nobody read, and a success that logged nothing |
+| 2026-09-30 | #275 | Reproducibility | An upstream Swift package release could move the build | `Package.resolved` committed; strict resolution |
+| 2026-09-30 | #276 | 4.2 | Its own board judged the app *"a B2B web admin panel on a phone"*, which is what 4.2 excludes | The system document scanner (VisionKit) as the native value |
+| 2026-10-01/04 | #277 | Signing | Run 13: *"Your account has reached the maximum number of certificates"*: every hosted run creates a Development certificate, Apple caps the team at ten | A sweep that revokes API-made Development certificates older than six hours, team-wide |
+
+**Cost, inferred from PR dates (the repository records no sessions):** about
+fourteen PRs over nine days, roughly ten working sessions, of which about four
+were spent on dead ends KnowFlow can now skip (#261 and its revert, ITMS-90683,
+the certificate cap, the Facebook SDK).
+
+**Still open there (its board, 2026-10-07):** the EU trader declaration, brand
+verification on the Google consent screen, Private Email Relay registration,
+Android Google sign-in (no device), the App Privacy labels, the measured first
+scan, the submission build, and the design steps before submission. Its
+"No support page" item is still unticked although #268 shipped `/support`.
+
+### 8.2 Each item, and what it means for KnowFlow
+
+| Item | Verdict for KnowFlow | How, or why not |
+|---|---|---|
+| Free `macos-26` build, API-key automatic signing | **Applies as is** | Same team, same public-repository terms. |
+| Secrets kept from fork runs | **Applies as is** | An environment `testflight` limited to `main`; no `pull_request` trigger; two jobs so the key never meets npm. |
+| Device registration for development signing | **Already done** | The owner's iPhone is registered on the team; the dead end of #261 is not repeated. |
+| Ten-certificate cap and the sweep | **Applies with adaptation** | The cap is per team, so the two apps' runs **share it**. KnowFlow must carry the same six-hour rule, so neither pipeline revokes a certificate the other is using, and the two pipelines must never be given different rules. |
+| Purpose strings, ITMS-90683 | **Applies with adaptation** | KnowFlow's plugins differ: social login, local notifications, document opening. Its file input accepts only documents (`DropZone.tsx:169`, `.pdf,.docx,.pptx,.xlsx,.txt,.md`), so no camera or photo key is expected; copy the test that derives keys from plugin sources rather than guessing. |
+| Privacy manifest | **Applies as is** | The same plugin ships no manifest; the UserDefaults `CA92.1` declaration carries over. |
+| Facebook SDK and AppTrackingTransparency | **Applies as is** | Same plugin, same switch, same patch, same `otool` audit. |
+| 4.2 native value | **Applies with adaptation** | Scan & Action's answer is a document scanner, native to its purpose. KnowFlow's answer stays §3.1's: native sign-in, a local study reminder, "Open in KnowFlow". A scanner that photographs textbook pages would be stronger, but needs text recognition before ingestion (a photo has no text, register #128), so it is not proposed for the first submission. |
+| 3.1.3(f) and the payment surface | **Applies with adaptation: the mechanism does not carry over** | Scan & Action gates on `Capacitor.isNativePlatform()` in the bundled client. **That cannot work in a shell over the live site:** KnowFlow's Upgrade links are rendered on the server, before any client code runs, so the server must know it is talking to the app. Replaced by T1's user-agent marker; Scan & Action itself already appends one on Android (`appendUserAgent: 'ScanActionAndroid'`). The proof becomes a request-path test, not a render of a client component. |
+| In-app privacy link | **Already met, check in native** | KnowFlow's Settings links privacy and terms (`dashboard/settings/page.tsx`); T1 must not send `/privacy` or `/terms` to the app entry. |
+| Placeholder text, 2.1(a) | **Checked, none found** | `grep` for "coming soon" and its Arabic forms in `src/`: nothing. |
+| Sign in with Apple and Google | **Applies as is** | S1, corrected. One adaptation: the session cookie is set on `tryknowflow.com` inside the web view by the page itself, which a live-site shell supports directly. |
+| Apple revocation at deletion | **Applies as is** | S2, corrected; the server half becomes a Next.js route on Vercel. |
+| Private Email Relay | **Applies with adaptation** | Same rule, KnowFlow's own domain and sender (#119 (ii), #89). |
+| Reviewer account | **Applies with adaptation** | Scan & Action keeps its reviewer account on Pro through a plan override with no subscription. KnowFlow has no override, and a hand-made `subscriptions` row without a Paddle id trips register #73's guard by design. KnowFlow's reviewer account is free, seeded with one subject and one material, and the review notes state the daily limits, so a reviewer is not surprised by a limit. |
+| Screenshots | **Not evidenced** | Scan & Action has not produced its set yet; §2.2 S6 stands. |
+| EU trader status | **Applies, and corrects this file** | Account-level; one declaration covers both apps (§3.6). |
+| App Privacy labels | **Applies with adaptation** | Scan & Action's rule, "derive the processor list from the code at submission time", is right and adopted; the processors differ (Anthropic, Voyage AI, Supabase, Resend, Vercel, Railway). |
+| TestFlight internal distribution | **Applies as is** | Builds join the internal group automatically on processing. |
+
+### 8.3 The architecture, re-judged
+
+**Kept: the shell over the live site, with one new fact weighed against it and
+one new test.**
+
+**The new fact against it.** Capacitor's own configuration reference says of
+`server.url`: *"This is intended for use with live-reload servers. This is not
+intended for use in production"*, and says the same of `allowNavigation`
+([Capacitor config](https://capacitorjs.com/docs/config)). That is the
+framework disclaiming support, not Apple refusing anything. The concrete
+failure it warns of is that the native bridge and plugins are designed for the
+bundled origin.
+
+**What Scan & Action's experience says.** Nothing from App Review, because it
+has not been reviewed. What it does show: (1) its bundled build cost nothing
+extra **because its web app was already a client-rendered Vite app calling a
+backend over CORS with tokens**; KnowFlow's is the opposite, server rendered
+with cookie sessions (§1.1), so the same choice costs KnowFlow about six to
+eight sessions; (2) its own judgment of 4.2 turned on native value, a
+scanner, not on bundling, which is §1.1's reading; (3) its sign-in plugin
+hands a token to the page, which works the same whether the page is bundled
+or loaded from `tryknowflow.com`, provided the bridge reaches that page.
+
+**So the decisive question is the bridge on the remote origin, and the first
+build answers it.** T2 copies Scan & Action's simulator launch check
+(`MainViewController.swift` writes what the loaded page reports;
+`ios-audit.yml` reads it) and asserts that `window.Capacitor` exists inside
+`https://tryknowflow.com`. **If it does not, the architecture changes to the
+bundled build before any S-item is built**, at the six-to-eight-session cost,
+and this file is corrected. That makes the risk cost one session to discover,
+not a rejection.
+
+**A risk the live-site shell adds, named.** Every page on `tryknowflow.com`
+gets the native bridge. A cross-site-scripting flaw on the site would reach
+the app's plugins. The plugin set is kept small (sign-in, notifications,
+document opening; no file-system write, no contacts), and `allowNavigation`
+is limited to `tryknowflow.com`.
+
+### 8.4 Reuse, and what must not be shared
+
+**Copy, with attribution in each file's header:**
+
+- `.github/workflows/ios-testflight.yml`: the two-job shape, the pre-key
+  package resolution and plugin-and-macro scan, the certificate sweep, the
+  archive-for-development and export-for-store pattern, the `otool` readings,
+  the key-removal step. **Adapt:** paths (`apps/frontend` becomes the
+  repository root), the plugin list in the artifact, the positive control
+  (`DocumentScannerPlugin` does not exist in KnowFlow), and the `push` trigger
+  limited to native paths, because a web change does not change a live-site
+  app.
+- `.github/workflows/ios-audit.yml` and the launch check in
+  `MainViewController.swift`, adapted to read the remote page.
+- `ios/ExportOptions.plist`, with KnowFlow's own values.
+- `patches/@capgo+capacitor-social-login+8.5.11.patch` and the
+  `SocialLogin.providers` map, re-checked against the plugin version KnowFlow
+  installs.
+- The purpose-string test and `PrivacyInfo.xcprivacy`.
+- The design of the revocation service (#272) and its logging of every outcome
+  (#274).
+
+**Never shared:**
+
+- **The App Store Connect API key.** KnowFlow gets its own key in its own
+  repository's environment. A shared key means one leak exposes both apps and
+  one revocation breaks both pipelines.
+- **The Sign in with Apple key**, the Google OAuth clients and their Google
+  Cloud project, the Supabase project and its keys.
+- **The bundle id** (`com.scanaction.app` is Scan & Action's; KnowFlow's is
+  `com.knowflow.app`) and the App Store Connect app record.
+- **The reviewer account.**
+- The **Team ID** is the same team and is not a secret; it is the one value
+  both projects legitimately carry.
+
+### 8.5 Live risks found in Scan & Action: reported, not fixed
+
+Recorded for the owner. Nothing was changed in that repository.
+
+1. **The signing job can execute Xcode project content produced by the job
+   that ran npm.** `web` runs `npm ci` (and so every package's install script,
+   including `patch-package`) and uploads `apps/frontend/ios` as an artifact;
+   `testflight` downloads it, places the Admin `.p8` in `$RUNNER_TEMP/asc`,
+   and runs `xcodebuild archive`. It checks that certain files exist and that
+   no package declares a SwiftPM plugin or macro, but **it does not check that
+   `App.xcodeproj/project.pbxproj` matches the commit**. A compromised npm
+   dependency could add a Run Script build phase to that file in the artifact,
+   and Xcode would run it on the runner that holds the key. The key has the
+   **Admin** role on the team that also holds KnowFlow. **Suggested fix there:**
+   in `testflight`, compare every committed file under `ios/` (all but the
+   synced web bundle, `capacitor.config.json` and the CLI-written
+   `CapApp-SPM/Package.swift`) with the commit, read through the API without
+   npm, and fail on any difference; and give the key the narrowest role that
+   still creates certificates. KnowFlow's copy of the workflow carries this
+   check from its first version.
+2. **An Admin key on a team with two apps.** Any leak of Scan & Action's key
+   is a leak for KnowFlow too. Separate keys (§8.4) limit the blast radius of
+   the next one, not of this one.
+3. **The board says "No support page" is open while `/support` shipped in
+   #268.** Not a security risk; a record that will mislead the submission
+   checklist.
