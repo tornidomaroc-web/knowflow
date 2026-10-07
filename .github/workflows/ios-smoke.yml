@@ -189,26 +189,28 @@ jobs:
           echo $! > "$RUNNER_TEMP/log.pid"
           SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$steps"
           data=$(xcrun simctl get_app_container "$UDID" com.knowflow.app data)
-          f="$data/tmp/smoke.jsonl"
           echo "data container: $data"
+          # On this simulator FileManager.temporaryDirectory is tmp/<bundle id>/,
+          # on older ones tmp/ itself: find the files wherever they land.
+          sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
           seen=0
           for i in $(seq 1 150); do
-            n=0; [ -f "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
+            f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
             if [ "$n" -gt "$seen" ]; then
               seen=$n
               name=$(tail -n 1 "$f" | python3 -c 'import json,sys; print(json.loads(sys.stdin.readline())["step"])')
               xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/online-$seen-$name.png" >/dev/null 2>&1 || true
               echo "step $seen ($name): $(tail -n 1 "$f" | cut -c1-400)"
             fi
-            [ -f "$data/tmp/smoke.done" ] && break
+            [ -n "$(sf smoke.done)" ] && break
             sleep 2
           done
-          cp "$f" "$RUNNER_TEMP/smoke-online.jsonl" 2>/dev/null || true
+          f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$RUNNER_TEMP/smoke-online.jsonl"
           xcrun simctl terminate "$UDID" com.knowflow.app || true
           kill "$(cat "$RUNNER_TEMP/log.pid")" 2>/dev/null || true
-          echo "boot file: $(cat "$data/tmp/smoke.boot" 2>/dev/null || echo '(none: capacitorDidLoad never ran in MainViewController)')"
-          cp "$data/tmp/smoke.boot" "$RUNNER_TEMP/smoke.boot" 2>/dev/null || true
-          test -f "$data/tmp/smoke.done" || { echo "FAIL: the smoke run did not finish; lines seen: $seen; jsonl exists: $([ -f "$f" ] && echo yes || echo no)"; cat "$f" 2>/dev/null || true; ls -la "$data/tmp" || true; grep -iE 'KFSmoke|Unknown class|crash|fatal' "$RUNNER_TEMP/app-online.log" | tail -n 30 || true; exit 1; }
+          b=$(sf smoke.boot); echo "boot file: $([ -n "$b" ] && cat "$b" || echo '(none: capacitorDidLoad never ran in MainViewController)')"
+          [ -n "$b" ] && cp "$b" "$RUNNER_TEMP/smoke.boot"
+          test -n "$(sf smoke.done)" || { echo "FAIL: the smoke run did not finish; lines seen: $seen"; [ -n "$f" ] && cat "$f"; find "$data/tmp" -maxdepth 3 | head -n 30; grep -iE 'KFSmoke|Unknown class|crash|fatal' "$RUNNER_TEMP/app-online.log" | tail -n 30 || true; exit 1; }
 
       # The site unreachable for one launch: its name resolves to 127.0.0.1
       # for the whole runner (the simulator uses the host's resolver), the app
@@ -224,22 +226,22 @@ jobs:
           xcrun simctl spawn "$UDID" log stream --style compact --predicate 'process == "App"' > "$RUNNER_TEMP/app-offline.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/log2.pid"
           data=$(xcrun simctl get_app_container "$UDID" com.knowflow.app data)
-          rm -f "$data/tmp/smoke.jsonl" "$data/tmp/smoke.done"
+          sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
+          find "$data/tmp" -maxdepth 3 \( -name smoke.jsonl -o -name smoke.done -o -name smoke.boot \) -delete 2>/dev/null || true
           SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$(printf '[]' | base64)" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$(printf '[]' | base64)"
-          f="$data/tmp/smoke.jsonl"
           for i in $(seq 1 120); do
-            [ -f "$data/tmp/smoke.done" ] && break
+            [ -n "$(sf smoke.done)" ] && break
             sleep 2
           done
           xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/offline-launch.png" >/dev/null 2>&1 || true
-          cp "$f" "$RUNNER_TEMP/smoke-offline.jsonl" 2>/dev/null || true
-          echo "offline launch: $(cat "$f" 2>/dev/null | cut -c1-500)"
+          f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$RUNNER_TEMP/smoke-offline.jsonl"
+          echo "offline launch: $([ -n "$f" ] && cut -c1-500 "$f")"
           xcrun simctl terminate "$UDID" com.knowflow.app || true
           kill "$(cat "$RUNNER_TEMP/log2.pid")" 2>/dev/null || true
           sudo cp "$RUNNER_TEMP/hosts.bak" /etc/hosts
           sudo dscacheutil -flushcache || true
           sudo killall -HUP mDNSResponder || true
-          test -f "$data/tmp/smoke.done" || { echo "FAIL: the offline run did not settle"; exit 1; }
+          test -n "$(sf smoke.done)" || { echo "FAIL: the offline run did not settle"; find "$data/tmp" -maxdepth 3 | head -n 30; exit 1; }
 
       - name: Assert the five proofs from the readings
         run: |
