@@ -70,6 +70,11 @@ if (platformMod) {
   check(platformMod.platformFromRequest(req('native')) === 'native', 'x-kf-platform: native is not read as native');
   check(platformMod.platformFromRequest(req(null)) === 'web', 'a request with no header must be web');
   check(platformMod.platformFromRequest(req('anything')) === 'web', 'an unknown header value must be web');
+  // The app's own marker, the user-agent token (STORE_PATH.md step a; the full
+  // reading and the middleware are scripts/verify-platform-gate.mjs).
+  const ua = (v) => ({ headers: { get: (n) => (n.toLowerCase() === 'user-agent' ? v : null) } });
+  check(platformMod.platformFromRequest(ua('Mozilla/5.0 (iPhone) KnowFlowApp/1')) === 'native', 'the KnowFlowApp/<n> user agent is not read as native');
+  check(platformMod.platformFromRequest(ua('Mozilla/5.0 (iPhone) Safari')) === 'web', 'a plain user agent must be web');
 }
 
 // ── 2. The two screens, rendered.

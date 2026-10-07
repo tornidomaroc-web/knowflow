@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { useTranslation, type Locale } from '@/lib/i18n';
+import { purchaseLinksAllowed } from '@/lib/platform';
+import { currentPlatform } from '@/lib/platform-server';
 
 /**
  * The public site's shell (#107): the header on the landing and on the six
@@ -25,6 +27,13 @@ export default async function SiteLayout({
 }) {
   const { locale } = await params;
   const t = useTranslation(locale);
+  // Which shell asked. Inside the app the header carries no Pricing link
+  // (Apple 3.1.1(a)). Reading the request here makes every page under this
+  // layout render per request instead of from the CDN, which is the cost of
+  // serving two variants from one build without ever caching either
+  // (src/lib/platform.ts, CACHING). The landing and /pricing themselves never
+  // reach the app: the middleware sends it to the dashboard.
+  const showPricing = purchaseLinksAllowed(await currentPlatform());
 
   return (
     // `min-h-screen` lives HERE and nowhere below it. Each page used to carry
@@ -33,6 +42,7 @@ export default async function SiteLayout({
     <div className="flex min-h-screen flex-col font-sans selection:bg-primary selection:text-primary-foreground">
       <SiteHeader
         locale={locale}
+        showPricing={showPricing}
         labels={{
           home: t.nav.home,
           howItWorks: t.nav.howItWorks,

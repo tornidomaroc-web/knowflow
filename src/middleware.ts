@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { platformFromHeaders } from '@/lib/platform';
 import {
   LOCALE_COOKIE,
   LOCALE_COOKIE_MAX_AGE,
@@ -80,10 +81,29 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 307);
   }
 
-  // 2. Supabase session update second
+  // 2. The app never shows the marketing root or the pricing page: both are
+  //    calls to action toward a purchase outside in-app purchase (Apple
+  //    3.1.1(a); docs/store/STORE_PATH.md step a). A request carrying the
+  //    app's marker (src/lib/platform.ts) is sent to the dashboard, which
+  //    `updateSession` below bounces to /login when there is no session; so
+  //    this grants nothing, it only takes a page away. A forged marker in a
+  //    normal browser costs that browser the landing and /pricing, nothing
+  //    else. Every other page (privacy, terms, the app itself) is served as
+  //    it is, with its own gated surfaces hidden.
+  if (platformFromHeaders((name) => request.headers.get(name)) === 'native') {
+    const rest = pathname.slice(`/${locale}`.length);
+    if (rest === '' || rest === '/' || rest === '/pricing' || rest === '/pricing/') {
+      const url = request.nextUrl.clone();
+      url.pathname = `/${locale}/dashboard`;
+      url.search = '';
+      return NextResponse.redirect(url, 307);
+    }
+  }
+
+  // 3. Supabase session update
   const response = await updateSession(request);
 
-  // 3. Remember the language of the page being opened. Every page carries its
+  // 4. Remember the language of the page being opened. Every page carries its
   //    locale in the path, so the switcher needs no client code and no route of
   //    its own: following its link is the choice, and this line is the memory.
   //    Written only when it changes, so an ordinary page view sets no cookie,

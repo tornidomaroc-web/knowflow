@@ -129,6 +129,17 @@ jobs:
       - name: Verify no purchase link reaches the store build (Apple 3.1.1(a), register #46)
         run: node --experimental-strip-types scripts/verify-store-purchase-links.mjs
 
+      # docs/store/STORE_PATH.md step a. The app is a shell over the live site,
+      # so the server tells the two apart per request (the user-agent token
+      # KnowFlowApp/<n>). This proof renders every gated surface both ways from
+      # its real .tsx, drives the real middleware with real NextRequests, and
+      # scans src/ so a new pricing link, upgrade href or Google button that
+      # does not go through purchaseLinksAllowed / googleSignInAllowed fails
+      # here. Shown red on a deliberate break (the Google gate removed; an
+      # ungated /pricing link added) before it was merged.
+      - name: Verify the platform marker only removes, and every purchase link and Google button is gated (STORE_PATH.md step a)
+        run: node --experimental-strip-types scripts/verify-platform-gate.mjs
+
       # Register #96, corrected: viewport-fit=cover is declared and every fixed bar
       # accounts for its safe-area inset.
       - name: Verify the iPhone safe areas are declared and used (register #96)

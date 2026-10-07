@@ -9,6 +9,7 @@ import { paddleClient } from '@/lib/paddle'
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n'
 import { SUPPORT_EMAIL, withSupportEmail } from '@/lib/site'
 import { purchaseLinksAllowed } from '@/lib/platform'
+import { currentPlatform } from '@/lib/platform-server'
 import { formatDate } from '@/lib/format-date'
 
 // Thin server wrapper: auth + entitlement only. Presentation lives in the dumb
@@ -60,9 +61,10 @@ export default async function SettingsPage({
       isPro={isPro}
       renewsOn={renewsOn}
       cancelsOn={cancelsOn}
-      // Apple 3.1.1(a): inside the store build the plan card is status only.
-      // `purchaseLinksAllowed()` reads the build-time flag (src/lib/platform.ts).
-      upgradeHref={purchaseLinksAllowed() ? `/${safeLocale}/pricing` : null}
+      // Apple 3.1.1(a): inside the app the plan card is status only. The
+      // platform is read from this request (src/lib/platform.ts), which also
+      // keeps this page rendered per request rather than cached.
+      upgradeHref={purchaseLinksAllowed(await currentPlatform()) ? `/${safeLocale}/pricing` : null}
       locale={safeLocale}
       pathname={`/${safeLocale}/dashboard/settings`}
       // Apple 5.1.1(i): the privacy policy must be linked "within the app in an

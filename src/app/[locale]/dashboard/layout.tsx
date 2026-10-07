@@ -7,6 +7,8 @@ import { getEntitlement } from '@/lib/entitlement';
 import { PASSWORD_REPLACED_COOKIE } from '@/lib/auth/password-replaced';
 import { redirect } from 'next/navigation';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
+import { currentPlatform } from '@/lib/platform-server';
+import { PlatformProvider } from '@/components/platform/PlatformProvider';
 
 export default async function DashboardLayout({
   children,
@@ -43,6 +45,11 @@ export default async function DashboardLayout({
   const passwordReplaced =
     cookieStore.get(PASSWORD_REPLACED_COOKIE)?.value === '1';
 
+  // Which shell asked, handed to the client components below (the new-subject
+  // page's refusal sentence) through context, so server markup and hydration
+  // agree. Apple 3.1.1(a); src/lib/platform.ts.
+  const platform = await currentPlatform();
+
   const labels = {
     dashboard: t.dashboard.nav.dashboard,
     knowledge: t.dashboard.nav.knowledge,
@@ -55,6 +62,7 @@ export default async function DashboardLayout({
   };
 
   return (
+    <PlatformProvider platform={platform}>
     <DashboardShell locale={safeLocale} email={user.email || ''} isPro={isPro} labels={labels}>
       {passwordReplaced && (
         <PasswordReplacedNotice
@@ -64,5 +72,6 @@ export default async function DashboardLayout({
       )}
       {children}
     </DashboardShell>
+    </PlatformProvider>
   );
 }

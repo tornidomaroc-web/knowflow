@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { startOAuth } from '@/lib/auth/oauth';
+import { googleSignInAllowed } from '@/lib/platform';
+import { usePlatform } from '@/components/platform/PlatformProvider';
 
 /**
  * The one way into a Google sign-in. Used by both /login and /signup, which
@@ -48,6 +50,11 @@ export function GoogleButton({
 }) {
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Hidden inside the app (STORE_PATH.md step a): Google refuses OAuth in an
+  // embedded web view, and native sign-in is step S1. The platform comes from
+  // the request through the page's PlatformProvider, never from the browser.
+  const platform = usePlatform();
+  if (!googleSignInAllowed(platform)) return null;
 
   const start = async () => {
     setFailed(false);

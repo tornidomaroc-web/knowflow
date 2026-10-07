@@ -8,6 +8,7 @@ import { pluralize } from '@/lib/i18n/plural'
 import { FREE_LIMITS } from '@/lib/limits'
 import { DAILY_CAPS } from '@/lib/rate-limit'
 import { buildHomeLabels, buildHomeProgress, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
+import { resolvePlatform } from '@/lib/platform'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { formatDate } from '@/lib/format-date'
 
@@ -51,7 +52,7 @@ export default async function StudentHomePreview({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ state?: string; theme?: string }>
+  searchParams: Promise<{ state?: string; theme?: string; platform?: string }>
 }) {
   // ── THE GATE. A `noindex` tag is not access control: it asks crawlers not to
   //    list the path, and does nothing about anyone who has the URL. This route
@@ -76,7 +77,10 @@ export default async function StudentHomePreview({
   const t = useTranslation(safeLocale)
   const home = t.dashboard.home
 
-  const { state: rawState, theme: rawTheme } = await searchParams
+  const { state: rawState, theme: rawTheme, platform: rawPlatform } = await searchParams
+  // `?platform=native` shows the home as the app renders it (no Upgrade link),
+  // the same switch the settings preview has; the store screenshots use it.
+  const platform = resolvePlatform(rawPlatform)
   const state: State = rawState === 'full' ? 'full' : 'zero'
   const full = state === 'full'
   // `?theme=` is now honoured by the boot script on <html> (`src/lib/theme.ts`),
@@ -196,7 +200,7 @@ export default async function StudentHomePreview({
         <StudentHome
           stats={stats}
           streak={streak}
-          {...buildHrefs(safeLocale)}
+          {...buildHrefs(safeLocale, platform)}
           continueCard={
             full
               ? { subject: subjects[0].name, date: formatDate(recentActivity[0].created_at, safeLocale), href: `/${safeLocale}/dashboard/agent` }

@@ -12,6 +12,7 @@ import { FREE_LIMITS, PRO_LIMITS } from '@/lib/limits'
 import { DAILY_CAPS } from '@/lib/rate-limit'
 import { formatDate } from '@/lib/format-date'
 import { buildHomeLabels, buildHomeProgress, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
+import { currentPlatform } from '@/lib/platform-server'
 
 // Thin server wrapper: auth + data only. Presentation lives in <StudentHome/>
 // (dumb, prop-driven) so it can be reused/storybooked in Phase 8.
@@ -31,6 +32,9 @@ export default async function DashboardPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/${safeLocale}/login`)
+  // Which shell asked: inside the app the home carries no Upgrade link
+  // (Apple 3.1.1(a); src/lib/platform.ts).
+  const platform = await currentPlatform()
 
   // P5.3: the student's IANA zone, written by <TimeZoneSync/> below. Read with the
   // same `next/headers` machinery `createClient()` already uses, which is what lets
@@ -117,7 +121,7 @@ export default async function DashboardPage({
       <StudentHome
         stats={stats}
         streak={streak} // P5.3: real number, or null while the zone is unknown (honest ghost).
-        {...buildHrefs(safeLocale)}
+        {...buildHrefs(safeLocale, platform)}
         // Register #85 (2.4): the most recent conversation, from the read the
         // home already makes. Null for an account that has not asked yet.
         continueCard={
