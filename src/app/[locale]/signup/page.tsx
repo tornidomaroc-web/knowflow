@@ -10,12 +10,19 @@ import { GoogleButton } from '@/components/auth/GoogleButton';
 import { AppleButton } from '@/components/auth/AppleButton';
 import { SparkBook } from '@/components/illustrations';
 import { APPLE_SIGNIN_ENABLED } from '@/lib/auth/providers';
+import { googleSignInAllowed } from '@/lib/platform';
+import { usePlatform } from '@/components/platform/PlatformProvider';
 import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
 
 export default function SignupPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = use(params);
   const t = useTranslation(locale);
+  // The "or" between the provider buttons and the e-mail form exists only
+  // when a provider button is shown; inside the app (STORE_PATH.md step a)
+  // the Google button is hidden and Apple is not enabled yet, so the divider
+  // would separate nothing. Read from the same context the button reads.
+  const providerShown = googleSignInAllowed(usePlatform()) || APPLE_SIGNIN_ENABLED;
   const isRtl = locale === 'ar';
 
   const supabase = createClient();
@@ -152,11 +159,13 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
               steps, and the button appears on the next build. */}
           {APPLE_SIGNIN_ENABLED && <AppleButton label={t.auth.appleSignup} errorLabel={t.auth.appleFailed} />}
 
-          <div className="flex items-center gap-3" aria-hidden="true">
-            <span className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground">{t.auth.orDivider}</span>
-            <span className="h-px flex-1 bg-border" />
-          </div>
+          {providerShown && (
+            <div className="flex items-center gap-3" aria-hidden="true">
+              <span className="h-px flex-1 bg-border" />
+              <span className="text-xs text-muted-foreground">{t.auth.orDivider}</span>
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          )}
 
           <div className="space-y-4">
             <AuthField
