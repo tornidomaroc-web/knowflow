@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { platformFromHeaders } from '@/lib/platform';
 import {
   LOCALE_COOKIE,
   LOCALE_COOKIE_MAX_AGE,
@@ -62,6 +63,13 @@ function isPageLoad(request: NextRequest): boolean {
   return !/prefetch|prerender|preview/i.test(purpose);
 }
 
+/**
+ * The prerendered pages that have an app twin under `/<locale>/native/`.
+ * Exactly the files in `src/app/[locale]/native/`; `verify-platform-gate.mjs`
+ * holds the two lists equal.
+ */
+const NATIVE_TWINS = new Set(['/login', '/signup', '/about', '/contact', '/privacy', '/terms', '/refund']);
+
 /** The locale a path carries, or null. */
 function pathLocale(pathname: string): Locale | null {
   return locales.find((l) => pathname.startsWith(`/${l}/`) || pathname === `/${l}`) ?? null;
@@ -80,10 +88,50 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 307);
   }
 
-  // 2. Supabase session update second
-  const response = await updateSession(request);
+  // 2. WHICH SHELL ASKED (src/lib/platform.ts; docs/store/STORE_PATH.md step a).
+  //    The app is a native shell over this site and marks every request with
+  //    `KnowFlowApp/<n>` in its user agent. Three things follow, and each only
+  //    TAKES something away, so a forged marker in a browser costs that
+  //    browser the same and grants nothing:
+  //    - the marketing root and /pricing, calls to action toward a purchase
+  //      outside in-app purchase (Apple 3.1.1(a)), are sent to the dashboard,
+  //      which `updateSession` bounces to /login without a session;
+  //    - the prerendered pages a signed-out student meets (login, signup, the
+  //      legal and marketing pages) are REWRITTEN to their `/native/` twin, a
+  //      second prerendered copy without the Pricing link and the Google
+  //      button. The URL stays; the response is cached at the twin's own
+  //      path, so the web's cached pages are never touched and neither
+  //      variant can be served to the other shell. Next forwards the RSC
+  //      headers upstream on a rewrite, so the router's own fetches land on
+  //      the twin too;
+  //    - a direct visit to a `/native/` path without the marker gets the 404
+  //      page (the twin is not a second public URL); with the marker it is
+  //      served as it is.
+  //    The signed-in pages read the marker themselves (`currentPlatform()`):
+  //    they are rendered per request already, so nothing is cached there.
+  const native = platformFromHeaders((name) => request.headers.get(name)) === 'native';
+  const rest = pathname.slice(`/${locale}`.length).replace(/\/$/, '');
+  if (native && (rest === '' || rest === '/pricing')) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${locale}/dashboard`;
+    url.search = '';
+    return NextResponse.redirect(url, 307);
+  }
+  let rewriteTo: string | null = null;
+  if (native && NATIVE_TWINS.has(rest)) rewriteTo = `/${locale}/native${rest}`;
+  if (!native && (rest === '/native' || rest.startsWith('/native/'))) rewriteTo = `/${locale}/native-is-not-a-page${rest}`;
 
-  // 3. Remember the language of the page being opened. Every page carries its
+  // 3. Supabase session update
+  let response = await updateSession(request);
+  if (rewriteTo && !response.headers.has('location')) {
+    const url = request.nextUrl.clone();
+    url.pathname = rewriteTo;
+    const rewritten = NextResponse.rewrite(url, { request: { headers: request.headers } });
+    for (const c of response.cookies.getAll()) rewritten.cookies.set(c);
+    response = rewritten;
+  }
+
+  // 4. Remember the language of the page being opened. Every page carries its
   //    locale in the path, so the switcher needs no client code and no route of
   //    its own: following its link is the choice, and this line is the memory.
   //    Written only when it changes, so an ordinary page view sets no cookie,

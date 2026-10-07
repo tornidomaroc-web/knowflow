@@ -7,7 +7,6 @@ import { locales, Locale, useTranslation } from '@/lib/i18n';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
 import { THEME_BOOT_SCRIPT } from '@/lib/theme';
 import { ThemeSync } from '@/components/platform/ThemeSync';
-import { NativePlatformHeader } from '@/components/platform/NativePlatformHeader';
 
 // `viewport-fit=cover` and the theme colour; the object lives in
 // `src/lib/viewport.ts` so the safe-area proof can import it (register #96).
@@ -104,7 +103,6 @@ export default async function LocaleLayout({
         {/* Restores the chosen theme after the 404's client-rendered shell
             (see ThemeSync); a no-op on every other page. */}
         <ThemeSync />
-        <NativePlatformHeader />
         {children}
       </body>
     </html>

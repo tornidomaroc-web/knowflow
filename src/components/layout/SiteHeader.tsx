@@ -35,7 +35,7 @@ export interface SiteHeaderLabels {
  * The dictionary is NOT imported here: labels arrive as props from the server
  * layout, so neither locale's dictionary is pulled into the client bundle.
  */
-export function SiteHeader({ locale, labels }: { locale: Locale; labels: SiteHeaderLabels }) {
+export function SiteHeader({ locale, labels, showPricing }: { locale: Locale; labels: SiteHeaderLabels; showPricing: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -66,7 +66,10 @@ export function SiteHeader({ locale, labels }: { locale: Locale; labels: SiteHea
     // header now stands on seven pages, and on six of them a bare fragment
     // scrolls the page the student is already on to nothing.
     { href: `/${locale}#how-it-works`, label: labels.howItWorks },
-    { href: `/${locale}/pricing`, label: labels.pricing },
+    // Absent inside the app: a link to the pricing page is a call to action
+    // toward a purchase outside in-app purchase (Apple 3.1.1(a)). The layout
+    // decides from the request (`purchaseLinksAllowed(await currentPlatform())`).
+    ...(showPricing ? [{ href: `/${locale}/pricing`, label: labels.pricing }] : []),
     { href: `/${locale}/about`, label: labels.about },
   ];
 

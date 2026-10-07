@@ -1,5 +1,5 @@
 import type { Locale } from '@/lib/i18n'
-import { purchaseLinksAllowed } from '@/lib/platform'
+import { purchaseLinksAllowed, type Platform } from '@/lib/platform'
 import type { PluralForms } from '@/lib/i18n/plural'
 import type {
   OnboardingStep,
@@ -125,13 +125,21 @@ export function buildHomeLabels({ home, subjectsNavLabel, isPro, streakUnit, con
   }
 }
 
-export function buildHrefs(locale: Locale) {
+/** The three in-app destinations, the same in both shells. */
+export function appHrefs(locale: Locale) {
   return {
     askHref: `/${locale}/dashboard/agent`,
     newSubjectHref: `/${locale}/dashboard/knowledge/new`,
     subjectsHref: `/${locale}/dashboard/knowledge`,
-    // Null in the store build: no purchase link inside the app (Apple 3.1.1(a)).
-    upgradeHref: purchaseLinksAllowed() ? `/${locale}/pricing` : null,
+  }
+}
+
+export function buildHrefs(locale: Locale, platform: Platform) {
+  return {
+    ...appHrefs(locale),
+    // Null inside the app: no purchase link there (Apple 3.1.1(a)); the page
+    // reads the platform from the request (`currentPlatform()`).
+    upgradeHref: purchaseLinksAllowed(platform) ? `/${locale}/pricing` : null,
   }
 }
 
@@ -145,7 +153,7 @@ export function buildOnboarding(
   locale: Locale,
   counts: { subjects: number; materials: number; conversations: number },
 ): OnboardingStep[] {
-  const h = buildHrefs(locale)
+  const h = appHrefs(locale)
   return [
     { key: 'subject', title: home.step1Title, desc: home.step1Desc, done: counts.subjects > 0, href: h.newSubjectHref },
     { key: 'upload', title: home.step2Title, desc: home.step2Desc, done: counts.materials > 0, href: h.subjectsHref },

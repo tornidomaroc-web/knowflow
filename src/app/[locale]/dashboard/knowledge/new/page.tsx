@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Input, buttonVariants } from '@/components/ui';
 import { useTranslation, Locale, resolveLocale } from '@/lib/i18n';
 import { purchaseLinksAllowed } from '@/lib/platform';
+import { usePlatform } from '@/components/platform/PlatformProvider';
 import { KB_LANGUAGES, type KbLanguage } from '@/types';
 
 const fieldClass =
@@ -36,6 +37,10 @@ export default function NewKnowledgeBasePage({
   const { locale } = use(params);
   const safeLocale: Locale = resolveLocale(locale);
   const t = useTranslation(safeLocale);
+  // Which shell this page is in, from the request through the dashboard
+  // layout's PlatformProvider: inside the app the limit refusal carries no
+  // upgrade sentence (Apple 3.1.1(a)).
+  const platform = usePlatform();
   const router = useRouter();
   const supabase = createClient();
   const [name, setName] = useState('');
@@ -63,7 +68,7 @@ export default function NewKnowledgeBasePage({
       // the copy can never drift from the enforced number. A Pro user never sees
       // the free-plan / upgrade wording.
       const template = tier === 'pro' ? t.dashboard.newKb.errorLimitPro : t.dashboard.newKb.errorLimitFree;
-      const upgrade = tier !== 'pro' && purchaseLinksAllowed() ? ' ' + t.dashboard.newKb.errorLimitUpgrade : '';
+      const upgrade = tier !== 'pro' && purchaseLinksAllowed(platform) ? ' ' + t.dashboard.newKb.errorLimitUpgrade : '';
       setError(template.replace('{limit}', String(limit)) + upgrade);
       setLoading(false);
       return;
