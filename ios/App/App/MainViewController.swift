@@ -22,11 +22,21 @@ class MainViewController: CAPBridgeViewController {
 
     override open func capacitorDidLoad() {
         #if targetEnvironment(simulator)
-        if ProcessInfo.processInfo.environment["KF_SMOKE"] == "1" {
-            NSLog("[KFSmoke] capacitorDidLoad: starting the smoke run")
+        // The switch arrives either as an environment variable (simctl's
+        // SIMCTL_CHILD_ prefix) or as a launch argument; both are accepted, and
+        // a boot file records which, so a run that never starts says why.
+        let env = ProcessInfo.processInfo.environment
+        let args = CommandLine.arguments
+        let asked = env["KF_SMOKE"] == "1" || args.contains("--kf-smoke")
+        let boot = "asked=\(asked) env=\(env["KF_SMOKE"] ?? "nil") args=\(args.dropFirst().joined(separator: " ").prefix(120)) webView=\(bridge?.webView != nil)\n"
+        try? boot.write(to: FileManager.default.temporaryDirectory.appendingPathComponent("smoke.boot"), atomically: true, encoding: .utf8)
+        NSLog("[KFSmoke] capacitorDidLoad: %@", boot)
+        if asked {
             let smoke = Smoke(controller: self)
             MainViewController.smoke = smoke
-            smoke.start()
+            // The web view is created in viewDidLoad; give it a moment before
+            // the first probe rather than racing it.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { smoke.start() }
         }
         #endif
     }
@@ -42,7 +52,12 @@ private final class Smoke {
 
     init(controller: CAPBridgeViewController) {
         self.controller = controller
-        if let b64 = ProcessInfo.processInfo.environment["KF_SMOKE_STEPS"],
+        // The steps, base64 JSON, from the environment or from `--kf-steps=<b64>`.
+        var b64 = ProcessInfo.processInfo.environment["KF_SMOKE_STEPS"]
+        if b64 == nil, let arg = CommandLine.arguments.first(where: { $0.hasPrefix("--kf-steps=") }) {
+            b64 = String(arg.dropFirst("--kf-steps=".count))
+        }
+        if let b64 = b64,
            let data = Data(base64Encoded: b64),
            let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
             steps = arr
