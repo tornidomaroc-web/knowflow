@@ -8,7 +8,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = CAPBridgeViewController()
+        // The subclass, not the base class: Capacitor 8.5's template builds the
+        // root controller here in code and never reads Main.storyboard, so the
+        // class named there is not what runs. MainViewController carries the
+        // simulator smoke run (.github/workflows/ios-smoke.yml) and nothing else.
+        window?.rootViewController = MainViewController()
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
