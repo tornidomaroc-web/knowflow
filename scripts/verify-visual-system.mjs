@@ -136,10 +136,16 @@ const { renderToStaticMarkup } = await import('react-dom/server');
   const { SettingsPanel } = await load('src/components/dashboard/SettingsPanel.tsx');
   const settingsLabels = { title: 'Settings', subtitle: 's', account: 'Account', email: 'Email', plan: 'Plan', free: 'Free', pro: 'Pro', freePlanDesc: 'f', proPlanDesc: 'p', renews: 'Renews', cancels: 'Cancels', upgrade: 'Upgrade', activeSubscription: 'Active', preferences: 'Preferences', language: 'Language', appearance: 'Appearance', themeDark: 'Dark', themeLight: 'Light', helpLegal: 'Help', privacyPolicy: 'Privacy', terms: 'Terms', support: 'Support', supportDesc: 'd' };
   globalThis.__tsxHooksPathname = '/en/dashboard/settings';
-  const settings = renderToStaticMarkup(React.createElement(SettingsPanel, { email: 'a@b.c', isPro: false, renewsOn: null, cancelsOn: null, upgradeHref: null, locale: 'en', pathname: '/en/dashboard/settings', privacyHref: '#', termsHref: '#', supportEmail: 's@x.y', labels: settingsLabels, deleteCard: null }));
+  // The web (an upgrade link is given): four sections, Plan among them.
+  const settings = renderToStaticMarkup(React.createElement(SettingsPanel, { email: 'a@b.c', isPro: false, renewsOn: null, cancelsOn: null, upgradeHref: '/en/pricing', locale: 'en', pathname: '/en/dashboard/settings', privacyHref: '#', termsHref: '#', supportEmail: 's@x.y', labels: settingsLabels, deleteCard: null }));
   const headings = settings.match(/<h2/g)?.length ?? 0;
   const iconTiles = settings.match(/section-icon/g)?.length ?? 0;
   check(headings >= 4 && iconTiles >= 4, `settings has ${headings} sections and ${iconTiles} section icons`);
+  // Inside the app a free student gets no plan card at all (Apple 3.1.3(f),
+  // measured in the simulator 2026-10-08): three sections, the same icons.
+  const settingsApp = renderToStaticMarkup(React.createElement(SettingsPanel, { email: 'a@b.c', isPro: false, renewsOn: null, cancelsOn: null, upgradeHref: null, locale: 'en', pathname: '/en/dashboard/settings', privacyHref: '#', termsHref: '#', supportEmail: 's@x.y', labels: settingsLabels, deleteCard: null }));
+  const appHeadings = settingsApp.match(/<h2/g)?.length ?? 0;
+  check(appHeadings === headings - 1 && !/>Free</.test(settingsApp), `settings inside the app for a free student has ${appHeadings} sections and no plan name`);
 
   const { AgentEmptyState } = await load('src/components/agent/AgentEmptyState.tsx');
   const agent = renderToStaticMarkup(React.createElement(AgentEmptyState, { newHref: '#', labels: { title: 'No subjects', prompt: 'p', cta: 'c' } }));
