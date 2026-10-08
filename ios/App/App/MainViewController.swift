@@ -97,7 +97,7 @@ private final class Smoke {
             let settled = href.hasPrefix("https://tryknowflow.com") || href.contains("offline.html")
             if (ready && settled) || attempt >= 90 {
                 self.record(step: "launch", result: "settled after \(attempt) s", probe: probe)
-                self.afterAck { self.runNext() }
+                if self.steps.isEmpty { self.runNext() } else { self.afterAck { self.runNext() } }
             } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.waitForPage(attempt: attempt + 1) }
             }
@@ -120,7 +120,11 @@ private final class Smoke {
             DispatchQueue.main.asyncAfter(deadline: .now() + wait / 1000) {
                 self.probeNow { probe in
                     self.record(step: name, result: result, probe: probe)
-                    self.afterAck { self.runNext() }
+                    // After the last step the app may be in the background (an
+                    // external link opened Safari) and its timers suspended, so
+                    // the done-file is written at once; nothing can overwrite
+                    // that screen before the workflow photographs it.
+                    if self.index >= self.steps.count { self.runNext() } else { self.afterAck { self.runNext() } }
                 }
             }
         }
