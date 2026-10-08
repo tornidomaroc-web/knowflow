@@ -206,6 +206,8 @@ jobs:
               name=$(tail -n 1 "$f" | python3 -c 'import json,sys; print(json.loads(sys.stdin.readline())["step"])')
               xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/online-$seen-$name.png" >/dev/null 2>&1 || true
               echo "step $seen ($name): $(tail -n 1 "$f" | cut -c1-400)"
+              # The app waits for this file before its next step (MainViewController.afterAck).
+              touch "$(dirname "$f")/ack-$seen"
             fi
             [ -n "$(sf smoke.done)" ] && break
             sleep 1
@@ -235,6 +237,7 @@ jobs:
           find "$data/tmp" -maxdepth 3 \( -name smoke.jsonl -o -name smoke.done -o -name smoke.boot \) -delete 2>/dev/null || true
           SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$(printf '[]' | base64)" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$(printf '[]' | base64)"
           for i in $(seq 1 120); do
+            f=$(sf smoke.jsonl); if [ -n "$f" ] && [ -s "$f" ]; then touch "$(dirname "$f")/ack-1"; fi
             [ -n "$(sf smoke.done)" ] && break
             sleep 2
           done

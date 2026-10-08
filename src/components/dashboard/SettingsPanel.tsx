@@ -130,7 +130,12 @@ export function SettingsPanel({
           </div>
         </Card>
 
-        {/* ── Plan ── */}
+        {/* ── Plan ── Apple 3.1.3(f), measured in the simulator 2026-10-08: inside
+            the app a free student gets no plan card (its "Free" names a tier
+            that exists only where it can be bought). A Pro student keeps it
+            everywhere: the renewal and cancellation status is management, not
+            a call to action. */}
+        {(isPro || upgradeHref) && (
         <Card className="p-5">
           <div className="flex items-center justify-between gap-3">
             <SectionLabel icon={Trophy} tint="bg-accent-subtle text-accent">{labels.plan}</SectionLabel>
@@ -165,6 +170,7 @@ export function SettingsPanel({
             </Link>
           )}
         </Card>
+        )}
 
         {/* ── Preferences ── */}
         <Card className="p-5">

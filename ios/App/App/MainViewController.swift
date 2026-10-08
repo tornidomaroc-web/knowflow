@@ -97,7 +97,7 @@ private final class Smoke {
             let settled = href.hasPrefix("https://tryknowflow.com") || href.contains("offline.html")
             if (ready && settled) || attempt >= 90 {
                 self.record(step: "launch", result: "settled after \(attempt) s", probe: probe)
-                self.runNext()
+                self.afterAck { self.runNext() }
             } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.waitForPage(attempt: attempt + 1) }
             }
@@ -120,9 +120,24 @@ private final class Smoke {
             DispatchQueue.main.asyncAfter(deadline: .now() + wait / 1000) {
                 self.probeNow { probe in
                     self.record(step: name, result: result, probe: probe)
-                    self.runNext()
+                    self.afterAck { self.runNext() }
                 }
             }
+        }
+    }
+
+    // Every recorded line is photographed by the workflow before the next
+    // step runs: after line n is written the app waits for the workflow to
+    // create `ack-n` beside smoke.jsonl (it does so right after its
+    // screenshot), up to 30 s, so no screen is left unphotographed and no
+    // screenshot shows the step after the one it is named for.
+    private var lines = 0
+    private func afterAck(_ then: @escaping () -> Void, waited: Int = 0) {
+        let ack = dir.appendingPathComponent("ack-\(lines)")
+        if FileManager.default.fileExists(atPath: ack.path) || waited >= 120 {
+            then()
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.afterAck(then, waited: waited + 1) }
         }
     }
 
@@ -177,6 +192,7 @@ private final class Smoke {
         if let data = try? JSONSerialization.data(withJSONObject: line), let raw = String(data: data, encoding: .utf8) {
             let s = scrub(raw)
             write("smoke.jsonl", s + "\n", append: true)
+            lines += 1
             NSLog("[KFSmoke] %@", s)
         }
     }

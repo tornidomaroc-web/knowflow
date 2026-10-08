@@ -148,16 +148,22 @@ export function StudentHome({
             <h1 className="text-3xl font-bold text-foreground md:text-4xl">{labels.welcome}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{labels.welcomeLine}</p>
           </div>
-          <span
-            className={
-              isPro
-                ? 'inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground'
-                : 'inline-flex items-center gap-1.5 rounded-full bg-accent-subtle px-3 py-1 text-xs font-semibold text-accent'
-            }
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            {labels.planName}
-          </span>
+          {/* Apple 3.1.3(f), measured in the simulator 2026-10-08: inside the app a
+              free student sees no plan name at all ("Free" names a tier that
+              exists only where it can be bought). On the web, and for a Pro
+              student anywhere, the pill stays. */}
+          {(isPro || upgradeHref) && (
+            <span
+              className={
+                isPro
+                  ? 'inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground'
+                  : 'inline-flex items-center gap-1.5 rounded-full bg-accent-subtle px-3 py-1 text-xs font-semibold text-accent'
+              }
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {labels.planName}
+            </span>
+          )}
         </header>
 
         {/* ── Ask + streak ── */}
