@@ -50,6 +50,16 @@ private final class Smoke {
     private let started = Date()
     private let dir = FileManager.default.temporaryDirectory
 
+    // The reviewer account's credentials, for the signed-in run
+    // (`.github/workflows/ios-signed-in.yml`). They arrive only through the
+    // launch environment, never in the steps JSON (whose first bytes land in
+    // smoke.boot and in the log); a step names them as the bare tokens
+    // __KF_EMAIL__ and __KF_PASSWORD__, which `eval` replaces with JSON string
+    // literals just before evaluation. Nothing here writes them anywhere: the
+    // recorded `result` is scrubbed in case a page echoed one back.
+    private let email = ProcessInfo.processInfo.environment["KF_SMOKE_EMAIL"]
+    private let password = ProcessInfo.processInfo.environment["KF_SMOKE_PASSWORD"]
+
     init(controller: CAPBridgeViewController) {
         self.controller = controller
         // The steps, base64 JSON, from the environment or from `--kf-steps=<b64>`.
@@ -71,8 +81,13 @@ private final class Smoke {
     // What the page reports about itself. `bridge` is the one reading that
     // decides the architecture (STORE_PATH.md §8.3): Capacitor's own object,
     // inside a document served from the live site.
+    //
+    // `purchase` is the Apple 3.1.3(f) reading taken on every signed-in screen
+    // (ios-signed-in.yml): the words and the links that would name a price, a
+    // plan, an upgrade or a checkout, in both locales, over the page's visible
+    // text and every anchor. The workflow fails on any hit.
     private static let probe = """
-    (function(){try{var C=window.Capacitor;return JSON.stringify({ready:document.readyState,href:location.href,title:document.title,bridge:!!(C&&C.isNativePlatform&&C.isNativePlatform()),platform:(C&&C.getPlatform)?C.getPlatform():null,marker:/KnowFlowApp\\/1/.test(navigator.userAgent),google:document.querySelectorAll('[fill="#4285F4"]').length,pricing:document.querySelectorAll('a[href*="/pricing"]').length,nav:window.__kfNav||0,text:(document.body&&document.body.innerText||'').replace(/\\s+/g,' ').slice(0,160)})}catch(e){return JSON.stringify({error:String(e)})}})()
+    (function(){try{var C=window.Capacitor;var T=(document.body&&document.body.innerText||'');var words=['Upgrade','Checkout','checkout','/month','Pricing','Free plan','الترقية','الاحترافي','الأسعار','شهرياً','شهريًا','الباقة','باقة','مجاني'];var hits=words.filter(function(w){return T.indexOf(w)>=0});if(/\\bPro\\b/.test(T))hits.push('Pro');if(/\\bPlan\\b/.test(T))hits.push('Plan');if(/\\bFree\\b/.test(T))hits.push('Free');var hrefs=Array.prototype.slice.call(document.querySelectorAll('a[href]')).map(function(a){return a.getAttribute('href')||''}).filter(function(h){return /pricing|checkout|paddle|upgrade/i.test(h)});return JSON.stringify({ready:document.readyState,href:location.href,title:document.title,bridge:!!(C&&C.isNativePlatform&&C.isNativePlatform()),platform:(C&&C.getPlatform)?C.getPlatform():null,marker:/KnowFlowApp\\/1/.test(navigator.userAgent),google:document.querySelectorAll('[fill="#4285F4"]').length,pricing:document.querySelectorAll('a[href*="/pricing"]').length,nav:window.__kfNav||0,signedIn:!!document.querySelector('a[href$="/dashboard/settings"]'),purchase:{words:hits,hrefs:hrefs},text:T.replace(/\\s+/g,' ').slice(0,400)})}catch(e){return JSON.stringify({error:String(e)})}})()
     """
 
     private func waitForPage(attempt: Int) {
@@ -113,9 +128,29 @@ private final class Smoke {
 
     private func eval(_ js: String, _ done: @escaping (String) -> Void) {
         guard let web = controller?.bridge?.webView else { done("no webview"); return }
-        web.evaluateJavaScript(js) { value, error in
-            if let error = error { done("error: \(error.localizedDescription)") } else { done(value.map { "\($0)" } ?? "undefined") }
+        // The credential tokens become JSON string literals here and nowhere
+        // else; a step that names them without the environment gets `null`.
+        let script = js
+            .replacingOccurrences(of: "__KF_EMAIL__", with: Smoke.literal(email))
+            .replacingOccurrences(of: "__KF_PASSWORD__", with: Smoke.literal(password))
+        web.evaluateJavaScript(script) { value, error in
+            if let error = error { done(self.scrub("error: \(error.localizedDescription)")) } else { done(self.scrub(value.map { "\($0)" } ?? "undefined")) }
         }
+    }
+
+    private static func literal(_ value: String?) -> String {
+        guard let value = value,
+              let data = try? JSONSerialization.data(withJSONObject: [value]),
+              let s = String(data: data, encoding: .utf8) else { return "null" }
+        return String(s.dropFirst().dropLast())
+    }
+
+    /// Never let a credential into smoke.jsonl or the log, whatever a page returns.
+    private func scrub(_ s: String) -> String {
+        var out = s
+        if let p = password, !p.isEmpty { out = out.replacingOccurrences(of: p, with: "[password]") }
+        if let e = email, !e.isEmpty { out = out.replacingOccurrences(of: e, with: "[email]") }
+        return out
     }
 
     private func probeNow(_ done: @escaping ([String: Any]) -> Void) {
@@ -137,7 +172,10 @@ private final class Smoke {
             "appState": UIApplication.shared.applicationState.rawValue,
             "probe": probe,
         ]
-        if let data = try? JSONSerialization.data(withJSONObject: line), let s = String(data: data, encoding: .utf8) {
+        // The whole line is scrubbed: a probe's `text` on the Settings screen
+        // carries the account's e-mail, which must not reach the artifact.
+        if let data = try? JSONSerialization.data(withJSONObject: line), let raw = String(data: data, encoding: .utf8) {
+            let s = scrub(raw)
             write("smoke.jsonl", s + "\n", append: true)
             NSLog("[KFSmoke] %@", s)
         }
