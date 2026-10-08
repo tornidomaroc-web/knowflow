@@ -29,7 +29,8 @@ name: ios-signed-in
 
 on:
   push:
-    branches: [main]
+    # store/t4-testflight: TEMPORARY, for the pre-merge witness; removed before merge.
+    branches: [main, 'store/t4-testflight']
     paths:
       - 'ios/**'
       - 'native/**'
