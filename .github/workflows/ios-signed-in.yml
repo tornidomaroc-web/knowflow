@@ -137,7 +137,8 @@ jobs:
             {"name":"subjects","wait":6000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard/knowledge');return 'assigned'})()"},
             {"name":"subject","wait":8000,"js":"(function(){var a=Array.prototype.slice.call(document.querySelectorAll('a[href*=\"/dashboard/knowledge/\"]')).filter(function(a){return !/\\/new$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no subject link'}a.click();return 'clicked a subject'})()"},
             {"name":"summary","wait":2000,"js":"(function(){var h=Array.prototype.slice.call(document.querySelectorAll('h1,h2,h3,h4,p,span,div')).filter(function(x){return x.children.length===0&&/^(SUMMARY|Summary|الملخص|ملخص)$/.test((x.innerText||'').trim())})[0];if(!h){return 'no summary heading'}h.scrollIntoView({block:'start'});return 'scrolled to summary'})()"},
-            {"name":"quiz","wait":2000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){return /Check my answers|تحقق|صحّح|صحح/.test(x.innerText||'')})[0];if(!b){return 'no quiz button'}b.scrollIntoView({block:'end'});return 'scrolled to quiz'})()"},
+            {"name":"quiz-open","wait":7000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){return /Quiz me on this material|اختبرني في هذا الملف/.test(x.innerText||'')})[0];if(!b){return 'no quiz button'}b.click();return 'clicked quiz'})()"},
+            {"name":"quiz","wait":2000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){return /Check my answers|صحّح إجاباتي/.test(x.innerText||'')})[0];if(!b){return 'no quiz on screen'}b.scrollIntoView({block:'end'});return 'scrolled to quiz'})()"},
             {"name":"ask","wait":6000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard/agent');return 'assigned'})()"},
             {"name":"settings","wait":6000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard/settings');return 'assigned'})()"},
             {"name":"settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"}
@@ -193,12 +194,13 @@ jobs:
           need(re.search(r"/dashboard/knowledge/[0-9a-f-]{36}$", S.get("href", "") or ""), f"a subject opened: {S.get('href')}")
           need("photosynthesis" in (S.get("text", "") or "").lower(), f"...and it lists the seeded material: {S.get('text', '')[:120]}")
           need(by.get("summary", {}).get("result") == "scrolled to summary", f"the summary is on the subject page: {by.get('summary', {}).get('result')}")
-          need(by.get("quiz", {}).get("result") == "scrolled to quiz", f"the quiz is on the subject page: {by.get('quiz', {}).get('result')}")
+          need(by.get("quiz-open", {}).get("result") == "clicked quiz", f"the quiz button is on the subject page: {by.get('quiz-open', {}).get('result')}")
+          need(by.get("quiz", {}).get("result") == "scrolled to quiz", f"the quiz (served from its cache) is on screen with its answer button: {by.get('quiz', {}).get('result')}")
           A = P("ask")
           need(re.search(r"/dashboard/agent$", A.get("href", "") or ""), f"the Ask screen opened: {A.get('href')}")
           T = P("settings")
           need(re.search(r"/dashboard/settings$", T.get("href", "") or ""), f"Settings opened: {T.get('href')}")
-          for name in ("home", "home-bottom", "subjects", "subject", "summary", "quiz", "ask", "settings", "settings-bottom"):
+          for name in ("home", "home-bottom", "subjects", "subject", "summary", "quiz-open", "quiz", "ask", "settings", "settings-bottom"):
               p = P(name).get("purchase", {}) or {}
               need(not p.get("words") and not p.get("hrefs"), f"3.1.3(f) on {name}: no price, plan, upgrade or checkout word or link: words={p.get('words')} hrefs={p.get('hrefs')}")
               need(P(name).get("google") == 0, f"no Google button on {name}: {P(name).get('google')}")
