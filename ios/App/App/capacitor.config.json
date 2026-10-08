@@ -1,0 +1,20 @@
+{
+	"appId": "com.knowflow.app",
+	"appName": "KnowFlow",
+	"webDir": "native/www",
+	"server": {
+		"url": "https://tryknowflow.com",
+		"allowNavigation": [
+			"tryknowflow.com"
+		],
+		"errorPath": "offline.html"
+	},
+	"ios": {
+		"appendUserAgent": "KnowFlowApp/1",
+		"contentInset": "automatic"
+	},
+	"android": {
+		"appendUserAgent": "KnowFlowApp/1"
+	},
+	"packageClassList": []
+}

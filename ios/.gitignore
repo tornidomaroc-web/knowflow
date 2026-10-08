@@ -1,7 +1,7 @@
 App/build
 App/Pods
 App/output
-App/App/public
+# App/App/public is COMMITTED here (2026-10-08): the signing job archives the commit with no npm, so what cap sync generates must be in it; ios-smoke.yml fails on drift.
 DerivedData
 xcuserdata
 
@@ -9,5 +9,4 @@ xcuserdata
 capacitor-cordova-ios-plugins
 
 # Generated Config files
-App/App/capacitor.config.json
-App/App/config.xml
+# App/App/capacitor.config.json and config.xml: committed, same reason.
