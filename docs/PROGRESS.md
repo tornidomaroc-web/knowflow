@@ -451,6 +451,34 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-10 - The App Store screenshot set (6.9-inch, English and Arabic) taken from main after #248, committed to docs/store/screenshots
+
+**No row is edited** (rows 42, 69 and 81 untouched). Files: `docs/store/screenshots/{en,ar}/0N-*.png` (ten) and `docs/store/screenshots/sizes.txt`.
+
+**The run.** `ios-signed-in.yml`, scenario `screenshots`, dispatched on `main` at `b810498` (run 38001572644, green). Production had been serving that commit since 2026-10-09T22:42:11Z. The screens run on the merge push (38000530508, 27 of 27 readings) also read the login line inside the app: "Signed up with Google? Use “Forgot your password?” once to set a password for the same account, then sign in here." → `/en/forgot-password`.
+- **Setup:** an iPhone 17 Pro Max simulator, with Apple's status bar override.
+- **Content:** the reviewer account and only the seeded material.
+- **Settings shots:** photographed past the account card, with no e-mail text left on the page.
+- **Every shot:** no price, plan, upgrade or checkout word or link.
+- **The reviewer account** is left without the AI permission.
+
+| File | Screen | Size |
+|---|---|---|
+| en/01-subjects.png | Subjects | 1320 × 2868 |
+| en/02-material.png | the material | 1320 × 2868 |
+| en/03-summary.png | its summary | 1320 × 2868 |
+| en/04-quiz.png | its quiz, from question 1 | 1320 × 2868 |
+| en/05-settings.png | Settings (preferences, reminder, AI processing) | 1320 × 2868 |
+| ar/01-subjects.png | المواد | 1320 × 2868 |
+| ar/02-material.png | الملف | 1320 × 2868 |
+| ar/03-summary.png | الملخّص | 1320 × 2868 |
+| ar/04-ask.png | اسأل, suggested questions, nothing sent | 1320 × 2868 |
+| ar/05-settings.png | الإعدادات | 1320 × 2868 |
+
+**Checked by eye.** The summary spans the card in both languages. The English summary on the Arabic page reads left to right, with its full stops at the line ends (the #248 fixes). The off reminder switch is visible.
+
+**One cosmetic flaw kept.** In both 03-summary shots the top of the section heading sits under the app bar, because the scroll offset is short by a few points. The heading is whole in 02-material, and a retake costs another macOS run and another recovery mail to the reviewer alias.
+
 ### 2026-10-09 - The login line for Google-registered students (inside the app only); the forgot link it points to proven end to end; the Arabic reminder word confirmed; the store screenshots taken, and two summary defects they exposed fixed before the final set
 
 **No row is edited** (rows 42, 69 and 81 untouched). PR #248, branch `feat/store-login-hint-screenshots`. **Not part of this PR:** the operator's name, which the owner decides separately.

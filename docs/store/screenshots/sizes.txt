@@ -1,0 +1,10 @@
+ar/01-subjects.png: 1320 x 2868, 200986 bytes
+ar/02-material.png: 1320 x 2868, 301570 bytes
+ar/03-summary.png: 1320 x 2868, 455863 bytes
+ar/04-ask.png: 1320 x 2868, 270158 bytes
+ar/05-settings.png: 1320 x 2868, 275219 bytes
+en/01-subjects.png: 1320 x 2868, 207370 bytes
+en/02-material.png: 1320 x 2868, 293871 bytes
+en/03-summary.png: 1320 x 2868, 458552 bytes
+en/04-quiz.png: 1320 x 2868, 348401 bytes
+en/05-settings.png: 1320 x 2868, 262305 bytes
