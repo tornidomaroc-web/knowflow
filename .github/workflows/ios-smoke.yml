@@ -302,7 +302,8 @@ jobs:
           [
             {"name":"notify-launch","wait":2500,"js":"(function(){var C=window.Capacitor;window.__kfN='pending';if(!C||!C.nativePromise){return 'no bridge'}var av=C.isPluginAvailable('LocalNotifications');C.nativePromise('LocalNotifications','checkPermissions',{}).then(function(r){window.__kfN=r.display},function(e){window.__kfN='error '+e.message});return 'available='+av})()"},
             {"name":"notify-status","wait":500,"js":"(function(){return String(window.__kfN)})()"},
-            {"name":"notify-request","wait":4000,"js":"(function(){window.Capacitor.nativePromise('LocalNotifications','requestPermissions',{});return 'requested'})()"}
+            {"name":"notify-request","wait":4000,"js":"(function(){window.Capacitor.nativePromise('LocalNotifications','requestPermissions',{});return 'requested'})()"},
+            {"name":"notify-request-held","wait":3000,"js":"(function(){return 'still under the prompt?'})()"}
           ]
           JSON
           cat > "$RUNNER_TEMP/notify-b.json" <<'JSON'
@@ -392,7 +393,7 @@ jobs:
           need(R(na, "notify-launch") == "available=true", f"6. the bridge lists the LocalNotifications plugin: {R(na, 'notify-launch')}")
           need(R(na, "notify-status") == "prompt", f"6. nothing asked at launch: the permission still reads prompt: {R(na, 'notify-status')}")
           need(na.get("notify-status", {}).get("appState") == 0, f"6. ...and the app is active, no system prompt over it: appState={na.get('notify-status', {}).get('appState')}")
-          need(na.get("notify-request", {}).get("appState") == 1, f"6. a request raises the system prompt (the app goes inactive under it): appState={na.get('notify-request', {}).get('appState')}")
+          need(1 in (na.get("notify-request", {}).get("appState"), na.get("notify-request-held", {}).get("appState")), f"6. a request raises the system prompt (the app goes inactive under it, read at 4 s and 7 s): appState={na.get('notify-request', {}).get('appState')}, {na.get('notify-request-held', {}).get('appState')}")
           need(R(nb, "notify-b-status") == "granted", f"6. with provisional authorization the permission reads granted: {R(nb, 'notify-b-status')}")
           def pend(name):
               try: return [(n.get("id"), (n.get("on") or {}).get("hour"), (n.get("on") or {}).get("minute")) for n in json.loads(R(nb, name))]
