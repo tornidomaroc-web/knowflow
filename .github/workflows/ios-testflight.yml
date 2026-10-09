@@ -103,6 +103,11 @@ jobs:
           test -f ios/App/App/capacitor.config.json
           test -f ios/App/CapApp-SPM/Package.swift
           test -f ios/ExportOptions.plist
+          # ITMS-91053: the app's own privacy manifest is in the commit and in
+          # the target's Resources phase, so the archive carries it.
+          test -f ios/App/App/PrivacyInfo.xcprivacy
+          grep -q 'PrivacyInfo.xcprivacy in Resources' ios/App/App.xcodeproj/project.pbxproj || { echo "FAIL: PrivacyInfo.xcprivacy is not in the app target's resources"; exit 1; }
+          plutil -lint ios/App/App/PrivacyInfo.xcprivacy
           changed=$(git status --porcelain --untracked-files=all ios native capacitor.config.ts | wc -l | tr -d ' ')
           test "$changed" -eq 0 || { echo "FAIL: the iOS tree is not the commit:"; git status --porcelain --untracked-files=all ios native capacitor.config.ts; exit 1; }
           # The committed project must not carry a Run Script build phase at all
@@ -112,6 +117,13 @@ jobs:
           bad=$(find ios/App/App/public -type f ! \( -name '*.html' -o -name '*.js' -o -name '*.css' -o -name '*.json' -o -name '*.svg' -o -name '*.png' -o -name '*.ico' -o -name '*.txt' -o -name '*.woff' -o -name '*.woff2' \) | head)
           test -z "$bad" || { echo "FAIL: unexpected file types in the bundled public folder:"; echo "$bad"; exit 1; }
           echo "project: the commit $(git rev-parse HEAD); bundle id $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' ios/App/App/Info.plist 2>/dev/null || grep -m1 PRODUCT_BUNDLE_IDENTIFIER ios/App/App.xcodeproj/project.pbxproj)"
+
+      # The one native plugin (the study reminder's) is a local Swift package
+      # under node_modules/, which this job never creates with npm: the
+      # tarball is fetched from the registry and refused unless its sha512 is
+      # the one package-lock.json pins; nothing in it is run.
+      - name: The native plugins, by their package-lock.json sha512 (no npm)
+        run: python3 .github/scripts/fetch-native-plugins.py
 
       - name: Xcode in use
         run: |
@@ -141,9 +153,9 @@ jobs:
       - name: No package in the graph declares a plugin or a macro
         run: |
           set -eu
-          found=$(grep -lE '\.plugin\(|plugins:|\.macro\(' "$RUNNER_TEMP"/spm/checkouts/*/Package.swift ios/App/CapApp-SPM/Package.swift || true)
+          found=$(grep -lE '\.plugin\(|plugins:|\.macro\(' "$RUNNER_TEMP"/spm/checkouts/*/Package.swift ios/App/CapApp-SPM/Package.swift node_modules/@capacitor/*/Package.swift 2>/dev/null || true)
           test -z "$found" || { echo "packages declaring a plugin or a macro:"; echo "$found"; exit 1; }
-          echo "manifests scanned: $(ls "$RUNNER_TEMP"/spm/checkouts/*/Package.swift ios/App/CapApp-SPM/Package.swift | wc -l | tr -d ' ')"
+          echo "manifests scanned: $(ls "$RUNNER_TEMP"/spm/checkouts/*/Package.swift ios/App/CapApp-SPM/Package.swift node_modules/@capacitor/*/Package.swift 2>/dev/null | wc -l | tr -d ' ')"
 
       # The key file exists only for this job, readable by the runner user
       # alone, removed in the last step. Its contents are never printed.
@@ -270,6 +282,8 @@ jobs:
           if /usr/libexec/PlistBuddy -c 'Print' "$app/Info.plist" | grep -q 'UsageDescription'; then echo "FAIL: a purpose string is in Info.plist but no permission is used"; exit 1; fi
           echo "linked frameworks (otool -L):"; otool -L "$app/App" | tee "$RUNNER_TEMP/otool.txt"
           grep -q "UIKit.framework" "$RUNNER_TEMP/otool.txt" || { echo "otool -L named no UIKit: the reading is empty, not clean"; exit 1; }
+          # ITMS-91053, before the upload rather than in Apple's e-mail after it.
+          python3 .github/scripts/ios-privacy-check.py "$app" | tee "$RUNNER_TEMP/privacy-audit.txt"
 
       - name: Export and upload to App Store Connect
         env:
@@ -304,5 +318,6 @@ jobs:
             ${{ runner.temp }}/archive.log
             ${{ runner.temp }}/export.log
             ${{ runner.temp }}/otool.txt
+            ${{ runner.temp }}/privacy-audit.txt
           if-no-files-found: warn
           retention-days: 14

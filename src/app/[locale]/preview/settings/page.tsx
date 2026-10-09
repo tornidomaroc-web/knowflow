@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { SettingsPanel } from '@/components/dashboard/SettingsPanel'
 import { DeleteAccountCard } from '@/components/dashboard/DeleteAccountCard'
 import { CancelSubscriptionCard } from '@/components/dashboard/CancelSubscriptionCard'
+import { StudyReminderCard } from '@/components/reminder/StudyReminderCard'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { SUPPORT_EMAIL, withSupportEmail } from '@/lib/site'
@@ -119,6 +120,9 @@ export default async function SettingsPreview({
             support: s.support,
             supportDesc: s.supportDesc,
           }}
+          // The study reminder as the app shows it (STORE_PATH.md S3(a)), off;
+          // in preview mode the card talks to no plugin.
+          reminderCard={native ? <StudyReminderCard labels={t.dashboard.studyReminder} locale={safeLocale} preview="off" /> : null}
           subscriptionCard={
             isPro ? (
               <CancelSubscriptionCard labels={withSupportEmail(s.cancelSubscription)} accessUntil={renewsOn} alreadyScheduled={false} />

@@ -63,6 +63,8 @@ export interface SettingsPanelProps {
   termsHref: string;
   supportEmail: string;
   labels: SettingsPanelLabels;
+  /** STORE_PATH.md S3(a): the study reminder, inside the app only; after Preferences. */
+  reminderCard?: ReactNode;
   /** Apple 5.1.2(i): the AI permission card; rendered after Preferences. */
   consentCard?: ReactNode;
   /** The cancel-subscription card, Pro only; rendered after Preferences. */
@@ -100,6 +102,7 @@ export function SettingsPanel({
   termsHref,
   supportEmail,
   labels,
+  reminderCard,
   consentCard,
   subscriptionCard,
   deleteCard,
@@ -210,6 +213,8 @@ export function SettingsPanel({
             </PreferenceRow>
           </div>
         </Card>
+
+        {reminderCard}
 
         {consentCard}
 

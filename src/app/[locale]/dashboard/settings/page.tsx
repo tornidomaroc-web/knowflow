@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation'
 import { SettingsPanel } from '@/components/dashboard/SettingsPanel'
 import { DeleteAccountCard } from '@/components/dashboard/DeleteAccountCard'
 import { AiConsentCard } from '@/components/ai-consent/AiConsentCard'
+import { StudyReminderCard } from '@/components/reminder/StudyReminderCard'
+import { studyReminderAllowed } from '@/lib/study-reminder'
 import { CancelSubscriptionCard } from '@/components/dashboard/CancelSubscriptionCard'
 import { readScheduledCancellation } from '@/lib/subscription/cancel'
 import { paddleClient } from '@/lib/paddle'
@@ -56,6 +58,9 @@ export default async function SettingsPage({
     : null
 
   const s = t.dashboard.settings
+  // The study reminder is the app's alone (src/lib/study-reminder.ts); the
+  // platform comes from this request, like the plan card's below.
+  const platform = await currentPlatform()
   return (
     <SettingsPanel
       email={user.email || ''}
@@ -101,6 +106,14 @@ export default async function SettingsPage({
       // ABOVE the delete card, deliberately. Register #70 is that the only way
       // to stop being billed was to destroy the account; a customer looking for
       // the gentler exit must meet it before the destructive one, not after.
+      // STORE_PATH.md S3(a): the daily reminder lives on the phone, so the web
+      // never renders it; the card also hides itself in an app build without
+      // the plugin.
+      reminderCard={
+        studyReminderAllowed(platform) ? (
+          <StudyReminderCard labels={t.dashboard.studyReminder} locale={safeLocale} />
+        ) : null
+      }
       consentCard={<AiConsentCard />}
       subscriptionCard={
         isPro ? (

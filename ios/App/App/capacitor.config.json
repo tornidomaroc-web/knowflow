@@ -16,5 +16,7 @@
 	"android": {
 		"appendUserAgent": "KnowFlowApp/1"
 	},
-	"packageClassList": []
+	"packageClassList": [
+		"LocalNotificationsPlugin"
+	]
 }
