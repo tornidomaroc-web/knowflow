@@ -6,6 +6,7 @@ import { enforceLimit } from '@/lib/rate-limit';
 import { resolveLocale, type Locale } from '@/lib/i18n';
 import { monthlyConversationMessage } from '@/lib/limit-messages';
 import { platformFromRequest } from '@/lib/platform';
+import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
 import { embedQuery } from '@/lib/ingestion';
 import { recordStudyEvent } from '@/lib/study-events';
 import {
@@ -112,6 +113,17 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Apple 5.1.2(i) (src/lib/ai-consent.ts): the question goes to Voyage AI and
+    // Anthropic only with the student's permission. Before the usage counter, so
+    // a refused question is not counted. text/plain like the 429 below, because
+    // the chat renders a refusal's body as the reply; the code rides in a header.
+    if (!hasAiConsent(user)) {
+      return new Response(aiConsentRefusalMessage(safeLocale), {
+        status: 403,
+        headers: { 'Content-Type': 'text/plain', 'X-KF-Refusal': AI_CONSENT_REFUSAL },
+      });
+    }
 
     // B7 cost guard: burst + daily query cap, in front of the expensive
     // embed/retrieve/Claude work. Returned as text/plain (not JSON) so the

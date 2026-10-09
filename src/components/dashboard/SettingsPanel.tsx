@@ -63,6 +63,8 @@ export interface SettingsPanelProps {
   termsHref: string;
   supportEmail: string;
   labels: SettingsPanelLabels;
+  /** Apple 5.1.2(i): the AI permission card; rendered after Preferences. */
+  consentCard?: ReactNode;
   /** The cancel-subscription card, Pro only; rendered after Preferences. */
   subscriptionCard?: ReactNode;
   /** The delete-account card; rendered last, as the destructive action should be. */
@@ -98,6 +100,7 @@ export function SettingsPanel({
   termsHref,
   supportEmail,
   labels,
+  consentCard,
   subscriptionCard,
   deleteCard,
 }: SettingsPanelProps) {
@@ -207,6 +210,8 @@ export function SettingsPanel({
             </PreferenceRow>
           </div>
         </Card>
+
+        {consentCard}
 
         {subscriptionCard}
 

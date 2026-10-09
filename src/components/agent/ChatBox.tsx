@@ -7,6 +7,7 @@ import { MessageBubble, Citation } from './MessageBubble';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { askSuggestions, type MaterialForSuggestion } from '@/lib/ask-suggestions';
 import { ChatPages } from '@/components/illustrations';
+import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 import { BookOpen, ListChecks, Send, Sparkles } from 'lucide-react';
 
 interface Message {
@@ -72,6 +73,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
+  const { ensure: ensureAiConsent } = useAiConsent();
   const [messages, setMessages] = useState<Message[]>(
     initialMessages?.map((m, i) => ({ id: String(i), role: m.role as 'user' | 'assistant', content: m.content })) ?? []
   );
@@ -97,6 +99,13 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
   const handleSend = async (preset?: string) => {
     const text = (preset ?? input).trim();
     if (!text || isLoading) return;
+    // Apple 5.1.2(i): the question goes to Voyage AI and Anthropic only with
+    // the student's permission. Declined, nothing is sent and the typed text
+    // stays in the box.
+    if (!(await ensureAiConsent())) {
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: t.dashboard.aiConsent.declined }]);
+      return;
+    }
     const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text };
     setMessages(prev => [...prev, userMsg]);
     setInput('');

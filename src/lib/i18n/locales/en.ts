@@ -474,6 +474,30 @@ export const en = {
         errorSubscriptionElsewhere: "Your account was not deleted, and nothing was changed. You still have a subscription that was purchased outside this app, and we cannot cancel it for you from here. Cancel it where you bought it first, then delete your account. We stopped rather than delete your account while something was still charging you."
       }
     },
+    // Apple 5.1.2(i), STORE_PATH.md S4 (src/lib/ai-consent.ts). The sheet
+    // shown once, before the first upload, question, summary or quiz, and the
+    // Settings card that withdraws or gives the permission. Both providers are
+    // named, with what each receives.
+    aiConsent: {
+      title: "Your permission before AI reads your material",
+      intro: "To answer your questions, summarise your materials and make quizzes, we send content to two AI companies:",
+      anthropic: "Anthropic receives the text of your materials and your questions, and writes the answers, summaries and quizzes.",
+      voyage: "Voyage AI receives the same text and turns it into the form our search uses to find the right passage.",
+      notSent: "Neither receives your name or your email address, and neither uses your content to train its models.",
+      withdrawHint: "You can withdraw this permission at any time in Settings.",
+      privacyLink: "Read the privacy policy",
+      accept: "I agree, continue",
+      notNow: "Not now",
+      saving: "Saving…",
+      saveFailed: "Your choice could not be saved, and nothing was sent. Please try again.",
+      declined: "Nothing was sent. Uploading, asking, summaries and quizzes need your permission to use Anthropic and Voyage AI. You can give it next time, or in Settings.",
+      heading: "AI processing",
+      stateOn: "Allowed. Your materials and questions are sent to Anthropic and Voyage AI when you upload, ask, summarise or make a quiz.",
+      stateOff: "Not allowed. Nothing is sent, and uploading, asking, summaries and quizzes are unavailable until you allow it.",
+      withdrawButton: "Withdraw permission",
+      allowButton: "Allow",
+      withdrawFailed: "That did not work and nothing was changed. You can try again."
+    },
     agent: {
       chatWith: "Asking about",
       startTyping: "Every answer comes from this subject's own materials.",

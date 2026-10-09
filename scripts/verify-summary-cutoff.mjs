@@ -49,7 +49,7 @@ const SUPABASE_STUB = `
 const S = () => globalThis.__summaryCutoffStub;
 export async function createClient() {
   return {
-    auth: { getUser: async () => ({ data: { user: { id: 'user-1' } } }) },
+    auth: { getUser: async () => ({ data: { user: { id: 'user-1', user_metadata: { ai_consent: { version: 1, at: '2026-10-09T00:00:00.000Z' } } } } }) },
     from() {
       return {
         select() {

@@ -9,7 +9,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
     <div className="py-24" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="max-w-3xl mx-auto px-6 text-muted-foreground text-start">
         <h1 className="text-5xl font-bold mb-4 text-foreground">Privacy Policy</h1>
-        <p className="text-sm uppercase tracking-wide font-medium text-primary mb-12">Last updated: September 2026</p>
+        <p className="text-sm uppercase tracking-wide font-medium text-primary mb-12">Last updated: October 2026</p>
 
         <p className="mb-6">This Privacy Policy applies to KnowFlow, the study service at tryknowflow.com. KnowFlow is operated by an independent developer, and the contact address given below reaches the person responsible for it.</p>
 
@@ -32,6 +32,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
           <li><strong>Google</strong>, only if you choose Sign in with Google. If you sign in with an email address and a password, Google is not involved.</li>
         </ul>
         <p className="mb-6"><strong>Anthropic and Voyage AI receive the text of your materials and your questions. They do not receive your name or your email address</strong>, because KnowFlow does not send those along with the text.</p>
+        <p className="mb-6"><strong>We ask your permission before anything is sent to Anthropic or Voyage AI.</strong> The first time you upload a file, ask a question, or ask for a summary or a quiz, KnowFlow shows you who receives what and sends nothing until you agree. You can withdraw the permission at any time in Settings; from then on nothing new is sent, and uploading, asking, summaries and quizzes are unavailable until you give it again.</p>
         <p className="mb-6">The terms Anthropic publishes state that it does not train its models on content sent through its API. Voyage AI is set to zero retention on our account, so content sent from 12 September 2026 onward is deleted after it has been processed and is not used to improve their models.</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Data Storage and Security</h2>

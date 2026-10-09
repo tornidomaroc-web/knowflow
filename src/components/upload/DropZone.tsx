@@ -11,6 +11,7 @@ import { fileTooLargeMessage, uploadFailureMessage, uploadLimitLabel, uploadRefu
 import { isOverUploadLimit, parseUploadReply } from '@/lib/upload-limits';
 import { fileExtension, isAllowedFileType } from '@/types';
 import { expectedProcessingSeconds, processingFraction, processingStage } from '@/lib/upload-progress';
+import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 
 interface DropZoneProps {
   kbId: string;
@@ -58,6 +59,7 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { ensure: ensureAiConsent } = useAiConsent();
 
   // A one-second clock while processing, so the sentence and the bar move.
   useEffect(() => {
@@ -79,6 +81,15 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
     const ext = fileExtension(picked.name);
     if (!isAllowedFileType(ext)) {
       setErrorMsg(uploadRefusalMessage(safeLocale, 'type', ext));
+      setState('error');
+      return;
+    }
+
+    // Apple 5.1.2(i): the file's text goes to Voyage AI through the ingestion
+    // service, so the permission is asked before a byte leaves. Declined,
+    // nothing is uploaded and the drop zone says why.
+    if (!(await ensureAiConsent())) {
+      setErrorMsg(t.dashboard.aiConsent.declined);
       setState('error');
       return;
     }

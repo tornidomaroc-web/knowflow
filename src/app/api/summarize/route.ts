@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { enforceLimit } from '@/lib/rate-limit';
 import { resolveLocale } from '@/lib/i18n';
 import { platformFromRequest } from '@/lib/platform';
+import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
 import { recordStudyEvent } from '@/lib/study-events';
 import { usageTokens, usageUsd } from '@/lib/usage-cost';
 
@@ -146,6 +147,16 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'There is not enough text in this material to summarize.' },
         { status: 422 }
+      );
+    }
+
+    // Apple 5.1.2(i) (src/lib/ai-consent.ts): the material's text goes to
+    // Anthropic only with the student's permission. After the cached branch
+    // above (re-reading a summary sends nothing) and before the counter.
+    if (!hasAiConsent(user)) {
+      return NextResponse.json(
+        { error: aiConsentRefusalMessage(lang), code: AI_CONSENT_REFUSAL },
+        { status: 403 }
       );
     }
 

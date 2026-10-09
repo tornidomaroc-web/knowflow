@@ -3,6 +3,7 @@ import { getEntitlement } from '@/lib/entitlement'
 import { redirect } from 'next/navigation'
 import { SettingsPanel } from '@/components/dashboard/SettingsPanel'
 import { DeleteAccountCard } from '@/components/dashboard/DeleteAccountCard'
+import { AiConsentCard } from '@/components/ai-consent/AiConsentCard'
 import { CancelSubscriptionCard } from '@/components/dashboard/CancelSubscriptionCard'
 import { readScheduledCancellation } from '@/lib/subscription/cancel'
 import { paddleClient } from '@/lib/paddle'
@@ -100,6 +101,7 @@ export default async function SettingsPage({
       // ABOVE the delete card, deliberately. Register #70 is that the only way
       // to stop being billed was to destroy the account; a customer looking for
       // the gentler exit must meet it before the destructive one, not after.
+      consentCard={<AiConsentCard />}
       subscriptionCard={
         isPro ? (
           <CancelSubscriptionCard

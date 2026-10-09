@@ -6,6 +6,7 @@ import { buttonVariants } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { readServerLimitMessage } from '@/lib/limit-messages';
+import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 
 // Only the fields this section needs from a document. The subject page already
 // fetches these via `select('*')`, so a cached summary renders with NO API call
@@ -20,7 +21,9 @@ interface SummaryDoc {
 export function SummarySection({ doc }: { doc: SummaryDoc }) {
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
-  const s = useTranslation(safeLocale).dashboard.summary;
+  const t = useTranslation(safeLocale);
+  const s = t.dashboard.summary;
+  const { ensure: ensureAiConsent } = useAiConsent();
 
   // Seed from the row we already have. `summary` truthy = a real generated
   // summary (the route never persists an empty one), so this cleanly separates
@@ -32,6 +35,12 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
 
   const generate = async () => {
     if (isLoading) return;
+    // Apple 5.1.2(i): the material's text goes to Anthropic only with the
+    // student's permission; declined, nothing is sent.
+    if (!(await ensureAiConsent())) {
+      setError(t.dashboard.aiConsent.declined);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -58,7 +67,9 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
         // student's locale AND carrying how long until the cap resets — which the
         // dictionary line cannot say, having no clock. Prefer it; s.errors.limit
         // stays the fallback for an unreadable body.
-        const fromServer = res.status === 429 ? await readServerLimitMessage(res) : null;
+        // A 403 is the route's own consent refusal (src/lib/ai-consent.ts), in
+        // this student's language.
+        const fromServer = res.status === 429 || res.status === 403 ? await readServerLimitMessage(res) : null;
         setError(fromServer ?? msg);
         setIsLoading(false);
         return;
