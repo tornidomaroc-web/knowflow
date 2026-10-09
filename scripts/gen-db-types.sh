@@ -137,11 +137,16 @@ for file in $(manifest_rows | awk '$2 ~ /^skip:/ { print $1 }'); do
 done
 
 # --- Ephemeral database -----------------------------------------------------
-echo "==> Starting ephemeral Postgres ($PG_IMAGE)"
+# Fetched by digest from the first registry that answers (mirror.gcr.io,
+# public.ecr.aws, docker.io: scripts/lib/pinned-image.mjs), under a local name
+# docker run resolves without any registry. Docker Hub alone failed this job
+# three times on 2026-10-09.
+PG_RUN=$(node scripts/lib/pinned-image.mjs "$PG_IMAGE")
+echo "==> Starting ephemeral Postgres ($PG_IMAGE as $PG_RUN)"
 docker run -d --name "$CONTAINER" \
   -e POSTGRES_PASSWORD=postgres \
   -p "127.0.0.1:$PGPORT:5432" \
-  "$PG_IMAGE" >/dev/null
+  "$PG_RUN" >/dev/null
 
 # Readiness is deliberately NOT `pg_isready` over the default unix socket, and
 # this is not a style preference -- it is a real race that produced an
@@ -272,8 +277,8 @@ fi
 # as before. Nothing here relies on digest-to-tag back-reference behaviour,
 # which varies by daemon version; the alias is created explicitly.
 echo "==> Pre-pulling postgres-meta ($META_IMAGE)"
-docker pull "$META_IMAGE" >/dev/null
-docker tag "$META_IMAGE" "$META_TAG"
+META_RUN=$(node scripts/lib/pinned-image.mjs "$META_IMAGE")
+docker tag "$META_RUN" "$META_TAG"
 echo "--> tagged as $META_TAG (the reference the CLI resolves)"
 
 echo "==> Generating types (supabase CLI $SUPABASE_CLI_VERSION)"

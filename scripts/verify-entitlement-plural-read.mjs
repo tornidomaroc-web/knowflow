@@ -28,6 +28,7 @@
  */
 import { pathToFileURL } from 'node:url';
 import { execFileSync, spawnSync } from 'node:child_process';
+import { pullPinned } from './lib/pinned-image.mjs';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
@@ -81,7 +82,12 @@ async function waitFor(label, probe, seconds = 45) {
 teardown();
 console.log('starting throwaway postgres + postgrest…');
 run('docker', ['network', 'create', NET]);
-run('docker', ['run', '-d', '--name', PG, '--network', NET, '-e', 'POSTGRES_PASSWORD=testpw', '-e', 'POSTGRES_DB=kftest', PG_IMAGE]);
+// The pinned images, fetched by digest from the first registry that answers
+// (scripts/lib/pinned-image.mjs): Docker Hub alone failed every Docker-backed
+// check three times on 2026-10-09. The digests above stay the contract.
+const PG_RUN = pullPinned(PG_IMAGE);
+const PREST_RUN = pullPinned(PREST_IMAGE);
+run('docker', ['run', '-d', '--name', PG, '--network', NET, '-e', 'POSTGRES_PASSWORD=testpw', '-e', 'POSTGRES_DB=kftest', PG_RUN]);
 // Register #125. `pg_isready` alone is not readiness: the postgres image's
 // entrypoint first runs a TEMPORARY server to initialise the database, which
 // answers "accepting connections", then stops it and starts the real one. The
@@ -133,7 +139,7 @@ if (/UNIQUE \(user_id\)/.test(constraints)) {
 
 run('docker', ['run', '-d', '--name', PREST, '--network', NET, '-p', `${PORT}:3000`,
   '-e', `PGRST_DB_URI=postgres://authenticator:testpw@${PG}:5432/kftest`,
-  '-e', 'PGRST_DB_SCHEMA=public', '-e', 'PGRST_DB_ANON_ROLE=anon', PREST_IMAGE]);
+  '-e', 'PGRST_DB_SCHEMA=public', '-e', 'PGRST_DB_ANON_ROLE=anon', PREST_RUN]);
 await waitFor('postgrest', async () => {
   try {
     return (await fetch(`http://localhost:${PORT}/subscriptions?select=status`)).ok;
