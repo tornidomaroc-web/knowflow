@@ -5,6 +5,7 @@ import { checkDocumentLimit } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
 import { defaultLocale, resolveLocale, type Locale } from '@/lib/i18n';
 import { platformFromRequest } from '@/lib/platform';
+import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
 import { fileTooLargeMessage, subjectMaterialsMessage, uploadRefusalMessage } from '@/lib/limit-messages';
 import { isOverUploadLimit } from '@/lib/upload-limits';
 import { recordStudyEvent } from '@/lib/study-events';
@@ -117,6 +118,17 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { success: false, error: uploadRefusalMessage(safeLocale, 'session') },
         { status: 401 }
+      );
+    }
+
+    // Apple 5.1.2(i) (src/lib/ai-consent.ts): no permission, no upload. Before
+    // the document count, the usage counter and the storage upload, so a
+    // refused file is not stored, not counted and never reaches the ingestion
+    // service or Voyage AI.
+    if (!hasAiConsent(user)) {
+      return NextResponse.json(
+        { success: false, error: aiConsentRefusalMessage(safeLocale), code: AI_CONSENT_REFUSAL },
+        { status: 403 }
       );
     }
 

@@ -9,6 +9,8 @@ import { redirect } from 'next/navigation';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { currentPlatform } from '@/lib/platform-server';
 import { PlatformProvider } from '@/components/platform/PlatformProvider';
+import { AiConsentProvider } from '@/components/ai-consent/AiConsentProvider';
+import { hasAiConsent } from '@/lib/ai-consent';
 
 export default async function DashboardLayout({
   children,
@@ -63,6 +65,13 @@ export default async function DashboardLayout({
 
   return (
     <PlatformProvider platform={platform}>
+    {/* Apple 5.1.2(i): the permission as the account holds it now (getUser()
+        above reads the auth server), and the sheet that asks for it. */}
+    <AiConsentProvider
+      initialConsented={hasAiConsent(user)}
+      labels={t.dashboard.aiConsent}
+      privacyHref={`/${safeLocale}/privacy`}
+    >
     <DashboardShell locale={safeLocale} email={user.email || ''} isPro={isPro} labels={labels}>
       {passwordReplaced && (
         <PasswordReplacedNotice
@@ -72,6 +81,7 @@ export default async function DashboardLayout({
       )}
       {children}
     </DashboardShell>
+    </AiConsentProvider>
     </PlatformProvider>
   );
 }

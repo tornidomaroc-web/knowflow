@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-10-04 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **381 Arabic strings.**
+Generated 2026-10-09 by `scripts/export-arabic-strings.mjs` from
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **399 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -482,6 +482,29 @@ file is not read by the app.
 | `dashboard.settings.deleteAccount.errorFailed` | لم يكتمل الحذف، وبقي كل شيء كما هو. جرّب مرة أخرى. | Deletion failed and nothing was changed. You can try again. |
 | `dashboard.settings.deleteAccount.errorBillingCanceled` | لم تفقد أي شيء. حسابك وكل بياناتك ما زالت هنا. ألغينا اشتراكك، لكن الحذف لم يكتمل. جرّب مرة أخرى، وإن فشل مجددًا فراسلنا على {email} لنكمله لك. | Nothing was lost. Your account and everything in it is still here. Your subscription was cancelled, but the deletion did not finish. Please try again. If it fails again, email {email} and we will finish it for you. |
 | `dashboard.settings.deleteAccount.errorSubscriptionElsewhere` | لم نحذف حسابك، وبقي كل شيء كما هو. لديك اشتراك اشتريته خارج هذا التطبيق، ولا نستطيع إلغاءه من هنا. ألغِه أولًا من المكان الذي اشتريته منه، ثم احذف حسابك. توقفنا حتى لا نحذف حسابك وما زال شيء يُحتسب عليك. | Your account was not deleted, and nothing was changed. You still have a subscription that was purchased outside this app, and we cannot cancel it for you from here. Cancel it where you bought it first, then delete your account. We stopped rather than delete your account while something was still charging you. |
+
+## Signed-in app: aiConsent (`dashboard.aiConsent`)
+
+| Key | العربية | English |
+|---|---|---|
+| `dashboard.aiConsent.title` | إذنك قبل أن يقرأ الذكاء الاصطناعي ملفاتك | Your permission before AI reads your material |
+| `dashboard.aiConsent.intro` | لنجيب عن أسئلتك ونلخّص ملفاتك ونعدّ لك الاختبارات، نرسل المحتوى إلى شركتين للذكاء الاصطناعي: | To answer your questions, summarise your materials and make quizzes, we send content to two AI companies: |
+| `dashboard.aiConsent.anthropic` | شركة Anthropic تتلقى نص ملفاتك وأسئلتك، وتكتب الإجابات والملخصات والاختبارات. | Anthropic receives the text of your materials and your questions, and writes the answers, summaries and quizzes. |
+| `dashboard.aiConsent.voyage` | شركة Voyage AI تتلقى النص نفسه، وتحوّله إلى الصيغة التي يستعملها بحثنا للعثور على المقطع المناسب. | Voyage AI receives the same text and turns it into the form our search uses to find the right passage. |
+| `dashboard.aiConsent.notSent` | لا تتلقى أيّ منهما اسمك ولا بريدك الإلكتروني، ولا تستعمل أيّ منهما محتواك لتدريب نماذجها. | Neither receives your name or your email address, and neither uses your content to train its models. |
+| `dashboard.aiConsent.withdrawHint` | يمكنك سحب هذا الإذن في أي وقت من الإعدادات. | You can withdraw this permission at any time in Settings. |
+| `dashboard.aiConsent.privacyLink` | اقرأ سياسة الخصوصية | Read the privacy policy |
+| `dashboard.aiConsent.accept` | أوافق، تابِع | I agree, continue |
+| `dashboard.aiConsent.notNow` | ليس الآن | Not now |
+| `dashboard.aiConsent.saving` | نحفظ اختيارك… | Saving… |
+| `dashboard.aiConsent.saveFailed` | تعذّر حفظ اختيارك، ولم نرسل شيئًا. جرّب مرة أخرى. | Your choice could not be saved, and nothing was sent. Please try again. |
+| `dashboard.aiConsent.declined` | لم نرسل شيئًا. يحتاج الرفع والأسئلة والملخصات والاختبارات إلى إذنك باستعمال Anthropic وVoyage AI. يمكنك منحه في المرة القادمة أو من الإعدادات. | Nothing was sent. Uploading, asking, summaries and quizzes need your permission to use Anthropic and Voyage AI. You can give it next time, or in Settings. |
+| `dashboard.aiConsent.heading` | المعالجة بالذكاء الاصطناعي | AI processing |
+| `dashboard.aiConsent.stateOn` | مسموح. نرسل ملفاتك وأسئلتك إلى Anthropic وVoyage AI عند الرفع أو السؤال أو التلخيص أو إعداد اختبار. | Allowed. Your materials and questions are sent to Anthropic and Voyage AI when you upload, ask, summarise or make a quiz. |
+| `dashboard.aiConsent.stateOff` | غير مسموح. لا نرسل شيئًا، ولا يتاح الرفع ولا الأسئلة ولا الملخصات ولا الاختبارات حتى تسمح بذلك. | Not allowed. Nothing is sent, and uploading, asking, summaries and quizzes are unavailable until you allow it. |
+| `dashboard.aiConsent.withdrawButton` | اسحب الإذن | Withdraw permission |
+| `dashboard.aiConsent.allowButton` | اسمح | Allow |
+| `dashboard.aiConsent.withdrawFailed` | لم ينجح ذلك، وبقي كل شيء كما هو. جرّب مرة أخرى. | That did not work and nothing was changed. You can try again. |
 
 ## Signed-in app: agent (`dashboard.agent`)
 

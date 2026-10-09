@@ -78,7 +78,7 @@ function table(name) {
   throw new Error('unexpected table ' + name);
 }
 export async function createClient() {
-  return { auth: { getUser: async () => ({ data: { user: { id: 'user-1' } } }) }, from: table };
+  return { auth: { getUser: async () => ({ data: { user: { id: 'user-1', user_metadata: { ai_consent: { version: 1, at: '2026-10-09T00:00:00.000Z' } } } } }) }, from: table };
 }`;
 
 const ANTHROPIC_STUB = `

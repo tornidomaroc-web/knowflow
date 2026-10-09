@@ -6,6 +6,7 @@ import { buttonVariants } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { readServerLimitMessage } from '@/lib/limit-messages';
+import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 
 // Only the fields this section needs from a document, mirroring SummarySection's
 // SummaryDoc rather than accepting a whole `Document`.
@@ -78,7 +79,9 @@ export function QuizSection({ doc }: { doc: QuizDoc }) {
   // name — register #25 tracks the rename across all 8 call sites. Following the
   // surrounding file's pattern here rather than refactoring someone else's code in
   // a feature PR.
-  const q = useTranslation(safeLocale).dashboard.quiz;
+  const t = useTranslation(safeLocale);
+  const q = t.dashboard.quiz;
+  const { ensure: ensureAiConsent } = useAiConsent();
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [items, setItems] = useState<QuizItemView[]>([]);
@@ -122,6 +125,13 @@ export function QuizSection({ doc }: { doc: QuizDoc }) {
   // nothing, but the FIRST call is a paid Haiku generation against the daily cap.
   const start = async () => {
     if (phase === 'loading') return;
+    // Apple 5.1.2(i): a first quiz sends the material's text to Anthropic, so
+    // the permission is asked before the request. (A stored quiz would send
+    // nothing, but the page cannot know which it is before asking the route.)
+    if (!(await ensureAiConsent())) {
+      setError(t.dashboard.aiConsent.declined);
+      return;
+    }
     setPhase('loading');
     setError(null);
     try {
@@ -139,7 +149,8 @@ export function QuizSection({ doc }: { doc: QuizDoc }) {
         // student's locale AND carrying how long until the cap resets — which the
         // dictionary line cannot say, having no clock. Prefer it; q.errors.limit
         // stays the fallback for an unreadable body.
-        const fromServer = res.status === 429 ? await readServerLimitMessage(res) : null;
+        // A 403 is the route's own consent refusal (src/lib/ai-consent.ts).
+        const fromServer = res.status === 429 || res.status === 403 ? await readServerLimitMessage(res) : null;
         setError(fromServer ?? generateError(res.status));
         setPhase('idle');
         return;
