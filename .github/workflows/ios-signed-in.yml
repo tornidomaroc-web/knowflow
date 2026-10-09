@@ -268,21 +268,22 @@ jobs:
 
       # THE BACKGROUND-UPLOAD MEASUREMENT (PROGRESS.md 2026-10-09, T5 replaced by
       # the simulator). Dispatch only, scenario background-upload. The reviewer
-      # account uploads three files of 4,000,000 spaces through the real drop
-      # zone of its subject: a file with no text, so the ingestion service finds
-      # nothing to embed and nothing reaches Voyage AI or Anthropic (no cost),
-      # while the request is the same 4 MB a student sends. Uploads 1 and 2 go
-      # over a link throttled to 256 kbit/s (dummynet on this runner), so the
-      # bytes are still leaving when the app is sent to the background (by
-      # opening the Settings app) for 30 s and then 120 s; upload 3 is not
-      # throttled, so the app is away (60 s) while it waits for the server's
-      # answer. A monitor in the page logs every event of the request, the
-      # page's visibility and the drop zone's sentence with the wall clock; this
-      # step logs when the app left and came back, with its process id, and
-      # photographs the screen at each point. Each upload is then deleted
-      # through the material's own Delete control, and the AI permission the
-      # first upload asked for is withdrawn in Settings at the end. The
-      # e-mail mask of the probe applies to every screenshot.
+      # account gives the AI permission in Settings, then uploads two files of
+      # 4,000,000 spaces through the real drop zone of its subject: a file with
+      # no text, so the ingestion service finds nothing to embed and nothing
+      # reaches Voyage AI or Anthropic (no cost), while the request is the same
+      # 4 MB a student sends. The moment the file is picked the workflow sends
+      # the app to the background (by opening the Settings app), so the app is
+      # away while the server is still answering, for 30 s and then 120 s, past
+      # iOS's background grace period. A monitor in the page logs every event
+      # of the request, the page's visibility and the drop zone's sentence with
+      # the wall clock; this step logs when the app left and came back, with
+      # its process id, and photographs the screen at each point. Every
+      # kf-bg-upload material is then deleted through its own Delete control,
+      # and the AI permission is withdrawn in Settings at the end. The e-mail
+      # mask of the probe applies to every screenshot. (Throttling this
+      # runner's link with dummynet was tried first, run 37926583892, and had
+      # no effect on the simulator's traffic: the bytes left in 0.2 s.)
       - name: Background-upload measurement against the live site
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.scenario == 'background-upload' }}
         env:
@@ -296,55 +297,39 @@ jobs:
           [
           {"name":"login","wait":10000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);var f=e.form;if(!f){return 'no form'}setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted'})()"},
           {"name":"home","wait":3000,"js":"(function(){return location.pathname})()"},
+          {"name":"settings-allow","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings'}a.click();return 'clicked Settings'})()"},
+          {"name":"allow","wait":2000,"js":"(function(){var b=document.querySelector('[data-kf-consent=allow]');if(!b){return 'no allow button (already on)'}b.click();return 'clicked allow'})()"},
+          {"name":"allow-accept","wait":3000,"js":"(function(){var b=document.querySelector('[data-kf-consent-sheet=open] [data-kf-consent=accept]');if(!b){return 'no sheet (permission already given)'}b.click();return 'accepted the AI permission sheet'})()"},
           {"name":"subjects","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/knowledge\"]');if(!a){return 'no Subjects'}a.click();return 'clicked Subjects'})()"},
           {"name":"subject","wait":10000,"js":"(function(){var a=Array.prototype.slice.call(document.querySelectorAll('a[href*=\"/dashboard/knowledge/\"]')).filter(function(a){return !/\\/new$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no subject link'}a.click();return 'clicked a subject'})()"},
+          {"name":"reload-0","wait":9000,"js":"(function(){location.reload();return 'reloading'})()"},
+          {"name":"cleanup-0-open","wait":1500,"js":"(function(){var n=0;var isDel=function(x){var t=(x.innerText||'').trim();return t==='Delete'||t==='حذف'};Array.prototype.slice.call(document.querySelectorAll('button')).filter(isDel).forEach(function(btn){var a=btn.parentElement;while(a&&a!==document.body){if(Array.prototype.slice.call(a.querySelectorAll('button')).filter(isDel).length>1){break}if(/kf-bg-upload-[0-9]/.test(a.textContent||'')){btn.click();n++;break}a=a.parentElement}});return 'opened '+n})()"},
+          {"name":"cleanup-0-confirm","wait":8000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){var t=(x.innerText||'').trim();return t==='Delete permanently'||t==='احذف نهائيًا'});b.forEach(function(x){x.click()});return 'confirmed '+b.length})()"},
+          {"name":"cleanup-0-check","wait":500,"js":"(function(){return 'left '+((document.body.textContent||'').match(/kf-bg-upload-[0-9]/g)||[]).length})()"},
           {"name":"instrument-1","wait":500,"js":"(function(){if(window.__kfMon){return 'already'}window.__kfMon=1;var L=function(e){try{var a=JSON.parse(localStorage.getItem('kfBg')||'[]');a.push([Date.now(),e]);localStorage.setItem('kfBg',JSON.stringify(a))}catch(x){}};document.addEventListener('visibilitychange',function(){L('vis:'+document.visibilityState)});window.addEventListener('pagehide',function(){L('pagehide')});window.addEventListener('pageshow',function(ev){L('pageshow:'+ev.persisted)});window.addEventListener('online',function(){L('online')});window.addEventListener('offline',function(){L('offline')});var O=XMLHttpRequest.prototype.open,S=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(m,u){this.__u=u;return O.apply(this,arguments)};XMLHttpRequest.prototype.send=function(b){var x=this;if(/\\/api\\/ingest/.test(x.__u||'')){L('xhr:send');var last=-1;x.upload.addEventListener('progress',function(ev){var q=Math.floor(ev.loaded/ev.total*4);if(q!==last){last=q;L('up:'+ev.loaded)}});x.upload.addEventListener('load',function(){L('up:done')});x.upload.addEventListener('error',function(){L('up:error')});x.upload.addEventListener('abort',function(){L('up:abort')});x.addEventListener('load',function(){L('xhr:load:'+x.status+':'+(x.responseText||'').replace(/[0-9a-f-]{36}/g,'<id>').slice(0,90))});x.addEventListener('error',function(){L('xhr:error')});x.addEventListener('abort',function(){L('xhr:abort')});x.addEventListener('timeout',function(){L('xhr:timeout')})}return S.apply(this,arguments)};var mo=new MutationObserver(function(){var z=document.querySelector('[aria-busy]');var t=z?(z.innerText||'').replace(/\\s+/g,' ').replace(/[0-9]+/g,'#').slice(0,160):'';if(t!==window.__kfZ){window.__kfZ=t;L('ui:'+t)}});mo.observe(document.body,{subtree:true,childList:true,characterData:true});L('monitor');return 'installed'})()"},
-          {"name":"throttle-on","wait":1000,"js":"(function(){return 'throttle'})()"},
-          {"name":"pick-1","wait":2500,"js":"(function(){var i=document.querySelector('input[type=file]');if(!i){return 'no file input'}var f=new File([new Uint8Array(4000000).fill(32)],'kf-bg-upload-1.txt',{type:'text/plain'});var dt=new DataTransfer();dt.items.add(f);i.files=dt.files;i.dispatchEvent(new Event('change',{bubbles:true}));return 'picked '+f.size+' bytes'})()"},
-          {"name":"bg-1-start","wait":4000,"js":"(function(){var b=document.querySelector('[data-kf-consent-sheet=open] [data-kf-consent=accept]');if(!b){return 'no sheet (permission already given)'}b.click();return 'accepted the AI permission sheet'})()"},
+          {"name":"bg-1-start","wait":200,"js":"(function(){var i=document.querySelector('input[type=file]');if(!i){return 'no file input'}var f=new File([new Uint8Array(4000000).fill(32)],'kf-bg-upload-1.txt',{type:'text/plain'});var dt=new DataTransfer();dt.items.add(f);i.files=dt.files;i.dispatchEvent(new Event('change',{bubbles:true}));return 'picked '+f.size+' bytes'})()"},
           {"name":"bg-1-return","wait":3000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-1-observe-1","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-1-observe-2","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-1-observe-3","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-1-observe-4","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-1-observe-5","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-1-observe-6","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-1-observe-1","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-1-observe-2","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-1-observe-3","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-1-observe-4","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
           {"name":"bg-1-report","wait":500,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');localStorage.removeItem('kfBg');return JSON.stringify(a)})()"},
           {"name":"reload-1","wait":9000,"js":"(function(){location.reload();return 'reloading'})()"},
-          {"name":"cleanup-1-open","wait":1500,"js":"(function(){var n=0;var hits=Array.prototype.slice.call(document.querySelectorAll('*')).filter(function(e){return e.children.length===0&&/kf-bg-upload-[0-9]\\.txt/.test(e.textContent||'')});hits.forEach(function(e){var a=e;while(a&&a!==document.body){var b=Array.prototype.slice.call(a.querySelectorAll('button')).filter(function(x){var t=(x.innerText||'').trim();return t==='Delete'||t==='حذف'});if(b.length===1){b[0].click();n++;break}if(b.length>1){break}a=a.parentElement}});return 'opened '+n+' of '+hits.length})()"},
+          {"name":"cleanup-1-open","wait":1500,"js":"(function(){var n=0;var isDel=function(x){var t=(x.innerText||'').trim();return t==='Delete'||t==='حذف'};Array.prototype.slice.call(document.querySelectorAll('button')).filter(isDel).forEach(function(btn){var a=btn.parentElement;while(a&&a!==document.body){if(Array.prototype.slice.call(a.querySelectorAll('button')).filter(isDel).length>1){break}if(/kf-bg-upload-[0-9]/.test(a.textContent||'')){btn.click();n++;break}a=a.parentElement}});return 'opened '+n})()"},
           {"name":"cleanup-1-confirm","wait":8000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){var t=(x.innerText||'').trim();return t==='Delete permanently'||t==='احذف نهائيًا'});b.forEach(function(x){x.click()});return 'confirmed '+b.length})()"},
-          {"name":"cleanup-1-check","wait":500,"js":"(function(){return 'left '+Array.prototype.slice.call(document.querySelectorAll('*')).filter(function(e){return e.children.length===0&&/kf-bg-upload-[0-9]\\.txt/.test(e.textContent||'')}).length})()"},
+          {"name":"cleanup-1-check","wait":500,"js":"(function(){return 'left '+((document.body.textContent||'').match(/kf-bg-upload-[0-9]/g)||[]).length})()"},
           {"name":"instrument-2","wait":500,"js":"(function(){if(window.__kfMon){return 'already'}window.__kfMon=1;var L=function(e){try{var a=JSON.parse(localStorage.getItem('kfBg')||'[]');a.push([Date.now(),e]);localStorage.setItem('kfBg',JSON.stringify(a))}catch(x){}};document.addEventListener('visibilitychange',function(){L('vis:'+document.visibilityState)});window.addEventListener('pagehide',function(){L('pagehide')});window.addEventListener('pageshow',function(ev){L('pageshow:'+ev.persisted)});window.addEventListener('online',function(){L('online')});window.addEventListener('offline',function(){L('offline')});var O=XMLHttpRequest.prototype.open,S=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(m,u){this.__u=u;return O.apply(this,arguments)};XMLHttpRequest.prototype.send=function(b){var x=this;if(/\\/api\\/ingest/.test(x.__u||'')){L('xhr:send');var last=-1;x.upload.addEventListener('progress',function(ev){var q=Math.floor(ev.loaded/ev.total*4);if(q!==last){last=q;L('up:'+ev.loaded)}});x.upload.addEventListener('load',function(){L('up:done')});x.upload.addEventListener('error',function(){L('up:error')});x.upload.addEventListener('abort',function(){L('up:abort')});x.addEventListener('load',function(){L('xhr:load:'+x.status+':'+(x.responseText||'').replace(/[0-9a-f-]{36}/g,'<id>').slice(0,90))});x.addEventListener('error',function(){L('xhr:error')});x.addEventListener('abort',function(){L('xhr:abort')});x.addEventListener('timeout',function(){L('xhr:timeout')})}return S.apply(this,arguments)};var mo=new MutationObserver(function(){var z=document.querySelector('[aria-busy]');var t=z?(z.innerText||'').replace(/\\s+/g,' ').replace(/[0-9]+/g,'#').slice(0,160):'';if(t!==window.__kfZ){window.__kfZ=t;L('ui:'+t)}});mo.observe(document.body,{subtree:true,childList:true,characterData:true});L('monitor');return 'installed'})()"},
-          {"name":"pick-2","wait":2500,"js":"(function(){var i=document.querySelector('input[type=file]');if(!i){return 'no file input'}var f=new File([new Uint8Array(4000000).fill(32)],'kf-bg-upload-2.txt',{type:'text/plain'});var dt=new DataTransfer();dt.items.add(f);i.files=dt.files;i.dispatchEvent(new Event('change',{bubbles:true}));return 'picked '+f.size+' bytes'})()"},
-          {"name":"bg-2-start","wait":4000,"js":"(function(){var b=document.querySelector('[data-kf-consent-sheet=open] [data-kf-consent=accept]');if(!b){return 'no sheet (permission already given)'}b.click();return 'accepted the AI permission sheet'})()"},
+          {"name":"bg-2-start","wait":200,"js":"(function(){var i=document.querySelector('input[type=file]');if(!i){return 'no file input'}var f=new File([new Uint8Array(4000000).fill(32)],'kf-bg-upload-2.txt',{type:'text/plain'});var dt=new DataTransfer();dt.items.add(f);i.files=dt.files;i.dispatchEvent(new Event('change',{bubbles:true}));return 'picked '+f.size+' bytes'})()"},
           {"name":"bg-2-return","wait":3000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-2-observe-1","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-2-observe-2","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-2-observe-3","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-2-observe-4","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-2-observe-5","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-2-observe-6","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-2-observe-1","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-2-observe-2","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-2-observe-3","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-2-observe-4","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
           {"name":"bg-2-report","wait":500,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');localStorage.removeItem('kfBg');return JSON.stringify(a)})()"},
           {"name":"reload-2","wait":9000,"js":"(function(){location.reload();return 'reloading'})()"},
-          {"name":"cleanup-2-open","wait":1500,"js":"(function(){var n=0;var hits=Array.prototype.slice.call(document.querySelectorAll('*')).filter(function(e){return e.children.length===0&&/kf-bg-upload-[0-9]\\.txt/.test(e.textContent||'')});hits.forEach(function(e){var a=e;while(a&&a!==document.body){var b=Array.prototype.slice.call(a.querySelectorAll('button')).filter(function(x){var t=(x.innerText||'').trim();return t==='Delete'||t==='حذف'});if(b.length===1){b[0].click();n++;break}if(b.length>1){break}a=a.parentElement}});return 'opened '+n+' of '+hits.length})()"},
+          {"name":"cleanup-2-open","wait":1500,"js":"(function(){var n=0;var isDel=function(x){var t=(x.innerText||'').trim();return t==='Delete'||t==='حذف'};Array.prototype.slice.call(document.querySelectorAll('button')).filter(isDel).forEach(function(btn){var a=btn.parentElement;while(a&&a!==document.body){if(Array.prototype.slice.call(a.querySelectorAll('button')).filter(isDel).length>1){break}if(/kf-bg-upload-[0-9]/.test(a.textContent||'')){btn.click();n++;break}a=a.parentElement}});return 'opened '+n})()"},
           {"name":"cleanup-2-confirm","wait":8000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){var t=(x.innerText||'').trim();return t==='Delete permanently'||t==='احذف نهائيًا'});b.forEach(function(x){x.click()});return 'confirmed '+b.length})()"},
-          {"name":"cleanup-2-check","wait":500,"js":"(function(){return 'left '+Array.prototype.slice.call(document.querySelectorAll('*')).filter(function(e){return e.children.length===0&&/kf-bg-upload-[0-9]\\.txt/.test(e.textContent||'')}).length})()"},
-          {"name":"instrument-3","wait":500,"js":"(function(){if(window.__kfMon){return 'already'}window.__kfMon=1;var L=function(e){try{var a=JSON.parse(localStorage.getItem('kfBg')||'[]');a.push([Date.now(),e]);localStorage.setItem('kfBg',JSON.stringify(a))}catch(x){}};document.addEventListener('visibilitychange',function(){L('vis:'+document.visibilityState)});window.addEventListener('pagehide',function(){L('pagehide')});window.addEventListener('pageshow',function(ev){L('pageshow:'+ev.persisted)});window.addEventListener('online',function(){L('online')});window.addEventListener('offline',function(){L('offline')});var O=XMLHttpRequest.prototype.open,S=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(m,u){this.__u=u;return O.apply(this,arguments)};XMLHttpRequest.prototype.send=function(b){var x=this;if(/\\/api\\/ingest/.test(x.__u||'')){L('xhr:send');var last=-1;x.upload.addEventListener('progress',function(ev){var q=Math.floor(ev.loaded/ev.total*4);if(q!==last){last=q;L('up:'+ev.loaded)}});x.upload.addEventListener('load',function(){L('up:done')});x.upload.addEventListener('error',function(){L('up:error')});x.upload.addEventListener('abort',function(){L('up:abort')});x.addEventListener('load',function(){L('xhr:load:'+x.status+':'+(x.responseText||'').replace(/[0-9a-f-]{36}/g,'<id>').slice(0,90))});x.addEventListener('error',function(){L('xhr:error')});x.addEventListener('abort',function(){L('xhr:abort')});x.addEventListener('timeout',function(){L('xhr:timeout')})}return S.apply(this,arguments)};var mo=new MutationObserver(function(){var z=document.querySelector('[aria-busy]');var t=z?(z.innerText||'').replace(/\\s+/g,' ').replace(/[0-9]+/g,'#').slice(0,160):'';if(t!==window.__kfZ){window.__kfZ=t;L('ui:'+t)}});mo.observe(document.body,{subtree:true,childList:true,characterData:true});L('monitor');return 'installed'})()"},
-          {"name":"throttle-off","wait":1000,"js":"(function(){return 'unthrottled'})()"},
-          {"name":"pick-3","wait":2500,"js":"(function(){var i=document.querySelector('input[type=file]');if(!i){return 'no file input'}var f=new File([new Uint8Array(4000000).fill(32)],'kf-bg-upload-3.txt',{type:'text/plain'});var dt=new DataTransfer();dt.items.add(f);i.files=dt.files;i.dispatchEvent(new Event('change',{bubbles:true}));return 'picked '+f.size+' bytes'})()"},
-          {"name":"bg-3-start","wait":4000,"js":"(function(){var b=document.querySelector('[data-kf-consent-sheet=open] [data-kf-consent=accept]');if(!b){return 'no sheet (permission already given)'}b.click();return 'accepted the AI permission sheet'})()"},
-          {"name":"bg-3-return","wait":3000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-3-observe-1","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-3-observe-2","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-3-observe-3","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-3-observe-4","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-3-observe-5","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-3-observe-6","wait":30000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
-          {"name":"bg-3-report","wait":500,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');localStorage.removeItem('kfBg');return JSON.stringify(a)})()"},
-          {"name":"reload-3","wait":9000,"js":"(function(){location.reload();return 'reloading'})()"},
-          {"name":"cleanup-3-open","wait":1500,"js":"(function(){var n=0;var hits=Array.prototype.slice.call(document.querySelectorAll('*')).filter(function(e){return e.children.length===0&&/kf-bg-upload-[0-9]\\.txt/.test(e.textContent||'')});hits.forEach(function(e){var a=e;while(a&&a!==document.body){var b=Array.prototype.slice.call(a.querySelectorAll('button')).filter(function(x){var t=(x.innerText||'').trim();return t==='Delete'||t==='حذف'});if(b.length===1){b[0].click();n++;break}if(b.length>1){break}a=a.parentElement}});return 'opened '+n+' of '+hits.length})()"},
-          {"name":"cleanup-3-confirm","wait":8000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){var t=(x.innerText||'').trim();return t==='Delete permanently'||t==='احذف نهائيًا'});b.forEach(function(x){x.click()});return 'confirmed '+b.length})()"},
-          {"name":"cleanup-3-check","wait":500,"js":"(function(){return 'left '+Array.prototype.slice.call(document.querySelectorAll('*')).filter(function(e){return e.children.length===0&&/kf-bg-upload-[0-9]\\.txt/.test(e.textContent||'')}).length})()"},
+          {"name":"cleanup-2-check","wait":500,"js":"(function(){return 'left '+((document.body.textContent||'').match(/kf-bg-upload-[0-9]/g)||[]).length})()"},
           {"name":"settings","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings'}a.click();return 'clicked Settings'})()"},
           {"name":"consent-withdraw","wait":5000,"js":"(function(){var b=document.querySelector('[data-kf-consent=withdraw]');if(!b){return 'no withdraw button (already off)'}b.click();return 'clicked withdraw'})()"},
           {"name":"consent-off","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-consent-state]');return c?c.getAttribute('data-kf-consent-state'):'no consent card'})()"}
@@ -355,19 +340,6 @@ jobs:
           now() { python3 -c 'import time; print(int(time.time()*1000))'; }
           apppid() { xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | awk '/UIKitApplication:com\.knowflow\.app/{print $1; exit}'; }
           shot() { xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$1.png" >/dev/null 2>&1 || true; }
-          throttle_on() {
-            sudo dnctl pipe 1 config bw 256Kbit/s
-            sudo pfctl -f /etc/pf.conf 2>/dev/null || true
-            echo 'dummynet out proto tcp from any to any port 443 pipe 1' | sudo pfctl -a com.apple/kf-throttle -f - 2>&1 | tail -n 2 || true
-            sudo pfctl -E 2>&1 | tail -n 1 || true
-            echo "$(now) throttle on: $(sudo dnctl list 2>/dev/null | head -n 1)" >> "$T"
-          }
-          throttle_off() {
-            sudo pfctl -a com.apple/kf-throttle -F all 2>/dev/null || true
-            sudo dnctl -q flush 2>/dev/null || true
-            echo "$(now) throttle off" >> "$T"
-          }
-          trap throttle_off EXIT
           away() {
             tag=$1; secs=$2
             pid0=$(apppid)
@@ -387,27 +359,25 @@ jobs:
           SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" SIMCTL_CHILD_KF_SMOKE_EMAIL="$KF_SMOKE_EMAIL" SIMCTL_CHILD_KF_SMOKE_PASSWORD="$KF_SMOKE_PASSWORD" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke &
           sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
           seen=0
-          for i in $(seq 1 1500); do
+          for i in $(seq 1 4000); do
             f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
             if [ "$n" -gt "$seen" ]; then
               seen=$n
               name=$(tail -n 1 "$f" | python3 -c 'import json,sys; print(json.loads(sys.stdin.readline())["step"])')
-              shot "bg-$seen-$name"
-              echo "step $seen ($name): $(tail -n 1 "$f" | python3 -c 'import json,sys; r=json.loads(sys.stdin.readline()); print(str(r.get("result"))[:300], "| appState", r.get("appState"))')"
               echo "$(now) line $seen $name" >> "$T"
+              # The app leaves first and is photographed after: the request is
+              # out for seconds only, and a screenshot takes one.
               case "$name" in
-                throttle-on) throttle_on ;;
-                throttle-off) throttle_off ;;
                 bg-1-start) away bg-1 30 ;;
                 bg-2-start) away bg-2 120 ;;
-                bg-3-start) away bg-3 60 ;;
+                *) shot "bg-$seen-$name" ;;
               esac
+              echo "step $seen ($name): $(tail -n 1 "$f" | python3 -c 'import json,sys; r=json.loads(sys.stdin.readline()); print(str(r.get("result"))[:300], "| appState", r.get("appState"))')"
               touch "$(dirname "$f")/ack-$seen"
             fi
             [ -n "$(sf smoke.done)" ] && break
-            sleep 1
+            sleep 0.25
           done
-          throttle_off
           f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$RUNNER_TEMP/smoke-bg.jsonl"
           xcrun simctl terminate "$UDID" com.knowflow.app || true
           kill "$(cat "$RUNNER_TEMP/log.pid")" 2>/dev/null || true
@@ -428,9 +398,11 @@ jobs:
               if not cond: fails.append(msg)
           print("timeline (ms, runner clock):")
           for t, what in tl: print("  ", t, what)
-          for n in (1, 2, 3):
+          print("\nAI permission:", by.get("allow", {}).get("result"), "/", by.get("allow-accept", {}).get("result"))
+          print("left from before:", by.get("cleanup-0-open", {}).get("result"), "/", by.get("cleanup-0-confirm", {}).get("result"), "/", by.get("cleanup-0-check", {}).get("result"))
+          for n in (1, 2):
               print(f"\n===== upload {n}")
-              print("  pick:", by.get(f"pick-{n}", {}).get("result"), "| start:", by.get(f"bg-{n}-start", {}).get("result"))
+              print("  start:", by.get(f"bg-{n}-start", {}).get("result"))
               try:
                   ev = json.loads(by.get(f"bg-{n}-report", {}).get("result") or "[]")
               except Exception:
@@ -445,14 +417,15 @@ jobs:
                   print(f"  away from {(bg[0]-send)/1000:.1f} s to {(fg[0]-send)/1000:.1f} s after the send")
               end = next(((t, e) for t, e in ev if e.startswith(("xhr:load", "xhr:error", "xhr:abort", "xhr:timeout"))), None)
               print("  end:", (f"{(end[0]-send)/1000:.1f} s {end[1]}" if end and send else "NONE: the request never ended in the page"))
-              for k in range(1, 7):
+              for k in range(1, 5):
                   r = by.get(f"bg-{n}-observe-{k}", {}).get("result")
                   if r: print(f"  observe {k}:", r[:220])
               print("  cleanup:", by.get(f"cleanup-{n}-open", {}).get("result"), "/", by.get(f"cleanup-{n}-confirm", {}).get("result"), "/", by.get(f"cleanup-{n}-check", {}).get("result"))
               need(bool(send), f"upload {n} was sent")
+              need(bool(bg and send and end) and bg[0] < end[0], f"upload {n}: the app left before the request ended (the measurement is valid)")
           need(by.get("consent-off", {}).get("result") == "off", f"the reviewer account is left without the AI permission: {by.get('consent-off', {}).get('result')}")
-          for n in (1, 2, 3):
-              need(by.get(f"cleanup-{n}-check", {}).get("result") == "left 0", f"upload {n}'s material is gone after the cleanup: {by.get(f'cleanup-{n}-check', {}).get('result')}")
+          for tag in ("0", "1", "2"):
+              need(by.get(f"cleanup-{tag}-check", {}).get("result") == "left 0", f"no kf-bg-upload material left after cleanup {tag}: {by.get(f'cleanup-{tag}-check', {}).get('result')}")
           print(f"\n{len(fails)} failure(s)")
           sys.exit(1 if fails else 0)
           PY
