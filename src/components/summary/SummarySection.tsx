@@ -88,7 +88,11 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
   // regenerate/refresh action (register #26) — an existing summary is final.
   if (summary) {
     return (
-      <div className="rounded-xl border border-border bg-background p-4">
+      // col-span-full: the material card lays its actions out as a grid that
+      // widens only a child holding an open panel ([&>*:has(>div)]); this block
+      // holds none, so on a phone it sat at half width beside an empty cell
+      // (seen in the store screenshots, 2026-10-09).
+      <div className="col-span-full rounded-xl border border-border bg-background p-4">
         <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {s.heading}
         </h3>
@@ -97,7 +101,10 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
             {s.partialNotice}
           </p>
         )}
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{summary}</p>
+        {/* dir="auto": the summary is in the material's language, not the
+            page's; an English summary on the Arabic page took the page's
+            right-to-left and moved its full stops to the line starts. */}
+        <p dir="auto" className="whitespace-pre-wrap text-start text-sm leading-relaxed text-foreground">{summary}</p>
       </div>
     );
   }

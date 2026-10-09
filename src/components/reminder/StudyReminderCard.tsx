@@ -167,7 +167,7 @@ export function StudyReminderCard({
           data-kf-reminder="toggle"
           disabled={busy}
           onClick={on ? turnOff : turnOn}
-          className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 ${on ? 'bg-primary' : 'bg-muted'}`}
+          className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 ${on ? 'bg-primary' : 'bg-muted ring-1 ring-inset ring-border'}`}
         >
           <span
             className={`inline-block h-6 w-6 rounded-full bg-surface shadow-soft transition-transform ${on ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'}`}

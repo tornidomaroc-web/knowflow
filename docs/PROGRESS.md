@@ -451,6 +451,47 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-09 - The login line for Google-registered students (inside the app only); the forgot link it points to proven end to end; the Arabic reminder word confirmed; the store screenshots taken, and two summary defects they exposed fixed before the final set
+
+**No row is edited** (rows 42, 69 and 81 untouched). PR #248, branch `feat/store-login-hint-screenshots`. **Not part of this PR:** the operator's name, which the owner decides separately.
+
+**1. THE LOGIN LINE.**
+- **Where it shows.** `src/components/auth/GoogleAccountHint.tsx`, under the forgot link on the login page. It shows only where the Google button is hidden, because it reads the same platform context the button reads. The web, where the button is, renders nothing.
+- **What it says.** The line names the page's own link by that link's own label (`{forgot}` ← `auth.forgotLink`), so the two cannot drift apart.
+- **Why it works.** An account created with Google has no password. Supabase lets such an account set its first one through the recovery link (`addingFirstPassword`, recorded in the 2026-10-09 path-A block).
+- **Proofs.**
+  - `verify-google-hint.mjs`, 29 checks: rendered in the app in both languages; nothing on the web; no purchase word.
+  - `verify-platform-gate.mjs`, changed on purpose: its "no Google in the app's markup" test now cuts out exactly the hint paragraph before testing, because the line names Google in words; the line is now required in the app and forbidden on the web. A mutation that shows the line on the web fails both proofs.
+  - **In the app:** the `ios-signed-in.yml` screens run on the merge push reads the line on the login page before signing in.
+- **The forgot link it points to, followed for real in the simulator** (run 37983810201, before sign-in): the forgot-password page opened inside the app, in its own web view and not Safari, at `/en/forgot-password`. The reviewer's address was sent, and the page showed its sent state. **The recovery mail arrived:** Gmail metadata shows a message from `noreply@tryknowflow.com` to the reviewer alias at 2026-10-09T20:07:00Z. It was not opened, and its link was not used.
+- **Residual.** The mail's link opens in Safari, not the app: the student sets the password there and signs in to the app with it. The flow works; it leaves the app once.
+
+**2. THE ARABIC REMINDER WORD.** The app's word for a material is ملف (`dashboard.subjects.addMaterial` "أضف ملفًا", `kbDetail.documents` "الملفات"); مادة is its word for a subject. `notificationBody` "افتح KnowFlow وراجِع ملفًا واحدًا اليوم." **already uses the same word in the same form**, so it is unchanged. **The terminal's reversed display was only a display issue:** each Arabic string starts with its first spoken letter (تذكير at U+062A, حان at U+062D, افتح at U+0627, سجّلت at U+0633), which `verify-google-hint.mjs` holds.
+
+**3. THE SCREENSHOTS.** The paste's "answer to a question" screen would need a real Anthropic and Voyage AI call, against the paste's own rule. It is replaced:
+- **English:** the quiz, which is stored for English.
+- **Arabic:** the Ask screen with its suggested questions and nothing sent, because the quiz is stored per language, and the Arabic one does not exist, so opening it would call the model.
+
+The run (`ios-signed-in.yml`, scenario `screenshots`, dispatch only) uses an iPhone 17 Pro Max simulator with Apple's status bar override (9:41, full bars, charged), the reviewer account, the live site and only the seeded material. Settings is photographed scrolled past the account card, the probe masks every e-mail text first, and the run checks no e-mail text is left.
+- **Two pre-merge runs.** 37983810201 got eight of ten screens right; two step matchers missed the uppercase PREFERENCES heading and the Arabic heading الملخّص, and were fixed. Run 37986677446 got all ten. Every file was 1320 × 2868, no screen had a price, plan, upgrade or checkout word or link, and the reviewer account was left without the AI permission.
+- **They were not committed, because they showed two defects of the live app.** App Review would see both:
+  - (a) **A stored summary sat at half width on a phone, beside an empty cell**, in both languages. The card's action grid widens only a child that holds a `<div>`, and the summary block holds none. Fix: `col-span-full` on the block.
+  - (b) **An English summary on the Arabic page took the page's right-to-left**, which put its full stops at the line starts (".reflecting green light"). Fix: `dir="auto"` and `text-start` on the summary text.
+
+  `verify-summary-layout.mjs` (17 checks, CI) renders the real `SummarySection` on both pages with both languages of summary; without the fix it fails 16 of 17.
+- **Also fixed:** the reminder switch, off, was nearly invisible on the dark theme; it now has an inset ring.
+- **Judged not a defect:** the Arabic Ask suggestion that quotes an English summary lead wraps the quoted English across lines. The topic is wrapped in FSI…PDI isolates (`ask-suggestions.ts`), and the guillemets and ؟ sit where Arabic order puts them.
+- **Therefore** the final set is taken after this merge, by the same scenario dispatched on `main`, so that it shows the fixed app.
+
+**4. A SETTING CHANGED AND RESTORED.** The `reviewer` environment was given a deployment branch policy for this branch (62533787), for the two screenshot runs, and it was **deleted** afterwards. The policy list reads `62354793 main` alone.
+
+**5. NEW STRING (an agent draft for the owner's copy batch), `auth.googleAccountHint`:**
+- en: Signed up with Google? Use “{forgot}” once to set a password for the same account, then sign in here.
+- ar: سجّلت بحساب Google؟ استعمل «{forgot}» مرة واحدة لتعيّن كلمة مرور للحساب نفسه، ثم سجّل الدخول هنا.
+
+The Arabic key set is 410.
+
+**NEXT, ONE RECOMMENDATION.** Right after this merge: dispatch the `screenshots` scenario on `main`, check the ten PNGs by eye (the summary at full width and in its own direction), and commit them to `docs/store/screenshots/{en,ar}/` with a short docs PR. Then fill App Store Connect's forms (S7) with them. Evidence: the screenshots are the last asset of the submission that the agent produces; the two defects they exposed are fixed here, but only the live app can show it; and the forms need the files.
 ### 2026-10-09 - The Docker-backed required checks no longer depend on anonymous Docker Hub alone: every pinned image is fetched by its digest from the first of three free registries that answers, with backoff
 
 **No row is edited** (rows 42, 69 and 81 untouched). The PR is `ci/pinned-image-mirrors`. Its files: `scripts/lib/pinned-image.mjs` (new); `scripts/gen-db-types.sh`, `scripts/verify-public-grants.mjs`, `scripts/verify-subscriptions-rls.mjs` and `scripts/verify-entitlement-plural-read.mjs` (each now runs the image the helper returns). No workflow and no required check changes, and no secret is added.
