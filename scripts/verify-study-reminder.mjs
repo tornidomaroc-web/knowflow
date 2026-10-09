@@ -86,13 +86,14 @@ for (const [dict, l] of [[en, 'en'], [ar, 'ar']]) {
 
 // 4. One place asks.
 const card = read('src/components/reminder/StudyReminderCard.tsx');
-check((card.match(/requestPermissions\(/g) || []).length === 1, 'requestPermissions must appear exactly once');
+check((card.match(/'requestPermissions'/g) || []).length === 1, 'requestPermissions must appear exactly once');
 const turnOn = card.slice(card.indexOf('const turnOn = async'), card.indexOf('const turnOff = async'));
-check(turnOn.includes('requestPermissions('), 'and that one is in the switch\'s turn-on handler');
+check(turnOn.includes("ln('requestPermissions')"), 'and that one is in the switch\'s turn-on handler');
 const effect = card.slice(card.indexOf('useEffect('), card.indexOf('const save = useCallback'));
-check(!/requestPermissions|checkPermissions|schedule\(\{ notifications: \[studyReminderNotification\(at/.test(effect.replace(/await ln\.schedule\(\{ notifications: \[studyReminderNotification\(hour, minute, words, locale\)\] \}\);/, '')), 'loading the card asks nothing (only re-saves an existing reminder in the new language)');
-check(/await import\('@capacitor\/local-notifications'\)/.test(card) && !/^import .*local-notifications/m.test(card), 'the plugin code is imported only at run time, never at module load');
-check(/isPluginAvailable\('LocalNotifications'\)/.test(card), 'an app build without the plugin shows no card');
+check(!/requestPermissions|checkPermissions/.test(effect), 'loading the card asks nothing (it only reads, and re-saves an existing reminder in the new language)');
+check(/nativePromise\?:/.test(card) && /native\('LocalNotifications', method/.test(card) && !/import .*@capacitor\//.test(card), 'the card calls the shell\'s own bridge (the path ios-smoke proof 6 exercises), never a bundled Capacitor module');
+check(/isPluginAvailable\?\.\('LocalNotifications'\)/.test(card), 'an app build without the plugin shows no card');
+check(/data-kf-reminder-state="unavailable" data-kf-reminder-why=\{why\}/.test(card), 'a hidden card says why, for the signed-in run');
 
 // 5. The copy.
 const KEYS = Object.keys(en.dashboard.studyReminder);
