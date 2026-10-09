@@ -1,5 +1,8 @@
 import Capacitor
 import UIKit
+#if targetEnvironment(simulator)
+import UserNotifications
+#endif
 
 /// The bridge view controller, subclassed for one reason: the simulator smoke
 /// test (`.github/workflows/ios-smoke.yml`). Main.storyboard names this class.
@@ -32,6 +35,16 @@ class MainViewController: CAPBridgeViewController {
         try? boot.write(to: FileManager.default.temporaryDirectory.appendingPathComponent("smoke.boot"), atomically: true, encoding: .utf8)
         NSLog("[KFSmoke] capacitorDidLoad: %@", boot)
         if asked {
+            // The reminder's proof (ios-smoke.yml, proof 6) needs notifications
+            // allowed with no person to tap the system prompt: provisional
+            // authorization is granted with no prompt at all. Asked only when
+            // the workflow sets KF_SMOKE_NOTIFY=provisional, so every other run
+            // starts, like a real install, with the permission never asked.
+            if env["KF_SMOKE_NOTIFY"] == "provisional" {
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge, .provisional]) { granted, _ in
+                    NSLog("[KFSmoke] provisional notifications: %@", granted ? "granted" : "refused")
+                }
+            }
             let smoke = Smoke(controller: self)
             MainViewController.smoke = smoke
             // The web view is created in viewDidLoad; give it a moment before
@@ -191,7 +204,7 @@ private final class Smoke {
     private func record(step: String, result: String, probe: [String: Any]) {
         let line: [String: Any] = [
             "step": step,
-            "result": String(result.prefix(300)),
+            "result": String(result.prefix(4000)),
             "t": Int(Date().timeIntervalSince(started)),
             "appState": UIApplication.shared.applicationState.rawValue,
             "probe": probe,

@@ -42,6 +42,12 @@ on:
       - 'capacitor.config.ts'
       - '.github/workflows/ios-signed-in.yml'
   workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'screens: the signed-in screens (as on every push). background-upload: the measurement of an upload sent to the background (dispatch only)'
+        type: choice
+        options: [screens, background-upload]
+        default: screens
 
 permissions:
   contents: read
@@ -71,6 +77,13 @@ jobs:
           test -f ios/App/App/public/index.html
           test -f ios/App/App/capacitor.config.json
           test "$(git status --porcelain --untracked-files=no ios native capacitor.config.ts | wc -l | tr -d ' ')" -eq 0 || { echo "a tracked file changed after checkout"; git status --porcelain ios; exit 1; }
+
+      # The one native plugin (the study reminder's) is a local Swift package
+      # under node_modules/, which this job never creates with npm: the
+      # tarball is fetched from the registry and refused unless its sha512 is
+      # the one package-lock.json pins; nothing in it is run.
+      - name: The native plugins, by their package-lock.json sha512 (no npm)
+        run: python3 .github/scripts/fetch-native-plugins.py
 
       - name: Xcode in use
         run: |
@@ -128,6 +141,7 @@ jobs:
       # later step is a navigation or a scroll, each followed by the probe and a
       # screenshot. `l` is the locale the page is on.
       - name: Signed-in run against the live site
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.scenario == 'screens' }}
         env:
           KF_SMOKE_EMAIL: ${{ secrets.REVIEWER_EMAIL }}
           KF_SMOKE_PASSWORD: ${{ secrets.REVIEWER_PASSWORD }}
@@ -151,6 +165,16 @@ jobs:
             {"name":"consent-on","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-consent-state]');if(!c){return 'no consent card'}c.scrollIntoView({block:'center'});return c.getAttribute('data-kf-consent-state')})()"},
             {"name":"consent-withdraw","wait":5000,"js":"(function(){var b=document.querySelector('[data-kf-consent=withdraw]');if(!b){return 'no withdraw button'}b.click();return 'clicked withdraw'})()"},
             {"name":"consent-off","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-consent-state]');if(!c){return 'no consent card'}return c.getAttribute('data-kf-consent-state')})()"},
+            {"name":"reminder-card","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');if(!c){return 'no reminder card'}c.scrollIntoView({block:'center'});return c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time')})()"},
+            {"name":"reminder-on","wait":3000,"js":"(function(){var b=document.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked on'})()"},
+            {"name":"reminder-read-on","wait":1500,"js":"(function(){window.__kfP='pending';window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
+            {"name":"reminder-pending-on","wait":300,"js":"(function(){return String(window.__kfP)})()"},
+            {"name":"reminder-time","wait":3000,"js":"(function(){var i=document.querySelector('[data-kf-reminder=time]');if(!i){return 'no time input'}var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(i,'07:30');i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));return 'set 07:30'})()"},
+            {"name":"reminder-read-time","wait":1500,"js":"(function(){window.__kfP='pending';window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
+            {"name":"reminder-pending-time","wait":300,"js":"(function(){return String(window.__kfP)})()"},
+            {"name":"reminder-off","wait":3000,"js":"(function(){var b=document.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked off'})()"},
+            {"name":"reminder-read-off","wait":1500,"js":"(function(){window.__kfP='pending';window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
+            {"name":"reminder-pending-off","wait":300,"js":"(function(){return String(window.__kfP)})()"},
             {"name":"settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"}
           ]
           JSON
@@ -160,7 +184,10 @@ jobs:
           xcrun simctl spawn "$UDID" log stream --style compact --predicate 'process == "App"' > "$RUNNER_TEMP/app.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/log.pid"
           # The credentials travel as launch-environment variables only.
-          SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" SIMCTL_CHILD_KF_SMOKE_EMAIL="$KF_SMOKE_EMAIL" SIMCTL_CHILD_KF_SMOKE_PASSWORD="$KF_SMOKE_PASSWORD" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke &
+          # Provisional notifications (MainViewController.swift): the reminder's
+          # switch is never stopped by a system prompt no one can tap here; the
+          # prompt-only-after-a-tap rule is proven in ios-smoke.yml, proof 6.
+          SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_NOTIFY=provisional SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" SIMCTL_CHILD_KF_SMOKE_EMAIL="$KF_SMOKE_EMAIL" SIMCTL_CHILD_KF_SMOKE_PASSWORD="$KF_SMOKE_PASSWORD" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke &
           sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
           seen=0
           for i in $(seq 1 360); do
@@ -185,6 +212,7 @@ jobs:
           test -n "$(sf smoke.done)" || { echo "FAIL: the run did not finish; lines seen: $seen"; grep -iE 'KFSmoke|crash|fatal' "$RUNNER_TEMP/app.log" | tail -n 30 || true; exit 1; }
 
       - name: Assert the signed-in screens and the 3.1.3(f) reading
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.scenario == 'screens' }}
         run: |
           python3 - "$RUNNER_TEMP/smoke-signed-in.jsonl" <<'PY'
           import json, re, sys
@@ -220,11 +248,185 @@ jobs:
           need(by.get("consent-on", {}).get("result") == "on", f"Settings shows the permission given: {by.get('consent-on', {}).get('result')}")
           need(by.get("consent-withdraw", {}).get("result") == "clicked withdraw", f"the withdraw button is there: {by.get('consent-withdraw', {}).get('result')}")
           need(by.get("consent-off", {}).get("result") == "off", f"...and withdrawing turned it off: {by.get('consent-off', {}).get('result')}")
-          for name in ("home", "home-bottom", "subjects", "subject", "summary", "quiz-open", "consent", "quiz", "ask", "settings", "consent-on", "consent-off", "settings-bottom"):
+          # STORE_PATH.md S3(a): the study reminder card, inside the app only,
+          # off at 19:00 until the switch is used; on schedules one daily
+          # reminder, a new time replaces it, off cancels it.
+          def pend(name):
+              try: return [(n.get("id"), (n.get("on") or {}).get("hour"), (n.get("on") or {}).get("minute")) for n in json.loads(by.get(name, {}).get("result") or "x")]
+              except Exception: return by.get(name, {}).get("result")
+          need(by.get("reminder-card", {}).get("result") == "off 19:00", f"the reminder card is in Settings, off, at 19:00: {by.get('reminder-card', {}).get('result')}")
+          need(by.get("reminder-read-on", {}).get("result") == "on 19:00" and pend("reminder-pending-on") == [(7001, 19, 0)], f"switching it on schedules one daily reminder at 19:00: {by.get('reminder-read-on', {}).get('result')} {pend('reminder-pending-on')}")
+          need(by.get("reminder-read-time", {}).get("result") == "on 07:30" and pend("reminder-pending-time") == [(7001, 7, 30)], f"a new time replaces it: {by.get('reminder-read-time', {}).get('result')} {pend('reminder-pending-time')}")
+          need(by.get("reminder-read-off", {}).get("result") == "off 07:30" and pend("reminder-pending-off") == [], f"switching it off cancels it: {by.get('reminder-read-off', {}).get('result')} {pend('reminder-pending-off')}")
+          for name in ("home", "home-bottom", "subjects", "subject", "summary", "quiz-open", "consent", "quiz", "ask", "settings", "consent-on", "consent-off", "reminder-card", "reminder-read-on", "reminder-read-off", "settings-bottom"):
               p = P(name).get("purchase", {}) or {}
               need(not p.get("words") and not p.get("hrefs"), f"3.1.3(f) on {name}: no price, plan, upgrade or checkout word or link: words={p.get('words')} hrefs={p.get('hrefs')}")
               need(P(name).get("google") == 0, f"no Google button on {name}: {P(name).get('google')}")
           print(f"\n{len(fails)} failure(s) of {len(rows)} readings")
+          sys.exit(1 if fails else 0)
+          PY
+
+      # THE BACKGROUND-UPLOAD MEASUREMENT (PROGRESS.md 2026-10-09, T5 replaced by
+      # the simulator). Dispatch only, scenario background-upload. The reviewer
+      # account gives the AI permission in Settings, then uploads two files of
+      # 4,000,000 spaces through the real drop zone of its subject: a file with
+      # no text, so the ingestion service finds nothing to embed and nothing
+      # reaches Voyage AI or Anthropic (no cost), while the request is the same
+      # 4 MB a student sends. The moment the file is picked the workflow sends
+      # the app to the background (by opening the Settings app), so the app is
+      # away while the server is still answering, for 30 s and then 120 s, past
+      # iOS's background grace period. A monitor in the page logs every event
+      # of the request, the page's visibility and the drop zone's sentence with
+      # the wall clock; this step logs when the app left and came back, with
+      # its process id, and photographs the screen at each point. Every
+      # kf-bg-upload material is then deleted through its own Delete control,
+      # and the AI permission is withdrawn in Settings at the end. The e-mail
+      # mask of the probe applies to every screenshot. (Throttling this
+      # runner's link with dummynet was tried first, run 37926583892, and had
+      # no effect on the simulator's traffic: the bytes left in 0.2 s.)
+      - name: Background-upload measurement against the live site
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.scenario == 'background-upload' }}
+        env:
+          KF_SMOKE_EMAIL: ${{ secrets.REVIEWER_EMAIL }}
+          KF_SMOKE_PASSWORD: ${{ secrets.REVIEWER_PASSWORD }}
+        run: |
+          set -eu
+          test -n "$KF_SMOKE_EMAIL" || { echo "REVIEWER_EMAIL is empty"; exit 1; }
+          test -n "$KF_SMOKE_PASSWORD" || { echo "REVIEWER_PASSWORD is empty"; exit 1; }
+          cat > "$RUNNER_TEMP/steps.json" <<'JSON'
+          [
+          {"name":"login","wait":10000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);var f=e.form;if(!f){return 'no form'}setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted'})()"},
+          {"name":"home","wait":3000,"js":"(function(){return location.pathname})()"},
+          {"name":"settings-allow","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings'}a.click();return 'clicked Settings'})()"},
+          {"name":"allow","wait":2000,"js":"(function(){var b=document.querySelector('[data-kf-consent=allow]');if(!b){return 'no allow button (already on)'}b.click();return 'clicked allow'})()"},
+          {"name":"allow-accept","wait":3000,"js":"(function(){var b=document.querySelector('[data-kf-consent-sheet=open] [data-kf-consent=accept]');if(!b){return 'no sheet (permission already given)'}b.click();return 'accepted the AI permission sheet'})()"},
+          {"name":"subjects","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/knowledge\"]');if(!a){return 'no Subjects'}a.click();return 'clicked Subjects'})()"},
+          {"name":"subject","wait":10000,"js":"(function(){var a=Array.prototype.slice.call(document.querySelectorAll('a[href*=\"/dashboard/knowledge/\"]')).filter(function(a){return !/\\/new$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no subject link'}a.click();return 'clicked a subject'})()"},
+          {"name":"reload-0","wait":9000,"js":"(function(){location.reload();return 'reloading'})()"},
+          {"name":"cleanup-0-open","wait":1500,"js":"(function(){var n=0;var isDel=function(x){var t=(x.innerText||'').trim();return t==='Delete'||t==='حذف'};Array.prototype.slice.call(document.querySelectorAll('button')).filter(isDel).forEach(function(btn){var a=btn.parentElement;while(a&&a!==document.body){if(Array.prototype.slice.call(a.querySelectorAll('button')).filter(isDel).length>1){break}if(/kf-bg-upload-[0-9]/.test(a.textContent||'')){btn.click();n++;break}a=a.parentElement}});return 'opened '+n})()"},
+          {"name":"cleanup-0-confirm","wait":8000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){var t=(x.innerText||'').trim();return t==='Delete permanently'||t==='احذف نهائيًا'});b.forEach(function(x){x.click()});return 'confirmed '+b.length})()"},
+          {"name":"cleanup-0-check","wait":500,"js":"(function(){return 'left '+((document.body.textContent||'').match(/kf-bg-upload-[0-9]/g)||[]).length})()"},
+          {"name":"instrument-1","wait":500,"js":"(function(){if(window.__kfMon){return 'already'}window.__kfMon=1;var L=function(e){try{var a=JSON.parse(localStorage.getItem('kfBg')||'[]');a.push([Date.now(),e]);localStorage.setItem('kfBg',JSON.stringify(a))}catch(x){}};document.addEventListener('visibilitychange',function(){L('vis:'+document.visibilityState)});window.addEventListener('pagehide',function(){L('pagehide')});window.addEventListener('pageshow',function(ev){L('pageshow:'+ev.persisted)});window.addEventListener('online',function(){L('online')});window.addEventListener('offline',function(){L('offline')});var O=XMLHttpRequest.prototype.open,S=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(m,u){this.__u=u;return O.apply(this,arguments)};XMLHttpRequest.prototype.send=function(b){var x=this;if(/\\/api\\/ingest/.test(x.__u||'')){L('xhr:send');var last=-1;x.upload.addEventListener('progress',function(ev){var q=Math.floor(ev.loaded/ev.total*4);if(q!==last){last=q;L('up:'+ev.loaded)}});x.upload.addEventListener('load',function(){L('up:done')});x.upload.addEventListener('error',function(){L('up:error')});x.upload.addEventListener('abort',function(){L('up:abort')});x.addEventListener('load',function(){L('xhr:load:'+x.status+':'+(x.responseText||'').replace(/[0-9a-f-]{36}/g,'<id>').slice(0,90))});x.addEventListener('error',function(){L('xhr:error')});x.addEventListener('abort',function(){L('xhr:abort')});x.addEventListener('timeout',function(){L('xhr:timeout')})}return S.apply(this,arguments)};var mo=new MutationObserver(function(){var z=document.querySelector('[aria-busy]');var t=z?(z.innerText||'').replace(/\\s+/g,' ').replace(/[0-9]+/g,'#').slice(0,160):'';if(t!==window.__kfZ){window.__kfZ=t;L('ui:'+t)}});mo.observe(document.body,{subtree:true,childList:true,characterData:true});L('monitor');return 'installed'})()"},
+          {"name":"bg-1-start","wait":200,"js":"(function(){var i=document.querySelector('input[type=file]');if(!i){return 'no file input'}var f=new File([new Uint8Array(4000000).fill(32)],'kf-bg-upload-1.txt',{type:'text/plain'});var dt=new DataTransfer();dt.items.add(f);i.files=dt.files;i.dispatchEvent(new Event('change',{bubbles:true}));return 'picked '+f.size+' bytes'})()"},
+          {"name":"bg-1-return","wait":3000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-1-observe-1","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-1-observe-2","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-1-observe-3","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-1-observe-4","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-1-report","wait":500,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');localStorage.removeItem('kfBg');return JSON.stringify(a)})()"},
+          {"name":"reload-1","wait":9000,"js":"(function(){location.reload();return 'reloading'})()"},
+          {"name":"cleanup-1-open","wait":1500,"js":"(function(){var n=0;var isDel=function(x){var t=(x.innerText||'').trim();return t==='Delete'||t==='حذف'};Array.prototype.slice.call(document.querySelectorAll('button')).filter(isDel).forEach(function(btn){var a=btn.parentElement;while(a&&a!==document.body){if(Array.prototype.slice.call(a.querySelectorAll('button')).filter(isDel).length>1){break}if(/kf-bg-upload-[0-9]/.test(a.textContent||'')){btn.click();n++;break}a=a.parentElement}});return 'opened '+n})()"},
+          {"name":"cleanup-1-confirm","wait":8000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){var t=(x.innerText||'').trim();return t==='Delete permanently'||t==='احذف نهائيًا'});b.forEach(function(x){x.click()});return 'confirmed '+b.length})()"},
+          {"name":"cleanup-1-check","wait":500,"js":"(function(){return 'left '+((document.body.textContent||'').match(/kf-bg-upload-[0-9]/g)||[]).length})()"},
+          {"name":"instrument-2","wait":500,"js":"(function(){if(window.__kfMon){return 'already'}window.__kfMon=1;var L=function(e){try{var a=JSON.parse(localStorage.getItem('kfBg')||'[]');a.push([Date.now(),e]);localStorage.setItem('kfBg',JSON.stringify(a))}catch(x){}};document.addEventListener('visibilitychange',function(){L('vis:'+document.visibilityState)});window.addEventListener('pagehide',function(){L('pagehide')});window.addEventListener('pageshow',function(ev){L('pageshow:'+ev.persisted)});window.addEventListener('online',function(){L('online')});window.addEventListener('offline',function(){L('offline')});var O=XMLHttpRequest.prototype.open,S=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(m,u){this.__u=u;return O.apply(this,arguments)};XMLHttpRequest.prototype.send=function(b){var x=this;if(/\\/api\\/ingest/.test(x.__u||'')){L('xhr:send');var last=-1;x.upload.addEventListener('progress',function(ev){var q=Math.floor(ev.loaded/ev.total*4);if(q!==last){last=q;L('up:'+ev.loaded)}});x.upload.addEventListener('load',function(){L('up:done')});x.upload.addEventListener('error',function(){L('up:error')});x.upload.addEventListener('abort',function(){L('up:abort')});x.addEventListener('load',function(){L('xhr:load:'+x.status+':'+(x.responseText||'').replace(/[0-9a-f-]{36}/g,'<id>').slice(0,90))});x.addEventListener('error',function(){L('xhr:error')});x.addEventListener('abort',function(){L('xhr:abort')});x.addEventListener('timeout',function(){L('xhr:timeout')})}return S.apply(this,arguments)};var mo=new MutationObserver(function(){var z=document.querySelector('[aria-busy]');var t=z?(z.innerText||'').replace(/\\s+/g,' ').replace(/[0-9]+/g,'#').slice(0,160):'';if(t!==window.__kfZ){window.__kfZ=t;L('ui:'+t)}});mo.observe(document.body,{subtree:true,childList:true,characterData:true});L('monitor');return 'installed'})()"},
+          {"name":"bg-2-start","wait":200,"js":"(function(){var i=document.querySelector('input[type=file]');if(!i){return 'no file input'}var f=new File([new Uint8Array(4000000).fill(32)],'kf-bg-upload-2.txt',{type:'text/plain'});var dt=new DataTransfer();dt.items.add(f);i.files=dt.files;i.dispatchEvent(new Event('change',{bubbles:true}));return 'picked '+f.size+' bytes'})()"},
+          {"name":"bg-2-return","wait":3000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-2-observe-1","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-2-observe-2","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-2-observe-3","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-2-observe-4","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');var z=document.querySelector('[aria-busy]');return JSON.stringify({events:a.length,last:a.slice(-3).map(function(e){return e[1].slice(0,80)}),zone:z?(z.innerText||'').replace(/\\s+/g,' ').slice(0,160):null,vis:document.visibilityState})})()"},
+          {"name":"bg-2-report","wait":500,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfBg')||'[]');localStorage.removeItem('kfBg');return JSON.stringify(a)})()"},
+          {"name":"reload-2","wait":9000,"js":"(function(){location.reload();return 'reloading'})()"},
+          {"name":"cleanup-2-open","wait":1500,"js":"(function(){var n=0;var isDel=function(x){var t=(x.innerText||'').trim();return t==='Delete'||t==='حذف'};Array.prototype.slice.call(document.querySelectorAll('button')).filter(isDel).forEach(function(btn){var a=btn.parentElement;while(a&&a!==document.body){if(Array.prototype.slice.call(a.querySelectorAll('button')).filter(isDel).length>1){break}if(/kf-bg-upload-[0-9]/.test(a.textContent||'')){btn.click();n++;break}a=a.parentElement}});return 'opened '+n})()"},
+          {"name":"cleanup-2-confirm","wait":8000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){var t=(x.innerText||'').trim();return t==='Delete permanently'||t==='احذف نهائيًا'});b.forEach(function(x){x.click()});return 'confirmed '+b.length})()"},
+          {"name":"cleanup-2-check","wait":500,"js":"(function(){return 'left '+((document.body.textContent||'').match(/kf-bg-upload-[0-9]/g)||[]).length})()"},
+          {"name":"settings","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings'}a.click();return 'clicked Settings'})()"},
+          {"name":"consent-withdraw","wait":5000,"js":"(function(){var b=document.querySelector('[data-kf-consent=withdraw]');if(!b){return 'no withdraw button (already off)'}b.click();return 'clicked withdraw'})()"},
+          {"name":"consent-off","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-consent-state]');return c?c.getAttribute('data-kf-consent-state'):'no consent card'})()"}
+          ]
+          JSON
+          steps=$(base64 < "$RUNNER_TEMP/steps.json" | tr -d '\n')
+          T="$RUNNER_TEMP/bg-timeline.txt"; : > "$T"
+          now() { python3 -c 'import time; print(int(time.time()*1000))'; }
+          apppid() { xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | awk '/UIKitApplication:com\.knowflow\.app/{print $1; exit}'; }
+          shot() { xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$1.png" >/dev/null 2>&1 || true; }
+          away() {
+            tag=$1; secs=$2
+            pid0=$(apppid)
+            xcrun simctl launch "$UDID" com.apple.Preferences >/dev/null
+            echo "$(now) $tag background (app pid $pid0)" >> "$T"
+            sleep 2; shot "$tag-away"
+            sleep $((secs - 2))
+            xcrun simctl launch "$UDID" com.knowflow.app >/dev/null
+            sleep 1
+            echo "$(now) $tag foreground (app pid $(apppid))" >> "$T"
+            sleep 1; shot "$tag-back"
+          }
+          xcrun simctl install "$UDID" "$APP_PATH"
+          data=$(xcrun simctl get_app_container "$UDID" com.knowflow.app data)
+          xcrun simctl spawn "$UDID" log stream --style compact --predicate 'process == "App"' > "$RUNNER_TEMP/app.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/log.pid"
+          SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" SIMCTL_CHILD_KF_SMOKE_EMAIL="$KF_SMOKE_EMAIL" SIMCTL_CHILD_KF_SMOKE_PASSWORD="$KF_SMOKE_PASSWORD" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke &
+          sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
+          seen=0
+          for i in $(seq 1 4000); do
+            f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
+            if [ "$n" -gt "$seen" ]; then
+              seen=$n
+              name=$(tail -n 1 "$f" | python3 -c 'import json,sys; print(json.loads(sys.stdin.readline())["step"])')
+              echo "$(now) line $seen $name" >> "$T"
+              # The app leaves first and is photographed after: the request is
+              # out for seconds only, and a screenshot takes one.
+              case "$name" in
+                bg-1-start) away bg-1 30 ;;
+                bg-2-start) away bg-2 120 ;;
+                *) shot "bg-$seen-$name" ;;
+              esac
+              echo "step $seen ($name): $(tail -n 1 "$f" | python3 -c 'import json,sys; r=json.loads(sys.stdin.readline()); print(str(r.get("result"))[:300], "| appState", r.get("appState"))')"
+              touch "$(dirname "$f")/ack-$seen"
+            fi
+            [ -n "$(sf smoke.done)" ] && break
+            sleep 0.25
+          done
+          f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$RUNNER_TEMP/smoke-bg.jsonl"
+          xcrun simctl terminate "$UDID" com.knowflow.app || true
+          kill "$(cat "$RUNNER_TEMP/log.pid")" 2>/dev/null || true
+          if grep -qF -- "$KF_SMOKE_PASSWORD" "$RUNNER_TEMP/smoke-bg.jsonl" "$RUNNER_TEMP/app.log" 2>/dev/null; then echo "FAIL: a credential reached a recorded file"; rm -f "$RUNNER_TEMP/smoke-bg.jsonl" "$RUNNER_TEMP/app.log"; exit 1; fi
+          test -n "$(sf smoke.done)" || { echo "FAIL: the run did not finish; lines seen: $seen"; exit 1; }
+
+      - name: Report the background-upload measurement
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.scenario == 'background-upload' }}
+        run: |
+          python3 - "$RUNNER_TEMP/smoke-bg.jsonl" "$RUNNER_TEMP/bg-timeline.txt" <<'PY'
+          import json, sys
+          rows = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
+          by = {r["step"]: r for r in rows}
+          tl = [l.split(" ", 1) for l in open(sys.argv[2]).read().splitlines() if l.strip()]
+          fails = []
+          def need(cond, msg):
+              print(("ok   " if cond else "FAIL ") + msg)
+              if not cond: fails.append(msg)
+          print("timeline (ms, runner clock):")
+          for t, what in tl: print("  ", t, what)
+          print("\nAI permission:", by.get("allow", {}).get("result"), "/", by.get("allow-accept", {}).get("result"))
+          print("left from before:", by.get("cleanup-0-open", {}).get("result"), "/", by.get("cleanup-0-confirm", {}).get("result"), "/", by.get("cleanup-0-check", {}).get("result"))
+          for n in (1, 2):
+              print(f"\n===== upload {n}")
+              print("  start:", by.get(f"bg-{n}-start", {}).get("result"))
+              try:
+                  ev = json.loads(by.get(f"bg-{n}-report", {}).get("result") or "[]")
+              except Exception:
+                  ev = []
+              bg = [int(t) for t, w in tl if w.startswith(f"bg-{n} background")]
+              fg = [int(t) for t, w in tl if w.startswith(f"bg-{n} foreground")]
+              send = next((t for t, e in ev if e == "xhr:send"), None)
+              for t, e in ev:
+                  rel = (t - send) / 1000 if send else 0
+                  print(f"  {rel:8.1f} s  {e}")
+              if send and bg and fg:
+                  print(f"  away from {(bg[0]-send)/1000:.1f} s to {(fg[0]-send)/1000:.1f} s after the send")
+              end = next(((t, e) for t, e in ev if e.startswith(("xhr:load", "xhr:error", "xhr:abort", "xhr:timeout"))), None)
+              print("  end:", (f"{(end[0]-send)/1000:.1f} s {end[1]}" if end and send else "NONE: the request never ended in the page"))
+              for k in range(1, 5):
+                  r = by.get(f"bg-{n}-observe-{k}", {}).get("result")
+                  if r: print(f"  observe {k}:", r[:220])
+              print("  cleanup:", by.get(f"cleanup-{n}-open", {}).get("result"), "/", by.get(f"cleanup-{n}-confirm", {}).get("result"), "/", by.get(f"cleanup-{n}-check", {}).get("result"))
+              need(bool(send), f"upload {n} was sent")
+              need(bool(bg and send and end) and bg[0] < end[0], f"upload {n}: the app left before the request ended (the measurement is valid)")
+          need(by.get("consent-off", {}).get("result") == "off", f"the reviewer account is left without the AI permission: {by.get('consent-off', {}).get('result')}")
+          for tag in ("0", "1", "2"):
+              need(by.get(f"cleanup-{tag}-check", {}).get("result") == "left 0", f"no kf-bg-upload material left after cleanup {tag}: {by.get(f'cleanup-{tag}-check', {}).get('result')}")
+          print(f"\n{len(fails)} failure(s)")
           sys.exit(1 if fails else 0)
           PY
 
@@ -240,6 +442,8 @@ jobs:
           path: |
             ${{ runner.temp }}/shots
             ${{ runner.temp }}/smoke-signed-in.jsonl
+            ${{ runner.temp }}/smoke-bg.jsonl
+            ${{ runner.temp }}/bg-timeline.txt
             ${{ runner.temp }}/app.log
             ${{ runner.temp }}/build.log
           if-no-files-found: warn

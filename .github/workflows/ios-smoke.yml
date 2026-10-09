@@ -22,7 +22,18 @@ name: ios-smoke
 #      for one launch), the bundled offline page is what the app shows;
 #   5. an off-site link (the GitHub link in the privacy page's footer) leaves
 #      the web view where it was and takes the app out of the foreground,
-#      which is Capacitor opening the system browser.
+#      which is Capacitor opening the system browser;
+#   6. the study reminder's plugin (STORE_PATH.md S3(a)): the bridge lists
+#      LocalNotifications, nothing asks for the notification permission at
+#      launch (the app stays active and the status reads "prompt"), the
+#      system prompt appears only when the permission is requested (the app
+#      goes inactive under it); with notifications allowed, a daily reminder
+#      at 19:00 is pending, saving 07:30 replaces it, and cancelling leaves
+#      none;
+#   7. the app's privacy manifest (ITMS-91053): an unsigned Release build for
+#      a device carries PrivacyInfo.xcprivacy, and every required-reason API
+#      that any binary in it reaches is declared
+#      (.github/scripts/ios-privacy-check.py prints the audit table).
 # A screenshot is taken at every new line of smoke.jsonl, and the app's log
 # is kept, so the record is pictures and text, not a green tick alone.
 #
@@ -55,6 +66,12 @@ on:
       - 'package-lock.json'
       - '.github/workflows/ios-smoke.yml'
   workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'smoke: the seven proofs. background-request: the seven proofs, then the measurement of a request in flight while the app is in the background'
+        type: choice
+        options: [smoke, background-request]
+        default: smoke
 
 permissions:
   contents: read
@@ -158,6 +175,29 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist"
           /usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$app/Info.plist"
 
+      # Proof 7. What Apple scans is a device binary, so the check reads an
+      # unsigned Release build for a device, not the simulator build above.
+      - name: Build for a device (unsigned Release) and check the privacy manifest
+        run: |
+          set -eu -o pipefail
+          test -f "$APP_PATH/PrivacyInfo.xcprivacy" || { echo "FAIL: the simulator build carries no PrivacyInfo.xcprivacy"; exit 1; }
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/dd-device" \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
+            -disableAutomaticPackageResolution \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee "$RUNNER_TEMP/build-device.log" | { grep -E '^(warning|error|\*\*|Build)|: (error|warning):' || true; }
+          device_app=$(find "$RUNNER_TEMP/dd-device/Build/Products" -maxdepth 2 -name 'App.app' -type d | head -n 1)
+          test -n "$device_app" || { echo "no device App.app was built"; tail -n 60 "$RUNNER_TEMP/build-device.log"; exit 1; }
+          python3 .github/scripts/ios-privacy-check.py "$device_app" | tee "$RUNNER_TEMP/privacy-audit.txt"
+
       - name: Boot a simulator
         run: |
           set -eu
@@ -219,6 +259,68 @@ jobs:
           [ -n "$b" ] && cp "$b" "$RUNNER_TEMP/smoke.boot"
           test -n "$(sf smoke.done)" || { echo "FAIL: the smoke run did not finish; lines seen: $seen"; [ -n "$f" ] && cat "$f"; find "$data/tmp" -maxdepth 3 | head -n 30; grep -iE 'KFSmoke|Unknown class|crash|fatal' "$RUNNER_TEMP/app-online.log" | tail -n 30 || true; exit 1; }
 
+      # Proof 6, two launches on the login page of the live site; the steps
+      # call the plugin through the bridge (Capacitor.nativePromise), so this
+      # needs no change on the site. Launch A is a fresh install: nothing may
+      # ask at launch, and a request must raise the system prompt (the app
+      # goes inactive under it; the screenshot shows it). Launch B starts with
+      # provisional authorization (KF_SMOKE_NOTIFY, MainViewController.swift),
+      # which iOS grants with no prompt, and schedules, replaces and cancels
+      # the reminder exactly as the Settings card does.
+      - name: Smoke run of the reminder plugin (proof 6)
+        run: |
+          set -eu
+          run_launch() {
+            label=$1; steps_file=$2; extra_env=$3
+            steps=$(base64 < "$steps_file" | tr -d '\n')
+            data=$(xcrun simctl get_app_container "$UDID" com.knowflow.app data)
+            sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
+            find "$data/tmp" -maxdepth 3 \( -name 'smoke.*' -o -name 'ack-*' \) -delete 2>/dev/null || true
+            if [ -n "$extra_env" ]; then
+              SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_NOTIFY="$extra_env" SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$steps" &
+            else
+              SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$steps" &
+            fi
+            seen=0
+            for i in $(seq 1 200); do
+              f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
+              if [ "$n" -gt "$seen" ]; then
+                seen=$n
+                name=$(tail -n 1 "$f" | python3 -c 'import json,sys; print(json.loads(sys.stdin.readline())["step"])')
+                xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$label-$seen-$name.png" >/dev/null 2>&1 || true
+                echo "$label step $seen ($name): $(tail -n 1 "$f" | python3 -c 'import json,sys; r=json.loads(sys.stdin.readline()); print(r.get("result"), "appState", r.get("appState"))')"
+                touch "$(dirname "$f")/ack-$seen"
+              fi
+              [ -n "$(sf smoke.done)" ] && break
+              sleep 1
+            done
+            f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$RUNNER_TEMP/smoke-$label.jsonl"
+            xcrun simctl terminate "$UDID" com.knowflow.app || true
+            test -n "$(sf smoke.done)" || { echo "FAIL: the $label run did not finish; lines seen: $seen"; exit 1; }
+          }
+          cat > "$RUNNER_TEMP/notify-a.json" <<'JSON'
+          [
+            {"name":"notify-launch","wait":2500,"js":"(function(){var C=window.Capacitor;window.__kfN='pending';if(!C||!C.nativePromise){return 'no bridge'}var av=C.isPluginAvailable('LocalNotifications');C.nativePromise('LocalNotifications','checkPermissions',{}).then(function(r){window.__kfN=r.display},function(e){window.__kfN='error '+e.message});return 'available='+av})()"},
+            {"name":"notify-status","wait":500,"js":"(function(){return String(window.__kfN)})()"},
+            {"name":"notify-request","wait":4000,"js":"(function(){window.Capacitor.nativePromise('LocalNotifications','requestPermissions',{});return 'requested'})()"},
+            {"name":"notify-request-held","wait":3000,"js":"(function(){return 'still under the prompt?'})()"}
+          ]
+          JSON
+          cat > "$RUNNER_TEMP/notify-b.json" <<'JSON'
+          [
+            {"name":"notify-b-check","wait":1500,"js":"(function(){window.__kfN='pending';window.Capacitor.nativePromise('LocalNotifications','checkPermissions',{}).then(function(r){window.__kfN=r.display},function(e){window.__kfN='error '+e.message});return 'asked'})()"},
+            {"name":"notify-b-status","wait":300,"js":"(function(){return String(window.__kfN)})()"},
+            {"name":"notify-b-1900","wait":3000,"js":"(function(){var N=function(m,o){return window.Capacitor.nativePromise('LocalNotifications',m,o||{})};window.__kfP='pending';N('schedule',{notifications:[{id:7001,title:'Time to study',body:'Open KnowFlow and review one material today.',schedule:{on:{hour:19,minute:0},allowWhileIdle:true},extra:{kind:'study-reminder',hour:19,minute:0,locale:'en'}}]}).then(function(){return N('getPending')}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});return 'scheduled 19:00'})()"},
+            {"name":"notify-b-pending-1900","wait":300,"js":"(function(){return String(window.__kfP)})()"},
+            {"name":"notify-b-0730","wait":3000,"js":"(function(){var N=function(m,o){return window.Capacitor.nativePromise('LocalNotifications',m,o||{})};window.__kfP='pending';N('schedule',{notifications:[{id:7001,title:'Time to study',body:'Open KnowFlow and review one material today.',schedule:{on:{hour:7,minute:30},allowWhileIdle:true},extra:{kind:'study-reminder',hour:7,minute:30,locale:'en'}}]}).then(function(){return N('getPending')}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});return 'scheduled 07:30'})()"},
+            {"name":"notify-b-pending-0730","wait":300,"js":"(function(){return String(window.__kfP)})()"},
+            {"name":"notify-b-cancel","wait":3000,"js":"(function(){var N=function(m,o){return window.Capacitor.nativePromise('LocalNotifications',m,o||{})};window.__kfP='pending';N('cancel',{notifications:[{id:7001}]}).then(function(){return N('getPending')}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id}}))},function(e){window.__kfP='error '+e.message});return 'cancelled'})()"},
+            {"name":"notify-b-pending-none","wait":300,"js":"(function(){return String(window.__kfP)})()"}
+          ]
+          JSON
+          run_launch notify-a "$RUNNER_TEMP/notify-a.json" ""
+          run_launch notify-b "$RUNNER_TEMP/notify-b.json" provisional
+
       # The site unreachable for one launch: its name resolves to 127.0.0.1
       # for the whole runner (the simulator uses the host's resolver), the app
       # is started, and the bundled offline page must be what it shows.
@@ -253,10 +355,12 @@ jobs:
 
       - name: Assert the five proofs from the readings
         run: |
-          python3 - "$RUNNER_TEMP/smoke-online.jsonl" "$RUNNER_TEMP/smoke-offline.jsonl" <<'PY'
+          python3 - "$RUNNER_TEMP/smoke-online.jsonl" "$RUNNER_TEMP/smoke-offline.jsonl" "$RUNNER_TEMP/smoke-notify-a.jsonl" "$RUNNER_TEMP/smoke-notify-b.jsonl" <<'PY'
           import json, re, sys
           online = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
           offline = [json.loads(l) for l in open(sys.argv[2]) if l.strip()]
+          na = {r["step"]: r for r in (json.loads(l) for l in open(sys.argv[3]) if l.strip())}
+          nb = {r["step"]: r for r in (json.loads(l) for l in open(sys.argv[4]) if l.strip())}
           by = {r["step"]: r for r in online}
           fails = []
           def need(cond, msg):
@@ -285,8 +389,141 @@ jobs:
           O = (offline[0] if offline else {}).get("probe", {})
           need("offline.html" in (O.get("href", "") or ""), f"4. with the site unreachable the app shows the bundled offline page: {O.get('href')}")
           need("No internet connection" in (O.get("text", "") or ""), f"4. ...and its text is the offline copy: {O.get('text', '')[:80]}")
+          R = lambda d, k: str(d.get(k, {}).get("result", ""))
+          need(R(na, "notify-launch") == "available=true", f"6. the bridge lists the LocalNotifications plugin: {R(na, 'notify-launch')}")
+          need(R(na, "notify-status") == "prompt", f"6. nothing asked at launch: the permission still reads prompt: {R(na, 'notify-status')}")
+          need(na.get("notify-status", {}).get("appState") == 0, f"6. ...and the app is active, no system prompt over it: appState={na.get('notify-status', {}).get('appState')}")
+          need(1 in (na.get("notify-request", {}).get("appState"), na.get("notify-request-held", {}).get("appState")), f"6. a request raises the system prompt (the app goes inactive under it, read at 4 s and 7 s): appState={na.get('notify-request', {}).get('appState')}, {na.get('notify-request-held', {}).get('appState')}")
+          need(R(nb, "notify-b-status") == "granted", f"6. with provisional authorization the permission reads granted: {R(nb, 'notify-b-status')}")
+          def pend(name):
+              try: return [(n.get("id"), (n.get("on") or {}).get("hour"), (n.get("on") or {}).get("minute")) for n in json.loads(R(nb, name))]
+              except Exception: return R(nb, name)
+          need(pend("notify-b-pending-1900") == [(7001, 19, 0)], f"6. one daily reminder pending at 19:00: {pend('notify-b-pending-1900')}")
+          need(pend("notify-b-pending-0730") == [(7001, 7, 30)], f"6. saving 07:30 replaces it, still one: {pend('notify-b-pending-0730')}")
+          need(pend("notify-b-pending-none") == [], f"6. cancelling leaves none pending: {pend('notify-b-pending-none')}")
           print(f"\n{len(fails)} failure(s)")
           sys.exit(1 if fails else 0)
+          PY
+
+      # THE BACKGROUND-REQUEST MEASUREMENT (PROGRESS.md 2026-10-09). Dispatch
+      # only. What iOS does to an upload that is still waiting for its answer
+      # when the student leaves the app: the live login page (no account)
+      # sends the same request the drop zone sends (XMLHttpRequest, POST, a
+      # FormData with a 4,000,000-byte file) to a deliberately slow endpoint on
+      # this runner (.github/scripts/slow-endpoint.py, behind a throwaway
+      # Cloudflare quick tunnel, so it is HTTPS like the real one), which holds
+      # its answer as the ingestion service does for a 4 MB text (about 80 s).
+      # The app is sent to the background (the Settings app is opened) the
+      # moment the request is out: 1 is away 30 s and answered at 60 s, after
+      # the return; 2 is away 120 s and answered at 60 s, while suspended; 3
+      # is away 45 s and answered at 20 s, while suspended. Nothing touches
+      # production, nothing is stored, nothing costs.
+      - name: Background-request measurement (dispatch only)
+        if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.scenario == 'background-request' }}
+        run: |
+          set -eu
+          S="$RUNNER_TEMP/slow-endpoint.log"; : > "$S"
+          T="$RUNNER_TEMP/req-timeline.txt"; : > "$T"
+          now() { python3 -c 'import time; print(int(time.time()*1000))'; }
+          python3 .github/scripts/slow-endpoint.py "$S" 8787 &
+          echo $! > "$RUNNER_TEMP/slow.pid"
+          curl -sSL -o "$RUNNER_TEMP/cf.tgz" https://github.com/cloudflare/cloudflared/releases/download/2026.9.1/cloudflared-darwin-arm64.tgz
+          tar -xzf "$RUNNER_TEMP/cf.tgz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/cloudflared" tunnel --no-autoupdate --url http://127.0.0.1:8787 > "$RUNNER_TEMP/cloudflared.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/cf.pid"
+          url=""
+          for i in $(seq 1 60); do url=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$RUNNER_TEMP/cloudflared.log" | head -n 1 || true); [ -n "$url" ] && break; sleep 1; done
+          test -n "$url" || { echo "no tunnel"; tail -n 30 "$RUNNER_TEMP/cloudflared.log"; exit 1; }
+          for i in $(seq 1 30); do code=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS "$url/slow" || true); [ "$code" = "204" ] && break; sleep 2; done
+          echo "tunnel up: OPTIONS answered $code"
+          cat > "$RUNNER_TEMP/req-steps.json" <<'JSON'
+          [
+          {"name":"listen","wait":300,"js":"(function(){if(window.__kfVis){return 'already'}window.__kfVis=1;var L=function(id,e){try{var k='kfReq'+id;var a=JSON.parse(localStorage.getItem(k)||'[]');a.push([Date.now(),e]);localStorage.setItem(k,JSON.stringify(a))}catch(x){}};document.addEventListener('visibilitychange',function(){[1,2,3].forEach(function(i){L(i,'vis:'+document.visibilityState)})});window.addEventListener('pagehide',function(){[1,2,3].forEach(function(i){L(i,'pagehide')})});return 'listening'})()"},
+          {"name":"req-1-start","wait":1500,"js":"(function(){var L=function(id,e){try{var k='kfReq'+id;var a=JSON.parse(localStorage.getItem(k)||'[]');a.push([Date.now(),e]);localStorage.setItem(k,JSON.stringify(a))}catch(x){}};var x=new XMLHttpRequest();x.open('POST','__SLOW__/slow?id=1&delay=60');var last=-1;x.upload.onprogress=function(e){var q=Math.floor(e.loaded/e.total*4);if(q!==last){last=q;L(1,'up:'+e.loaded)}};x.upload.onload=function(){L(1,'up:done')};x.upload.onerror=function(){L(1,'up:error')};x.onload=function(){L(1,'xhr:load:'+x.status+':'+(x.responseText||'').slice(0,60))};x.onerror=function(){L(1,'xhr:error')};x.onabort=function(){L(1,'xhr:abort')};x.ontimeout=function(){L(1,'xhr:timeout')};var fd=new FormData();fd.append('file',new File([new Uint8Array(4000000).fill(32)],'kf-bg-request-1.txt',{type:'text/plain'}));L(1,'xhr:send');x.send(fd);return 'sent 1'})()"},
+          {"name":"req-1-return","wait":2000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq1')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-1-observe-1","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq1')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-1-observe-2","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq1')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-1-observe-3","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq1')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-1-observe-4","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq1')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-1-observe-5","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq1')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-1-report","wait":300,"js":"(function(){var a=localStorage.getItem('kfReq1')||'[]';localStorage.removeItem('kfReq1');return a})()"},
+          {"name":"req-2-start","wait":1500,"js":"(function(){var L=function(id,e){try{var k='kfReq'+id;var a=JSON.parse(localStorage.getItem(k)||'[]');a.push([Date.now(),e]);localStorage.setItem(k,JSON.stringify(a))}catch(x){}};var x=new XMLHttpRequest();x.open('POST','__SLOW__/slow?id=2&delay=60');var last=-1;x.upload.onprogress=function(e){var q=Math.floor(e.loaded/e.total*4);if(q!==last){last=q;L(2,'up:'+e.loaded)}};x.upload.onload=function(){L(2,'up:done')};x.upload.onerror=function(){L(2,'up:error')};x.onload=function(){L(2,'xhr:load:'+x.status+':'+(x.responseText||'').slice(0,60))};x.onerror=function(){L(2,'xhr:error')};x.onabort=function(){L(2,'xhr:abort')};x.ontimeout=function(){L(2,'xhr:timeout')};var fd=new FormData();fd.append('file',new File([new Uint8Array(4000000).fill(32)],'kf-bg-request-2.txt',{type:'text/plain'}));L(2,'xhr:send');x.send(fd);return 'sent 2'})()"},
+          {"name":"req-2-return","wait":2000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq2')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-2-observe-1","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq2')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-2-observe-2","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq2')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-2-observe-3","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq2')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-2-observe-4","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq2')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-2-observe-5","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq2')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-2-report","wait":300,"js":"(function(){var a=localStorage.getItem('kfReq2')||'[]';localStorage.removeItem('kfReq2');return a})()"},
+          {"name":"req-3-start","wait":1500,"js":"(function(){var L=function(id,e){try{var k='kfReq'+id;var a=JSON.parse(localStorage.getItem(k)||'[]');a.push([Date.now(),e]);localStorage.setItem(k,JSON.stringify(a))}catch(x){}};var x=new XMLHttpRequest();x.open('POST','__SLOW__/slow?id=3&delay=20');var last=-1;x.upload.onprogress=function(e){var q=Math.floor(e.loaded/e.total*4);if(q!==last){last=q;L(3,'up:'+e.loaded)}};x.upload.onload=function(){L(3,'up:done')};x.upload.onerror=function(){L(3,'up:error')};x.onload=function(){L(3,'xhr:load:'+x.status+':'+(x.responseText||'').slice(0,60))};x.onerror=function(){L(3,'xhr:error')};x.onabort=function(){L(3,'xhr:abort')};x.ontimeout=function(){L(3,'xhr:timeout')};var fd=new FormData();fd.append('file',new File([new Uint8Array(4000000).fill(32)],'kf-bg-request-3.txt',{type:'text/plain'}));L(3,'xhr:send');x.send(fd);return 'sent 3'})()"},
+          {"name":"req-3-return","wait":2000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq3')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-3-observe-1","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq3')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-3-observe-2","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq3')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-3-observe-3","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq3')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-3-observe-4","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq3')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-3-observe-5","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq3')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-3-report","wait":300,"js":"(function(){var a=localStorage.getItem('kfReq3')||'[]';localStorage.removeItem('kfReq3');return a})()"}
+          ]
+          JSON
+          sed -i '' "s#__SLOW__#$url#g" "$RUNNER_TEMP/req-steps.json"
+          rsteps=$(base64 < "$RUNNER_TEMP/req-steps.json" | tr -d '\n')
+          data=$(xcrun simctl get_app_container "$UDID" com.knowflow.app data)
+          sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
+          find "$data/tmp" -maxdepth 3 \( -name 'smoke.*' -o -name 'ack-*' \) -delete 2>/dev/null || true
+          shot() { xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$1.png" >/dev/null 2>&1 || true; }
+          away() {
+            tag=$1; secs=$2
+            xcrun simctl launch "$UDID" com.apple.Preferences >/dev/null
+            echo "$(now) $tag background" >> "$T"
+            sleep 2; shot "$tag-away"
+            sleep $((secs - 2))
+            xcrun simctl launch "$UDID" com.knowflow.app >/dev/null
+            echo "$(now) $tag foreground" >> "$T"
+            sleep 1; shot "$tag-back"
+          }
+          SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$rsteps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$rsteps" &
+          seen=0
+          for i in $(seq 1 3000); do
+            f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
+            if [ "$n" -gt "$seen" ]; then
+              seen=$n
+              name=$(tail -n 1 "$f" | python3 -c 'import json,sys; print(json.loads(sys.stdin.readline())["step"])')
+              echo "$(now) line $seen $name" >> "$T"
+              case "$name" in
+                req-1-start) away req-1 30 ;;
+                req-2-start) away req-2 120 ;;
+                req-3-start) away req-3 45 ;;
+                *) shot "req-$seen-$name" ;;
+              esac
+              echo "step $seen ($name): $(tail -n 1 "$f" | python3 -c 'import json,sys; r=json.loads(sys.stdin.readline()); print(str(r.get("result"))[:200], "| appState", r.get("appState"))')"
+              touch "$(dirname "$f")/ack-$seen"
+            fi
+            [ -n "$(sf smoke.done)" ] && break
+            sleep 0.25
+          done
+          f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$RUNNER_TEMP/smoke-req.jsonl"
+          xcrun simctl terminate "$UDID" com.knowflow.app || true
+          kill "$(cat "$RUNNER_TEMP/cf.pid")" "$(cat "$RUNNER_TEMP/slow.pid")" 2>/dev/null || true
+          test -n "$(sf smoke.done)" || { echo "FAIL: the measurement did not finish; lines seen: $seen"; exit 1; }
+          python3 - "$RUNNER_TEMP/smoke-req.jsonl" "$T" "$S" <<'PY'
+          import json, sys
+          by = {r["step"]: r for r in (json.loads(l) for l in open(sys.argv[1]) if l.strip())}
+          tl = [l.split(" ", 1) for l in open(sys.argv[2]).read().splitlines() if l.strip()]
+          sv = [l.split(" ", 1) for l in open(sys.argv[3]).read().splitlines() if l.strip()]
+          for rid, away_s, delay in ((1, 30, 60), (2, 120, 60), (3, 45, 20)):
+              ev = json.loads(by.get(f"req-{rid}-report", {}).get("result") or "[]")
+              send = next((t for t, e in ev if e == "xhr:send"), None)
+              print(f"\n===== request {rid}: away {away_s} s, answer held {delay} s")
+              if not send:
+                  print("  never sent"); continue
+              rel = lambda t: f"{(int(t) - send) / 1000:8.1f} s"
+              rows = [(t, "page: " + e) for t, e in ev]
+              rows += [(int(t), "app: " + w.split(" ", 1)[1]) for t, w in tl if w.startswith(f"req-{rid} ")]
+              rows += [(int(t), "server: " + w) for t, w in sv if f" {rid} " in f" {w} "]
+              for t, what in sorted(rows):
+                  print(f"  {rel(t)}  {what}")
+              end = next((e for t, e in ev if e.startswith(("xhr:load", "xhr:error", "xhr:abort", "xhr:timeout"))), None)
+              print("  OUTCOME:", end or "no end in the page")
           PY
 
       - name: Shut the simulator down
@@ -302,6 +539,13 @@ jobs:
             ${{ runner.temp }}/shots
             ${{ runner.temp }}/smoke-online.jsonl
             ${{ runner.temp }}/smoke-offline.jsonl
+            ${{ runner.temp }}/smoke-notify-a.jsonl
+            ${{ runner.temp }}/smoke-notify-b.jsonl
+            ${{ runner.temp }}/privacy-audit.txt
+            ${{ runner.temp }}/smoke-req.jsonl
+            ${{ runner.temp }}/req-timeline.txt
+            ${{ runner.temp }}/slow-endpoint.log
+            ${{ runner.temp }}/build-device.log
             ${{ runner.temp }}/smoke.boot
             ${{ runner.temp }}/app-online.log
             ${{ runner.temp }}/app-offline.log

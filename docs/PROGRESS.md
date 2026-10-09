@@ -451,6 +451,93 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-09 - Store path S3(a), the manifest, and the background measurement: the daily study reminder is built (local, off by default, app only); the app's privacy manifest is written from a source and binary audit; the plugin is fetched by its sha512 in the jobs that run no npm; and an upload whose answer is still pending survives 30 s and 120 s in the background, answered 200 every time, so no upload fix
+
+**No row is edited** (rows 42, 69 and 81 untouched). This block is in PR #246 (branch `feat/store-native-gaps`), with the code. The PR changes these files:
+- **Package:** `package.json` and `package-lock.json` (`@capacitor/local-notifications` ^8.3.1).
+- **Reminder code:** `src/lib/study-reminder.ts` (new); `src/components/reminder/StudyReminderCard.tsx` (new); the Settings page and `SettingsPanel`; the Settings design preview; `en.ts` and `ar.ts` (10 strings each); `docs/copy/ARABIC_STRINGS.md` (regenerated; the Arabic key-set pin goes from 399 to 409).
+- **Native project:** `ios/App/App/PrivacyInfo.xcprivacy` (new) and its four `project.pbxproj` entries; `MainViewController.swift` (simulator-only: provisional notifications on request, longer results); what `cap sync` generates (`CapApp-SPM/Package.swift`, `capacitor.config.json`, `config.xml`, the two Android gradle files).
+- **CI scripts:** `.github/scripts/fetch-native-plugins.py`, `ios-privacy-check.py` and `slow-endpoint.py` (all new); `scripts/verify-study-reminder.mjs` (new, a CI step).
+- **Workflows:** `ios-smoke.yml` (proofs 6 and 7, plus a dispatch-only measurement), `ios-signed-in.yml` (the reminder readings, the plugin fetch, a dispatch-only background-upload scenario) and `ios-testflight.yml` (the plugin fetch, the manifest in the integrity step, the archive check). `ios-testflight.yml` was **not run**, as the paste required.
+
+**1. THE DAILY STUDY REMINDER (S3(a), guideline 4.2).**
+- **The plugin.** `@capacitor/local-notifications` 8.3.1 is official and free, and its peer range is `@capacitor/core >=8.0.0`. It schedules on the phone: no APNs, no push certificate, no server. Its `load()` asks for nothing; since 8.3.0 its `schedule()` asks for permission itself when it was never asked, so the card checks first and asks only inside the switch's handler.
+- **Who sees it.** Settings shows the card only when the request carries the app marker (`studyReminderAllowed(platform)`, the same per-request marker as the plan card). **Objection to the paste:** the "native twin routes" serve the signed-out pages only, and Settings is signed in, so the per-request marker is the right gate there. The card also hides itself in an app build that lacks the plugin: build 1 in TestFlight loads the same site and must not show a dead switch.
+- **What it does.** Off by default, at 19:00. Switching it on is the only thing that asks iOS for permission. Off cancels the schedule. A new time replaces the reminder while it is on. The phone is the only record (`getPending`); nothing is stored on the account. The reminder's words are saved again when Settings opens in the other language.
+- **Proofs.**
+  - `verify-study-reminder.mjs`, in CI: **124 checks**. Two mutations each fail it: rendering the card without the gate, and asking for permission on load.
+  - **ios-smoke proof 6**, run 37926510013 (green): the bridge lists the plugin; at launch the permission reads `prompt` with the app active (appState 0); a request makes the app go inactive under the system prompt (appState 1, screenshot kept). With provisional authorization (no prompt, CI only), one reminder is pending at 19:00; saving 07:30 replaces it, still one; cancelling leaves none.
+  - One later run read the prompt 4 s after the request, before the alert had made the app inactive. The proof now reads at 4 s and again at 7 s.
+- **Not proven before merge:** the card inside the app. The app loads the live site, which carries the card only after the merge deploys. The `ios-signed-in.yml` run on the merge push reads it: `reminder-card` "off 19:00", on at 19:00 with `[(7001, 19, 0)]` pending, 07:30 replacing it, and off with nothing pending.
+
+**2. THE APP'S PRIVACY MANIFEST (ITMS-91053).** The audit covered required-reason APIs: user defaults, file timestamps, system boot time, disk space and active keyboards.
+
+| Where | Read how | Required-reason API found | Its own manifest |
+|---|---|---|---|
+| `ios/App/App/*.swift` (3 files) | source search | none (`FileManager` only for the temporary folder and `fileExists`, which are not on Apple's list) | the app's (new) |
+| Capacitor 8.5.2 (64 files) | source search | none | declares none |
+| Cordova (Capacitor's, 30 files) | source search | none | declares none |
+| `@capacitor/local-notifications` 8.3.1 (2 files) | source search | none (`contentsOfDirectory` for sounds) | ships none |
+| `App`, `Capacitor.framework`, `Cordova.framework` in an unsigned Release device build | `nm -u` and `strings` (`.github/scripts/ios-privacy-check.py`) | none in any of the 3 binaries | `manifests in the bundle: ., Capacitor, Cordova` |
+
+- **What the manifest declares.** `NSPrivacyAccessedAPITypes` is empty, **by audit**. Tracking is false and there are no tracking domains. Five collected data types, all linked to the student, none for tracking, all for app functionality: e-mail address, name (the signup's `full_name`), other user content (the files and the questions, which Anthropic and Voyage AI process only after the 5.1.2(i) permission), user id, and product interaction. **Difference from `STORE_PATH.md` §3.4:** Customer Support is not declared, because support is an e-mail outside the app.
+- **Where it is checked.**
+  - ios-smoke proof 7 runs the check on every PR (3 binaries, 0 failures).
+  - `ios-testflight.yml` now requires the file in the commit and in the Resources phase (`plutil -lint`), and runs the same check on the archive before the upload. That runs for the first time at build 2.
+  - `verify-study-reminder.mjs` holds the file's content in CI.
+- **One build path changed, and why.** `cap sync` writes the plugin into `Package.swift` as a local package under `node_modules/`, and the TestFlight and signed-in jobs run no npm. `fetch-native-plugins.py` downloads exactly the packages `Package.swift` names, refuses any tarball whose sha512 is not the one `package-lock.json` pins, refuses links and paths that escape the folder, and runs no script. The TestFlight job's scan for SwiftPM plugins and macros now includes these packages. Signed-in runs 37926583892 and 37936225517 built with it.
+
+**3. THE BACKGROUND-UPLOAD MEASUREMENT.** Two objections to the paste, both decided here:
+- **Cost.** A 4 MB file of real text costs Voyage AI tokens, up to about $0.18 per upload (measured 2026-09-23), against "nothing that costs money". Every upload here is 4,000,000 spaces: a file with no text, from which the ingestion service embeds nothing.
+- **Validity.** On the runner the bytes leave in 0.2 s. Throttling the link with dummynet had no effect on the simulator's traffic, so the measurement had to target the server's wait instead.
+
+**(a) With the reviewer account, through the real drop zone: runs 37926583892 (3 uploads) and 37936225517 (2 uploads).**
+- **Not valid as an in-flight test.** In all five uploads the server answered (3.1 to 5.2 s after the send, `200 {"success":true,"chunk_count":0}`) **before the page went hidden** (3.9 to 15.2 s). The first run's check counted upload 1 as valid by the workflow's clock; the page's `visibilitychange` says otherwise.
+- **What they do show.** After 30, 60 and 120 s away, the app came back **in the same process** (pid 11290, and 5425 in the second run, unchanged across each trip), with **the same document** (no `pagehide` and no reload during the trip). The drop zone was back to "Drop files here", and the student saw the honest "This file has no text" line before it.
+- **Cleanup.** The first run's cleanup matched the file name per element, which the drop zone splits, and so left 3 materials. The second run deleted those 3 first (`opened 3 / confirmed 3 / left 0`), then its own 2 (`left 0` each). **No test material is left in the reviewer's subject**, and the account is left without the AI permission (`consent-off: off`).
+- **The reviewer's free upload count is spent for 2026-10-09** (5 of 5).
+
+**(b) The valid measurement: ios-smoke background-request, run 37945537514, green, no account and no production write.**
+- **The setup.** The live login page sends what the drop zone sends: an XMLHttpRequest POST with a FormData holding 4,000,000 bytes. It goes to `slow-endpoint.py` on the runner, behind a throwaway quick tunnel (HTTPS, so like the real one). The endpoint holds its answer the way the ingestion service does for real text. The app is sent to the background (the Settings app is opened) right after the send.
+
+| Request | Away | Answer held | Bytes at the server | Page hidden → visible | The answer reached the page | Outcome |
+|---|---|---|---|---|---|---|
+| 1 | 30 s (5.1 → 60.6 s) | 60 s | 4,000,193 of 4,000,193 at 0.8 s | 13.2 → 58.2 s | 61.0 s, after the return | **200** |
+| 2 | 120 s (3.3 → 129.1 s) | 60 s | all at 0.9 s | 4.1 → 127.2 s | 127.1 s: written at 61.1 s while the app was suspended, delivered on resume | **200** |
+| 3 | 45 s (5.3 → 55.3 s) | 20 s | all at 1.0 s | 5.2 → 54.2 s | 21.2 s, while still hidden | **200** |
+
+- **Decision: no fix.** In the simulator, iOS cut none of the three requests. A response written during suspension was held and delivered on resume, and the drop zone receives the same 200 it would in the foreground.
+- **The failure path is not silent either.** If a device does cut the request, `XMLHttpRequest.onerror` fires and `DropZone` shows `uploadFailed`: "We could not confirm that your file was uploaded. Refresh the page to see whether it arrived, and upload it again if it did not." A background task would be native code for a failure the measurement did not produce.
+- **Residual, device only:**
+  - (i) iOS ends the web content process under memory pressure while the app is away. Capacitor then reloads the page on return, and the drop zone starts empty, **with no message**, while the material may still finish on the server. Low likelihood, low impact: the material appears in the list either way.
+  - (ii) The bytes phase over slow cellular was not measured, because this runner cannot throttle the simulator's traffic. Medium likelihood on a weak network. A cut there shows the same honest `uploadFailed`.
+
+**4. A SETTING CHANGED AND RESTORED.** The GitHub environment `reviewer` (main only) was given a second deployment branch policy, `feat/store-native-gaps` (policy 62481339), so the measurement could reach the reviewer secrets from this branch, as in T4. **It was deleted after the two runs**, and the policy list reads `62354793 main` alone.
+
+**5. NEW STRINGS (agent drafts for the owner's copy batch), `dashboard.studyReminder`:**
+
+| key | en | ar |
+|---|---|---|
+| heading | Study reminder | تذكير المذاكرة |
+| description | A daily nudge on this phone at the time you choose. It stays on this device; nothing is sent to us. | تنبيه يومي على هذا الهاتف في الوقت الذي تختاره. يبقى على جهازك، ولا يُرسَل إلينا شيء. |
+| toggle | Remind me every day | ذكّرني كل يوم |
+| timeLabel | Time | الوقت |
+| stateOn | On. We will remind you every day at {time}. | مفعّل. سنذكّرك كل يوم في الساعة {time}. |
+| stateOff | Off. | متوقف. |
+| denied | Notifications for KnowFlow are turned off in your iPhone's Settings. Turn them on there, then try again. | الإشعارات متوقفة لتطبيق KnowFlow في إعدادات الآيفون. فعّلها هناك ثم حاول مرة أخرى. |
+| failed | That did not work and nothing was changed. You can try again. | لم ينجح ذلك، وبقي كل شيء كما هو. جرّب مرة أخرى. |
+| notificationTitle | Time to study | حان وقت المذاكرة |
+| notificationBody | Open KnowFlow and review one material today. | افتح KnowFlow وراجِع ملفًا واحدًا اليوم. |
+
+None contains a price, plan, upgrade or "free" word, which is checked in CI with the in-app probe's own word list.
+
+**NEXT, ONE RECOMMENDATION.** The next session builds the submission's web and asset items in one PR:
+- the line for Google-registered students on the app's login twin (§3 item 3 of the previous block);
+- the operator's name in the privacy and terms pages (S10), once the owner confirms the name;
+- the 6.9-inch screenshot set in Arabic and English from the `/preview/*` routes, the reminder card included (S6).
+
+Then it fills the App Store Connect forms (S7). Evidence: after this PR, no native item is left on the list; the three remaining items before the forms are all web or assets that need no macOS build; and the owner's icon (S5) is the only owner asset still outstanding, so it can come in parallel.
+
 ### 2026-10-09 - Store path after T4: the ordered list from build 1 to "Submit for Review"; the login decision (no third-party login inside the app, so no Sign in with Apple, and a Google-registered student sets a password once); four compliance items read against the code; T5 replaced by the simulator; S4 built: nothing reaches Anthropic or Voyage AI before the student's permission (Apple 5.1.2(i))
 
 **No row is edited** (rows 42, 69 and 81 untouched). This block is in the same PR as the code, PR #245, branch `feat/store-s4-ai-consent`. The PR also changes: `src/lib/ai-consent.ts` (new); `src/components/ai-consent/AiConsentProvider.tsx` and `AiConsentCard.tsx` (new); `src/app/[locale]/preview/ai-consent/page.tsx` (new); the four routes `api/ingest`, `api/agent`, `api/summarize` and `api/quiz/generate`; the four call sites `DropZone`, `ChatBox`, `SummarySection` and `QuizSection`; the dashboard layout, Settings and `SettingsPanel`; the privacy page (one paragraph, and "Last updated" now reads October 2026); `en.ts` and `ar.ts` (18 strings each); `docs/copy/ARABIC_STRINGS.md` (regenerated); `scripts/verify-ai-consent.mjs` (new, a CI step in `typecheck.yml`); the Arabic key-set pin in `verify-arabic-copy.mjs`, 381 to 399; the stub user of four older route proofs; and `.github/workflows/ios-signed-in.yml`.

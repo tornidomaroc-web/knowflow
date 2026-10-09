@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
 Generated 2026-10-09 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **399 Arabic strings.**
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **409 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -505,6 +505,21 @@ file is not read by the app.
 | `dashboard.aiConsent.withdrawButton` | اسحب الإذن | Withdraw permission |
 | `dashboard.aiConsent.allowButton` | اسمح | Allow |
 | `dashboard.aiConsent.withdrawFailed` | لم ينجح ذلك، وبقي كل شيء كما هو. جرّب مرة أخرى. | That did not work and nothing was changed. You can try again. |
+
+## Signed-in app: studyReminder (`dashboard.studyReminder`)
+
+| Key | العربية | English |
+|---|---|---|
+| `dashboard.studyReminder.heading` | تذكير المذاكرة | Study reminder |
+| `dashboard.studyReminder.description` | تنبيه يومي على هذا الهاتف في الوقت الذي تختاره. يبقى على جهازك، ولا يُرسَل إلينا شيء. | A daily nudge on this phone at the time you choose. It stays on this device; nothing is sent to us. |
+| `dashboard.studyReminder.toggle` | ذكّرني كل يوم | Remind me every day |
+| `dashboard.studyReminder.timeLabel` | الوقت | Time |
+| `dashboard.studyReminder.stateOn` | مفعّل. سنذكّرك كل يوم في الساعة {time}. | On. We will remind you every day at {time}. |
+| `dashboard.studyReminder.stateOff` | متوقف. | Off. |
+| `dashboard.studyReminder.denied` | الإشعارات متوقفة لتطبيق KnowFlow في إعدادات الآيفون. فعّلها هناك ثم حاول مرة أخرى. | Notifications for KnowFlow are turned off in your iPhone's Settings. Turn them on there, then try again. |
+| `dashboard.studyReminder.failed` | لم ينجح ذلك، وبقي كل شيء كما هو. جرّب مرة أخرى. | That did not work and nothing was changed. You can try again. |
+| `dashboard.studyReminder.notificationTitle` | حان وقت المذاكرة | Time to study |
+| `dashboard.studyReminder.notificationBody` | افتح KnowFlow وراجِع ملفًا واحدًا اليوم. | Open KnowFlow and review one material today. |
 
 ## Signed-in app: agent (`dashboard.agent`)
 

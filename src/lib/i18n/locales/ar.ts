@@ -468,6 +468,19 @@ export const ar: Translation = {
       allowButton: "اسمح",
       withdrawFailed: "لم ينجح ذلك، وبقي كل شيء كما هو. جرّب مرة أخرى."
     },
+    // STORE_PATH.md S3(a). مسودة من الوكيل، تنتظر دفعة نسخ المالك.
+    studyReminder: {
+      heading: "تذكير المذاكرة",
+      description: "تنبيه يومي على هذا الهاتف في الوقت الذي تختاره. يبقى على جهازك، ولا يُرسَل إلينا شيء.",
+      toggle: "ذكّرني كل يوم",
+      timeLabel: "الوقت",
+      stateOn: "مفعّل. سنذكّرك كل يوم في الساعة {time}.",
+      stateOff: "متوقف.",
+      denied: "الإشعارات متوقفة لتطبيق KnowFlow في إعدادات الآيفون. فعّلها هناك ثم حاول مرة أخرى.",
+      failed: "لم ينجح ذلك، وبقي كل شيء كما هو. جرّب مرة أخرى.",
+      notificationTitle: "حان وقت المذاكرة",
+      notificationBody: "افتح KnowFlow وراجِع ملفًا واحدًا اليوم."
+    },
     agent: {
       chatWith: "تسأل عن",
       startTyping: "كل جواب يأتي من ملفات هذه المادة.",

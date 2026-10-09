@@ -221,6 +221,13 @@ jobs:
       - name: Verify nothing reaches Anthropic or Voyage AI before the student's permission (Apple 5.1.2(i))
         run: node --experimental-strip-types scripts/verify-ai-consent.mjs
 
+      # STORE_PATH.md S3(a) and ITMS-91053: the study reminder is the app's
+      # alone, off at 19:00, asks for the permission only at its switch and
+      # carries no purchase word; the privacy manifest is in the app target and
+      # declares what the audit found. The native half is ios-smoke.yml.
+      - name: Verify the study reminder and the app's privacy manifest (Apple 4.2, ITMS-91053)
+        run: node --experimental-strip-types scripts/verify-study-reminder.mjs
+
   # Register #125 (the proof of #72). Drives the REAL readEntitlement through the
   # REAL supabase-js against a throwaway Postgres + PostgREST in Docker holding
   # the subscriptions table's exact definition: a paying user with two rows must

@@ -498,6 +498,20 @@ export const en = {
       allowButton: "Allow",
       withdrawFailed: "That did not work and nothing was changed. You can try again."
     },
+    // STORE_PATH.md S3(a), Apple 4.2 (src/lib/study-reminder.ts). Settings,
+    // inside the app only. No price, plan or offer word (3.1.3(f)).
+    studyReminder: {
+      heading: "Study reminder",
+      description: "A daily nudge on this phone at the time you choose. It stays on this device; nothing is sent to us.",
+      toggle: "Remind me every day",
+      timeLabel: "Time",
+      stateOn: "On. We will remind you every day at {time}.",
+      stateOff: "Off.",
+      denied: "Notifications for KnowFlow are turned off in your iPhone's Settings. Turn them on there, then try again.",
+      failed: "That did not work and nothing was changed. You can try again.",
+      notificationTitle: "Time to study",
+      notificationBody: "Open KnowFlow and review one material today."
+    },
     agent: {
       chatWith: "Asking about",
       startTyping: "Every answer comes from this subject's own materials.",
