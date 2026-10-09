@@ -451,6 +451,18 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-09 - The study reminder card did not appear inside the app after #246 merged; it now calls the shell's own bridge, the path proof 6 exercises
+
+**No row is edited** (rows 42, 69 and 81 untouched).
+
+**What the post-merge run read.** `ios-signed-in` run 37955757461 ran on the merge push of #246 (`8d9a58d`). Production was already serving the merge: the Vercel status went to success at 15:59:51Z, and the run reached Settings at 16:08:55Z. Twenty-two of twenty-six readings passed: sign-in, the seeded material, the AI permission sheet, and 3.1.3(f) on every screen. The four reminder readings failed with `no reminder card`.
+
+**Cause, as far as the code allows.** Settings renders the card only behind the app marker, and the plan card on the same page, behind the same marker, did render as the app version. So the card itself returned nothing on the client. Its first version found the plugin through `@capacitor/core` and `@capacitor/local-notifications`, imported on demand into the web bundle. ios-smoke proof 6 proved a different path on the same live site: the bridge the iOS shell injects, `window.Capacitor.nativePromise('LocalNotifications', …)`.
+
+**The fix.** `StudyReminderCard.tsx` now calls only that bridge: `isNativePlatform`, then `isPluginAvailable('LocalNotifications')`, then `nativePromise`. It imports no Capacitor module. When it hides, it renders a hidden `<span data-kf-reminder-state="unavailable" data-kf-reminder-why="…">` (no bridge, not native, plugin missing, no nativePromise, or the error message). The signed-in run's `reminder-card` step now returns that reason, so a second failure explains itself. `verify-study-reminder.mjs` follows the new call path, at 125 checks.
+
+**Proven before merge:** the type check, lint, and the proof. **Proven only after merge:** the card inside the app. The workflow file changed, so the merge push starts `ios-signed-in` on its own, and it must read `off 19:00`, on at 19:00, 07:30, and off with nothing pending.
+
 ### 2026-10-09 - Store path S3(a), the manifest, and the background measurement: the daily study reminder is built (local, off by default, app only); the app's privacy manifest is written from a source and binary audit; the plugin is fetched by its sha512 in the jobs that run no npm; and an upload whose answer is still pending survives 30 s and 120 s in the background, answered 200 every time, so no upload fix
 
 **No row is edited** (rows 42, 69 and 81 untouched). This block is in PR #246 (branch `feat/store-native-gaps`), with the code. The PR changes these files:
