@@ -44,9 +44,9 @@ on:
   workflow_dispatch:
     inputs:
       scenario:
-        description: 'screens: the signed-in screens (as on every push). background-upload: the measurement of an upload sent to the background (dispatch only)'
+        description: 'screens: the signed-in screens (as on every push). background-upload: the measurement of an upload sent to the background. screenshots: the App Store set, 6.9-inch, en and ar (dispatch only)'
         type: choice
-        options: [screens, background-upload]
+        options: [screens, background-upload, screenshots]
         default: screens
 
 permissions:
@@ -125,15 +125,22 @@ jobs:
           echo "APP_PATH=$app" >> "$GITHUB_ENV"
 
       - name: Boot a simulator
+        env:
+          # The store set needs Apple's 6.9-inch size, 1320 x 2868: a Pro Max.
+          PREFER: ${{ inputs.scenario == 'screenshots' && 'Pro Max' || '' }}
         run: |
           set -eu
-          udid=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; c=[(r,x["udid"],x["name"]) for r,v in d.items() if "iOS" in r for x in v if x["name"].startswith("iPhone")]; c.sort(); print(c[-1][1])')
+          udid=$(xcrun simctl list devices available -j | PREFER="$PREFER" python3 -c 'import json,os,sys; p=os.environ.get("PREFER",""); d=json.load(sys.stdin)["devices"]; c=[(r,x["udid"],x["name"]) for r,v in d.items() if "iOS" in r for x in v if x["name"].startswith("iPhone") and p in x["name"]]; c.sort(); print(c[-1][1])')
           test -n "$udid"
           echo "simulator: $(xcrun simctl list devices available | grep "$udid")"
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b | tail -n 2
           echo "UDID=$udid" >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/shots"
+          if [ -n "$PREFER" ]; then
+            # Apple's own status bar for marketing shots: 9:41, full bars, charged.
+            xcrun simctl status_bar "$udid" override --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 --operatorName "" --batteryState charged --batteryLevel 100
+          fi
 
       # The steps. The login step fills the twin's form through React's own
       # value setter and submits it; __KF_EMAIL__ and __KF_PASSWORD__ are bare
@@ -151,6 +158,7 @@ jobs:
           test -n "$KF_SMOKE_PASSWORD" || { echo "REVIEWER_PASSWORD is empty"; exit 1; }
           cat > "$RUNNER_TEMP/steps.json" <<'JSON'
           [
+            {"name":"google-hint","wait":500,"js":"(function(){var h=document.querySelector('[data-kf-google-hint]');if(!h){return 'no hint'}var a=h.querySelector('a');return (h.innerText||'').replace(/\\s+/g,' ').trim()+' | '+(a?a.getAttribute('href'):'no link')})()"},
             {"name":"login","wait":10000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);var f=e.form;if(!f){return 'no form'}setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted'})()"},
             {"name":"home","wait":3000,"js":"(function(){window.scrollTo(0,0);return location.pathname})()"},
             {"name":"home-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
@@ -226,6 +234,10 @@ jobs:
           L = P("launch")
           need(re.match(r"^https://tryknowflow\.com/(en|ar)/login$", L.get("href", "") or ""), f"the first page is the login twin: {L.get('href')}")
           need(L.get("google") == 0 and L.get("bridge") is True, f"...the twin, with the bridge: google={L.get('google')} bridge={L.get('bridge')}")
+          # The line for Google-registered students: on the app's login page
+          # (no Google button there), linking to the page's own forgot link.
+          GH = str(by.get("google-hint", {}).get("result", ""))
+          need("Google" in GH and GH.endswith("/forgot-password") and "Forgot your password?" in GH, f"the login page in the app tells a Google-registered student to use the forgot link: {GH}")
           need(by.get("login", {}).get("result") == "submitted", f"the login form was filled and submitted: {by.get('login', {}).get('result')}")
           H = P("home")
           need(re.search(r"/(en|ar)/dashboard$", H.get("href", "") or ""), f"the dashboard opened after sign-in: {H.get('href')}")
@@ -430,6 +442,138 @@ jobs:
           sys.exit(1 if fails else 0)
           PY
 
+      # THE APP STORE SCREENSHOTS (STORE_PATH.md S6, guideline 2.3.3: the app in
+      # use). Dispatch only, scenario screenshots. A Pro Max simulator with
+      # Apple's marketing status bar (boot step), the reviewer account, the live
+      # site, the seeded material only. Before signing in, the login page's
+      # forgot link is followed for real: the page opens in the app and the
+      # reviewer's address is sent (a recovery mail, which the agent checks
+      # arrived and never opens). Every probe masks e-mail text before a
+      # screenshot, and Settings is photographed scrolled past the account card.
+      # Each shot-* line is saved as store/<locale>/<NN-name>.png and its size
+      # must be 1320 x 2868. The AI permission the quiz asks for is withdrawn at
+      # the end, and the app is left in English.
+      - name: App Store screenshots against the live site
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.scenario == 'screenshots' }}
+        env:
+          KF_SMOKE_EMAIL: ${{ secrets.REVIEWER_EMAIL }}
+          KF_SMOKE_PASSWORD: ${{ secrets.REVIEWER_PASSWORD }}
+        run: |
+          set -eu
+          test -n "$KF_SMOKE_EMAIL" || { echo "REVIEWER_EMAIL is empty"; exit 1; }
+          test -n "$KF_SMOKE_PASSWORD" || { echo "REVIEWER_PASSWORD is empty"; exit 1; }
+          cat > "$RUNNER_TEMP/steps.json" <<'JSON'
+          [
+          {"name":"forgot-open","wait":6000,"js":"(function(){var a=document.querySelector('a[href$=\"/forgot-password\"]');if(!a){return 'no forgot link'}a.click();return 'clicked forgot link'})()"},
+          {"name":"forgot-submit","wait":6000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]');if(!e){return 'no forgot form'}set(e,__KF_EMAIL__);var f=e.form;setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted the forgot form on '+location.pathname})()"},
+          {"name":"forgot-result","wait":500,"js":"(function(){var t=document.body.innerText||'';return /reset link is on its way|رابط/.test(t)?'sent state shown on '+location.pathname:'no sent state: '+t.replace(/\\s+/g,' ').slice(0,160)})()"},
+          {"name":"back-login","wait":7000,"js":"(function(){location.assign('/en/login');return 'back to login'})()"},
+          {"name":"login","wait":10000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);var f=e.form;if(!f){return 'no form'}setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted'})()"},
+          {"name":"home","wait":3000,"js":"(function(){window.scrollTo(0,0);return location.pathname})()"},
+          {"name":"nav-en-subjects","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/knowledge\"]');if(!a){return 'no Subjects'}a.click();return 'clicked Subjects'})()"},
+          {"name":"shot-en-01-subjects","wait":1500,"js":"(function(){window.scrollTo(0,0);return location.pathname})()"},
+          {"name":"nav-en-subject","wait":10000,"js":"(function(){var a=Array.prototype.slice.call(document.querySelectorAll('a[href*=\"/dashboard/knowledge/\"]')).filter(function(a){return !/\\/new$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no subject link'}a.click();return 'clicked a subject'})()"},
+          {"name":"shot-en-02-material","wait":1500,"js":"(function(){window.scrollTo(0,0);return location.pathname})()"},
+          {"name":"shot-en-03-summary","wait":1500,"js":"(function(){var h=Array.prototype.slice.call(document.querySelectorAll('h1,h2,h3,h4,p,span,div')).filter(function(x){return x.children.length===0&&/^(SUMMARY|Summary|الملخص|ملخص)$/.test((x.innerText||'').trim())})[0];if(!h){return 'no summary heading'}var c=h.closest('.rounded-xl')||h;c.scrollIntoView({block:'start'});window.scrollBy(0,-90);return 'summary in view'})()"},
+          {"name":"quiz-open","wait":3000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){return /Quiz me on this material|اختبرني في هذا الملف/.test(x.innerText||'')})[0];if(!b){return 'no quiz button'}b.click();return 'clicked quiz'})()"},
+          {"name":"consent-accept","wait":12000,"js":"(function(){var b=document.querySelector('[data-kf-consent-sheet=open] [data-kf-consent=accept]');if(!b){return 'no sheet'}b.click();return 'accepted'})()"},
+          {"name":"shot-en-04-quiz","wait":1500,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){return /Check my answers|صحّح إجاباتي/.test(x.innerText||'')})[0];if(!b){return 'no quiz on screen'}var q=b.closest('.rounded-xl')||b;q.scrollIntoView({block:'start'});window.scrollBy(0,-90);return 'quiz in view'})()"},
+          {"name":"nav-en-settings","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings'}a.click();return 'clicked Settings'})()"},
+          {"name":"shot-en-05-settings","wait":1500,"js":"(function(){var h=Array.prototype.slice.call(document.querySelectorAll('h2')).filter(function(x){return /Preferences|التفضيلات/.test(x.innerText||'')})[0];if(!h){return 'no preferences card'}var c=h.closest('.rounded-xl')||h;c.scrollIntoView({block:'start'});window.scrollBy(0,-90);var mail=/\\S+@\\S+\\.\\S+/.test(document.body.innerText||'');return 'preferences in view; e-mail text left in page: '+mail})()"},
+          {"name":"nav-ar-subjects","wait":9000,"js":"(function(){location.assign('/ar/dashboard/knowledge');return 'ar'})()"},
+          {"name":"shot-ar-01-subjects","wait":1500,"js":"(function(){window.scrollTo(0,0);return location.pathname})()"},
+          {"name":"nav-ar-subject","wait":10000,"js":"(function(){var a=Array.prototype.slice.call(document.querySelectorAll('a[href*=\"/dashboard/knowledge/\"]')).filter(function(a){return !/\\/new$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no subject link'}a.click();return 'clicked a subject'})()"},
+          {"name":"shot-ar-02-material","wait":1500,"js":"(function(){window.scrollTo(0,0);return location.pathname})()"},
+          {"name":"shot-ar-03-summary","wait":1500,"js":"(function(){var h=Array.prototype.slice.call(document.querySelectorAll('h1,h2,h3,h4,p,span,div')).filter(function(x){return x.children.length===0&&/^(SUMMARY|Summary|الملخص|ملخص)$/.test((x.innerText||'').trim())})[0];if(!h){return 'no summary heading'}var c=h.closest('.rounded-xl')||h;c.scrollIntoView({block:'start'});window.scrollBy(0,-90);return 'summary in view'})()"},
+          {"name":"nav-ar-ask","wait":9000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/agent\"]');if(!a){return 'no Ask'}a.click();return 'clicked Ask'})()"},
+          {"name":"shot-ar-04-ask","wait":1500,"js":"(function(){window.scrollTo(0,0);return location.pathname})()"},
+          {"name":"nav-ar-settings","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings'}a.click();return 'clicked Settings'})()"},
+          {"name":"shot-ar-05-settings","wait":1500,"js":"(function(){var h=Array.prototype.slice.call(document.querySelectorAll('h2')).filter(function(x){return /Preferences|التفضيلات/.test(x.innerText||'')})[0];if(!h){return 'no preferences card'}var c=h.closest('.rounded-xl')||h;c.scrollIntoView({block:'start'});window.scrollBy(0,-90);var mail=/\\S+@\\S+\\.\\S+/.test(document.body.innerText||'');return 'preferences in view; e-mail text left in page: '+mail})()"},
+          {"name":"consent-withdraw","wait":5000,"js":"(function(){var b=document.querySelector('[data-kf-consent=withdraw]');if(!b){return 'no withdraw button (already off)'}b.click();return 'clicked withdraw'})()"},
+          {"name":"consent-off","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-consent-state]');return c?c.getAttribute('data-kf-consent-state'):'no consent card'})()"},
+          {"name":"restore-en","wait":6000,"js":"(function(){location.assign('/en/dashboard');return 'en'})()"}
+          ]
+          JSON
+          steps=$(base64 < "$RUNNER_TEMP/steps.json" | tr -d '\n')
+          mkdir -p "$RUNNER_TEMP/store/en" "$RUNNER_TEMP/store/ar"
+          echo "device: $(xcrun simctl list devices | grep "$UDID")"
+          xcrun simctl install "$UDID" "$APP_PATH"
+          data=$(xcrun simctl get_app_container "$UDID" com.knowflow.app data)
+          xcrun simctl spawn "$UDID" log stream --style compact --predicate 'process == "App"' > "$RUNNER_TEMP/app.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/log.pid"
+          SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" SIMCTL_CHILD_KF_SMOKE_EMAIL="$KF_SMOKE_EMAIL" SIMCTL_CHILD_KF_SMOKE_PASSWORD="$KF_SMOKE_PASSWORD" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke &
+          sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
+          seen=0
+          for i in $(seq 1 1200); do
+            f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
+            if [ "$n" -gt "$seen" ]; then
+              seen=$n
+              name=$(tail -n 1 "$f" | python3 -c 'import json,sys; print(json.loads(sys.stdin.readline())["step"])')
+              case "$name" in
+                shot-en-*) out="$RUNNER_TEMP/store/en/${name#shot-en-}.png" ;;
+                shot-ar-*) out="$RUNNER_TEMP/store/ar/${name#shot-ar-}.png" ;;
+                *) out="$RUNNER_TEMP/shots/s-$seen-$name.png" ;;
+              esac
+              xcrun simctl io "$UDID" screenshot --type=png "$out" >/dev/null 2>&1 || true
+              echo "step $seen ($name): $(tail -n 1 "$f" | python3 -c 'import json,sys; r=json.loads(sys.stdin.readline()); print(str(r.get("result"))[:200], "| purchase", (r.get("probe") or {}).get("purchase"))')"
+              touch "$(dirname "$f")/ack-$seen"
+            fi
+            [ -n "$(sf smoke.done)" ] && break
+            sleep 0.5
+          done
+          f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$RUNNER_TEMP/smoke-shots.jsonl"
+          xcrun simctl terminate "$UDID" com.knowflow.app || true
+          kill "$(cat "$RUNNER_TEMP/log.pid")" 2>/dev/null || true
+          if grep -qF -- "$KF_SMOKE_PASSWORD" "$RUNNER_TEMP/smoke-shots.jsonl" "$RUNNER_TEMP/app.log" 2>/dev/null; then echo "FAIL: a credential reached a recorded file"; rm -f "$RUNNER_TEMP/smoke-shots.jsonl" "$RUNNER_TEMP/app.log"; exit 1; fi
+          if grep -qF -- "$KF_SMOKE_EMAIL" "$RUNNER_TEMP/smoke-shots.jsonl" "$RUNNER_TEMP/app.log" 2>/dev/null; then echo "FAIL: the reviewer address reached a recorded file"; rm -f "$RUNNER_TEMP/smoke-shots.jsonl" "$RUNNER_TEMP/app.log"; exit 1; fi
+          test -n "$(sf smoke.done)" || { echo "FAIL: the run did not finish; lines seen: $seen"; exit 1; }
+
+      - name: Check the screenshots and the readings
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.scenario == 'screenshots' }}
+        run: |
+          set -eu
+          for f in "$RUNNER_TEMP"/store/*/*.png; do
+            w=$(sips -g pixelWidth "$f" | awk '/pixelWidth/{print $2}'); h=$(sips -g pixelHeight "$f" | awk '/pixelHeight/{print $2}')
+            echo "$(basename "$(dirname "$f")")/$(basename "$f"): ${w} x ${h}, $(stat -f %z "$f") bytes"
+          done > "$RUNNER_TEMP/store/sizes.txt"
+          cat "$RUNNER_TEMP/store/sizes.txt"
+          python3 - "$RUNNER_TEMP/smoke-shots.jsonl" "$RUNNER_TEMP/store/sizes.txt" <<'PY'
+          import json, re, sys
+          rows = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
+          by = {r["step"]: r for r in rows}
+          sizes = open(sys.argv[2]).read().splitlines()
+          fails = []
+          def need(cond, msg):
+              print(("ok   " if cond else "FAIL ") + msg)
+              if not cond: fails.append(msg)
+          need(re.search(r"/en/forgot-password$", by.get("forgot-open", {}).get("probe", {}).get("href", "") or ""), f"the forgot link opens its page inside the app: {by.get('forgot-open', {}).get('probe', {}).get('href')}")
+          need(by.get("forgot-open", {}).get("appState") == 0, "...in the app's own web view, not Safari")
+          need(str(by.get("forgot-result", {}).get("result", "")).startswith("sent state shown"), f"the reviewer's address was sent and the page shows its sent state: {by.get('forgot-result', {}).get('result')}")
+          shots = [r for r in rows if r["step"].startswith("shot-")]
+          need(len(shots) == 10, f"ten screens recorded: {len(shots)}")
+          for r in shots:
+              p = r.get("probe") or {}
+              pur = p.get("purchase") or {}
+              need(not pur.get("words") and not pur.get("hrefs"), f"{r['step']}: no price, plan, upgrade or checkout word or link: {pur}")
+              need(p.get("signedIn") is True and p.get("google") == 0, f"{r['step']}: signed in, no Google button")
+              need("no " not in str(r.get("result", ""))[:3], f"{r['step']}: {r.get('result')}")
+          need("e-mail text left in page: false" in str(by.get("shot-en-05-settings", {}).get("result")), f"Settings (en) has no e-mail text left: {by.get('shot-en-05-settings', {}).get('result')}")
+          need("e-mail text left in page: false" in str(by.get("shot-ar-05-settings", {}).get("result")), f"Settings (ar) has no e-mail text left: {by.get('shot-ar-05-settings', {}).get('result')}")
+          need(len(sizes) == 10 and all(" 1320 x 2868," in l for l in sizes), "every PNG is 1320 x 2868")
+          need(by.get("consent-off", {}).get("result") == "off", f"the reviewer account is left without the AI permission: {by.get('consent-off', {}).get('result')}")
+          print(f"\n{len(fails)} failure(s)")
+          sys.exit(1 if fails else 0)
+          PY
+
+      - name: Keep the store screenshots
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.scenario == 'screenshots' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: store-screenshots-${{ github.sha }}
+          path: ${{ runner.temp }}/store
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Shut the simulator down
         if: always()
         run: xcrun simctl shutdown "$UDID" 2>/dev/null || true
@@ -443,6 +587,7 @@ jobs:
             ${{ runner.temp }}/shots
             ${{ runner.temp }}/smoke-signed-in.jsonl
             ${{ runner.temp }}/smoke-bg.jsonl
+            ${{ runner.temp }}/smoke-shots.jsonl
             ${{ runner.temp }}/bg-timeline.txt
             ${{ runner.temp }}/app.log
             ${{ runner.temp }}/build.log

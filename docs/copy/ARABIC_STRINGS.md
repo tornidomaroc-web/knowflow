@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
 Generated 2026-10-09 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **409 Arabic strings.**
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **410 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -168,6 +168,7 @@ file is not read by the app.
 | `auth.noticeLinkExpired` | هذا الرابط استُعمل من قبل أو انتهت صلاحيته. إن كنت فتحته من قبل، فبريدك مؤكد: سجّل الدخول بكلمة مرورك. وإن لم تفتحه، فسجّل من جديد بالبريد نفسه لتصلك رسالة جديدة. | This link has already been used or has expired. If you have opened it before, your email is confirmed: sign in with your password. If you never opened it, sign up again to get a new link. |
 | `auth.noticeRecoveryExpired` | انتهى الرابط. اطلب رابطًا جديدًا. | This link has expired. Ask for a new one. |
 | `auth.forgotLink` | نسيت كلمة المرور؟ | Forgot your password? |
+| `auth.googleAccountHint` | سجّلت بحساب Google؟ استعمل «{forgot}» مرة واحدة لتعيّن كلمة مرور للحساب نفسه، ثم سجّل الدخول هنا. | Signed up with Google? Use “{forgot}” once to set a password for the same account, then sign in here. |
 | `auth.forgotTitle` | استعادة كلمة المرور | Reset your password |
 | `auth.forgotSubtitle` | اكتب بريدك الإلكتروني، ونرسل لك رابطًا تختار به كلمة مرور جديدة. | Enter your email and we will send you a link to set a new password. |
 | `auth.forgotSubmit` | أرسل الرابط | Send reset link |

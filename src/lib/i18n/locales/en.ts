@@ -160,6 +160,9 @@ export const en = {
     noticeLinkExpired: "This link has already been used or has expired. If you have opened it before, your email is confirmed: sign in with your password. If you never opened it, sign up again to get a new link.",
     noticeRecoveryExpired: "This link has expired. Ask for a new one.",
     forgotLink: "Forgot your password?",
+    // Inside the app only (GoogleAccountHint): no Google button there, so an
+    // account made with Google sets a password through the forgot link.
+    googleAccountHint: "Signed up with Google? Use “{forgot}” once to set a password for the same account, then sign in here.",
     forgotTitle: "Reset your password",
     forgotSubtitle: "Enter your email and we will send you a link to set a new password.",
     forgotSubmit: "Send reset link",
