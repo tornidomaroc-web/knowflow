@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
 import { GoogleButton } from '@/components/auth/GoogleButton';
+import { GoogleAccountHint } from '@/components/auth/GoogleAccountHint';
 import { AppleButton } from '@/components/auth/AppleButton';
 import { ChatPages } from '@/components/illustrations';
 import { APPLE_SIGNIN_ENABLED } from '@/lib/auth/providers';
@@ -151,6 +152,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
               {t.auth.forgotLink}
             </Link>
           </div>
+          <GoogleAccountHint text={t.auth.googleAccountHint} forgotLabel={t.auth.forgotLink} forgotHref={`/${locale}/forgot-password`} />
           <div className="mt-6 text-center">
             <Link href={`/${locale}/signup`} className="text-sm text-muted-foreground transition-colors hover:text-primary">
               {t.auth.noAccount}

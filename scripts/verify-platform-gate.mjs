@@ -127,7 +127,11 @@ function onlyRemoves(name, web, native, { mustKeep = [] } = {}) {
   for (const h of n) check(w.has(h), `${name}: the native markup links ${h}, which the web markup does not: the marker added something`);
   check(![...n].some((h) => /\/pricing/.test(h)), `${name}: native markup links /pricing`);
   check(!/\/pricing/.test(native), `${name}: native markup mentions /pricing`);
-  check(!GOOGLE.test(native), `${name}: native markup carries the Google button`);
+  // The login line for Google-registered students (GoogleAccountHint) names
+  // Google in words on purpose and links only to the forgot page the web
+  // also links; it is cut out before the button test, and nothing else is.
+  const nativeSansHint = native.replace(/<p data-kf-google-hint="[^"]*"[^>]*>[\s\S]*?<\/p>/g, '');
+  check(!GOOGLE.test(nativeSansHint), `${name}: native markup carries the Google button`);
   for (const h of mustKeep) check(n.has(h), `${name}: native markup lost ${h}, which must stay`);
   console.error(`${name}: web ${web.length} chars, ${w.size} hrefs; native ${native.length} chars, ${n.size} hrefs`);
 }
@@ -180,6 +184,12 @@ for (const [name, path, file] of [['login', '/en/login', 'src/app/[locale]/login
     check(web.includes(`>${orLabel}<`), `${name} ${locale} on the web lost its "or" divider`);
     check(!native.includes(`>${orLabel}<`), `${name} ${locale} inside the app still shows the "or" divider under no button`);
     onlyRemoves(`${name} page ${locale}`, web, native);
+    if (name === 'login') {
+      check(native.includes('data-kf-google-hint'), `login ${locale} inside the app lost the line for Google-registered students`);
+      check(!web.includes('data-kf-google-hint'), `login ${locale} on the web shows the line beside the Google button`);
+    } else {
+      check(!native.includes('data-kf-google-hint'), `${name} ${locale}: the line belongs to the login page only`);
+    }
   }
 }
 
