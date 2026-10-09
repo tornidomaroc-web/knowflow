@@ -451,6 +451,42 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-09 - The Docker-backed required checks no longer depend on anonymous Docker Hub alone: every pinned image is fetched by its digest from the first of three free registries that answers, with backoff
+
+**No row is edited** (rows 42, 69 and 81 untouched). The PR is `ci/pinned-image-mirrors`. Its files: `scripts/lib/pinned-image.mjs` (new); `scripts/gen-db-types.sh`, `scripts/verify-public-grants.mjs`, `scripts/verify-subscriptions-rls.mjs` and `scripts/verify-entitlement-plural-read.mjs` (each now runs the image the helper returns). No workflow and no required check changes, and no secret is added.
+
+**WHAT FAILED, PER JOB** (PR #248, head `0fa411f`, three attempts, 21:01, 21:03 and 21:35 UTC):
+- **db-types:** the runner could not fetch `supabase/postgres@sha256:80d7…` from Docker Hub. Its "database.types.ts does not match the migrations" line is only the result of a database that never started.
+- **public-grants** and **entitlement-rls:** the same image could not be fetched.
+- **entitlement-read:** `postgres:16.15-alpine@sha256:7218…` could not be fetched.
+- **ingestion-image** (not a required check, by design): `python:3.11-slim` could not be fetched.
+- **The errors** were Docker Hub's `429 Too Many Requests` (toomanyrequests) on attempts 1 and 2, then its token service, `auth.docker.io`, timing out or answering `504 Gateway Timeout` on attempt 3. Every job died at the image pull, before any of its own code ran; tsc passed. The same jobs had passed on the same branch at 20:23.
+- **Main and other branches:** no other branch ran a workflow between 20:30 and the report, so there was nothing to compare against. `auth.docker.io` answered 200 from the owner's machine at the same time, which places the fault in Docker Hub as seen from GitHub's shared runner IPs, not in this repository.
+
+**WHY NOT ONE MIRROR.** `gen-db-types.sh` already records ECR Public answering `toomanyrequests: Rate exceeded` to this repository, which is why its postgres-meta pull moved to Docker Hub. Any single anonymous registry is the same lottery.
+
+**THE FIX.** `scripts/lib/pinned-image.mjs` pulls each image **by its digest** from the first of three free, anonymous registries that answers: `mirror.gcr.io` (Google's public Docker Hub cache), then `public.ecr.aws`, then `docker.io`. Three rounds, with 15 s and then 45 s of backoff between them. The result is tagged under a local name with no registry in it (`kf-ci-pinned/<repo>:<12 hex of the digest>`), and the scripts run that name, so `docker run` contacts no registry. An image with no checked sources is refused, and so is an unpinned reference.
+- **Every source was checked before it was listed** (2026-10-09, HTTP 200 for the manifest by the pinned digest):
+
+| Image (pinned digest) | mirror.gcr.io | public.ecr.aws | docker.io |
+|---|---|---|---|
+| supabase/postgres @80d7b27c3e8d | library path supabase/postgres | supabase/postgres | yes |
+| supabase/postgres-meta @a84cc713585e | yes | supabase/postgres-meta | yes |
+| postgrest/postgrest @d155c6718ed9 | yes | **supabase/postgrest** (postgrest/postgrest is 404 there) | yes |
+| postgres:16.15-alpine @721873c34ceb | library/postgres | docker/library/postgres | yes |
+
+- **Supply-chain risk: unchanged in kind.** A digest names the content: docker checks the bytes it receives against it and fails the pull on any difference, so a registry can make a pull fail but cannot hand over other bytes.
+  - `mirror.gcr.io` is Google's cache of Docker Hub.
+  - `public.ecr.aws/docker/library` is Docker's own Official Images programme published on AWS.
+  - `public.ecr.aws/supabase/*` is published by Supabase's account. Supabase is already trusted here: its images are what the checks run.
+
+  What changes is availability: three independent operators instead of one.
+- **Tested on the owner's machine:** a pull came from `mirror.gcr.io` and carried the pinned digest in `RepoDigests`; a second call reused the local copy; with the first source made unreachable, the second (`public.ecr.aws`) served the same digest in 3.4 s.
+
+**NOT CHANGED, AND WHY.** `ingestion-image` still pulls `python:3.11-slim` from Docker Hub. Its workflow pins nothing on purpose, so CI builds exactly what Railway builds from `services/ingestion/Dockerfile`. Moving that base image is a change to how production's ingestion service is built, and it is the owner's call. That check is not required and does not block a merge.
+
+**A LEFTOVER CORRECTED.** The background wait of the previous turn was stopped with TaskStop, but its `sleep 3600` was still running (pid 35720). It was killed and checked gone, before it could re-run anything.
+
 ### 2026-10-09 - The study reminder card did not appear inside the app after #246 merged; it now calls the shell's own bridge, the path proof 6 exercises
 
 **No row is edited** (rows 42, 69 and 81 untouched).

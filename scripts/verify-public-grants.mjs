@@ -40,6 +40,7 @@
  */
 import { createHmac, randomBytes } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
+import { pullPinned } from './lib/pinned-image.mjs';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -145,7 +146,12 @@ const since = () => `${((Date.now() - t0) / 1000).toFixed(1)}s`;
 teardown();
 console.log('starting throwaway supabase/postgres + postgrest…');
 run('docker', ['network', 'create', NET]);
-run('docker', ['run', '-d', '--name', PG, '--network', NET, '-e', 'POSTGRES_PASSWORD=postgres', PG_IMAGE]);
+// The pinned images, fetched by digest from the first registry that answers
+// (scripts/lib/pinned-image.mjs): Docker Hub alone failed every Docker-backed
+// check three times on 2026-10-09. The digests above stay the contract.
+const PG_RUN = pullPinned(PG_IMAGE);
+const PREST_RUN = pullPinned(PREST_IMAGE);
+run('docker', ['run', '-d', '--name', PG, '--network', NET, '-e', 'POSTGRES_PASSWORD=postgres', PG_RUN]);
 const pgLogs = () => {
   const r = spawnSync('docker', ['logs', PG], { encoding: 'utf8' });
   return (r.stdout || '') + (r.stderr || '');
@@ -180,7 +186,7 @@ const JWT_SECRET = randomBytes(32).toString('hex'); // never printed, never stor
 run('docker', ['run', '-d', '--name', PREST, '--network', NET, '-p', `${PORT}:3000`,
   '-e', `PGRST_DB_URI=postgres://authenticator:testpw@${PG}:5432/postgres`,
   '-e', 'PGRST_DB_SCHEMAS=public', '-e', 'PGRST_DB_ANON_ROLE=anon',
-  '-e', `PGRST_JWT_SECRET=${JWT_SECRET}`, PREST_IMAGE]);
+  '-e', `PGRST_JWT_SECRET=${JWT_SECRET}`, PREST_RUN]);
 await waitFor('postgrest', async () => {
   try {
     return (await fetch(`http://localhost:${PORT}/profiles?select=id`)).status === 200;
