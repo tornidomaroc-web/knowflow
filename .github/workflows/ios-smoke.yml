@@ -418,7 +418,7 @@ jobs:
       # is away 45 s and answered at 20 s, while suspended. Nothing touches
       # production, nothing is stored, nothing costs.
       - name: Background-request measurement (dispatch only)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.scenario == 'background-request' }}
+        if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.scenario == 'background-request' }}
         run: |
           set -eu
           S="$RUNNER_TEMP/slow-endpoint.log"; : > "$S"
