@@ -451,6 +451,16 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-10 - Store path S7c: App Privacy published, the age rating saved with the 13+ override, categories, the Arabic listing and URLs entered and read back byte for byte; the English localization refused by Apple because the name "KnowFlow" belongs to another app; price, availability and content rights found absent from the answers file
+
+**No row is edited** (rows 42, 69 and 81 untouched). File: `docs/store/ASC_ANSWERS.md` (§3 three rows added, §4.1 the refusal and a recommendation, §7 the entry record). No code change. Nothing uploaded, no build attached, no price or availability set, no submission.
+
+- **Entered, read back, saved.** Privacy policy URL (Arabic). App Privacy: Name, Email Address, Other User Content, User ID, Product Interaction, Other Diagnostic Data; App Functionality on all, Analytics on User ID and Product Interaction; linked; not tracking; published. Age rating: the 24 items of §2 by their API attribute, all None or No, calculated 4+, override Age 13+. Categories Education, Productivity. Arabic name, subtitle, promotional text, description, keywords: SHA-256 of each saved field equals the file's. Arabic support URL, copyright `2026 KnowFlow`, marketing URL empty.
+- **Refused.** Creating the English (U.S.) localization answers 409 `STATE_ERROR.DUPLICATE_NAME.DIFFERENT_ACCOUNT` ("the app name is already being used by another app"), read from the response body. The English fields are not entered. Recommended name for the owner's decision: `KnowFlow: Study Your Notes`.
+- **Absent from the file, not invented:** price (no schedule yet), availability (not set up yet), content rights (not set up). Recommendations recorded in §3.
+- **Read-only:** no build selected; DSA per-app line says trader; no encryption document (none due); Notes 2,296 characters (the earlier 2,297 was `wc -m` counting the trailing newline).
+- **Trap recorded:** the version page's Save needs the page at the top (the button moves after the first click), and a failed save leaves a "Leave site?" dialog that blocks the extension's navigation; a fresh tab reads the server state.
+
 ### 2026-10-10 - Store path S7b part 2: the App Manager key made and stored, the dry run clean, the write refused by Apple because the contact phone is required on creation; nothing written to App Store Connect
 
 **No row is edited** (rows 42, 69 and 81 untouched). File: `docs/store/ASC_ANSWERS.md` §5 and §6 (two sentences that called the phone optional corrected in place, and the run record added). No code change.
