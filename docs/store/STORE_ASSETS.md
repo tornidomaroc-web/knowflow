@@ -104,7 +104,7 @@ caption above the phone:
 | Description | ≤ 4000 characters, per language | ≤ 4000 characters, per language |
 | Promotional text | ≤ 170 characters, editable without a release | — |
 | Keywords | ≤ 100 characters, comma-separated | — (indexed from the description) |
-| Privacy | App Privacy labels (data collected: email, user content, usage data, identifiers; linked to identity; not used for tracking) | Data safety form, including the account-deletion declaration (PIVOT §7, Phase 10) |
+| Privacy | App Privacy labels: the exact answers are in `docs/store/ASC_ANSWERS.md` §1 (name, e-mail, other user content, user ID, product interaction, other diagnostic data; all linked, none for tracking; corrected 2026-10-10, the earlier list omitted name and diagnostics) | Data safety form, including the account-deletion declaration (PIVOT §7, Phase 10) |
 | Support / privacy URLs | `https://tryknowflow.com/en/contact`, `https://tryknowflow.com/en/privacy` | the same |
 | Age rating | Questionnaire; students may be minors → no ads until Phase 9 rules the ads posture | Content rating questionnaire |
 | Category | Education | Education |
