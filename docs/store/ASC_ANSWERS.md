@@ -272,9 +272,12 @@ never into the notes; the workflow refuses notes that carry it.
 person App Review should call. The name and the support address are secrets
 of the `reviewer` environment (`REVIEW_CONTACT_FIRST_NAME`,
 `REVIEW_CONTACT_LAST_NAME`, `REVIEW_CONTACT_EMAIL`, set 2026-10-10), written
-by the same workflow. The phone is sent only if `REVIEW_CONTACT_PHONE` exists;
-otherwise the workflow leaves the field as it is and says whether it is
-empty.
+by the same workflow. **The phone is required by Apple when the record is
+created** (the first write of 2026-10-10 was refused with 409
+`ENTITY_ERROR.ATTRIBUTE.REQUIRED` on `contactPhone`, format `+<country code>
+<number>`), so `REVIEW_CONTACT_PHONE` must exist in `reviewer` before the
+write; the owner sets it. On a later PATCH the field is sent only if the
+secret exists.
 
 **Notes** (English only. App Review works in English, so there are no Arabic
 note lines.) (2,296 of 4,000). The two HTML comments around the block are the
@@ -366,8 +369,9 @@ coreutils from the image):
    shell string), sends one PATCH (or one POST if no detail exists) with
    contact name and e-mail, `demoAccountName`, `demoAccountPassword` in its
    own field, `demoAccountRequired: true`, the notes, and `contactPhone`
-   only if the secret exists. Prints the status and the fields as
-   `set`/`empty`, and a warning if the phone is empty.
+   from `REVIEW_CONTACT_PHONE` (required by Apple on the creating POST;
+   optional on a PATCH). Prints the status and the fields as `set`/`empty`,
+   and a warning if the phone is empty.
 7. Shreds the key, the token and the notes, even when a step failed.
 
 **Security design, in five lines.**
@@ -380,6 +384,15 @@ coreutils from the image):
    write, so the one free-text field cannot carry either.
 5. The workflow cannot run from a pull request or a branch: dispatch only,
    `main` only, and the environment refuses any other ref.
+
+**Run record (2026-10-10).** The key `KnowFlow review details` (App Manager;
+the Generate dialog offers no app-level restriction, so none exists) was
+made, downloaded once and stored. Dry run 38070928000: every secret
+present, token minted, version 1.0 in PREPARE_FOR_SUBMISSION, no review
+detail yet, nothing written; the full log holds no address, password or
+token (grep 0, 0, 0). Write run 38071753348: refused 409, `contactPhone`
+required on creation; nothing written; the same grep 0, 0, 0. Both logs
+show statuses and field names only.
 
 **Residual risks, stated.** A run log is public: it shows that a review
 detail exists, which fields are set, and the version state. Anyone with
