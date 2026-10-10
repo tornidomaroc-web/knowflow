@@ -451,6 +451,17 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-10 - Store path S7a: every App Store Connect answer drafted in `docs/store/ASC_ANSWERS.md` and checked against the code, the manifest and the live site; nothing entered in App Store Connect; the Summary screenshot step now measures the app bar
+
+**No row is edited** (rows 42, 69 and 81 untouched). Files: `docs/store/ASC_ANSWERS.md` (new), `docs/store/STORE_ASSETS.md` §4 privacy cell (corrected in place: it omitted name and diagnostics), `.github/workflows/ios-signed-in.yml` (the two Summary screenshot steps and one check).
+
+- **App Privacy:** six types, all linked, none for tracking. Two answers are wider than `PrivacyInfo.xcprivacy`: Analytics on User ID and Product Interaction (every `kf-usage` line carries `user_id` and the owner reads them for cost) and Other Diagnostic Data (Vercel logs, up to a day). The manifest catches up in build 2.
+- **Age rating:** every content item None, no capability; override to 13+ (generative answers, an e-mail account, no age wording in the terms or the privacy policy).
+- **URLs:** support and privacy, en and ar, answer 200; Marketing URL left empty because the landing page sells.
+- **Listing text** in English and Arabic with counts; **review notes** in English. The reviewer's sign-in details are to be written by an App Store Connect API call from Actions (two jobs, a scoped 10-minute token), so nobody types or sees the password.
+- **EU trader status** is put to the owner, not decided.
+- **Summary screenshots:** the old step scrolled the card to 90 px, under the 117 px app bar. The step now measures the sticky bar and stops 16 px below it, and the check fails when the heading top is not below the bar bottom. The retake needs `main`, because the `reviewer` environment deploys from `main` only, so the committed Summary files are unchanged until it runs.
+
 ### 2026-10-10 - The App Store screenshot set (6.9-inch, English and Arabic) taken from main after #248, committed to docs/store/screenshots
 
 **No row is edited** (rows 42, 69 and 81 untouched). Files: `docs/store/screenshots/{en,ar}/0N-*.png` (ten) and `docs/store/screenshots/sizes.txt`.
