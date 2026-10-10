@@ -12,7 +12,9 @@ counts them (an Arabic shadda counts as one).
 Contents: §1 App Privacy · §2 Age rating · §3 Category and URLs · §4 Listing
 text (English, Arabic) · §5 App Review Information · §6 How the reviewer's
 sign-in details reach the form · §7 Mismatches and open risks · §8 EU trader
-status (the owner's decision) · §9 Sources.
+status (decided) · §9 Sources. Amended 2026-10-10 (S7b): §2 mapped to Apple's
+questionnaire item by item, §5 and §6 rewritten for `asc-review-details.yml`,
+§7 findings 1, 2, 6, 7 and 8, §8 decided.
 
 ## 1. App Privacy (the "nutrition label")
 
@@ -60,59 +62,66 @@ for KnowFlow. Neither receives the name or the e-mail (the sheet says so). The
 privacy page says Anthropic's terms exclude training on API content, and that
 Voyage AI is set to zero retention on our account since 2026-09-12.
 
-**Two answers here are wider than the manifest** (§7, findings 1 and 2):
-Analytics on User ID and Product Interaction, and Other Diagnostic Data. The
-label is entered as above. The manifest catches up in build 2.
+**The manifest says the same six things** since 2026-10-10 (S7b, §7
+findings 1 and 2): `PrivacyInfo.xcprivacy` carries the Analytics purpose on
+User ID and Product Interaction and the Other Diagnostic Data type, and
+`.github/scripts/ios-privacy-check.py` fails any built binary whose manifest
+differs from this table. Build 2 carries it.
 
 ## 2. Age rating questionnaire
 
-Apple's current questionnaire (definitions read 2026-10-10). Answer exactly:
+Apple's questionnaire of 2025-07-24 (ratings 4+, 9+, 13+, 16+, 18+), as the
+"Age ratings values and definitions" reference and the API's
+`ageRatingDeclaration` attributes list it on 2026-10-10 (sources in §9). The
+items are in Apple's order; the API attribute names the form field exactly.
+Frequency items take None, Infrequent or Frequent; the others Yes or No.
 
-**In-app controls**
+| # | Item (API attribute) | Answer | Why, from the code |
+|---|---|---|---|
+| 1 | Parental Controls (`parentalControls`) | No | No parent or guardian tool exists. |
+| 2 | Age Assurance (`ageAssurance`) | No | No age check at signup; no Declared Age Range API. |
+| 3 | Unrestricted Web Access (`unrestrictedWebAccess`) | **No** | The shell shows tryknowflow.com only; an off-site link opens in Safari, outside the app (ios-smoke proof). Yes would force 16+. |
+| 4 | User-Generated Content (`userGeneratedContent`) | **No** | Apple's definition is *broad distribution* of user content. A student's files and questions are private to that account; no other user can see them. |
+| 5 | Social Media (`socialMedia`) | No | No feed, likes, comments or shares. |
+| 6 | Social Media Disabled for Users Under 13 (`socialMediaAgeRestricted`) | No | Not applicable without item 5. |
+| 7 | Messaging and Chat (`messagingAndChat`) | **No** | Apple's definition is users communicating *with one another*. Ask is a question to the AI about the student's own files. |
+| 8 | Advertising (`advertising`) | No | No ad SDK, no paid promotion (Phase 9 is not built). |
+| 9 | Profanity or Crude Humor (`profanityOrCrudeHumor`) | None | No such app content. |
+| 10 | Horror/Fear Themes (`horrorOrFearThemes`) | None | No such app content. |
+| 11 | Alcohol, Tobacco, or Drug Use or References (`alcoholTobaccoOrDrugUseOrReferences`) | None | No such app content. |
+| 12 | Medical or Treatment Information (`medicalOrTreatmentInformation`) | **None** | The app gives no diagnosis or treatment guidance of its own. A student's biology or pharmacology notes are the student's private material, read back to that student; Apple's item is about content the app provides. Infrequent would force 13+, which the override below reaches anyway. |
+| 13 | Health or Wellness Topics (`healthOrWellnessTopics`) | No | No self-care or lifestyle advice; the study reminder is a notification, not wellness guidance. |
+| 14 | Mature or Suggestive Themes (`matureOrSuggestiveThemes`) | None | No such app content (same reasoning as 12 for a history or law student's own notes). |
+| 15 | Sexual Content or Nudity (`sexualContentOrNudity`) | None | No such app content. |
+| 16 | Graphic Sexual Content and Nudity (`sexualContentGraphicAndNudity`) | None | Any other answer makes the app unpublishable. |
+| 17 | Cartoon or Fantasy Violence (`violenceCartoonOrFantasy`) | None | No such app content. |
+| 18 | Realistic Violence (`violenceRealistic`) | None | No such app content. |
+| 19 | Prolonged Graphic or Sadistic Realistic Violence (`violenceRealisticProlongedGraphicOrSadistic`) | None | Any other answer makes the app unpublishable. |
+| 20 | Guns or Other Weapons (`gunsOrOtherWeapons`) | None | No such app content. |
+| 21 | Gambling (`gambling`) | No | Nothing is wagered. |
+| 22 | Simulated Gambling (`gamblingSimulated`) | None | Nothing is wagered. |
+| 23 | Contests (`contests`) | **None** | Apple's definition is users competing for rankings or rewards. A quiz is marked for the student alone; the streak has no ranking and no prize. |
+| 24 | Loot Boxes (`lootBox`) | No | Nothing is purchasable. |
 
-| Item | Answer |
-|---|---|
-| Parental Controls | No |
-| Age Assurance | No |
+**AI-generated content.** No item asks about it (checked on the definitions
+page, the setup page and the API attributes on 2026-10-10). Apple's news
+post of 2025-07-24 says instead that "AI assistants and chatbot
+functionality" must be weighed through the existing content items. The
+answers above do that: the model writes only from the student's own upload.
 
-**Capabilities**
+**Calculated rating:** 4+ (every item None or No).
 
-| Item | Answer | Reason |
-|---|---|---|
-| Unrestricted Web Access | **No** | The shell shows tryknowflow.com only. Any off-site link opens in Safari, outside the app (proven by `ios-smoke.yml`'s "external" step). |
-| User-Generated Content | **No** | What a student uploads or asks is private to that account. No other user can see it, so nothing is "broadly distributed". |
-| Messaging and Chat | **No** | Ask is a question to the AI about the student's own files. Users cannot reach each other. |
-| Advertising | **No** | No ad SDK and no paid promotion (Phase 9 ads are not built). |
+**Override to Higher Age Rating (`ageRatingOverrideV2`): THIRTEEN_PLUS.**
+Decided, for three reasons: answers, summaries and quizzes are free text
+from a generative model that no human reads; an account takes an e-mail
+address and a name, and neither the privacy policy nor the terms says
+anything about children (checked 2026-10-10), so a 4+ listing would invite
+under-13s; the audience is secondary school and university students. The
+override applies in every storefront and maps to each region's values.
 
-**Content: all "None" (or "No")**
-
-| Section | Items | Answer |
-|---|---|---|
-| Mature themes | Profanity or Crude Humor; Horror/Fear Themes; Alcohol, Tobacco, or Drug Use or References | None |
-| Medical and wellness | Medical or Treatment Information; Health or Wellness Topics | None. The app gives no medical or lifestyle guidance of its own. A student's biology notes are the student's material, not app content. |
-| Sexuality or nudity | Mature or Suggestive Themes; Sexual Content or Nudity; Graphic Sexual Content and Nudity | None |
-| Violence | Cartoon or Fantasy Violence; Realistic Violence; Prolonged Graphic or Sadistic Realistic Violence; Guns or Other Weapons | None |
-| Chance-based activities | Simulated Gambling; Contests | None. The streak has no prize and no ranking. |
-| Chance-based activities | Gambling; Loot Boxes | No |
-
-**If the form shows an item about AI-generated content or a chatbot** (none
-is in Apple's published definitions as of today), answer **Yes**: answers,
-summaries and quizzes are written by Anthropic's model.
-
-**Calculated rating:** expected **4+**.
-
-**Override to Higher Age Rating: 13+. Decided, with reasons.**
-
-- Answers are free text from a generative model. It answers from the
-  student's own upload, which can contain anything, and no human reads the
-  output.
-- An account takes an e-mail address and a name. Neither the privacy policy
-  nor the terms says anything about children (checked 2026-10-10: no age,
-  minor or parent wording on either page). A 4+ listing invites under-13s,
-  and in the US storefront collecting a child's e-mail is COPPA territory.
-- The market is students (secondary school and university).
-
-**Made for Kids:** No. **Age Suitability URL:** leave empty.
+**Made for Kids:** not applicable. **Age Suitability URL
+(`developerAgeRatingInfoUrl`):** leave empty. **Korea (`gracRatingClassificationNumber`):**
+leave empty; no GRAC rating exists.
 
 ## 3. Category and URLs
 
@@ -194,6 +203,9 @@ Terms of use: https://tryknowflow.com/en/terms
 
 ### 4.2 Arabic (ar-SA)
 
+**Approved by the owner on 2026-10-10 as written below, including the name
+"KnowFlow: ذاكر من ملفاتك".** Any later change goes through a copy batch.
+
 **Name** (24 of 30)
 
 ```
@@ -252,17 +264,23 @@ KnowFlow: ذاكر من ملفاتك
 ## 5. App Review Information
 
 **Sign-in required:** Yes. **User name / Password:** the reviewer account,
-written into the form by the workflow of §6, never typed by hand and never in
-this file.
+written into its two fields by `asc-review-details.yml` (§6), never typed by
+hand and never in this file. The password goes only into the password field,
+never into the notes; the workflow refuses notes that carry it.
 
 **Contact information:** first name, last name, e-mail and phone of the
-person App Review should call. These are the owner's own details. They are
-not secrets, but they are not in the repository either (§6 says how they are
-filled).
+person App Review should call. The name and the support address are secrets
+of the `reviewer` environment (`REVIEW_CONTACT_FIRST_NAME`,
+`REVIEW_CONTACT_LAST_NAME`, `REVIEW_CONTACT_EMAIL`, set 2026-10-10), written
+by the same workflow. The phone is sent only if `REVIEW_CONTACT_PHONE` exists;
+otherwise the workflow leaves the field as it is and says whether it is
+empty.
 
 **Notes** (English only. App Review works in English, so there are no Arabic
-note lines.) (2,301 of 4,000)
+note lines.) (2,296 of 4,000). The two HTML comments around the block are the
+markers `asc-review-details.yml` reads the notes between; keep them.
 
+<!-- asc-review-notes:begin -->
 ```
 SIGNING IN
 The app opens on the Sign In screen. Use the demo account in the Sign-In Information fields (email and password). The account holds one subject, "Biology", with one file, "photosynthesis-notes.txt", which already has a summary and a quiz. The language switch (English / العربية) is at the top of every screen.
@@ -274,7 +292,7 @@ DAILY STUDY REMINDER (local notification)
 Settings > "Study reminder" > the "Remind me every day" switch, with a time picker (default 19:00). iOS asks for notification permission when you turn it on. The reminder is scheduled on the device only; nothing is sent to our servers.
 
 DAILY LIMITS
-Each account can upload 5 files per day (also 10 questions, 5 new summaries and 5 new quizzes per day). The counters reset at midnight UTC. If a limit is reached during review, the app says so and the next day's counter starts fresh.
+Each account can upload 5 files per day (also 10 questions, 5 new summaries and 5 new quizzes per day). The counters reset once a day. If a limit is reached during review, the app says so and the next day's counter starts fresh.
 
 NO PURCHASES IN THE APP (guideline 3.1.3(f))
 The app costs nothing and is a stand-alone companion to the KnowFlow web service. It contains no in-app purchase, no price, no purchase button and no link to a purchase page. Any paid tier is managed on the website only and is never mentioned or linked inside the app.
@@ -288,60 +306,87 @@ Settings > "Delete account" deletes the account and everything in it, immediatel
 FILE UPLOADS
 Supported: PDF, Word, PowerPoint, Excel, text and Markdown, up to 4 MB each. Off-site links open in Safari, outside the app.
 ```
+<!-- asc-review-notes:end -->
 
 **Attachment:** none needed.
 
 ## 6. How the reviewer's sign-in details reach the form
 
-**Decided: an App Store Connect API write from GitHub Actions. The password
-never leaves GitHub's secret store, and nobody types or reads it.**
+**Decided and built (2026-10-10): `.github/workflows/asc-review-details.yml`,
+one job, one environment, an App Manager key made for it. Nobody types or
+reads the password, nothing usable crosses a job boundary, and the public
+log shows statuses and field names only.**
 
-What exists today (read 2026-10-10 with `gh api`, names only):
+**Why one job.** A GitHub job reads the secrets of exactly one environment.
+The reviewer's password lives in `reviewer` and the Admin key in
+`testflight`, so a two-job design has to pass something usable between
+them, and on a public repository every job output, artifact and log line is
+public. Instead the write runs in `reviewer` with its own, smaller key.
 
-- Environment `reviewer` holds `REVIEWER_EMAIL` and `REVIEWER_PASSWORD`. It
-  deploys from `main` only.
-- Environment `testflight` holds `ASC_ISSUER_ID`, `ASC_KEY_ID` and
-  `ASC_KEY_P8` (the Admin key from T4). It deploys from `main` only.
-- App Store Connect's API exposes the App Review details of a version
-  (`appStoreReviewDetails`: `demoAccountName`, `demoAccountPassword`,
-  `demoAccountRequired`, `notes`, and the contact fields).
+**The key: App Manager, not Admin.** Apple describes App Manager as the role
+that "manages all aspects of an app, such as pricing, App Store information,
+and app development and delivery", and lets App Manager access be limited to
+chosen apps. It cannot manage users or certificates and cannot see finance.
+That is the least role that edits App Review Information. The Admin key of
+T4 stays in `testflight` for the build and is never used here.
 
-The mechanism (step S7b, built and run by the agent; nothing for the owner
-to type):
+**What the owner does, once (no secret in chat):**
 
-1. A new workflow, `workflow_dispatch` only, on `main`, two jobs.
-2. **Job 1** (environment `testflight`) signs a token with the API key, finds
-   version 1.0 of app 6820418649 in "Prepare for Submission" and its review
-   detail (creating an empty one if none exists), and writes the Notes of §5,
-   read from this file. It then signs a **second token** valid for 10 minutes
-   whose `scope` claim allows exactly one operation: `PATCH
-   /v1/appStoreReviewDetails/<that id>`. That token is the job's only output.
-3. **Job 2** (environment `reviewer`) sends that single PATCH with
-   `demoAccountRequired: true` and the e-mail and password from its own
-   secrets. It prints only the HTTP status. The Admin key never sits on the
-   runner that holds the password, and the password never sits on the runner
-   that holds the key.
-4. The agent then opens App Store Connect read-only and checks that the user
-   name field shows the reviewer's address and the password field is filled,
-   without revealing it.
+1. App Store Connect > Users and Access > Integrations > Team Keys > "+".
+   Name `KnowFlow review details`, access **App Manager**; if the dialog
+   offers app access, choose **KnowFlow** only. Generate.
+2. Download the `.p8` once (Apple allows one download), then from a terminal
+   in the repository, with the file path in place of `<path>`:
+   `gh secret set ASC_REVIEW_KEY_P8 --env reviewer < <path>`
+   `gh secret set ASC_REVIEW_KEY_ID --env reviewer` (paste the Key ID shown
+   on the key's row), and
+   `gh secret set ASC_REVIEW_ISSUER_ID --env reviewer` (paste the Issuer ID
+   shown above the key list). Then delete the `.p8` file.
+3. Nothing else. The agent dispatches the workflow (`dry_run: true` first),
+   reads its log, and dispatches the write.
 
-**Why not the alternatives.** Typing it in by hand needs someone who knows
-the password; nobody does (it was generated into the secret). Resetting it
-through the mail would put a password in someone's hands, and in chat. A
-password in the repository or in this report is ruled out.
+**What the workflow does** (`workflow_dispatch` only; `main` only, by the
+environment's branch policy and by its own `if`; `ubuntu-24.04`; the only
+foreign code is the pinned `actions/checkout`; then openssl, curl, jq and
+coreutils from the image):
 
-**What the owner must do: nothing for the sign-in fields.** For the four
-contact fields, App Store Connect normally fills them from the account
-holder. If the phone field is empty when the agent checks in step 4, the
-owner types their phone number once in App Review Information. That is a
-phone number, not a password.
+1. Checks that every secret is present, by name. Checks the key is a PEM
+   key openssl can read.
+2. Reads the notes from this file between the two marker comments; refuses
+   them if they are longer than 4000 characters, carry the reviewer's
+   address or the password, or carry a dash.
+3. Mints a ten-minute token with openssl alone (ES256; the DER signature's
+   two integers laid out as the raw 64 bytes), masks it, keeps it in a file
+   that curl reads as a header. A local run of the same lines against a
+   throwaway key produced a token node's crypto verified.
+4. Reads version 1.0 of app 6820418649 and its review detail, and prints
+   the status, the version state and each field as `set` or `empty`.
+5. **Dry run (the default and the first run after merge): stops here.**
+6. Otherwise builds the body with jq (secrets reach jq as arguments, never a
+   shell string), sends one PATCH (or one POST if no detail exists) with
+   contact name and e-mail, `demoAccountName`, `demoAccountPassword` in its
+   own field, `demoAccountRequired: true`, the notes, and `contactPhone`
+   only if the secret exists. Prints the status and the fields as
+   `set`/`empty`, and a warning if the phone is empty.
+7. Shreds the key, the token and the notes, even when a step failed.
 
-**Residual risks, stated.** The scoped token travels as a job output; anyone
-who could read it within 10 minutes could only rewrite this one review
-record. Apple's `scope` claim accepts explicit ids (no wildcards), which is
-why job 1 resolves the id first. If Apple refuses a scoped PATCH, the
-fallback is to drop the scope and keep the 10-minute expiry. The agent
-reports which one ran.
+**Security design, in five lines.**
+1. One environment, one runner, no job output, no artifact: nothing crosses.
+2. The key is the lowest role that can do the write and can be limited to
+   this app; the Admin key never leaves `testflight`.
+3. Every secret is masked by GitHub; the token is masked the moment it is
+   minted; bodies go to files, never to the log; no `set -x`.
+4. The notes are checked against the address and the password before the
+   write, so the one free-text field cannot carry either.
+5. The workflow cannot run from a pull request or a branch: dispatch only,
+   `main` only, and the environment refuses any other ref.
+
+**Residual risks, stated.** A run log is public: it shows that a review
+detail exists, which fields are set, and the version state. Anyone with
+write access to `main` could change the notes in this file before a run;
+the owner merges every change. If Apple refuses the App Manager key for
+this endpoint (403), the log says so and the fallback is the same workflow
+with the Admin key's three secrets copied into `reviewer` by the owner.
 
 ## 7. Mismatches and open risks found while drafting
 
@@ -351,14 +396,15 @@ reports which one ran.
    per question (cost-measurement plan, 2026-09-23). Vercel keeps them for 1
    hour (Hobby) or 1 day (Pro). Apple counts data kept "longer than what is
    necessary to service the transmitted request in real time" as collected.
-   **Fix:** the label ticks Analytics for User ID and Product Interaction
-   (§1). In build 2, `PrivacyInfo.xcprivacy` adds
-   `NSPrivacyCollectedDataTypePurposeAnalytics` to those two entries.
+   **Fixed 2026-10-10 (S7b):** the label ticks Analytics for User ID and
+   Product Interaction (§1), and `PrivacyInfo.xcprivacy` now carries
+   `NSPrivacyCollectedDataTypePurposeAnalytics` on those two entries;
+   `ios-privacy-check.py` expects exactly that.
 2. **Server logs are diagnostics and are not in the manifest.** Request and
-   error logs in Vercel are kept up to a day. **Fix:** the label declares
-   Other Diagnostic Data (§1). Build 2 adds
+   error logs in Vercel are kept up to a day. **Fixed 2026-10-10 (S7b):**
+   the label declares Other Diagnostic Data (§1) and the manifest carries
    `NSPrivacyCollectedDataTypeOtherDiagnosticData` (linked, App
-   Functionality).
+   Functionality); build 2 ships it.
 3. **`STORE_ASSETS.md` §4** listed the privacy types without Name and
    without the purposes. It is corrected in place in this change to point
    here. **`STORE_PATH.md` §3.4** ticked Customer Support. The manifest
@@ -377,44 +423,62 @@ reports which one ran.
    policy. A one-paragraph addition to both pages ("KnowFlow is for students
    aged 13 and over"), in both languages, should go with the owner's next
    copy batch. Not a submission blocker by itself.
-6. **The consent sheet's training sentence rests on two facts outside the
-   code.** For Anthropic, its published API terms. For Voyage AI, the
-   zero-retention setting the privacy page dates to 2026-09-12. If either
-   setting changes, the sheet and the privacy page become false together.
-7. **Review notes promise "midnight UTC".** `usage_counters.day` defaults to
-   Postgres `current_date`, which is UTC on Supabase's default time zone. That
-   setting was not read today; the sentence holds unless the database time
-   zone was changed.
+6. **The consent sheet's training sentence ("neither uses your content to
+   train its models"), verified 2026-10-10.** Anthropic: its commercial terms
+   (effective 2025-06-17) say "Anthropic may not train models on Customer
+   Content from Services". Voyage AI: its terms (updated 2026-05-27) grant
+   Voyage a licence to train on customer content **unless the organisation
+   opts out** in the dashboard (a payment method must be on file); after the
+   opt-out, content "will be immediately deleted by Voyage AI after it is
+   processed", and the opt-out cannot be undone from the dashboard. The
+   KnowFlow organisation was switched to "Opted Out" on 2026-09-12, read
+   back on screen by the owner (register row #90). The Voyage dashboard asks
+   for a login that the agent does not perform, so the toggle was not
+   re-read on 2026-10-10; because it is one-way, the 2026-09-12 reading
+   stands. The sentence stays as written: every byte the sheet governs is
+   sent after both the opt-out and the consent. **Not covered by the
+   sentence, and still open in row #90:** content sent before 2026-09-12
+   stays inside Voyage's grant. The one action that re-proves the claim: sign
+   in to dashboard.voyageai.com, Organization > Terms of Service, and read
+   "Opted Out".
+7. **The reset time is not proven, so the notes no longer name it.**
+   `increment_usage` (three migrations, last `20260708_quizzes.sql`) writes
+   `current_date`, which is the connection's time zone: Supabase's default is
+   UTC and no migration sets `timezone` on the database, a role or the
+   function, but the live setting could not be read on 2026-10-10 (next
+   finding). The notes say "once a day".
+8. **The production Supabase project is not reachable from the owner's
+   signed-in Chrome.** On 2026-10-10 `supabase.com/dashboard/project/wnpqdafdkbuvwecksrjj`
+   redirected to the organisation list; the KnowFlow organisation shows no
+   project, "Free Plan", and a red "Outstanding invoices" banner whose link
+   points at that organisation's billing page, while the three other
+   organisations hold unrelated projects. Production itself answers (the
+   screenshot run signed in at 14:35Z the same day). Either the project sits
+   under another Supabase account, or it was moved. The owner should open
+   the KnowFlow organisation's billing page and say which account owns the
+   project; until then no dashboard read of production is possible.
 
-## 8. EU Digital Services Act trader status: the owner's decision
+## 8. EU Digital Services Act trader status: decided
 
-This file does not decide it. The facts:
+**Decided by the owner on 2026-10-10: KnowFlow remains declared as a trader
+and keeps the 27 EU storefronts.** The owner's contact details are shown on
+KnowFlow's EU product pages, as Apple's trader rules require. Nothing to
+enter per app unless App Store Connect asks for a per-app confirmation at
+submission; the account-level declaration from 2026-10-07 covers it.
 
-- **Apple requires a declaration either way**, "even if you don't distribute
-  apps in the EU". You assess it yourself under EU law; "Apple can't
-  determine whether you're a trader."
-- **Account level, with a per-app override.** Business > Agreements >
-  Compliance > Digital Services Act. Per app: App Information > App Store
-  Regulations and Permits > Digital Services Act > Edit.
-- **Recorded on 2026-10-08 (T3):** the account already declared itself a
-  trader, from Scan & Action's declaration of 2026-10-07. KnowFlow inherits it
-  unless overridden. Not re-read today, because this step opens nothing in App
-  Store Connect.
-- **If trader:** Apple publishes the address (or P.O. box), phone number and
-  e-mail on the product page **in the 27 EU countries only, and only where
-  the app is distributed there.** Apple verifies the e-mail and phone by
-  two-factor code and the address with a document (business or legal
-  records; for a P.O. box, also a bill or receipt), and asks for payment
-  account details if missing.
-- **If not a trader:** nothing is published. Undeclared apps were removed
-  from EU storefronts from 2025-02-18 (press reports of Apple's notice).
-- **What bears on KnowFlow:** it sells a paid tier on the web (Paddle), which
-  is commercial activity. Under the DSA, that is the ordinary case of a trader.
-  A "not a trader" declaration would be hard to defend if ever questioned.
-- **The lever that avoids publishing anything:** KnowFlow's market is
-  Morocco and the Gulf. Untick the 27 EU countries under Pricing and
-  Availability, keep the trader declaration, and nothing about the owner is
-  shown on any KnowFlow page. The cost is no KnowFlow in EU storefronts.
+The facts the decision rested on (read 2026-10-10):
+
+- Apple requires a declaration either way, "even if you don't distribute
+  apps in the EU"; "Apple can't determine whether you're a trader."
+- Account level, with a per-app override: Business > Agreements >
+  Compliance > Digital Services Act; per app under App Information > App
+  Store Regulations and Permits.
+- A trader's address (or P.O. box), phone and e-mail are published on the
+  product page in the 27 EU countries only, where the app is distributed
+  there. Apple verifies e-mail and phone by code and the address by document.
+- Apps with no declaration were removed from EU storefronts from 2025-02-18.
+- KnowFlow sells a paid tier on the web, which is the ordinary case of a
+  trader under the DSA.
 
 ## 9. Sources (read 2026-10-10)
 
@@ -428,3 +492,11 @@ This file does not decide it. The facts:
   developer.apple.com/documentation/appstoreconnectapi.
 - Press on the 2025-02-18 EU removals: TechCrunch, 9to5Mac (2025-02-18).
 - Live site: `curl` of each URL in §3, with and without the app's user agent.
+- Apple, App Store Connect API: `ageRatingDeclaration` attributes;
+  `POST /v1/appStoreReviewDetails`; `GET /v1/appStoreVersions/{id}/appStoreReviewDetail`;
+  Apple news 2025-07-24 (the new age rating system) and 2026-07-09 (the
+  social media items). Role descriptions: App Store Connect Help, reference,
+  account management, role permissions.
+- Voyage AI terms of service (voyageai.com/tos, updated 2026-05-27) and docs
+  FAQ (docs.voyageai.com/docs/faq); Anthropic commercial terms
+  (anthropic.com/legal/commercial-terms, effective 2025-06-17).

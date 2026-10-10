@@ -20,8 +20,9 @@
  *    price, plan, upgrade or "free" word anywhere (3.1.3(f)), using the same
  *    word list as the in-app probe.
  * 6. The manifest: the file is in the app target's resources, declares no
- *    tracking, no required-reason API (the audit found none), and the five
- *    collected data types; Info.plist still has no purpose string.
+ *    tracking, no required-reason API (the audit found none), and the six
+ *    collected data types of the App Privacy label (docs/store/ASC_ANSWERS.md
+ *    section 1); Info.plist still has no purpose string.
  *
  * Tier 0: no network, no credential, no app.
  *
@@ -118,11 +119,11 @@ check(resources.includes('PrivacyInfo.xcprivacy in Resources'), 'and it is in th
 check(/<key>NSPrivacyTracking<\/key>\s*<false\/>/.test(manifest), 'no tracking');
 check(/<key>NSPrivacyTrackingDomains<\/key>\s*<array\/>/.test(manifest), 'no tracking domain');
 check(/<key>NSPrivacyAccessedAPITypes<\/key>\s*<array\/>/.test(manifest), 'no required-reason API declared (the audit found none)');
-for (const t of ['EmailAddress', 'Name', 'OtherUserContent', 'UserID', 'ProductInteraction']) {
+for (const t of ['EmailAddress', 'Name', 'OtherUserContent', 'UserID', 'ProductInteraction', 'OtherDiagnosticData']) {
   check(manifest.includes(`<string>NSPrivacyCollectedDataType${t}</string>`), `collected: ${t}`);
 }
-check((manifest.match(/<key>NSPrivacyCollectedDataTypeTracking<\/key>\s*<false\/>/g) || []).length === 5, 'none of the five is used for tracking');
-check((manifest.match(/<key>NSPrivacyCollectedDataTypeLinked<\/key>\s*<true\/>/g) || []).length === 5, 'all five are linked to the student');
+check((manifest.match(/<key>NSPrivacyCollectedDataTypeTracking<\/key>\s*<false\/>/g) || []).length === 6, 'none of the six is used for tracking');
+check((manifest.match(/<key>NSPrivacyCollectedDataTypeLinked<\/key>\s*<true\/>/g) || []).length === 6, 'all six are linked to the student');
 check(!/UsageDescription/.test(read('ios/App/App/Info.plist')), 'Info.plist carries no purpose string (local notifications need none)');
 
 if (failures.length === 0) {
