@@ -134,7 +134,10 @@ leave empty; no GRAC rating exists.
 | Privacy Policy URL (en) | `https://tryknowflow.com/en/privacy` | 200, names Anthropic and Voyage AI |
 | Privacy Policy URL (ar) | `https://tryknowflow.com/ar/privacy` | 200 |
 | Marketing URL | **leave empty** | Optional field. The landing page `/en`, `/ar` shows prices, a Pricing link and "Start free" in a normal browser. Pointing App Store metadata at it is a call to action for an outside purchase (3.1.1, 3.1.3(f)). See §7, finding 4. |
-| Copyright | `2026 KnowFlow` | |
+| Copyright | `2026 KnowFlow` | entered 2026-10-10 |
+| Price | **not in this file until 2026-10-10.** Pricing and Availability shows no price schedule ("Add Pricing"). Recommended: the Free tier (0), not entered. | read 2026-10-10 |
+| Availability | **not in this file until 2026-10-10.** No availability is set up yet ("Set Up Availability"); Apple's default once set up is every storefront, which keeps the EU as decided in §8. Not entered. | read 2026-10-10 |
+| Content Rights | **not in this file until 2026-10-10.** App Information shows "Set Up Content Rights Information". Recommended answer, not entered: the app does not contain, show or access third-party content; what it shows is the student's own uploads. | read 2026-10-10 |
 
 The `/` root answers 307 to `/ar` (or `/en` by the browser language), so the
 language-specific URLs above are the ones to paste, not the bare domain.
@@ -148,7 +151,14 @@ leave out words already in the name and subtitle, which Apple indexes anyway.
 
 ### 4.1 English (en-US)
 
-**Name** (8 of 30)
+**Name** (8 of 30). **REFUSED BY APPLE on 2026-10-10:** creating the English
+(U.S.) localization with this name answered 409
+`STATE_ERROR.DUPLICATE_NAME.DIFFERENT_ACCOUNT`, "the app name is already
+being used by another app"; Apple offers a trademark claim as the only way to
+free it. The English localization therefore does not exist yet and none of
+the English fields below is entered. **Recommended replacement, not entered,
+for the owner's decision:** `KnowFlow: Study Your Notes` (26 characters),
+the English twin of the Arabic name. The Arabic name is accepted and saved.
 
 ```
 KnowFlow
@@ -402,6 +412,24 @@ this endpoint (403), the log says so and the fallback is the same workflow
 with the Admin key's three secrets copied into `reviewer` by the owner.
 
 ## 7. Mismatches and open risks found while drafting
+
+**Entered in App Store Connect on 2026-10-10 (S7c), each read back from the
+page before saving:** the Arabic privacy policy URL; App Privacy, published
+(six types, purposes, linked, none for tracking, as §1); the age rating (all
+24 items as §2, calculated 4+, override Age 13+, shown as 13+ in 172
+storefronts, 12+ in Vietnam and Brazil, Korea separate); categories
+Education and Productivity; the Arabic name, subtitle, promotional text,
+description and keywords, byte-identical to §4.2 by SHA-256 of each saved
+field; the Arabic support URL; copyright. **Not entered:** the English
+localization (refused, §4.1), the marketing URL (empty by decision), price,
+availability, content rights (not in this file; §3), screenshots, build.
+**Read-only findings:** version 1.0 in Prepare for Submission with no build
+selected ("Add Build"); the DSA line reads "This developer has identified
+itself as a trader for this app"; encryption documentation not uploaded
+(`ITSAppUsesNonExemptEncryption` is NO in Info.plist, so none is due); the
+Notes field shows 1,704 of 4,000 characters left, that is 2,296 characters,
+the file's count; the workflow's `wc -m` said 2,297 because it counts the
+trailing newline, which jq strips before the write.
 
 1. **Manifest says App Functionality only; the code also does Analytics.**
    Every `kf-usage` line (`/api/agent`, quiz, summary routes) carries
