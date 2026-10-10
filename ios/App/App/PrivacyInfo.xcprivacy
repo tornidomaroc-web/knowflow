@@ -13,9 +13,15 @@
   declaration here or in that framework's own manifest.
 
   NSPrivacyCollectedDataTypes: what the account and the service collect, all
-  linked to the student, none for tracking, all for app functionality. Other
-  User Content covers the uploaded files and the questions, which Anthropic and
-  Voyage AI process for us only after the student's permission (5.1.2(i)).
+  linked to the student, none for tracking. Six types, the same six the App
+  Privacy label declares (docs/store/ASC_ANSWERS.md section 1, 2026-10-10).
+  Other User Content covers the uploaded files and the questions, which
+  Anthropic and Voyage AI process for us only after the student's permission
+  (5.1.2(i)). User ID and Product Interaction also carry the Analytics purpose:
+  every `kf-usage` server log line holds the user id with the token counts,
+  and the owner reads those lines to measure cost per question. Other
+  Diagnostic Data is the server's request and error logs (Vercel, kept up to
+  a day), which carry the user id of a signed-in request.
 -->
 <plist version="1.0">
 <dict>
@@ -73,11 +79,25 @@
 			<key>NSPrivacyCollectedDataTypePurposes</key>
 			<array>
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
 			</array>
 		</dict>
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherDiagnosticData</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>
 			<true/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>

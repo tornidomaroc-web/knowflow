@@ -5,10 +5,11 @@ ios-smoke.yml on an unsigned Release device build and by ios-testflight.yml on
 the archive it uploads.
 
 1. The app's own PrivacyInfo.xcprivacy is in the bundle, is a valid plist,
-   declares no tracking and no tracking domain, and declares the five
+   declares no tracking and no tracking domain, and declares the six
    collected data types the account and the service collect (e-mail, name,
-   other user content, user id, product interaction), each linked, none for
-   tracking.
+   other user content, user id, product interaction, other diagnostic data),
+   each linked, none for tracking, with the purposes the App Privacy label
+   declares.
 2. Every Mach-O binary in the bundle (the app's executable, each framework's,
    each dylib) is read with `nm -u` (the symbols it imports) and `strings`
    (Objective-C selectors and Swift names), and each required-reason API it
@@ -83,11 +84,23 @@ app_manifest = load(app_manifest_path) if os.path.isfile(app_manifest_path) else
 need(app_manifest.get('NSPrivacyTracking') is False, f'NSPrivacyTracking is false: {app_manifest.get("NSPrivacyTracking")}')
 need(app_manifest.get('NSPrivacyTrackingDomains') == [], f'no tracking domain: {app_manifest.get("NSPrivacyTrackingDomains")}')
 collected = {d.get('NSPrivacyCollectedDataType'): d for d in app_manifest.get('NSPrivacyCollectedDataTypes', []) or []}
-for t in ['EmailAddress', 'Name', 'OtherUserContent', 'UserID', 'ProductInteraction']:
+# The six types and the purposes the App Privacy label declares
+# (docs/store/ASC_ANSWERS.md section 1): the manifest and the label must say
+# the same thing, so the expected purposes are spelled out per type.
+EXPECTED = {
+    'EmailAddress': ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+    'Name': ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+    'OtherUserContent': ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+    'UserID': ['NSPrivacyCollectedDataTypePurposeAppFunctionality', 'NSPrivacyCollectedDataTypePurposeAnalytics'],
+    'ProductInteraction': ['NSPrivacyCollectedDataTypePurposeAppFunctionality', 'NSPrivacyCollectedDataTypePurposeAnalytics'],
+    'OtherDiagnosticData': ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+}
+need(set(collected) == {'NSPrivacyCollectedDataType' + t for t in EXPECTED}, f'exactly the six declared types: {sorted(collected)}')
+for t, purposes in EXPECTED.items():
     d = collected.get('NSPrivacyCollectedDataType' + t)
     need(bool(d) and d.get('NSPrivacyCollectedDataTypeLinked') is True and d.get('NSPrivacyCollectedDataTypeTracking') is False
-         and d.get('NSPrivacyCollectedDataTypePurposes') == ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
-         f'collected {t}: linked, not tracking, app functionality')
+         and d.get('NSPrivacyCollectedDataTypePurposes') == purposes,
+         f'collected {t}: linked, not tracking, purposes {", ".join(p.replace("NSPrivacyCollectedDataTypePurpose", "") for p in purposes)}')
 app_declared = declared(app_manifest)
 
 # Every manifest in the bundle, by the folder that holds it.

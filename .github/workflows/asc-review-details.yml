@@ -1,0 +1,242 @@
+name: asc-review-details
+
+# Writes the App Review Information of version 1.0 in App Store Connect
+# (docs/store/STORE_PATH.md S7, docs/store/ASC_ANSWERS.md sections 5 and 6):
+# the demo account (name and password, each in its own field), demo account
+# required, the contact name and e-mail, and the review notes read from
+# ASC_ANSWERS.md between its two marker comments. Nothing else in App Store
+# Connect is touched: not the listing, not the privacy answers, not the age
+# rating, not the build.
+#
+# ONE JOB, ONE ENVIRONMENT, NO THIRD-PARTY CODE. Every secret the write needs
+# sits in the GitHub environment `reviewer`, which deploys from `main` alone:
+# the reviewer account (REVIEWER_EMAIL, REVIEWER_PASSWORD, from T4), the
+# contact fields, and an App Store Connect key of the App Manager role made
+# for this one purpose (ASC_REVIEW_KEY_ID, ASC_REVIEW_KEY_P8,
+# ASC_REVIEW_ISSUER_ID). The Admin key of ios-testflight.yml is not used:
+# App Manager is the lowest role that edits App Store information, and the
+# key can be limited to this app. One job means no value crosses a job
+# boundary; this workflow has no `outputs`, uploads no artifact, and runs
+# nothing but git checkout, openssl, curl, jq and coreutils from the runner
+# image. `workflow_dispatch` only, never pull_request, never push.
+#
+# WHAT THE PUBLIC LOG CAN SHOW. This repository is public, so the log is
+# public. Every line printed here is an HTTP status, a field name with
+# "set" or "empty", a count, or a fixed sentence. The token is masked the
+# moment it exists (::add-mask::), GitHub masks every secret, curl writes
+# bodies to files and never to the log, and no step uses `set -x`. The notes
+# are checked before the write to carry neither the reviewer's address nor
+# the password.
+#
+# DRY RUN. `dry_run` (default true) reads the version and the existing review
+# detail and prints statuses and field names only; it sends no PATCH or POST.
+# The first run after merge is a dry run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'true: read only (statuses and field names). false: write the review details of version 1.0.'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: asc-review-details
+  cancel-in-progress: false
+
+jobs:
+  review-details:
+    name: App Review Information of version 1.0 (App Manager key, one job)
+    # The environment's branch policy already limits deployments to main;
+    # this condition refuses any other ref before the environment is asked.
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    environment: reviewer
+    timeout-minutes: 10
+    env:
+      DRY_RUN: ${{ inputs.dry_run }}
+      ASC_APP_APPLE_ID: ${{ vars.ASC_APP_APPLE_ID }}
+      VERSION_STRING: '1.0'
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: The inputs are present (names only)
+        env:
+          ASC_REVIEW_KEY_ID: ${{ secrets.ASC_REVIEW_KEY_ID }}
+          ASC_REVIEW_KEY_P8: ${{ secrets.ASC_REVIEW_KEY_P8 }}
+          ASC_REVIEW_ISSUER_ID: ${{ secrets.ASC_REVIEW_ISSUER_ID }}
+          REVIEWER_EMAIL: ${{ secrets.REVIEWER_EMAIL }}
+          REVIEWER_PASSWORD: ${{ secrets.REVIEWER_PASSWORD }}
+          REVIEW_CONTACT_FIRST_NAME: ${{ secrets.REVIEW_CONTACT_FIRST_NAME }}
+          REVIEW_CONTACT_LAST_NAME: ${{ secrets.REVIEW_CONTACT_LAST_NAME }}
+          REVIEW_CONTACT_EMAIL: ${{ secrets.REVIEW_CONTACT_EMAIL }}
+          REVIEW_CONTACT_PHONE: ${{ secrets.REVIEW_CONTACT_PHONE }}
+        run: |
+          set -eu
+          umask 077
+          missing=0
+          for name in ASC_REVIEW_KEY_ID ASC_REVIEW_KEY_P8 ASC_REVIEW_ISSUER_ID REVIEWER_EMAIL REVIEWER_PASSWORD REVIEW_CONTACT_FIRST_NAME REVIEW_CONTACT_LAST_NAME REVIEW_CONTACT_EMAIL ASC_APP_APPLE_ID; do
+            if [ -n "${!name:-}" ]; then echo "$name: set"; else echo "$name: EMPTY"; missing=1; fi
+          done
+          if [ -n "${REVIEW_CONTACT_PHONE:-}" ]; then echo "REVIEW_CONTACT_PHONE: set"; else echo "REVIEW_CONTACT_PHONE: empty (optional; the field is left as it is in App Store Connect)"; fi
+          [ "$missing" -eq 0 ] || { echo "FAIL: a required secret or variable is empty"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/asc"
+          printf '%s\n' "$ASC_REVIEW_KEY_P8" > "$RUNNER_TEMP/asc/key.p8"
+          head -n 1 "$RUNNER_TEMP/asc/key.p8" | grep -qE -- '^-----BEGIN [A-Z ]*KEY-----$' || { echo "FAIL: ASC_REVIEW_KEY_P8 does not look like a PEM key file"; exit 1; }
+          openssl pkey -in "$RUNNER_TEMP/asc/key.p8" -noout 2>/dev/null || { echo "FAIL: ASC_REVIEW_KEY_P8 is not a key openssl can read"; exit 1; }
+          command -v jq >/dev/null && command -v xxd >/dev/null && command -v curl >/dev/null || { echo "FAIL: jq, xxd or curl is missing from the image"; exit 1; }
+          echo "dry run: $DRY_RUN; app: $ASC_APP_APPLE_ID; version: $VERSION_STRING"
+
+      # The review notes, from the one file that holds every answer, between
+      # its marker comments, without the Markdown fence lines. Apple's limit
+      # is 4000 characters. The notes may name neither the reviewer's address
+      # nor the password: the password has its own field, and the address is
+      # read by App Review from the Sign-In Information fields.
+      - name: The review notes from docs/store/ASC_ANSWERS.md
+        env:
+          REVIEWER_EMAIL: ${{ secrets.REVIEWER_EMAIL }}
+          REVIEWER_PASSWORD: ${{ secrets.REVIEWER_PASSWORD }}
+        run: |
+          set -eu
+          umask 077
+          src=docs/store/ASC_ANSWERS.md
+          grep -c -- '<!-- asc-review-notes:begin -->' "$src" | grep -qx 1 || { echo "FAIL: the begin marker is not exactly once in $src"; exit 1; }
+          grep -c -- '<!-- asc-review-notes:end -->' "$src" | grep -qx 1 || { echo "FAIL: the end marker is not exactly once in $src"; exit 1; }
+          sed -n '/<!-- asc-review-notes:begin -->/,/<!-- asc-review-notes:end -->/p' "$src" | sed '1d;$d' | sed '/^```/d' > "$RUNNER_TEMP/notes.txt"
+          chars=$(LC_ALL=C.UTF-8 wc -m < "$RUNNER_TEMP/notes.txt" | tr -d ' ')
+          lines=$(wc -l < "$RUNNER_TEMP/notes.txt" | tr -d ' ')
+          echo "notes: $lines lines, $chars characters"
+          [ "$chars" -gt 200 ] && [ "$chars" -le 4000 ] || { echo "FAIL: the notes must be between 200 and 4000 characters"; exit 1; }
+          grep -q '^SIGNING IN' "$RUNNER_TEMP/notes.txt" || { echo "FAIL: the notes do not start with the SIGNING IN section"; exit 1; }
+          if grep -qiF -- "$REVIEWER_EMAIL" "$RUNNER_TEMP/notes.txt"; then echo "FAIL: the notes carry the reviewer's address"; exit 1; fi
+          if grep -qF -- "$REVIEWER_PASSWORD" "$RUNNER_TEMP/notes.txt"; then echo "FAIL: the notes carry the password"; exit 1; fi
+          if grep -qiE 'password: ' "$RUNNER_TEMP/notes.txt"; then echo "FAIL: the notes look like they spell a password out"; exit 1; fi
+          if grep -q $'\xe2\x80\x94\|\xe2\x80\x93' "$RUNNER_TEMP/notes.txt"; then echo "FAIL: an em or en dash is in the notes"; exit 1; fi
+
+      # ES256 with openssl alone: the DER signature's two integers are read
+      # with asn1parse and laid out as the raw 64 bytes a JWT wants. The
+      # token lives ten minutes, is masked before anything else prints, and
+      # is kept in a file read by curl, never in a command line.
+      - name: Mint a ten-minute App Store Connect token (masked)
+        env:
+          ASC_REVIEW_KEY_ID: ${{ secrets.ASC_REVIEW_KEY_ID }}
+          ASC_REVIEW_ISSUER_ID: ${{ secrets.ASC_REVIEW_ISSUER_ID }}
+        run: |
+          set -eu
+          umask 077
+          b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now=$(date +%s)
+          header=$(printf '{"alg":"ES256","kid":"%s","typ":"JWT"}' "$ASC_REVIEW_KEY_ID" | b64url)
+          payload=$(printf '{"iss":"%s","iat":%s,"exp":%s,"aud":"appstoreconnect-v1"}' "$ASC_REVIEW_ISSUER_ID" "$now" "$((now + 600))" | b64url)
+          printf '%s.%s' "$header" "$payload" > "$RUNNER_TEMP/asc/signing-input"
+          openssl dgst -sha256 -sign "$RUNNER_TEMP/asc/key.p8" -binary -out "$RUNNER_TEMP/asc/sig.der" "$RUNNER_TEMP/asc/signing-input"
+          ints=$(openssl asn1parse -inform DER -in "$RUNNER_TEMP/asc/sig.der" | grep -o 'INTEGER *:[0-9A-F]*' | sed 's/.*://')
+          [ "$(printf '%s\n' "$ints" | wc -l | tr -d ' ')" = 2 ] || { echo "FAIL: the signature is not two integers"; exit 1; }
+          raw=$(printf '%s\n' "$ints" | while read -r h; do printf '%064s' "$h" | tr ' ' 0; done)
+          sig=$(printf '%s' "$raw" | xxd -r -p | b64url)
+          token="$(cat "$RUNNER_TEMP/asc/signing-input").$sig"
+          echo "::add-mask::$token"
+          printf 'Authorization: Bearer %s\n' "$token" > "$RUNNER_TEMP/asc/auth-header"
+          rm -f "$RUNNER_TEMP/asc/sig.der" "$RUNNER_TEMP/asc/signing-input"
+          echo "token minted: ${#token} characters, expires in 600 s"
+
+      # Reads first, in every mode: the version 1.0 record and its review
+      # detail. The log gets statuses, ids, the version state and, per field,
+      # "set" or "empty".
+      - name: Read version 1.0 and its review detail
+        run: |
+          set -eu
+          umask 077
+          api() { curl -g -sS -o "$RUNNER_TEMP/asc/body.json" -w '%{http_code}' -X "$1" -H "@$RUNNER_TEMP/asc/auth-header" -H 'Content-Type: application/json' "https://api.appstoreconnect.apple.com$2" "${@:3}"; }
+          code=$(api GET "/v1/apps/$ASC_APP_APPLE_ID/appStoreVersions?filter[platform]=IOS&filter[versionString]=$VERSION_STRING&fields[appStoreVersions]=versionString,appVersionState,platform&limit=5") || code=000
+          echo "GET appStoreVersions: $code"
+          [ "$code" = 200 ] || { jq -r '.errors[]? | "  error: \(.status) \(.code) \(.title)"' "$RUNNER_TEMP/asc/body.json" 2>/dev/null || true; echo "FAIL: cannot read the versions of app $ASC_APP_APPLE_ID"; exit 1; }
+          n=$(jq '.data | length' "$RUNNER_TEMP/asc/body.json")
+          [ "$n" = 1 ] || { echo "FAIL: expected exactly one iOS version $VERSION_STRING, found $n"; exit 1; }
+          vid=$(jq -r '.data[0].id' "$RUNNER_TEMP/asc/body.json")
+          state=$(jq -r '.data[0].attributes.appVersionState' "$RUNNER_TEMP/asc/body.json")
+          echo "version $VERSION_STRING: id $vid, state $state"
+          echo "VERSION_ID=$vid" >> "$GITHUB_ENV"
+          code=$(api GET "/v1/appStoreVersions/$vid/appStoreReviewDetail?fields[appStoreReviewDetails]=contactFirstName,contactLastName,contactPhone,contactEmail,demoAccountName,demoAccountPassword,demoAccountRequired,notes") || code=000
+          echo "GET appStoreReviewDetail: $code"
+          if [ "$code" = 200 ] && [ "$(jq -r '.data.id // empty' "$RUNNER_TEMP/asc/body.json")" != "" ]; then
+            did=$(jq -r '.data.id' "$RUNNER_TEMP/asc/body.json")
+            echo "review detail: id $did"
+            echo "DETAIL_ID=$did" >> "$GITHUB_ENV"
+            jq -r '.data.attributes | to_entries[] | "  \(.key): \(if .value == null or .value == "" then "empty" elif (.value|type) == "boolean" then (.value|tostring) else "set" end)"' "$RUNNER_TEMP/asc/body.json"
+            phone=$(jq -r '.data.attributes.contactPhone // ""' "$RUNNER_TEMP/asc/body.json")
+            if [ -z "$phone" ]; then echo "CONTACT_PHONE_EMPTY=1" >> "$GITHUB_ENV"; fi
+          elif [ "$code" = 404 ] || { [ "$code" = 200 ] && [ "$(jq -r '.data' "$RUNNER_TEMP/asc/body.json")" = null ]; }; then
+            echo "review detail: none yet (a write creates one)"
+            echo "DETAIL_ID=" >> "$GITHUB_ENV"
+            echo "CONTACT_PHONE_EMPTY=1" >> "$GITHUB_ENV"
+          else
+            jq -r '.errors[]? | "  error: \(.status) \(.code) \(.title)"' "$RUNNER_TEMP/asc/body.json" 2>/dev/null || true
+            echo "FAIL: unexpected answer reading the review detail"; exit 1
+          fi
+          rm -f "$RUNNER_TEMP/asc/body.json"
+
+      # The write. The body is built by jq from files and environment values,
+      # so no secret is ever a shell argument. demoAccountPassword is its own
+      # attribute and nothing else; contactPhone is sent only when the
+      # REVIEW_CONTACT_PHONE secret exists.
+      - name: Write the review details (skipped in a dry run)
+        if: ${{ env.DRY_RUN != 'true' }}
+        env:
+          REVIEWER_EMAIL: ${{ secrets.REVIEWER_EMAIL }}
+          REVIEWER_PASSWORD: ${{ secrets.REVIEWER_PASSWORD }}
+          REVIEW_CONTACT_FIRST_NAME: ${{ secrets.REVIEW_CONTACT_FIRST_NAME }}
+          REVIEW_CONTACT_LAST_NAME: ${{ secrets.REVIEW_CONTACT_LAST_NAME }}
+          REVIEW_CONTACT_EMAIL: ${{ secrets.REVIEW_CONTACT_EMAIL }}
+          REVIEW_CONTACT_PHONE: ${{ secrets.REVIEW_CONTACT_PHONE }}
+        run: |
+          set -eu
+          umask 077
+          api() { curl -g -sS -o "$RUNNER_TEMP/asc/body.json" -w '%{http_code}' -X "$1" -H "@$RUNNER_TEMP/asc/auth-header" -H 'Content-Type: application/json' "https://api.appstoreconnect.apple.com$2" "${@:3}"; }
+          jq -n --rawfile notes "$RUNNER_TEMP/notes.txt" \
+            --arg first "$REVIEW_CONTACT_FIRST_NAME" --arg last "$REVIEW_CONTACT_LAST_NAME" --arg email "$REVIEW_CONTACT_EMAIL" --arg phone "${REVIEW_CONTACT_PHONE:-}" \
+            --arg demoName "$REVIEWER_EMAIL" --arg demoPassword "$REVIEWER_PASSWORD" \
+            --arg did "${DETAIL_ID:-}" --arg vid "$VERSION_ID" '
+            ({contactFirstName: $first, contactLastName: $last, contactEmail: $email,
+              demoAccountName: $demoName, demoAccountPassword: $demoPassword, demoAccountRequired: true,
+              notes: ($notes | rtrimstr("\n"))}
+             + (if $phone == "" then {} else {contactPhone: $phone} end)) as $attrs
+            | if $did == "" then
+                {data: {type: "appStoreReviewDetails", attributes: $attrs, relationships: {appStoreVersion: {data: {type: "appStoreVersions", id: $vid}}}}}
+              else
+                {data: {type: "appStoreReviewDetails", id: $did, attributes: $attrs}}
+              end' > "$RUNNER_TEMP/asc/write.json"
+          if [ -z "${DETAIL_ID:-}" ]; then
+            code=$(api POST "/v1/appStoreReviewDetails" --data-binary "@$RUNNER_TEMP/asc/write.json") || code=000
+            echo "POST appStoreReviewDetails: $code"
+            ok=201
+          else
+            code=$(api PATCH "/v1/appStoreReviewDetails/$DETAIL_ID" --data-binary "@$RUNNER_TEMP/asc/write.json") || code=000
+            echo "PATCH appStoreReviewDetails/$DETAIL_ID: $code"
+            ok=200
+          fi
+          rm -f "$RUNNER_TEMP/asc/write.json"
+          [ "$code" = "$ok" ] || { jq -r '.errors[]? | "  error: \(.status) \(.code) \(.title): \(.detail)"' "$RUNNER_TEMP/asc/body.json" 2>/dev/null || true; rm -f "$RUNNER_TEMP/asc/body.json"; echo "FAIL: the write was refused"; exit 1; }
+          echo "written: review detail id $(jq -r '.data.id' "$RUNNER_TEMP/asc/body.json")"
+          jq -r '.data.attributes | to_entries[] | "  \(.key): \(if .value == null or .value == "" then "empty" elif (.value|type) == "boolean" then (.value|tostring) else "set" end)"' "$RUNNER_TEMP/asc/body.json"
+          if [ "$(jq -r '.data.attributes.contactPhone // ""' "$RUNNER_TEMP/asc/body.json")" = "" ]; then
+            echo "::warning::contactPhone is empty in App Store Connect; the owner types it once in App Review Information, or sets the REVIEW_CONTACT_PHONE secret and runs this again"
+          fi
+          rm -f "$RUNNER_TEMP/asc/body.json"
+
+      - name: Dry run summary
+        if: ${{ env.DRY_RUN == 'true' }}
+        run: |
+          echo "dry run: nothing was written. contactPhone in App Store Connect: $([ -n "${CONTACT_PHONE_EMPTY:-}" ] && echo empty || echo set)"
+
+      - name: Remove the key and the token
+        if: always()
+        run: |
+          [ -d "$RUNNER_TEMP/asc" ] && find "$RUNNER_TEMP/asc" -type f -exec shred -u {} + 2>/dev/null; rm -rf "$RUNNER_TEMP/asc" "$RUNNER_TEMP/notes.txt"; echo "key, token and notes removed"
