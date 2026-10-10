@@ -1,0 +1,18 @@
+{
+  "_about": "The App Store screenshot set with a caption and a drawn frame (docs/store/screenshots-designed). One entry per raw capture in docs/store/screenshots, in upload order. `caption` is the whole line; the part between the two markers | | is set in the brand gold. Arabic lines are agent drafts for the owner's copy approval. No price, plan, upgrade or free wording; no dash.",
+  "en": [
+    { "file": "01-subjects.png", "caption": "Every subject in |one place|" },
+    { "file": "02-material.png", "caption": "Your files, |ready to study|" },
+    { "file": "03-summary.png", "caption": "A clear summary, |fast|" },
+    { "file": "04-quiz.png", "caption": "Quiz yourself, |five questions|" },
+    { "file": "05-settings.png", "caption": "Your language, |your look|" }
+  ],
+  "ar": [
+    { "file": "01-subjects.png", "caption": "كل موادك |في مكان واحد|" },
+    { "file": "02-material.png", "caption": "ملفاتك |جاهزة للمذاكرة|" },
+    { "file": "03-summary.png", "caption": "ملخص واضح |في ثوانٍ|" },
+    { "file": "04-ask.png", "caption": "اسأل، والإجابة |من ملفاتك|" },
+    { "file": "05-settings.png", "caption": "بالعربية |أو الإنجليزية|" }
+  ],
+  "samples": { "en": "04-quiz.png", "ar": "04-ask.png" }
+}
