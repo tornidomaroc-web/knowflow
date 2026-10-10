@@ -451,6 +451,15 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-10 - The two Summary screenshots retaken from main after #251: the heading sits below the app bar in English and Arabic
+
+**No row is edited** (rows 42, 69 and 81 untouched). Files: `docs/store/screenshots/{en,ar}/03-summary.png` and `docs/store/screenshots/sizes.txt`.
+
+- **The run:** `ios-signed-in.yml`, scenario `screenshots`, dispatched on `main` at `63e68d0` (run 38059355287, green, 0 failures). It followed the merge push's screens run 38058419261, which also passed. The screenshot run was started only after that, because both share one concurrency group on `main`.
+- **The new reading:** "summary in view; heading top 151, bar bottom 118" in both locales. The new check (heading top at least 4 px below bar bottom) passed for both.
+- **Same specs as before:** an iPhone 17 Pro Max simulator, 9:41 status bar, the reviewer account, and 1320 × 2868 for every PNG. No screen showed a price, plan, upgrade or checkout word or link, and Settings showed no e-mail text. The reviewer account is left without the AI permission.
+- **The other eight files** from the same run are byte-identical to the committed ones, so only the two Summary files change.
+
 ### 2026-10-10 - Store path S7a: every App Store Connect answer drafted in `docs/store/ASC_ANSWERS.md` and checked against the code, the manifest and the live site; nothing entered in App Store Connect; the Summary screenshot step now measures the app bar
 
 **No row is edited** (rows 42, 69 and 81 untouched). Files: `docs/store/ASC_ANSWERS.md` (new), `docs/store/STORE_ASSETS.md` §4 privacy cell (corrected in place: it omitted name and diagnostics), `.github/workflows/ios-signed-in.yml` (the two Summary screenshot steps and one check).
