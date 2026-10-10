@@ -1,0 +1,93 @@
+name: store-shots
+
+# Renders the designed App Store screenshots (docs/store/screenshots-designed)
+# on a plain runner and checks them: scripts/store-shots/render.mjs writes a
+# static page per entry of captions.json and the runner image's own Google
+# Chrome photographs it headless at 1320 x 2868; scripts/store-shots/check.py
+# (standard library) refuses any PNG that is not exactly that size or carries
+# an alpha channel, and proves from the font's cmap that every caption letter
+# has a Rubik glyph. The committed PNGs are checked too, and compared with the
+# fresh renders pixel by pixel; a mismatch above the rendering-noise bound
+# fails the run, so what the repository shows is what the script makes.
+#
+# No secret, no environment, no npm install, no third-party action beyond the
+# pinned checkout. Pull requests only, on these paths, plus manual runs.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/store/screenshots-designed/**'
+      - 'docs/store/screenshots/**'
+      - 'scripts/store-shots/**'
+      - '.github/workflows/store-shots.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    name: Render and check the designed screenshots (Chrome headless, no secrets)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Chrome and Node from the image
+        run: |
+          set -eu
+          google-chrome --version
+          node --version
+          python3 --version
+          fc-list | grep -ci rubik || true
+
+      - name: Render every entry of captions.json
+        env:
+          CHROME: google-chrome
+        run: node scripts/store-shots/render.mjs --out "$RUNNER_TEMP/render"
+
+      - name: Check the fresh renders and the committed PNGs
+        run: |
+          set -eu
+          python3 scripts/store-shots/check.py "$RUNNER_TEMP"/render/*/*.png
+          committed=$(ls docs/store/screenshots-designed/*/*.png 2>/dev/null || true)
+          if [ -n "$committed" ]; then python3 scripts/store-shots/check.py $committed; else echo "no committed PNG yet"; fi
+
+      # The committed sample must be the script's output: the fresh render of
+      # the same entry may differ only by rendering noise (font hinting,
+      # gradient dithering), bounded here at 1.5 % of the pixels differing by
+      # more than 24 of 255 on any channel. Pillow from PyPI, pinned.
+      - name: The committed PNGs match the fresh renders
+        run: |
+          set -eu
+          python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
+          python3 - "$RUNNER_TEMP/render" <<'PY'
+          import glob, os, sys
+          from PIL import Image, ImageChops
+          fresh = sys.argv[1]
+          fails = 0
+          for p in sorted(glob.glob('docs/store/screenshots-designed/*/*.png')):
+              rel = os.path.relpath(p, 'docs/store/screenshots-designed')
+              q = os.path.join(fresh, rel)
+              a, b = Image.open(p).convert('RGB'), Image.open(q).convert('RGB')
+              diff = ImageChops.difference(a, b).convert('L').point(lambda v: 255 if v > 24 else 0)
+              bad = sum(1 for v in diff.getdata() if v)
+              ratio = bad / (a.width * a.height)
+              ok = ratio <= 0.015
+              print(('ok   ' if ok else 'FAIL ') + f'{rel}: {ratio:.4%} of pixels differ from the fresh render')
+              fails += 0 if ok else 1
+          sys.exit(1 if fails else 0)
+          PY
+
+      - name: Keep the fresh renders
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: store-shots-${{ github.sha }}
+          path: ${{ runner.temp }}/render
+          if-no-files-found: error
+          retention-days: 14
