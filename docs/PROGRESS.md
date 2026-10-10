@@ -451,6 +451,15 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-10 - Store path S7b part 2: the App Manager key made and stored, the dry run clean, the write refused by Apple because the contact phone is required on creation; nothing written to App Store Connect
+
+**No row is edited** (rows 42, 69 and 81 untouched). File: `docs/store/ASC_ANSWERS.md` §5 and §6 (two sentences that called the phone optional corrected in place, and the run record added). No code change.
+
+- **The key.** `KnowFlow review details`, role App Manager, read back from the Generate dialog before generating; the dialog offers Name and Access only, so no app-level restriction exists for a Team Key. Downloaded once to `D:\`, stored by the owner with one `gh secret set` from the file, file deleted (checked gone). `ASC_REVIEW_KEY_ID` and `ASC_REVIEW_ISSUER_ID` set by the agent. The `reviewer` environment now holds eight secrets (names checked with `gh api`). No existing key touched.
+- **Dry run 38070928000 (green).** Every secret present by name; notes 23 lines, 2,297 characters; token minted (293 characters, 600 s); `GET appStoreVersions` 200, version 1.0 in `PREPARE_FOR_SUBMISSION`; `GET appStoreReviewDetail` 200 with no record yet; `contactPhone` empty; nothing written. The downloaded log (339 lines) grepped for the reviewer address, the password pattern and `eyJ`: 0, 0, 0.
+- **Write run 38071753348 (red, by design).** Same reads, then `POST appStoreReviewDetails` 409: `ENTITY_ERROR.ATTRIBUTE.REQUIRED` on `contactPhone`, which Apple requires when the record is created, in `+<country code> <number>` form. The workflow printed the two error titles and stopped; nothing was written. Log grep: 0, 0, 0. The App Manager key is accepted for the reads; whether it is accepted for the write is known only after the phone exists.
+- **What unblocks it:** the owner sets `REVIEW_CONTACT_PHONE` in `reviewer`; the write is dispatched again, then the read-back dry run and the Chrome check.
+
 ### 2026-10-10 - Store path S7b part 1: the review-details workflow built (one job, an App Manager key, dry run first); the privacy manifest now says what the label says; the Voyage training sentence verified against Voyage's terms and row #90; the reset time removed from the review notes because it could not be proven; the age rating mapped item by item; the Arabic listing approved and the EU trader status decided
 
 **No row is edited** (rows 42, 69 and 81 untouched). Files: `.github/workflows/asc-review-details.yml` (new), `ios/App/App/PrivacyInfo.xcprivacy`, `.github/scripts/ios-privacy-check.py`, `docs/store/ASC_ANSWERS.md`. Nothing was written to App Store Connect and the new workflow was not run; its first run after merge is a dry run.
