@@ -1,0 +1,179 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   CLAY PROTOTYPE (Step Clay-1, docs/design/clay-prototype). PREVIEW ONLY.
+
+   Imported by the three preview routes only (subjects, subject, settings),
+   which 404 on production through the VERCEL_ENV gate, and every rule is
+   scoped under [data-look="clay"], which only those routes set and only when
+   the URL asks (?look=clay). No live screen can match a selector here.
+
+   A TOUCH, NOT A REBUILD. Tokens first: --radius (every rounded-xl), the
+   surface steps, --faint and --control-border are redefined for the subtree;
+   then the shared shapes get their clay: cards, inner tiles, buttons
+   (buttonVariants' `pressable`), the segmented controls, the switch, inputs,
+   icon tiles and the empty state. Layout, logic, routes and gold untouched.
+
+   THE COST, per element: at most THREE box-shadow layers, at most TWO of them
+   blurred (one inset shade, one drop), no filter, no backdrop-filter, no
+   animated shadow except a 120 ms swap on press. The audit in
+   scripts/clay/render.mjs counts layers on every element and fails a render
+   that has more, or any filter.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-look="clay"] {
+  /* Larger radii through the token: every rounded-xl (buttons, tiles, inputs)
+     follows. Cards and pills are set below. */
+  --radius: 1.125rem;
+  --clay-card-radius: 1.75rem;
+  --clay-pill-radius: 0.875rem;
+
+  /* DARK. The surfaces step up once, so a card stands off the page by value
+     before any shadow; on near-black a drop shadow alone reads as nothing
+     (globals.css, register #85), so the inner light and shade carry the clay. */
+  --surface: #211c16;
+  --raised: #2a241c;
+  --muted: #271f18;
+  --input: #2a241c;
+  /* --faint carries real text here (dates, pending checklist items); 4.73:1 on
+     --raised, the worst ground, so every use clears AA. Was 2.65:1. */
+  --faint: #9a8d7b;
+
+  --clay-hi: rgba(255, 236, 205, 0.075);   /* top catchlight, inside */
+  --clay-shade: rgba(0, 0, 0, 0.32);       /* lower inner shade */
+  --clay-drop: rgba(0, 0, 0, 0.70);        /* outer drop */
+  --clay-well: rgba(0, 0, 0, 0.42);        /* a sunken tile's top shade */
+  --clay-gold-hi: rgba(255, 246, 225, 0.38);
+  --clay-gold-shade: rgba(84, 56, 8, 0.38);
+}
+
+[data-theme="light"] [data-look="clay"] {
+  /* LIGHT keeps its grounds: a darker raised tile would put gold and the
+     success green under 4.5:1 there. Only the text and boundary tokens move. */
+  --surface: #ffffff;
+  --raised: #f3ede3;
+  --muted: #f0eae0;
+  --input: #ffffff;
+  --faint: #6e6458;            /* 4.72:1 on #efe7da worst case; was 2.77 */
+  --control-border: #857a6c;   /* 3.3:1 on --raised; was 2.95 */
+
+  --clay-hi: rgba(255, 255, 255, 0.95);
+  --clay-shade: rgba(122, 88, 34, 0.10);
+  --clay-drop: rgba(96, 66, 22, 0.28);
+  --clay-well: rgba(96, 66, 22, 0.14);
+  --clay-gold-hi: rgba(255, 240, 205, 0.45);
+  --clay-gold-shade: rgba(60, 40, 4, 0.35);
+}
+
+/* ── CARDS: the raw `rounded-2xl … bg-surface` cards and the shared <Card>.
+   3 layers: catchlight (no blur), inner shade (blur), drop (blur). ── */
+[data-look="clay"] .rounded-2xl.bg-surface,
+[data-look="clay"] .rounded-xl.bg-surface.shadow-soft {
+  border-radius: var(--clay-card-radius);
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 var(--clay-hi),
+    inset 0 -6px 12px -6px var(--clay-shade),
+    0 14px 26px -14px var(--clay-drop);
+}
+/* The dashed empty state keeps its dashed edge: it is a drop target, not a slab. */
+[data-look="clay"] .rounded-2xl.border-dashed.bg-surface {
+  border-color: var(--control-border);
+  box-shadow: inset 0 2px 8px -2px var(--clay-well);
+}
+
+/* ── INNER TILES (stat meters, checklist row, notes): pressed INTO the card.
+   2 layers: top shade (blur), bottom catchlight (no blur). ── */
+[data-look="clay"] .rounded-xl.bg-raised {
+  box-shadow:
+    inset 0 2px 5px -1px var(--clay-well),
+    inset 0 -1px 0 var(--clay-hi);
+}
+
+/* ── BUTTONS (every buttonVariants() link and button carries `pressable`).
+   Rest: 3 layers. Press: the drop goes, the face sinks 1px, the shade moves
+   to the top, so it feels pushed in. Shadows are not motion, so the swap is
+   outside the reduced-motion guard; the 1px move is inside it. ── */
+[data-look="clay"] .pressable.bg-primary {
+  box-shadow:
+    inset 0 1px 0 var(--clay-gold-hi),
+    inset 0 -4px 8px -4px var(--clay-gold-shade),
+    0 10px 18px -10px var(--clay-drop);
+}
+[data-look="clay"] .pressable.bg-surface {
+  border-color: transparent;
+  background-color: var(--raised);
+  box-shadow:
+    inset 0 1px 0 var(--clay-hi),
+    inset 0 -4px 8px -4px var(--clay-shade),
+    0 8px 14px -9px var(--clay-drop);
+}
+[data-look="clay"] .pressable:active {
+  box-shadow:
+    inset 0 3px 7px -2px var(--clay-well),
+    inset 0 -1px 0 var(--clay-hi);
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-look="clay"] .pressable:active { transform: translateY(1px) scale(0.99); }
+}
+
+/* ── SEGMENTED CONTROLS (language group, theme radiogroup): a sunken track
+   with a control boundary, the chosen option a raised pill with a gold edge,
+   so the state is not carried by fill alone (WCAG 1.4.11). ── */
+[data-look="clay"] [role="group"].bg-raised,
+[data-look="clay"] [role="radiogroup"].bg-raised {
+  border-radius: calc(var(--clay-pill-radius) + 0.25rem);
+  border-color: var(--control-border);
+  box-shadow: inset 0 2px 6px -1px var(--clay-well);
+}
+[data-look="clay"] [role="group"].bg-raised > a,
+[data-look="clay"] [role="radiogroup"].bg-raised > button {
+  border-radius: var(--clay-pill-radius);
+  border: 1px solid transparent;
+}
+[data-look="clay"] [role="group"].bg-raised > .bg-surface,
+[data-look="clay"] [role="radiogroup"].bg-raised > .bg-surface {
+  border-color: var(--accent);
+  box-shadow:
+    inset 0 1px 0 var(--clay-hi),
+    inset 0 -3px 6px -3px var(--clay-shade),
+    0 6px 10px -6px var(--clay-drop);
+}
+
+/* ── SWITCH: a sunken track with a control boundary; the thumb a clay bead. ── */
+[data-look="clay"] [role="switch"] {
+  border: 1px solid var(--control-border);
+  box-shadow: inset 0 2px 5px -1px var(--clay-well);
+}
+[data-look="clay"] [role="switch"][aria-checked="true"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 2px 5px -1px var(--clay-gold-shade);
+}
+/* The thumb IS the state, so it holds 3:1 on its track in both positions:
+   off, --muted-foreground on --muted (5.6 dark / 5.0 light); on, --surface on
+   gold (7.5 / 5.2). The live switch's thumb is --surface on --muted (1.1:1). */
+[data-look="clay"] [role="switch"] > span {
+  background-color: var(--muted-foreground);
+  box-shadow:
+    inset 0 1px 0 var(--clay-hi),
+    inset 0 -3px 5px -2px var(--clay-shade),
+    0 3px 6px -2px var(--clay-drop);
+}
+[data-look="clay"] [role="switch"][aria-checked="true"] > span { background-color: var(--surface); }
+
+/* ── INPUTS: a sunken well with a control boundary. ── */
+[data-look="clay"] input:not([type="checkbox"]):not([type="radio"]),
+[data-look="clay"] select,
+[data-look="clay"] textarea {
+  border-color: var(--control-border);
+  background-color: var(--input);
+  box-shadow: inset 0 2px 5px -1px var(--clay-well);
+}
+
+/* ── ICON TILES (settings section icons, material type tiles): small clay
+   chips. 2 layers, no drop: they sit on a card that already has one. ── */
+[data-look="clay"] .section-icon,
+[data-look="clay"] article > div > span.h-11.w-11.rounded-xl {
+  border-radius: 0.75rem;
+  box-shadow:
+    inset 0 1px 0 var(--clay-hi),
+    inset 0 -3px 6px -3px var(--clay-shade);
+}

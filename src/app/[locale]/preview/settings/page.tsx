@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+// Step Clay-1: scoped under [data-look="clay"], so it styles nothing unless ?look=clay.
+import '../clay.css'
 import { SettingsPanel } from '@/components/dashboard/SettingsPanel'
 import { DeleteAccountCard } from '@/components/dashboard/DeleteAccountCard'
 import { CancelSubscriptionCard } from '@/components/dashboard/CancelSubscriptionCard'
@@ -35,7 +37,7 @@ export default async function SettingsPreview({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ plan?: string; platform?: string; theme?: string }>
+  searchParams: Promise<{ plan?: string; platform?: string; theme?: string; look?: string }>
 }) {
   if (process.env.VERCEL_ENV === 'production') notFound()
 
@@ -45,7 +47,8 @@ export default async function SettingsPreview({
   const t = useTranslation(safeLocale)
   const s = t.dashboard.settings
 
-  const { plan, platform, theme } = await searchParams
+  const { plan, platform, theme, look: lookParam } = await searchParams
+  const look = lookParam === 'clay' || lookParam === 'current' ? lookParam : undefined
   const isPro = plan === 'pro'
   const native = platform === 'native'
   const otherLocale: Locale = safeLocale === 'ar' ? 'en' : 'ar'
@@ -66,8 +69,8 @@ export default async function SettingsPreview({
   const renewsOn = formatDate('2026-10-25T00:00:00Z', safeLocale)
 
   return (
-    <div className="min-h-screen">
-      <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
+    <div className="min-h-screen" data-look={look}>
+      <div className={look ? 'hidden' : 'flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs'}>
         <span className="font-semibold text-foreground">settings · preview</span>
         <span className="text-faint">
           {isPro ? 'pro' : 'free'} · {native ? 'native' : 'web'} · {safeLocale}

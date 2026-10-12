@@ -1,0 +1,85 @@
+name: clay-prototype
+
+# Step Clay-1 (docs/design/clay-prototype). Builds this commit with `next
+# build` and serves it on the runner with `next start`, then
+# scripts/clay/render.mjs drives the runner image's own Chrome through
+# puppeteer-core over the three preview routes (fixture data, no auth): 12
+# clay renders (ar/en x dark/light x subjects/subject/settings) and 3 BEFORE
+# renders (current design, dark, ar), each audited for WCAG AA text contrast,
+# 3:1 control boundaries, shadow cost and forbidden wording. A clay finding
+# fails the run; the renders are kept as the artifact.
+#
+# NO SECRET. The Supabase values below are placeholders pointing at a closed
+# local port: the preview routes make no Supabase call, and the middleware's
+# getUser() returns without a request when there is no session cookie.
+# Nothing is deployed and no production data is read.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/app/[locale]/preview/**'
+      - 'scripts/clay/**'
+      - '.github/workflows/clay-prototype.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    name: Render and audit the clay prototype (no secrets)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-not-a-key
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install the app's locked dependencies
+        run: |
+          node --version
+          google-chrome --version
+          npm ci --no-audit --no-fund
+
+      - name: Build
+        run: npx next build
+
+      - name: Serve and wait until the preview route answers
+        run: |
+          set -eu
+          nohup npx next start -p 3000 > "$RUNNER_TEMP/next.log" 2>&1 &
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/en/preview/subjects || true)
+            if [ "$code" = "200" ]; then echo "up after $i tries"; exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/next.log"; exit 1
+
+      - name: puppeteer-core, pinned, outside the app
+        run: npm install --prefix "$RUNNER_TEMP/pp" --no-audit --no-fund --ignore-scripts puppeteer-core@23.11.1
+
+      - name: Render and audit
+        env:
+          CHROME: google-chrome
+          PUPPETEER_DIR: ${{ runner.temp }}/pp
+        run: node scripts/clay/render.mjs --out "$RUNNER_TEMP/clay"
+
+      - name: Server log
+        if: always()
+        run: tail -n 60 "$RUNNER_TEMP/next.log" || true
+
+      - name: Keep the renders
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: clay-prototype-${{ github.sha }}
+          path: ${{ runner.temp }}/clay
+          if-no-files-found: error
+          retention-days: 14
