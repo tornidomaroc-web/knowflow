@@ -37,7 +37,7 @@
      --raised, the worst ground, so every use clears AA. Was 2.65:1. */
   --faint: #9a8d7b;
 
-  --clay-hi: rgba(255, 236, 205, 0.075);   /* top catchlight, inside */
+  --clay-hi: rgba(255, 236, 205, 0.10);    /* top catchlight, inside */
   --clay-shade: rgba(0, 0, 0, 0.32);       /* lower inner shade */
   --clay-drop: rgba(0, 0, 0, 0.70);        /* outer drop */
   --clay-well: rgba(0, 0, 0, 0.42);        /* a sunken tile's top shade */
@@ -81,6 +81,9 @@
     inset 0 -6px 12px -6px var(--clay-shade),
     0 14px 26px -14px var(--clay-drop);
 }
+/* The delete-account card keeps its red edge: on that card the border is the
+   signal that it is dangerous (globals.css, --danger-border), not decoration. */
+[data-look="clay"] .rounded-xl.bg-surface.shadow-soft.border-danger-border { border-color: var(--danger-border); }
 /* The dashed empty state keeps its dashed edge: it is a drop target, not a slab. */
 [data-look="clay"] .rounded-2xl.border-dashed.bg-surface {
   border-color: var(--control-border);
@@ -178,7 +181,8 @@
 /* ── ICON TILES (settings section icons, material type tiles): small clay
    chips. 2 layers, no drop: they sit on a card that already has one. ── */
 [data-look="clay"] .section-icon,
-[data-look="clay"] article > div > span.h-11.w-11.rounded-xl {
+[data-look="clay"] article > div > span.h-11.w-11.rounded-xl,
+[data-look="clay"] li span.h-9.w-9.rounded-lg {
   border-radius: 0.75rem;
   box-shadow:
     inset 0 1px 0 var(--clay-hi),

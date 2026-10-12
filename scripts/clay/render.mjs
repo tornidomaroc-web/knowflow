@@ -177,7 +177,14 @@ for (const job of JOBS) {
   const a = await tab.evaluate(audit);
   const file = join(out, job.file);
   mkdirSync(join(file, '..'), { recursive: true });
-  await tab.screenshot({ path: file, fullPage: true });
+  // A full-page capture paints fixed bars (the mobile tab bar) where the
+  // viewport was, mid-page; a viewport as tall as the page puts them at the
+  // foot, where a student meets them.
+  const height = await tab.evaluate(() => Math.ceil(document.documentElement.scrollHeight));
+  await tab.setViewport({ width: 440, height, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await tab.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await tab.screenshot({ path: file });
+  await tab.setViewport({ width: 440, height: 956, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   const bad = {
     status: res.status() === 200 ? [] : [`HTTP ${res.status()}`],
     text: a.text.filter((t) => !t.ok), controls: a.controls.filter((c) => !c.ok),
