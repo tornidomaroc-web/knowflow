@@ -9,6 +9,10 @@ name: store-shots
 # has a Rubik glyph. The committed PNGs are checked too, and compared with the
 # fresh renders pixel by pixel; a mismatch above the rendering-noise bound
 # fails the run, so what the repository shows is what the script makes.
+# render.mjs also refuses a layout that fails at phone width (caption onto
+# the phone, overflow, more than two lines, a broken gold phrase, Rubik not
+# loaded, Arabic letters not joined); screen_intact.py proves the app screen
+# is uncovered; ocr_scan.py refuses an email, test account or price word.
 #
 # No secret, no environment, no npm install, no third-party action beyond the
 # pinned checkout. Pull requests only, on these paths, plus manual runs.
@@ -57,14 +61,35 @@ jobs:
           committed=$(ls docs/store/screenshots-designed/*/*.png 2>/dev/null || true)
           if [ -n "$committed" ]; then python3 scripts/store-shots/check.py $committed; else echo "no committed PNG yet"; fi
 
-      # The committed sample must be the script's output: the fresh render of
+      # Nothing the design adds covers the app screen: the screen area of every
+      # PNG equals its raw capture, with a negative control that must be caught;
+      # and the committed set is exactly the ten entries of captions.json.
+      - name: The app screen is uncovered in every render, and all ten are committed
+        run: |
+          set -eu
+          python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
+          python3 scripts/store-shots/screen_intact.py "$RUNNER_TEMP/render"
+          python3 scripts/store-shots/screen_intact.py docs/store/screenshots-designed
+
+      # No email, test account, price, plan, upgrade or free word anywhere in the
+      # committed pictures, app screen included, read by Tesseract (Ubuntu
+      # archive package, free); the reader must see the KnowFlow mark on each
+      # and catch a drawn email address, or the step fails.
+      - name: No email or personal data in any picture (OCR)
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-eng > /dev/null
+          tesseract --version | head -1
+          python3 scripts/store-shots/ocr_scan.py docs/store/screenshots-designed/*/*.png
+
+      # The committed PNGs must be the script's output: the fresh render of
       # the same entry may differ only by rendering noise (font hinting,
       # gradient dithering), bounded here at 1.5 % of the pixels differing by
       # more than 24 of 255 on any channel. Pillow from PyPI, pinned.
       - name: The committed PNGs match the fresh renders
         run: |
           set -eu
-          python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
           python3 - "$RUNNER_TEMP/render" <<'PY'
           import glob, os, sys
           from PIL import Image, ImageChops
