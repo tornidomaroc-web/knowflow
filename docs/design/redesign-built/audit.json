@@ -1,0 +1,1278 @@
+[
+  {
+    "locale": "ar",
+    "theme": "dark",
+    "s": "home",
+    "file": "ar-dark-home.png",
+    "url": "http://127.0.0.1:3000/ar/preview/student-home?platform=native&theme=dark",
+    "findings": [],
+    "text": 51,
+    "textWorst": 4.61,
+    "controls": [],
+    "targets": 10,
+    "targetMin": 44,
+    "shaping": 41,
+    "cost": {
+      "shadowed": 13,
+      "maxLayers": 3,
+      "blurred": 24,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "dark",
+    "s": "subjects",
+    "file": "ar-dark-subjects.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subjects?platform=native&theme=dark",
+    "findings": [],
+    "text": 63,
+    "textWorst": 4.72,
+    "controls": [],
+    "targets": 18,
+    "targetMin": 44,
+    "shaping": 42,
+    "cost": {
+      "shadowed": 29,
+      "maxLayers": 3,
+      "blurred": 56,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "dark",
+    "s": "subject",
+    "file": "ar-dark-subject.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&theme=dark",
+    "findings": [],
+    "text": 103,
+    "textWorst": 4.72,
+    "controls": [
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 3.82,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 3.82,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 16,
+    "targetMin": 44,
+    "shaping": 80,
+    "cost": {
+      "shadowed": 39,
+      "maxLayers": 3,
+      "blurred": 61,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "dark",
+    "s": "ask",
+    "file": "ar-dark-ask.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&theme=dark",
+    "findings": [],
+    "text": 15,
+    "textWorst": 4.72,
+    "controls": [
+      {
+        "el": "field: div.kf-composer \"\"",
+        "got": 3.82,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 8,
+    "targetMin": 44,
+    "shaping": 15,
+    "cost": {
+      "shadowed": 12,
+      "maxLayers": 3,
+      "blurred": 18,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "dark",
+    "s": "ask-answer",
+    "file": "ar-dark-ask-answer.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?view=answer&platform=native&theme=dark",
+    "findings": [],
+    "text": 15,
+    "textWorst": 4.72,
+    "controls": [],
+    "targets": 7,
+    "targetMin": 44,
+    "shaping": 9,
+    "cost": {
+      "shadowed": 7,
+      "maxLayers": 3,
+      "blurred": 13,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "dark",
+    "s": "summary",
+    "file": "ar-dark-summary.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&theme=dark",
+    "findings": [],
+    "text": 103,
+    "textWorst": 4.72,
+    "controls": [
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 3.82,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 3.82,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 16,
+    "targetMin": 44,
+    "shaping": 80,
+    "cost": {
+      "shadowed": 39,
+      "maxLayers": 3,
+      "blurred": 61,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "dark",
+    "s": "settings",
+    "file": "ar-dark-settings.png",
+    "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&theme=dark",
+    "findings": [],
+    "text": 34,
+    "textWorst": 4.72,
+    "controls": [
+      {
+        "el": "switch track: span.kf-switch-track \"\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span.kf-switch-thumb \"\"",
+        "got": 7.26,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"Englishالعربية\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a.inline-flex \"العربية\"",
+        "got": 7.72,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"داكنفاتح\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: button.inline-flex \"داكن\"",
+        "got": 7.72,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 14,
+    "targetMin": 44,
+    "shaping": 30,
+    "cost": {
+      "shadowed": 22,
+      "maxLayers": 3,
+      "blurred": 31,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "dark",
+    "s": "settings-bottom",
+    "file": "ar-dark-settings-bottom.png",
+    "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&theme=dark",
+    "findings": [],
+    "text": 34,
+    "textWorst": 4.72,
+    "controls": [
+      {
+        "el": "switch track: span.kf-switch-track \"\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span.kf-switch-thumb \"\"",
+        "got": 7.26,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"Englishالعربية\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a.inline-flex \"العربية\"",
+        "got": 7.72,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"داكنفاتح\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: button.inline-flex \"داكن\"",
+        "got": 7.72,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 14,
+    "targetMin": 44,
+    "shaping": 30,
+    "cost": {
+      "shadowed": 22,
+      "maxLayers": 3,
+      "blurred": 31,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "light",
+    "s": "home",
+    "file": "ar-light-home.png",
+    "url": "http://127.0.0.1:3000/ar/preview/student-home?platform=native&theme=light",
+    "findings": [],
+    "text": 51,
+    "textWorst": 4.66,
+    "controls": [],
+    "targets": 10,
+    "targetMin": 44,
+    "shaping": 41,
+    "cost": {
+      "shadowed": 13,
+      "maxLayers": 3,
+      "blurred": 24,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "light",
+    "s": "subjects",
+    "file": "ar-light-subjects.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subjects?platform=native&theme=light",
+    "findings": [],
+    "text": 63,
+    "textWorst": 4.59,
+    "controls": [],
+    "targets": 18,
+    "targetMin": 44,
+    "shaping": 42,
+    "cost": {
+      "shadowed": 29,
+      "maxLayers": 3,
+      "blurred": 56,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "light",
+    "s": "subject",
+    "file": "ar-light-subject.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&theme=light",
+    "findings": [],
+    "text": 103,
+    "textWorst": 4.59,
+    "controls": [
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 16,
+    "targetMin": 44,
+    "shaping": 80,
+    "cost": {
+      "shadowed": 39,
+      "maxLayers": 3,
+      "blurred": 61,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "light",
+    "s": "ask",
+    "file": "ar-light-ask.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&theme=light",
+    "findings": [],
+    "text": 15,
+    "textWorst": 5.2,
+    "controls": [
+      {
+        "el": "field: div.kf-composer \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 8,
+    "targetMin": 44,
+    "shaping": 15,
+    "cost": {
+      "shadowed": 12,
+      "maxLayers": 3,
+      "blurred": 18,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "light",
+    "s": "ask-answer",
+    "file": "ar-light-ask-answer.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?view=answer&platform=native&theme=light",
+    "findings": [],
+    "text": 15,
+    "textWorst": 5.2,
+    "controls": [],
+    "targets": 7,
+    "targetMin": 44,
+    "shaping": 9,
+    "cost": {
+      "shadowed": 7,
+      "maxLayers": 3,
+      "blurred": 13,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "light",
+    "s": "summary",
+    "file": "ar-light-summary.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&theme=light",
+    "findings": [],
+    "text": 103,
+    "textWorst": 4.59,
+    "controls": [
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 16,
+    "targetMin": 44,
+    "shaping": 80,
+    "cost": {
+      "shadowed": 39,
+      "maxLayers": 3,
+      "blurred": 61,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "light",
+    "s": "settings",
+    "file": "ar-light-settings.png",
+    "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&theme=light",
+    "findings": [],
+    "text": 34,
+    "textWorst": 4.59,
+    "controls": [
+      {
+        "el": "switch track: span.kf-switch-track \"\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span.kf-switch-thumb \"\"",
+        "got": 4.59,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"Englishالعربية\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a.inline-flex \"العربية\"",
+        "got": 4.03,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"داكنفاتح\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: button.inline-flex \"فاتح\"",
+        "got": 4.03,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 14,
+    "targetMin": 44,
+    "shaping": 30,
+    "cost": {
+      "shadowed": 22,
+      "maxLayers": 3,
+      "blurred": 31,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "ar",
+    "theme": "light",
+    "s": "settings-bottom",
+    "file": "ar-light-settings-bottom.png",
+    "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&theme=light",
+    "findings": [],
+    "text": 34,
+    "textWorst": 4.59,
+    "controls": [
+      {
+        "el": "switch track: span.kf-switch-track \"\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span.kf-switch-thumb \"\"",
+        "got": 4.59,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"Englishالعربية\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a.inline-flex \"العربية\"",
+        "got": 4.03,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"داكنفاتح\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: button.inline-flex \"فاتح\"",
+        "got": 4.03,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 14,
+    "targetMin": 44,
+    "shaping": 30,
+    "cost": {
+      "shadowed": 22,
+      "maxLayers": 3,
+      "blurred": 31,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "dark",
+    "s": "home",
+    "file": "en-dark-home.png",
+    "url": "http://127.0.0.1:3000/en/preview/student-home?platform=native&theme=dark",
+    "findings": [],
+    "text": 51,
+    "textWorst": 4.61,
+    "controls": [],
+    "targets": 10,
+    "targetMin": 44,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 13,
+      "maxLayers": 3,
+      "blurred": 24,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "dark",
+    "s": "subjects",
+    "file": "en-dark-subjects.png",
+    "url": "http://127.0.0.1:3000/en/preview/subjects?platform=native&theme=dark",
+    "findings": [],
+    "text": 63,
+    "textWorst": 4.72,
+    "controls": [],
+    "targets": 18,
+    "targetMin": 44,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 29,
+      "maxLayers": 3,
+      "blurred": 56,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "dark",
+    "s": "subject",
+    "file": "en-dark-subject.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&theme=dark",
+    "findings": [],
+    "text": 102,
+    "textWorst": 4.72,
+    "controls": [
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 3.82,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 3.82,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 16,
+    "targetMin": 44,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 39,
+      "maxLayers": 3,
+      "blurred": 61,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "dark",
+    "s": "ask",
+    "file": "en-dark-ask.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&theme=dark",
+    "findings": [],
+    "text": 15,
+    "textWorst": 4.72,
+    "controls": [
+      {
+        "el": "field: div.kf-composer \"\"",
+        "got": 3.82,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 8,
+    "targetMin": 44,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 12,
+      "maxLayers": 3,
+      "blurred": 18,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "dark",
+    "s": "ask-answer",
+    "file": "en-dark-ask-answer.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?view=answer&platform=native&theme=dark",
+    "findings": [],
+    "text": 14,
+    "textWorst": 4.72,
+    "controls": [],
+    "targets": 7,
+    "targetMin": 44,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 7,
+      "maxLayers": 3,
+      "blurred": 13,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "dark",
+    "s": "summary",
+    "file": "en-dark-summary.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&theme=dark",
+    "findings": [],
+    "text": 102,
+    "textWorst": 4.72,
+    "controls": [
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 3.82,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 3.82,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 16,
+    "targetMin": 44,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 39,
+      "maxLayers": 3,
+      "blurred": 61,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "dark",
+    "s": "settings",
+    "file": "en-dark-settings.png",
+    "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&theme=dark",
+    "findings": [],
+    "text": 34,
+    "textWorst": 4.72,
+    "controls": [
+      {
+        "el": "switch track: span.kf-switch-track \"\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span.kf-switch-thumb \"\"",
+        "got": 7.26,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"Englishالعربية\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a.inline-flex \"English\"",
+        "got": 7.72,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"DarkLight\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: button.inline-flex \"Dark\"",
+        "got": 7.72,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 14,
+    "targetMin": 44,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 22,
+      "maxLayers": 3,
+      "blurred": 31,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "dark",
+    "s": "settings-bottom",
+    "file": "en-dark-settings-bottom.png",
+    "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&theme=dark",
+    "findings": [],
+    "text": 34,
+    "textWorst": 4.72,
+    "controls": [
+      {
+        "el": "switch track: span.kf-switch-track \"\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span.kf-switch-thumb \"\"",
+        "got": 7.26,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"Englishالعربية\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a.inline-flex \"English\"",
+        "got": 7.72,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"DarkLight\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: button.inline-flex \"Dark\"",
+        "got": 7.72,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 3.51,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 14,
+    "targetMin": 44,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 22,
+      "maxLayers": 3,
+      "blurred": 31,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "light",
+    "s": "home",
+    "file": "en-light-home.png",
+    "url": "http://127.0.0.1:3000/en/preview/student-home?platform=native&theme=light",
+    "findings": [],
+    "text": 51,
+    "textWorst": 4.66,
+    "controls": [],
+    "targets": 10,
+    "targetMin": 44,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 13,
+      "maxLayers": 3,
+      "blurred": 24,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "light",
+    "s": "subjects",
+    "file": "en-light-subjects.png",
+    "url": "http://127.0.0.1:3000/en/preview/subjects?platform=native&theme=light",
+    "findings": [],
+    "text": 63,
+    "textWorst": 4.59,
+    "controls": [],
+    "targets": 18,
+    "targetMin": 44,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 29,
+      "maxLayers": 3,
+      "blurred": 56,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "light",
+    "s": "subject",
+    "file": "en-light-subject.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&theme=light",
+    "findings": [],
+    "text": 102,
+    "textWorst": 4.59,
+    "controls": [
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 16,
+    "targetMin": 44,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 39,
+      "maxLayers": 3,
+      "blurred": 61,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "light",
+    "s": "ask",
+    "file": "en-light-ask.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&theme=light",
+    "findings": [],
+    "text": 15,
+    "textWorst": 5.2,
+    "controls": [
+      {
+        "el": "field: div.kf-composer \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 8,
+    "targetMin": 44,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 12,
+      "maxLayers": 3,
+      "blurred": 18,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "light",
+    "s": "ask-answer",
+    "file": "en-light-ask-answer.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?view=answer&platform=native&theme=light",
+    "findings": [],
+    "text": 14,
+    "textWorst": 5.2,
+    "controls": [],
+    "targets": 7,
+    "targetMin": 44,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 7,
+      "maxLayers": 3,
+      "blurred": 13,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "light",
+    "s": "summary",
+    "file": "en-light-summary.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&theme=light",
+    "findings": [],
+    "text": 102,
+    "textWorst": 4.59,
+    "controls": [
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 16,
+    "targetMin": 44,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 39,
+      "maxLayers": 3,
+      "blurred": 61,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "light",
+    "s": "settings",
+    "file": "en-light-settings.png",
+    "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&theme=light",
+    "findings": [],
+    "text": 34,
+    "textWorst": 4.59,
+    "controls": [
+      {
+        "el": "switch track: span.kf-switch-track \"\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span.kf-switch-thumb \"\"",
+        "got": 4.59,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"Englishالعربية\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a.inline-flex \"English\"",
+        "got": 4.03,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"DarkLight\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: button.inline-flex \"Light\"",
+        "got": 4.03,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 14,
+    "targetMin": 44,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 22,
+      "maxLayers": 3,
+      "blurred": 31,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  },
+  {
+    "locale": "en",
+    "theme": "light",
+    "s": "settings-bottom",
+    "file": "en-light-settings-bottom.png",
+    "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&theme=light",
+    "findings": [],
+    "text": 34,
+    "textWorst": 4.59,
+    "controls": [
+      {
+        "el": "switch track: span.kf-switch-track \"\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span.kf-switch-thumb \"\"",
+        "got": 4.59,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"Englishالعربية\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a.inline-flex \"English\"",
+        "got": 4.03,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.inline-flex \"DarkLight\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: button.inline-flex \"Light\"",
+        "got": 4.03,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input.h-11 \"\"",
+        "got": 4.14,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 14,
+    "targetMin": 44,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 22,
+      "maxLayers": 3,
+      "blurred": 31,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    },
+    "scroll": {
+      "maxGapMs": 17,
+      "meanGapMs": 17
+    }
+  }
+]
