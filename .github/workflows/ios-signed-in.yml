@@ -3,10 +3,14 @@ name: ios-signed-in
 # The signed-in screens of the iOS shell, proven in the Simulator against the
 # live site with the dedicated reviewer account (docs/store/STORE_PATH.md S8,
 # PROGRESS.md 2026-10-08): the dashboard, the subject and its material, the
-# summary and the quiz, Ask, Settings. On every one of those screens the probe
-# in MainViewController.swift takes the Apple 3.1.3(f) reading: no price, plan,
-# upgrade or checkout word or link anywhere in the page, in either locale. A
-# hit fails the run. The first quiz meets the AI permission sheet of Apple
+# summary and the quiz, Ask, Settings, then (Step Wording-1) the privacy,
+# terms, refund, about and contact pages and, in Arabic, the home, Subjects,
+# Ask, Settings to its last line and the same five pages. On every one of
+# those screens the probe in MainViewController.swift takes the Apple 3.1.3(f)
+# reading: no plan, subscription, upgrade, premium or Pro tier, price,
+# checkout or free word (scripts/lib/app-wording.mjs, Arabic by stem) and no
+# purchase link anywhere in the page, below the fold included. A hit fails
+# the run. The run ends back on the English dashboard. The first quiz meets the AI permission sheet of Apple
 # 5.1.2(i) (src/lib/ai-consent.ts): the run checks that it names Anthropic and
 # Voyage AI, accepts it, and withdraws it again in Settings at the end, so the
 # reviewer account is left without the permission and App Review meets the
@@ -183,7 +187,23 @@ jobs:
             {"name":"reminder-off","wait":3000,"js":"(function(){var b=document.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked off'})()"},
             {"name":"reminder-read-off","wait":1500,"js":"(function(){window.__kfP='pending';window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
             {"name":"reminder-pending-off","wait":300,"js":"(function(){return String(window.__kfP)})()"},
-            {"name":"settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"}
+            {"name":"settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
+            {"name":"en-privacy","wait":8000,"js":"(function(){location.assign('/en/privacy');return 'assigned /en/privacy'})()"},
+            {"name":"en-terms","wait":8000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
+            {"name":"en-refund","wait":8000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
+            {"name":"en-about","wait":8000,"js":"(function(){location.assign('/en/about');return 'assigned /en/about'})()"},
+            {"name":"en-contact","wait":8000,"js":"(function(){location.assign('/en/contact');return 'assigned /en/contact'})()"},
+            {"name":"ar-home","wait":8000,"js":"(function(){location.assign('/ar/dashboard');return 'assigned /ar/dashboard'})()"},
+            {"name":"ar-subjects","wait":8000,"js":"(function(){location.assign('/ar/dashboard/knowledge');return 'assigned /ar/dashboard/knowledge'})()"},
+            {"name":"ar-ask","wait":8000,"js":"(function(){location.assign('/ar/dashboard/agent');return 'assigned /ar/dashboard/agent'})()"},
+            {"name":"ar-settings","wait":8000,"js":"(function(){location.assign('/ar/dashboard/settings');return 'assigned /ar/dashboard/settings'})()"},
+            {"name":"ar-settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
+            {"name":"ar-privacy","wait":8000,"js":"(function(){location.assign('/ar/privacy');return 'assigned /ar/privacy'})()"},
+            {"name":"ar-terms","wait":8000,"js":"(function(){location.assign('/ar/terms');return 'assigned /ar/terms'})()"},
+            {"name":"ar-refund","wait":8000,"js":"(function(){location.assign('/ar/refund');return 'assigned /ar/refund'})()"},
+            {"name":"ar-about","wait":8000,"js":"(function(){location.assign('/ar/about');return 'assigned /ar/about'})()"},
+            {"name":"ar-contact","wait":8000,"js":"(function(){location.assign('/ar/contact');return 'assigned /ar/contact'})()"},
+            {"name":"restore-en","wait":6000,"js":"(function(){location.assign('/en/dashboard');return 'assigned /en/dashboard'})()"}
           ]
           JSON
           steps=$(base64 < "$RUNNER_TEMP/steps.json" | tr -d '\n')
@@ -270,9 +290,15 @@ jobs:
           need(by.get("reminder-read-on", {}).get("result") == "on 19:00" and pend("reminder-pending-on") == [(7001, 19, 0)], f"switching it on schedules one daily reminder at 19:00: {by.get('reminder-read-on', {}).get('result')} {pend('reminder-pending-on')}")
           need(by.get("reminder-read-time", {}).get("result") == "on 07:30" and pend("reminder-pending-time") == [(7001, 7, 30)], f"a new time replaces it: {by.get('reminder-read-time', {}).get('result')} {pend('reminder-pending-time')}")
           need(by.get("reminder-read-off", {}).get("result") == "off 07:30" and pend("reminder-pending-off") == [], f"switching it off cancels it: {by.get('reminder-read-off', {}).get('result')} {pend('reminder-pending-off')}")
-          for name in ("home", "home-bottom", "subjects", "subject", "summary", "quiz-open", "consent", "quiz", "ask", "settings", "consent-on", "consent-off", "reminder-card", "reminder-read-on", "reminder-read-off", "settings-bottom"):
+          # Step Wording-1: the legal and site twins and the main screens in
+          # Arabic too, each read on the page it was sent to (a bounce to the
+          # login page would read clean and prove nothing).
+          VISITED = {"en-privacy": r"/en/privacy$", "en-terms": r"/en/terms$", "en-refund": r"/en/refund$", "en-about": r"/en/about$", "en-contact": r"/en/contact$", "ar-home": r"/ar/dashboard$", "ar-subjects": r"/ar/dashboard/knowledge$", "ar-ask": r"/ar/dashboard/agent$", "ar-settings": r"/ar/dashboard/settings$", "ar-settings-bottom": r"/ar/dashboard/settings$", "ar-privacy": r"/ar/privacy$", "ar-terms": r"/ar/terms$", "ar-refund": r"/ar/refund$", "ar-about": r"/ar/about$", "ar-contact": r"/ar/contact$"}
+          for name, path in VISITED.items():
+              need(re.search(path, P(name).get("href", "") or ""), f"{name} opened its page: {P(name).get('href')}")
+          for name in ("home", "home-bottom", "subjects", "subject", "summary", "quiz-open", "consent", "quiz", "ask", "settings", "consent-on", "consent-off", "reminder-card", "reminder-read-on", "reminder-read-off", "settings-bottom", *VISITED):
               p = P(name).get("purchase", {}) or {}
-              need(not p.get("words") and not p.get("hrefs"), f"3.1.3(f) on {name}: no price, plan, upgrade or checkout word or link: words={p.get('words')} hrefs={p.get('hrefs')}")
+              need(not p.get("words") and not p.get("hrefs"), f"3.1.3(f) on {name}: no plan, subscription, upgrade, price or free word (scripts/lib/app-wording.mjs) and no purchase link: words={p.get('words')} hrefs={p.get('hrefs')}")
               need(P(name).get("google") == 0, f"no Google button on {name}: {P(name).get('google')}")
           print(f"\n{len(fails)} failure(s) of {len(rows)} readings")
           sys.exit(1 if fails else 0)

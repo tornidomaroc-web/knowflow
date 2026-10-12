@@ -22,11 +22,13 @@ export interface SiteFooterLabels {
  * `getFullYear()` runs once on the server even on the pricing page, which is
  * itself `'use client'` — the year is never a hydration mismatch.
  */
-export function SiteFooter({ locale, labels }: { locale: Locale; labels: SiteFooterLabels }) {
+export function SiteFooter({ locale, labels, showRefund = true }: { locale: Locale; labels: SiteFooterLabels; showRefund?: boolean }) {
+  // Step Wording-1: the app sells nothing, so its chrome carries no Refund
+  // link; the web keeps it (its twin page is neutral if reached anyway).
   const links = [
     { href: `/${locale}/privacy`, label: labels.privacy },
     { href: `/${locale}/terms`, label: labels.terms },
-    { href: `/${locale}/refund`, label: labels.refund },
+    ...(showRefund ? [{ href: `/${locale}/refund`, label: labels.refund }] : []),
     { href: `/${locale}/contact`, label: labels.support },
   ];
 

@@ -10,7 +10,7 @@ import { GoogleButton } from '@/components/auth/GoogleButton';
 import { AppleButton } from '@/components/auth/AppleButton';
 import { SparkBook } from '@/components/illustrations';
 import { APPLE_SIGNIN_ENABLED } from '@/lib/auth/providers';
-import { googleSignInAllowed } from '@/lib/platform';
+import { googleSignInAllowed, purchaseLinksAllowed } from '@/lib/platform';
 import { usePlatform } from '@/components/platform/PlatformProvider';
 import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
@@ -22,7 +22,8 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
   // when a provider button is shown; inside the app (STORE_PATH.md step a)
   // the Google button is hidden and Apple is not enabled yet, so the divider
   // would separate nothing. Read from the same context the button reads.
-  const providerShown = googleSignInAllowed(usePlatform()) || APPLE_SIGNIN_ENABLED;
+  const platform = usePlatform();
+  const providerShown = googleSignInAllowed(platform) || APPLE_SIGNIN_ENABLED;
   const isRtl = locale === 'ar';
 
   const supabase = createClient();
@@ -129,7 +130,8 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
             {t.auth.signupSubtitle}
             {/* #105: the free-plan line, reusing the landing's approved `cta.note`
                 in both languages. Nothing on signup said it was free before. */}
-            <span className="mt-1 block">{t.cta.note}</span>
+            {/* Step Wording-1: web only. Inside the app no plan is named. */}
+            {purchaseLinksAllowed(platform) ? <span className="mt-1 block">{t.cta.note}</span> : null}
           </p>
 
           {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}

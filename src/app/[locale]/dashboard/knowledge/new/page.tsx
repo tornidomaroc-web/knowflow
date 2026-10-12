@@ -67,7 +67,9 @@ export default function NewKnowledgeBasePage({
       // Tier-correct message with the real limit interpolated from the API, so
       // the copy can never drift from the enforced number. A Pro user never sees
       // the free-plan / upgrade wording.
-      const template = tier === 'pro' ? t.dashboard.newKb.errorLimitPro : t.dashboard.newKb.errorLimitFree;
+      // Inside the app no plan is named, for either tier (Step Wording-1).
+      const template = !purchaseLinksAllowed(platform) ? t.dashboard.newKb.errorLimitApp
+        : tier === 'pro' ? t.dashboard.newKb.errorLimitPro : t.dashboard.newKb.errorLimitFree;
       const upgrade = tier !== 'pro' && purchaseLinksAllowed(platform) ? ' ' + t.dashboard.newKb.errorLimitUpgrade : '';
       setError(template.replace('{limit}', String(limit)) + upgrade);
       setLoading(false);

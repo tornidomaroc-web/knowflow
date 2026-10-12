@@ -27,6 +27,9 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { existsSync } from 'node:fs';
 import { installTsxHooks } from './lib/tsx-hooks.mjs';
+// Step Wording-1: what the store build shows is read with the app's one rule,
+// the same function the in-app probe runs (scripts/lib/app-wording.mjs).
+import { kfWording } from './lib/app-wording.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 installTsxHooks(ROOT, {
@@ -62,6 +65,7 @@ for (const locale of ['en', 'ar']) {
     console.error(`${locale} ${name} native: ${native}`);
     check(UPGRADE_WORDS[locale].test(web), `${locale} ${name} on the web lost its upgrade sentence`);
     check(!UPGRADE_WORDS[locale].test(native), `${locale} ${name} in the store build still names Pro: "${native}"`);
+    check(kfWording(native).length === 0, `${locale} ${name} in the store build carries plan, price or free wording ${JSON.stringify(kfWording(native))}: "${native}"`);
     check(native.length > 0 && web.startsWith(native.slice(0, 20)), `${locale} ${name}: the native sentence is not the web sentence minus the upgrade line`);
   }
 }
@@ -136,11 +140,15 @@ for (const [name, d] of [['en', en], ['ar', ar]]) {
   const k = d.dashboard.newKb;
   check(typeof k.errorLimitUpgrade === 'string' && k.errorLimitUpgrade.length > 0, `${name}: newKb.errorLimitUpgrade is missing`);
   check(UPGRADE_WORDS[name].test(k.errorLimitUpgrade), `${name}: newKb.errorLimitUpgrade no longer names the plan or the upgrade: "${k.errorLimitUpgrade}"`);
-  // The lines the store build shows whatever the plan: the refusal on creating
-  // a subject over the cap, and the free plan's line in Settings.
-  const shownInStore = { 'newKb.errorLimitFree': k.errorLimitFree, 'newKb.errorLimitPro': k.errorLimitPro, 'settings.freePlanDesc': d.dashboard.settings.freePlanDesc };
+  // The line the store build shows whatever the plan: since Step Wording-1 the
+  // refusal on creating a subject over the cap is errorLimitApp for every tier
+  // (knowledge/new/page.tsx), and the free plan's Settings line is web only
+  // (the plan card is hidden in the app, SettingsPanel.tsx). Read with the
+  // app's full rule, not only the upgrade words.
+  const shownInStore = { 'newKb.errorLimitApp': k.errorLimitApp };
   for (const [key, text] of Object.entries(shownInStore)) {
-    check(!UPGRADE_WORDS[name].test(text), `${name}: ${key} carries upgrade wording the store build would show: "${text}"`);
+    check(typeof text === 'string' && text.includes('{limit}'), `${name}: ${key} is missing or lost its {limit}`);
+    check(kfWording(text || '').length === 0, `${name}: ${key} carries wording the store build may not show ${JSON.stringify(kfWording(text || ''))}: "${text}"`);
   }
 }
 

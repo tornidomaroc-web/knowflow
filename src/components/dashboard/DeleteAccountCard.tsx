@@ -30,6 +30,12 @@ export interface DeleteAccountCardProps {
   labels: DeleteAccountLabels;
   /** Where to send the browser once the account no longer exists. */
   homeHref: string;
+  /**
+   * Step Wording-1: the billing line is shown only when deletion would cancel
+   * a subscription (src/lib/subscription/billing-note.ts). Required, so no
+   * caller can forget it; an account without one never reads the word.
+   */
+  showBillingNote: boolean;
 }
 
 /**
@@ -46,7 +52,7 @@ export interface DeleteAccountCardProps {
  * input rather than beside the final button, where it would arrive after the
  * decision has already been made.
  */
-export function DeleteAccountCard({ labels, homeHref }: DeleteAccountCardProps) {
+export function DeleteAccountCard({ labels, homeHref, showBillingNote }: DeleteAccountCardProps) {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState(false);
@@ -134,7 +140,7 @@ export function DeleteAccountCard({ labels, homeHref }: DeleteAccountCardProps) 
       <p className="mb-2 text-sm text-foreground">{labels.description}</p>
       <p className="mb-2 text-sm font-medium text-danger">{labels.permanentWarning}</p>
       <p className="mb-1 text-xs text-muted-foreground">{labels.whatIsRemoved}</p>
-      <p className="mb-4 text-xs text-muted-foreground">{labels.billingNote}</p>
+      {showBillingNote ? <p className="mb-4 text-xs text-muted-foreground">{labels.billingNote}</p> : null}
 
       {error && (
         <p role="alert" className="mb-4 text-sm font-medium text-danger">
