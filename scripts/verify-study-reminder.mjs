@@ -59,6 +59,7 @@ check(n.id === R.STUDY_REMINDER_ID && n.id === 7001, 'one fixed id, 7001');
 check(JSON.stringify(n.schedule) === JSON.stringify({ on: { hour: 19, minute: 0 }, allowWhileIdle: true }), `a daily calendar trigger at 19:00: ${JSON.stringify(n.schedule)}`);
 check(n.title === 'T' && n.body === 'B' && n.extra.locale === 'en' && n.extra.hour === 19, 'words, language and time carried');
 check(R.DEFAULT_REMINDER_TIME === '19:00', 'the default time is 19:00');
+check(R.formatReminderClock('19:00', 'en') === '7:00 pm' && R.formatReminderClock('19:00', 'ar') === '7:00 م' && R.formatReminderClock('07:30', 'ar') === '7:30 ص', `the clock reads 7:00 pm / 7:00 م with Western digits: ${R.formatReminderClock('19:00', 'en')} ${R.formatReminderClock('19:00', 'ar')}`);
 for (const [v, want] of [['19:00', [19, 0]], ['7:30', [7, 30]], ['00:00', [0, 0]], ['23:59', [23, 59]], ['24:00', null], ['12:60', null], ['', null], ['7.30', null]]) {
   const got = R.parseReminderTime(v);
   check(JSON.stringify(got ? [got.hour, got.minute] : null) === JSON.stringify(want), `parseReminderTime(${JSON.stringify(v)})`);
@@ -79,7 +80,9 @@ for (const [dict, l] of [[en, 'en'], [ar, 'ar']]) {
     check(html.includes('role="switch"') && html.includes(`aria-checked="${phase === 'on'}"`) && html.includes('aria-labelledby="kf-reminder-label"'), `${l} ${phase}: a labelled switch with its state`);
     check(/type="time"[^>]*value="19:00"|value="19:00"[^>]*type="time"/.test(html), `${l} ${phase}: a time field at 19:00`);
     check(html.includes(c.heading) && html.includes(c.description), `${l} ${phase}: heading and description`);
-    const sentence = phase === 'on' ? c.stateOn.replace('{time}', '19:00') : c.stateOff;
+    // Step Redesign-2: the sentence carries the clock as a student reads it
+    // ("7:00 pm" / "7:00 م"); the field and the data attributes keep 19:00.
+    const sentence = phase === 'on' ? c.stateOn.replace('{time}', R.formatReminderClock('19:00', l)) : c.stateOff;
     check(html.includes(sentence), `${l} ${phase}: the sentence "${sentence}"`);
     check(purchaseHits(html.replace(/<[^>]+>/g, ' ')).length === 0, `${l} ${phase}: no purchase word: ${purchaseHits(html)}`);
   }

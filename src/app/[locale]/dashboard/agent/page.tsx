@@ -5,6 +5,7 @@ import { Locale, locales, useTranslation, resolveLocale } from '@/lib/i18n';
 import type { KnowledgeBase } from '@/types';
 import { summaryLead } from '@/lib/ask-suggestions';
 import { hasNoText, answerableSubjectIds } from '@/lib/material-text';
+import { currentPlatform } from '@/lib/platform-server';
 
 // Thin server wrapper: data only. The chat UI (KBSelector) is a client island;
 // the no-subjects case renders the dumb <AgentEmptyState/> (Phase 8 reuse).
@@ -16,6 +17,9 @@ export default async function AgentPage({
   const { locale } = await params;
   const safeLocale: Locale = resolveLocale(locale);
   const t = useTranslation(safeLocale);
+  // Step Redesign-2: the app has no top bar, so its Ask screen starts 1.25rem
+  // under the top inset, the web's under its 4.5rem bar (DashboardShell).
+  const platform = await currentPlatform();
 
   const supabase = await createClient();
 
@@ -90,7 +94,9 @@ export default async function AgentPage({
       parses `dvh` (2022) has supported `env()` since 2017/18, so there is no
       engine that would see this as invalid and drop it.
     */
-    <div className="flex flex-col h-[calc(100dvh-4.5rem-6rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-[calc(100dvh-4rem)]">
+    <div className={platform === 'native'
+      ? 'flex flex-col h-[calc(100dvh-1.25rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-[calc(100dvh-4rem)]'
+      : 'flex flex-col h-[calc(100dvh-4.5rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-[calc(100dvh-4rem)]'}>
       {/*
         The <Database> generic types `language` as `string | null` because
         knowledge_bases.language is bare `text` with NO check constraint — the

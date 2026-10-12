@@ -5,6 +5,8 @@ import { ChatBox } from '@/components/agent/ChatBox'
 import { AgentEmptyState } from '@/components/agent/AgentEmptyState'
 import { MessageBubble } from '@/components/agent/MessageBubble'
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { PlatformProvider } from '@/components/platform/PlatformProvider'
+import { resolvePlatform } from '@/lib/platform'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { PreviewHistory } from './PreviewHistory'
 import { PreviewSubjectChips } from './PreviewSubjectChips'
@@ -49,7 +51,7 @@ export default async function AskPreview({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ view?: string }>
+  searchParams: Promise<{ view?: string; platform?: string }>
 }) {
   if (process.env.VERCEL_ENV === 'production') notFound()
   const { locale } = await params
@@ -57,7 +59,9 @@ export default async function AskPreview({
   const safeLocale = locale as Locale
   const t = useTranslation(safeLocale)
   const ar = safeLocale === 'ar'
-  const raw = (await searchParams).view
+  const sp = await searchParams
+  const raw = sp.view
+  const platform = resolvePlatform(sp.platform)
   const view: View = raw === 'none' || raw === 'zero' || raw === 'history' || raw === 'answer' || raw === 'subjects' || raw === 'noanswer' ? raw : 'default'
 
   // #129 (c): five subjects and their files, through the real rule.
@@ -83,13 +87,13 @@ export default async function AskPreview({
     view === 'none'
       ? [{ filename: 'xilvaroth-n11-20260810.pdf', lead: null }]
       : [
-          { filename: 'xilvaroth-n11-20260810.pdf', lead: ar ? 'يشرح الفصل مرونة الطلب السعرية وعواملها.' : 'The chapter explains price elasticity of demand and its factors.' },
+          { filename: 'xilvaroth-n11-20260810.pdf', lead: ar ? 'يشرح الفصل مرونة الطلب وعواملها.' : 'The chapter explains elasticity of demand and its factors.' },
           { filename: ar ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved exercises - Chapter 3.pdf', lead: null },
         ]
 
   return (
     <div className="min-h-screen">
-      <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
+      <div className={sp.platform ? 'hidden' : 'flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs'}>
         <span className="font-semibold text-foreground">ask · preview</span>
         <span className="text-faint">{safeLocale} · {view}</span>
         {(['default', 'none', 'zero', 'history', 'answer', 'subjects', 'noanswer'] as const).filter((v) => v !== view).map((v) => (
@@ -98,7 +102,10 @@ export default async function AskPreview({
           </Link>
         ))}
       </div>
+      <PlatformProvider platform={platform}>
       <DashboardShell
+        platform={platform}
+        activeNav="agent"
         locale={safeLocale}
         email="student@example.com"
         isPro={false}
@@ -135,19 +142,21 @@ export default async function AskPreview({
           // names under an answer can be looked at (Arabic with a chapter
           // number, Latin, and a mixed name).
           <div className="space-y-3 rounded-xl border border-border bg-surface p-3">
-            <MessageBubble role="user" content={ar ? 'ما هي مرونة الطلب السعرية؟' : 'What is price elasticity of demand?'} />
+            <MessageBubble role="user" content={ar ? 'ما هي مرونة الطلب؟' : 'What is elasticity of demand?'} />
             <MessageBubble
               role="assistant"
-              content={ar ? 'مرونة الطلب السعرية هي مدى تغيّر الكمية المطلوبة عند تغيّر السعر.' : 'Price elasticity of demand is how much the quantity demanded changes when the price changes.'}
+              content={ar ? 'مرونة الطلب هي مدى تغيّر الكمية المطلوبة عند تغيّر أحد العوامل المؤثرة فيها.' : 'Elasticity of demand is how much the quantity demanded changes when one of its factors changes.'}
               citations={[
                 { index: 1, document_id: 'd2', chunk_id: 'c1', filename: ar ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved exercises - Chapter 3.pdf', similarity: 0.91 },
                 { index: 2, document_id: 'd1', chunk_id: 'c2', filename: 'xilvaroth-n11-20260810.pdf', similarity: 0.84 },
                 { index: 3, document_id: 'd6', chunk_id: 'c3', filename: ar ? 'ملخص Chapter 3 (1).pdf' : 'Summary الفصل 3 (1).pdf', similarity: 0.8 },
               ]}
+              sourceHref={(c) => `/${safeLocale}/dashboard/knowledge/k1#material-${c.document_id}`}
+              sourcesLabel={t.dashboard.agent.sources}
             />
           </div>
         ) : (
-          <div className="flex h-[calc(100dvh-4.5rem-6rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] flex-col overflow-hidden rounded-xl border border-border bg-surface md:h-[calc(100dvh-4rem)]">
+          <div className={`kf-card flex flex-col overflow-hidden rounded-xl border border-border bg-surface md:h-[calc(100dvh-4rem)] ${platform === 'native' ? 'h-[calc(100dvh-1.25rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]' : 'h-[calc(100dvh-4.5rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]'}`}>
             <ChatBox
               kbId="00000000-0000-0000-0000-000000000000"
               kbName={ar ? 'مبادئ الاقتصاد الجزئي' : 'Microeconomics'}
@@ -156,6 +165,7 @@ export default async function AskPreview({
           </div>
         )}
       </DashboardShell>
+      </PlatformProvider>
     </div>
   )
 }

@@ -10,7 +10,7 @@ import { pluralize } from '@/lib/i18n/plural'
 import { getEntitlement } from '@/lib/entitlement'
 import { FREE_LIMITS, PRO_LIMITS } from '@/lib/limits'
 import { DAILY_CAPS } from '@/lib/rate-limit'
-import { formatDate } from '@/lib/format-date'
+import { formatDate, formatDayDate } from '@/lib/format-date'
 import { buildHomeLabels, buildHomeProgress, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
 import { currentPlatform } from '@/lib/platform-server'
 
@@ -121,6 +121,8 @@ export default async function DashboardPage({
       <StudentHome
         stats={stats}
         streak={streak} // P5.3: real number, or null while the zone is unknown (honest ghost).
+        // Step Redesign-2: the weekday from the real date in the student's zone.
+        dateLine={formatDayDate(new Date(), safeLocale, timeZone)}
         {...buildHrefs(safeLocale, platform)}
         // Register #85 (2.4): the most recent conversation, from the read the
         // home already makes. Null for an account that has not asked yet.

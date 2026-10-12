@@ -5,6 +5,8 @@ import { SettingsPanel } from '@/components/dashboard/SettingsPanel'
 import { DeleteAccountCard } from '@/components/dashboard/DeleteAccountCard'
 import { CancelSubscriptionCard } from '@/components/dashboard/CancelSubscriptionCard'
 import { StudyReminderCard } from '@/components/reminder/StudyReminderCard'
+import { SignOutButton } from '@/components/layout/SignOutButton'
+import { PlatformProvider } from '@/components/platform/PlatformProvider'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { SUPPORT_EMAIL, withSupportEmail } from '@/lib/site'
@@ -67,7 +69,7 @@ export default async function SettingsPreview({
 
   return (
     <div className="min-h-screen">
-      <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
+      <div className={platform ? 'hidden' : 'flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs'}>
         <span className="font-semibold text-foreground">settings · preview</span>
         <span className="text-faint">
           {isPro ? 'pro' : 'free'} · {native ? 'native' : 'web'} · {safeLocale}
@@ -83,7 +85,8 @@ export default async function SettingsPreview({
         </Link>
       </div>
 
-      <DashboardShell locale={safeLocale} email="student@example.com" isPro={isPro} labels={labels}>
+      <PlatformProvider platform={native ? 'native' : 'web'}>
+      <DashboardShell locale={safeLocale} email="student@example.com" isPro={isPro} labels={labels} activeNav="settings" platform={native ? 'native' : 'web'}>
         <SettingsPanel
           email="student@example.com"
           isPro={isPro}
@@ -97,7 +100,7 @@ export default async function SettingsPreview({
           supportEmail={SUPPORT_EMAIL}
           labels={{
             title: s.title,
-            subtitle: s.subtitle,
+            subtitle: native ? s.subtitleApp : s.subtitle,
             account: s.account,
             email: s.email,
             plan: s.plan,
@@ -128,9 +131,11 @@ export default async function SettingsPreview({
               <CancelSubscriptionCard labels={withSupportEmail(s.cancelSubscription)} accessUntil={renewsOn} alreadyScheduled={false} />
             ) : null
           }
+          signOutRow={<SignOutButton locale={safeLocale} label={t.dashboard.nav.signOut} variant="row" />}
           deleteCard={<DeleteAccountCard homeHref={`/${safeLocale}`} showBillingNote={isPro} labels={withSupportEmail(s.deleteAccount)} />}
         />
       </DashboardShell>
+      </PlatformProvider>
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { SettingsPanel } from '@/components/dashboard/SettingsPanel'
 import { DeleteAccountCard } from '@/components/dashboard/DeleteAccountCard'
 import { AiConsentCard } from '@/components/ai-consent/AiConsentCard'
 import { StudyReminderCard } from '@/components/reminder/StudyReminderCard'
+import { SignOutButton } from '@/components/layout/SignOutButton'
 import { studyReminderAllowed } from '@/lib/study-reminder'
 import { CancelSubscriptionCard } from '@/components/dashboard/CancelSubscriptionCard'
 import { readScheduledCancellation } from '@/lib/subscription/cancel'
@@ -126,6 +127,7 @@ export default async function SettingsPage({
           />
         ) : null
       }
+      signOutRow={<SignOutButton locale={safeLocale} label={t.dashboard.nav.signOut} variant="row" />}
       deleteCard={
         <DeleteAccountCard
           homeHref={`/${safeLocale}`}

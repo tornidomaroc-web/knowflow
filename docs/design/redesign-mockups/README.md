@@ -8,16 +8,27 @@ ground, gold, Rubik). The rollout is a later step and has not started.
 
 ## The rollout must fix, before it ships
 
+**Step Redesign-2 (PR feat/redesign-2) builds the first coherent rollout:** the
+shared clay tokens (`.kf-clay`, globals.css), the floating tab bar and the
+app's clean header, Settings in full, the upload button, the Ask sources and
+the four fixes below, each marked where it landed.
+
 1. **The home date.** The mockup reads "الأحد 12 أكتوبر", but 12 October 2026
    is a Monday. The weekday is derived from the date, never written by hand.
+   DONE in Redesign-2: `formatDayDate` (src/lib/format-date.ts), the student's
+   zone from the time-zone cookie, under the greeting.
 2. **The Ask conversation view.** The mockups show only the empty state. The
    rollout adds the conversation: the student's question, the answer, and the
-   sources it came from.
+   sources it came from. DONE in Redesign-2: MessageBubble's source pills are
+   links to the material's card (`#material-<id>`), under a "Sources" line.
 3. **The full Settings page.** The mockup stops at AI processing. The rollout
    shows the whole page, including the privacy, terms and contact links and
-   Delete account.
+   Delete account. DONE in Redesign-2: the built set renders Settings top and
+   bottom (`*-settings.png`, `*-settings-bottom.png`), with the sign-out row.
 4. **The light-theme off switch.** It reads as disabled. The off state needs a
    look that is plainly a working control, still at 3:1 against its card.
+   DONE in Redesign-2: a bounded track and a --muted-foreground bead (5.0:1
+   on the track in light), the on state a dark bead on gold (7.1:1).
 
 ## How these mockups are made
 

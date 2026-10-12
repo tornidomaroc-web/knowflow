@@ -69,6 +69,18 @@ function decodeCitations(header: string | null): Citation[] | undefined {
   }
 }
 
+/**
+ * Step Redesign-2: the FSI…PDI isolates a suggestion carries (ask-suggestions.ts,
+ * register #121) become <bdi> elements. A character isolate is resolved line by
+ * line, so a Latin title that wrapped put the Arabic marks around it (« », ؟)
+ * on the wrong side; an element isolate keeps them in place.
+ */
+function isolated(q: string) {
+  return q.split(/(\u2068[^\u2069]*\u2069)/).map((part, i) =>
+    part.startsWith('\u2068') ? <bdi key={i}>{part.slice(1, -1)}</bdi> : part,
+  );
+}
+
 export function ChatBox({ kbId, kbName, materials = [], initialConversationId, initialMessages, onConversationCreated }: ChatBoxProps) {
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
@@ -191,7 +203,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
     */
     <div className="flex min-h-0 flex-1 flex-col bg-surface">
       <div className="flex items-center gap-3 border-b border-border bg-surface px-4 py-3">
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-subtle text-sky">
+        <span className="kf-chip inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-subtle text-sky">
           <BookOpen className="h-4 w-4" />
         </span>
         <div className="min-w-0">
@@ -207,6 +219,8 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
             role={m.role}
             content={m.content}
             citations={m.citations}
+            sourceHref={(c) => `/${safeLocale}/dashboard/knowledge/${kbId}#material-${c.document_id}`}
+            sourcesLabel={t.dashboard.agent.sources}
             isStreaming={isLoading && m.role === 'assistant' && i === messages.length - 1}
           />
         ))}
@@ -236,12 +250,12 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
                     onClick={() => handleSend(q)}
                     disabled={isLoading}
                     dir="auto"
-                    className={`pressable liftable rise rise-${i + 2} flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-start text-sm text-foreground transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+                    className={`kf-card pressable liftable rise rise-${i + 2} flex min-h-[3.5rem] items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-start text-sm text-foreground transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
                   >
-                    <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tint}`}>
+                    <span className={`kf-chip inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tint}`}>
                       <Icon className="h-4 w-4" />
                     </span>
-                    <span className="min-w-0 flex-1">{q}</span>
+                    <span className="min-w-0 flex-1">{isolated(q)}</span>
                   </button>
                 );
               })}
@@ -251,7 +265,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
       </div>
 
       <div className="border-t border-border bg-surface p-3 pb-6 md:p-4">
-        <div className="flex items-end gap-2 rounded-2xl border border-control-border bg-background p-2 focus-within:border-primary">
+        <div className="kf-composer flex items-end gap-2 rounded-2xl border border-control-border bg-background p-2 focus-within:border-primary">
           <textarea
             value={input}
             onChange={e => setInput(e.target.value)}

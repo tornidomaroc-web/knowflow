@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { CheckCircle2, FileText } from 'lucide-react';
+import { CheckCircle2, FileText, Upload } from 'lucide-react';
+import { buttonVariants } from '@/components/ui';
+import { cn } from '@/lib/utils';
+import { usePlatform } from '@/components/platform/PlatformProvider';
 import { UploadCloud } from '@/components/illustrations';
 import { FileName } from '@/components/ui/FileName';
 import type { Document } from '@/types';
@@ -58,6 +61,14 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
   const [sent, setSent] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(0);
+  // Step Redesign-2. Inside the app the control is ONE primary button that
+  // opens the native picker (no drag-and-drop wording on a phone); on the web
+  // the dashed zone stays, and says "tap" rather than "click" on a touch screen.
+  const buttonFirst = usePlatform() === 'native';
+  const [touch, setTouch] = useState(false);
+  useEffect(() => {
+    try { setTouch(window.matchMedia('(pointer: coarse)').matches); } catch { /* no matchMedia: a keyboard and a mouse */ }
+  }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { ensure: ensureAiConsent } = useAiConsent();
 
@@ -165,25 +176,41 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
 
   return (
     <div
-      onClick={() => !busy && fileInputRef.current?.click()}
+      onClick={() => !busy && !buttonFirst && fileInputRef.current?.click()}
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
       aria-busy={busy}
-      className={`relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
-        state === 'idle'
-          ? 'cursor-pointer border-border bg-surface hover:border-primary hover:bg-muted'
+      className={`relative flex flex-col items-center justify-center gap-3 rounded-xl p-8 text-center transition-colors ${
+        state === 'idle' && buttonFirst
+          ? 'border-0 p-0'
+          : state === 'idle'
+          ? 'kf-card cursor-pointer border-2 border-dashed border-border bg-surface hover:border-primary hover:bg-muted'
           : state === 'error'
-            ? 'cursor-pointer border-danger-border bg-danger-subtle'
-            : 'border-primary bg-primary-subtle'
+            ? 'cursor-pointer border-2 border-dashed border-danger-border bg-danger-subtle'
+            : 'border-2 border-dashed border-primary bg-primary-subtle'
       }`}
     >
       <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.docx,.pptx,.xlsx,.txt,.md" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
 
-      {state === 'idle' && (
+      {state === 'idle' && buttonFirst && (
+        <>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            data-kf-upload="button"
+            className={cn(buttonVariants({ variant: 'primary' }), 'min-h-[3.125rem] w-full text-base')}
+          >
+            <Upload className="h-5 w-5" />
+            {u.uploadButton}
+          </button>
+          <TypesLines label={u.typesLabel} size={u.sizeLine.replace('{limit}', uploadLimitLabel(safeLocale))} />
+        </>
+      )}
+      {state === 'idle' && !buttonFirst && (
         <>
           <UploadCloud size={80} />
-          <p className="text-sm font-medium text-foreground">{u.dropHere}</p>
-          <p className="text-xs text-muted-foreground">{u.supported.replace('{limit}', uploadLimitLabel(safeLocale))}</p>
+          <p className="text-sm font-medium text-foreground">{touch ? u.dropHereTouch : u.dropHere}</p>
+          <TypesLines label={u.typesLabel} size={u.sizeLine.replace('{limit}', uploadLimitLabel(safeLocale))} />
         </>
       )}
 
@@ -257,4 +284,20 @@ function send(
     xhr.onabort = () => reject(new Error('abort'));
     xhr.send(body);
   });
+}
+
+/**
+ * The accepted types and the size limit, on two lines. The Latin list is an
+ * isolated LTR run, so on /ar it never breaks the Arabic around it (the old
+ * single sentence split "(حتى 4" at the parenthesis on a phone).
+ */
+function TypesLines({ label, size }: { label: string; size: string }) {
+  return (
+    <>
+      <p className="text-xs text-muted-foreground">
+        {label}: <bdi dir="ltr">PDF, DOCX, PPTX, XLSX, TXT, MD</bdi>
+      </p>
+      <p className="text-xs text-muted-foreground">{size}</p>
+    </>
+  );
 }

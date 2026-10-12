@@ -14,7 +14,9 @@
  *     S3(a) added the 10 of dashboard.studyReminder, 410 after the login line
  *     for Google-registered students added auth.googleAccountHint, 413 after
  *     Step Wording-1 added the app's three: nav.createAccount,
- *     dashboard.newKb.errorLimitApp, dashboard.settings.subtitleApp).
+ *     dashboard.newKb.errorLimitApp, dashboard.settings.subtitleApp; 418 after
+ *     Step Redesign-2 added upload.uploadButton, typesLabel, sizeLine,
+ *     dropHereTouch and agent.sources).
  *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
  *     ruling that removed it. Its rows stay in the batch files, which are the
  *     owner's approved record and are never edited; they are read and checked
@@ -150,7 +152,7 @@ console.error(`${approved.size} keys asserted, ${superseded} earlier rows supers
   const onlyEn = [...E.keys()].filter((k) => !A.has(k)).sort();
   check(onlyAr.join() === [...pluralOnly].sort().join(), `keys only in ar.ts: ${onlyAr.join(', ') || '(none)'}; expected the four plural forms`);
   check(onlyEn.length === 0, `keys missing from ar.ts: ${onlyEn.join(', ')}`);
-  check(A.size === 413, `ar.ts has ${A.size} leaves, expected 413`);
+  check(A.size === 418, `ar.ts has ${A.size} leaves, expected 418`);
 }
 
 // 3. Placeholders on every key.

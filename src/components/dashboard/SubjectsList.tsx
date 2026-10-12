@@ -60,7 +60,7 @@ export function SubjectsList({ subjects, newHref, locale, labels }: SubjectsList
       <div className="max-w-6xl space-y-6">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground md:text-3xl">{labels.title}</h1>
+            <h1 className="kf-title text-2xl font-bold text-foreground md:text-3xl">{labels.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{labels.subtitle}</p>
           </div>
           <Link href={newHref} className={buttonVariants({ variant: 'primary' })}>
@@ -70,7 +70,7 @@ export function SubjectsList({ subjects, newHref, locale, labels }: SubjectsList
         </header>
 
         {subjects.length === 0 ? (
-          <div className="rise flex flex-col items-center rounded-2xl border border-dashed border-border bg-surface p-10 text-center">
+          <div className="kf-card rise flex flex-col items-center rounded-2xl border border-dashed border-border bg-surface p-10 text-center">
             <EmptyShelf size={112} title={labels.emptyTitle} />
             <h2 className="mt-4 text-lg font-semibold text-foreground">{labels.emptyTitle}</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{labels.emptyPrompt}</p>
@@ -102,9 +102,9 @@ function SubjectCard({ subject: s, locale, labels, index }: { subject: SubjectIt
   const whenLabel = stats.lastActivityAt ? (stats.lastActivityIsAsk ? labels.lastAsked : labels.lastAdded) : labels.created;
 
   return (
-    <article className={`liftable rise rise-${Math.min(index + 1, 5)} flex flex-col rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-primary`}>
+    <article className={`kf-card liftable rise rise-${Math.min(index + 1, 5)} flex flex-col rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-primary`}>
       <div className="flex items-start justify-between gap-3">
-        <Link href={s.href} className="min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Link href={s.href} className="flex min-h-[2.75rem] min-w-0 flex-col justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <h2 className="truncate text-lg font-semibold text-foreground">{s.name}</h2>
           {s.description ? <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{s.description}</p> : null}
         </Link>
@@ -112,7 +112,7 @@ function SubjectCard({ subject: s, locale, labels, index }: { subject: SubjectIt
       </div>
 
       {empty ? (
-        <p className="mt-4 rounded-xl bg-raised p-4 text-sm text-muted-foreground">{labels.noMaterials}</p>
+        <p className="kf-well mt-4 rounded-xl bg-raised p-4 text-sm text-muted-foreground">{labels.noMaterials}</p>
       ) : (
         <>
           {/* The ring is the progress (VISUAL_LANGUAGE.md rule 2): summarised over
@@ -151,7 +151,7 @@ function SubjectCard({ subject: s, locale, labels, index }: { subject: SubjectIt
               {labels.ask}
             </Link>
           )}
-          <Link href={s.href} className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
+          <Link href={s.href} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'min-w-[2.75rem]')}>
             {empty ? <Upload className="h-4 w-4" /> : <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />}
             {empty ? labels.addMaterial : null}
             {empty ? null : <span className="sr-only">{s.name}</span>}
@@ -164,7 +164,7 @@ function SubjectCard({ subject: s, locale, labels, index }: { subject: SubjectIt
 
 function Stat({ icon: Icon, value, label }: { icon: typeof FileText; value: number; label: string }) {
   return (
-    <div className="rounded-xl bg-raised p-3">
+    <div className="kf-tile rounded-xl bg-raised p-3">
       <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Icon className="h-3.5 w-3.5" />
         {label}

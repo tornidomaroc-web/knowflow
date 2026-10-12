@@ -89,6 +89,8 @@ export interface StudentHomeProps {
   stats: StudentHomeStat[];
   /** Streak in days; null while unknown (no timezone yet) renders a ghost dash. */
   streak: number | null;
+  /** Step Redesign-2: the weekday and the day, from the real date (formatDayDate). */
+  dateLine?: string;
   askHref: string;
   newSubjectHref: string;
   subjectsHref: string;
@@ -120,6 +122,7 @@ export interface StudentHomeProps {
 export function StudentHome({
   stats,
   streak,
+  dateLine,
   askHref,
   newSubjectHref,
   subjectsHref,
@@ -145,8 +148,11 @@ export function StudentHome({
         {/* ── Greeting: a name-sized headline, one friendly line, the plan pill. ── */}
         <header className="rise flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-foreground md:text-4xl">{labels.welcome}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{labels.welcomeLine}</p>
+            <h1 className="kf-title text-3xl font-bold text-foreground md:text-4xl">{labels.welcome}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {dateLine ? <><bdi className="font-medium text-foreground">{dateLine}</bdi>{" · "}</> : null}
+              {labels.welcomeLine}
+            </p>
           </div>
           {/* Apple 3.1.3(f), measured in the simulator 2026-10-08: inside the app a
               free student sees no plan name at all ("Free" names a tier that
@@ -174,7 +180,7 @@ export function StudentHome({
           >
             <div className="min-w-0">
               <p className="text-xl font-bold">{labels.askTitle}</p>
-              <p className="mt-1 text-sm opacity-80">{labels.askDesc}</p>
+              <p className="mt-1 text-sm opacity-90">{labels.askDesc}</p>
               <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-black/15 px-3 py-1.5 text-xs font-semibold">
                 <MessageCircle className="h-3.5 w-3.5" />
                 {labels.askTitle}
@@ -186,7 +192,7 @@ export function StudentHome({
             <ChatPages onAccent size={104} className="hidden shrink-0 sm:block" />
           </Link>
 
-          <div className="rise rise-2 flex items-center gap-4 rounded-2xl border border-border bg-surface p-5">
+          <div className="kf-card rise rise-2 flex items-center gap-4 rounded-2xl border border-border bg-surface p-5">
             <Flame lit={lit} size={72} className="shrink-0" />
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase text-muted-foreground">{labels.streakLabel}</p>
@@ -206,9 +212,9 @@ export function StudentHome({
 
         {/* ── Pick up where you left off (register #85, 2.4). ── */}
         {continueCard && (
-          <section className="rise rise-2 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface p-5">
+          <section className="kf-card rise rise-2 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface p-5">
             <div className="flex min-w-0 items-center gap-4">
-              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-subtle text-violet">
+              <span className="kf-chip inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-subtle text-violet">
                 <MessageCircle className="h-5 w-5" />
               </span>
               <div className="min-w-0">
@@ -234,10 +240,10 @@ export function StudentHome({
 
         {/* ── Plan: rings, not sentences. Full at zero, which is the most useful
             thing the screen can say to someone who has done nothing yet. ── */}
-        <section className="rise rise-3 rounded-2xl border border-border bg-surface p-5">
+        <section className="kf-card rise rise-3 rounded-2xl border border-border bg-surface p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-accent-subtle text-accent">
+              <span className="kf-chip inline-flex h-8 w-8 items-center justify-center rounded-lg bg-accent-subtle text-accent">
                 <Sparkles className="h-4 w-4" />
               </span>
               {labels.planTitle}
@@ -255,7 +261,7 @@ export function StudentHome({
 
           <div className="mt-4 grid grid-cols-3 gap-3">
             {quotas.map((q, i) => (
-              <div key={q.key} className="flex flex-col items-center rounded-xl bg-raised p-3 text-center">
+              <div key={q.key} className="kf-tile flex flex-col items-center rounded-xl bg-raised p-3 text-center">
                 <Ring value={q.total ? q.remaining / q.total : 0} tone={tones[i % tones.length]} label={`${q.remaining} ${labels.ofWord} ${q.total} ${q.label}`}>
                   <span className="text-xl font-bold leading-none text-foreground">{q.remaining}</span>
                 </Ring>
@@ -265,7 +271,7 @@ export function StudentHome({
                 </p>
               </div>
             ))}
-            <div className="flex flex-col items-center rounded-xl bg-raised p-3 text-center">
+            <div className="kf-tile flex flex-col items-center rounded-xl bg-raised p-3 text-center">
               <Ring value={subjectsLimit ? subjectsUsed / subjectsLimit : 0} tone="violet" label={`${subjectsUsed} ${labels.ofWord} ${subjectsLimit} ${labels.subjectsUsed}`}>
                 <span className="text-xl font-bold leading-none text-foreground">{subjectsUsed}</span>
               </Ring>
@@ -279,7 +285,7 @@ export function StudentHome({
 
         {/* ── The path: present at zero, gone once all three are done. ── */}
         {stepsLeft > 0 && (
-          <section className="rise rise-3 rounded-2xl border border-border bg-surface p-5">
+          <section className="kf-card rise rise-3 rounded-2xl border border-border bg-surface p-5">
             <div className="flex items-center gap-4">
               <SparkBook size={64} className="shrink-0" />
               <h2 className="text-base font-bold text-foreground">{labels.startTitle}</h2>
@@ -292,7 +298,7 @@ export function StudentHome({
                   <li key={step.key}>
                     <Link
                       href={step.href}
-                      className="pressable liftable group flex h-full items-center gap-3 rounded-xl bg-raised p-4 transition-colors hover:bg-muted sm:flex-col sm:items-start"
+                      className="kf-tile pressable liftable group flex h-full items-center gap-3 rounded-xl bg-raised p-4 transition-colors hover:bg-muted sm:flex-col sm:items-start"
                     >
                       <span className={step.done ? 'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground' : `inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tile}`}>
                         {step.done ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
@@ -313,7 +319,7 @@ export function StudentHome({
         )}
 
         {/* ── Subjects with mini rings; an illustrated empty state. ── */}
-        <section className="rise rise-4 rounded-2xl border border-border bg-surface p-5">
+        <section className="kf-card rise rise-4 rounded-2xl border border-border bg-surface p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-sky-subtle text-sky">
@@ -323,7 +329,7 @@ export function StudentHome({
             </h2>
             <Link
               href={subjectsHref}
-              className="group inline-flex items-center gap-1.5 text-xs font-semibold text-accent transition-colors hover:text-accent-hover"
+              className="group inline-flex min-h-[2.75rem] items-center gap-1.5 text-xs font-semibold text-accent transition-colors hover:text-accent-hover"
             >
               {labels.allSubjects}
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100" />

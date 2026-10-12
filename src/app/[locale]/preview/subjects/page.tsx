@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { SubjectsList } from '@/components/dashboard/SubjectsList'
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { PlatformProvider } from '@/components/platform/PlatformProvider'
+import { resolvePlatform } from '@/lib/platform'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { buildSubjectsLabels } from '@/lib/subjects-props'
 import { emptyStats, subjectStats, type SubjectStats } from '@/lib/subject-stats'
@@ -40,14 +42,16 @@ export default async function SubjectsPreview({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ state?: string }>
+  searchParams: Promise<{ state?: string; platform?: string }>
 }) {
   if (process.env.VERCEL_ENV === 'production') notFound()
   const { locale } = await params
   if (!locales.includes(locale as Locale)) notFound()
   const safeLocale = locale as Locale
   const t = useTranslation(safeLocale)
-  const { state } = await searchParams
+  // `?platform=native` renders the app's structure (no top bar, the floating tab bar).
+  const { state, platform: rawPlatform } = await searchParams
+  const platform = resolvePlatform(rawPlatform)
   const ar = safeLocale === 'ar'
 
   const subjects = state === 'zero' ? [] : [
@@ -80,11 +84,14 @@ export default async function SubjectsPreview({
 
   return (
     <div className="min-h-screen">
-      <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
+      <div className={rawPlatform ? 'hidden' : 'flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs'}>
         <span className="font-semibold text-foreground">subjects · preview</span>
         <span className="text-faint">{state === 'zero' ? 'zero' : 'full'} · {safeLocale}</span>
       </div>
+      <PlatformProvider platform={platform}>
       <DashboardShell
+        platform={platform}
+        activeNav="knowledge"
         locale={safeLocale}
         email="student@example.com"
         isPro={false}
@@ -101,6 +108,7 @@ export default async function SubjectsPreview({
       >
         <SubjectsList subjects={subjects} newHref="#" locale={safeLocale} labels={buildSubjectsLabels(t)} />
       </DashboardShell>
+      </PlatformProvider>
     </div>
   )
 }

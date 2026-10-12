@@ -8,6 +8,7 @@ import {
   DEFAULT_REMINDER_TIME,
   STUDY_REMINDER_ID,
   formatReminderTime,
+  formatReminderClock,
   parseReminderTime,
   studyReminderNotification,
 } from '@/lib/study-reminder';
@@ -167,11 +168,19 @@ export function StudyReminderCard({
           data-kf-reminder="toggle"
           disabled={busy}
           onClick={on ? turnOff : turnOn}
-          className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 ${on ? 'bg-primary' : 'bg-muted ring-1 ring-inset ring-border'}`}
+          // Step Redesign-2: the button is the 44 pt hit area; the track is the
+          // span inside it, and the clay rules give the track a control boundary
+          // and the thumb its own 3:1 bead (globals.css, .kf-switch-*).
+          className="relative inline-flex h-11 w-16 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
         >
           <span
-            className={`inline-block h-6 w-6 rounded-full bg-surface shadow-soft transition-transform ${on ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'}`}
-          />
+            aria-hidden="true"
+            className={`kf-switch-track relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${on ? 'bg-primary' : 'bg-muted ring-1 ring-inset ring-border'}`}
+          >
+            <span
+              className={`kf-switch-thumb inline-block h-6 w-6 rounded-full bg-surface shadow-soft transition-transform ${on ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'}`}
+            />
+          </span>
         </button>
       </div>
       <div className="mt-4 flex items-center justify-between gap-4">
@@ -189,7 +198,8 @@ export function StudyReminderCard({
         />
       </div>
       <p className="mt-3 text-sm text-foreground" aria-live="polite">
-        {on ? labels.stateOn.replace('{time}', time) : labels.stateOff}
+        {/* Step Redesign-2: the clock as a student reads it, "7:00 م" / "7:00 pm". */}
+        {on ? labels.stateOn.replace('{time}', formatReminderClock(time, locale === 'ar' ? 'ar' : 'en')) : labels.stateOff}
       </p>
       {message && (
         <p role="alert" className="mt-2 text-sm font-medium text-danger">{message}</p>
