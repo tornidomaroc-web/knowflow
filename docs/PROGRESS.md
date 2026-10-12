@@ -451,6 +451,15 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-10 - Store screenshots designed, step a: the render pipeline, two samples (en/04-quiz, ar/04-ask) and ten caption drafts; nothing uploaded
+
+**No row is edited** (rows 42, 69 and 81 untouched). Files: `docs/store/screenshots-designed/` (captions.json, fonts/rubik with OFL.txt, en/04-quiz.png, ar/04-ask.png), `scripts/store-shots/render.mjs`, `scripts/store-shots/check.py`, `.github/workflows/store-shots.yml`. The raw captures in `docs/store/screenshots` are untouched inputs.
+
+- **The design.** A caption in Rubik 700 (the app's own font; OFL 1.1, the licence file beside it) above a frame drawn in CSS (a rounded slab with a thin edge, no button, switch or sensor housing, so no Apple hardware detail), on the brand ground `#14110d` with the gold `#d4a548` as the glow and the highlighted words and the violet tint at low alpha. The raw capture sits inside the frame at 1000 x 2173, the whole phone visible, the caption above it and over no app UI. Arabic pages are `dir="rtl"`.
+- **The render.** `render.mjs` writes a static page per entry of captions.json and Chrome headless photographs it at 1320 x 2868; Chrome writes an 8-bit RGB PNG with no alpha channel. `check.py` (standard library) fails any other size or colour type, proves from Rubik's own cmap that every caption letter has a glyph (28 distinct Arabic letters, none missing) and that the font carries GSUB and GPOS, and refuses a dash, price or plan word. The Arabic sample was looked at: joined letter forms, right-to-left, the gold words in place. One trap found and fixed: in RTL the decorative shapes' overflow shifted the initial scroll, so the canvas is clipped.
+- **CI.** `store-shots.yml` on pull requests touching these paths: the runner image's Chrome renders every entry, `check.py` runs on the fresh renders and the committed PNGs, and Pillow (pinned) compares each committed PNG with its fresh render within a 1.5 % noise bound. No secret, no environment, no npm.
+- **Captions** are drafts in captions.json for the owner's approval; nothing was uploaded to App Store Connect.
+
 ### 2026-10-10 - Store path S7b part 2: the App Manager key made and stored, the dry run clean, the write refused by Apple because the contact phone is required on creation; nothing written to App Store Connect
 
 **No row is edited** (rows 42, 69 and 81 untouched). File: `docs/store/ASC_ANSWERS.md` §5 and §6 (two sentences that called the phone optional corrected in place, and the run record added). No code change.
