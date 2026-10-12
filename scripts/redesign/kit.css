@@ -1,0 +1,250 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   REDESIGN MOCKUP KIT (Step Redesign-1, docs/design/redesign-mockups).
+   Static mockup pages only: nothing here is imported by the app.
+
+   Native iOS structure (status bar, large title, grouped lists, a floating
+   tab bar above the home indicator) with a soft-clay depth, on the brand:
+   warm dark ground, gold, Rubik.
+
+   CLAY COST per element: at most 3 box-shadow layers (a top catchlight and a
+   lower shade inside, one drop outside), no filter, no backdrop-filter. The
+   renderer counts them and fails a screen with more.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@font-face { font-family: "Rubik"; src: url("FONT_URL") format("truetype"); font-weight: 300 900; font-display: block; }
+
+:root {
+  /* DARK. The cards are one clear step lighter than the ground and carry a
+     vertical gradient, so the clay reads by value as well as by shadow; a
+     drop shadow alone is invisible on near-black. */
+  --ground: #14110d;
+  --ground-glow: rgba(212, 165, 72, 0.10);
+  --card-top: #352d23;
+  --card-bottom: #2b241c;
+  --well: #1d1913;
+  --tile-top: #3b3227;
+  --tile-bottom: #30291f;
+  --text: #f6f0e6;
+  --text-2: #c4b6a2;
+  --text-3: #ad9f8b;
+  --gold: #d9ab4f;
+  --gold-text: #e3b65c;
+  --gold-edge: #d9ab4f;
+  --on-gold: #1a1409;
+  --gold-top: #e6bb62;
+  --gold-bottom: #c99a3f;
+  --danger: #f08a80;
+  --success: #6fcf9f;
+  --edge: rgba(255, 244, 225, 0.06);
+  --hi: rgba(255, 236, 205, 0.16);
+  --shade: rgba(0, 0, 0, 0.42);
+  --drop: rgba(0, 0, 0, 0.92);
+  --well-shade: rgba(0, 0, 0, 0.55);
+  --gold-hi: rgba(255, 249, 232, 0.55);
+  --gold-shade: rgba(92, 60, 8, 0.45);
+  --gold-drop: rgba(0, 0, 0, 0.75);
+  --bar-top: #3a3127;
+  --bar-bottom: #2d261d;
+  --chip-coral: #ff9a8f; --chip-coral-bg: rgba(255, 138, 128, 0.16);
+  --chip-sky: #8cc6ff;   --chip-sky-bg: rgba(111, 184, 255, 0.16);
+  --chip-mint: #74dcb2;  --chip-mint-bg: rgba(95, 211, 166, 0.16);
+  --chip-violet: #c6b0ff; --chip-violet-bg: rgba(183, 156, 255, 0.16);
+  --chip-gold: #e8bd66;  --chip-gold-bg: rgba(212, 165, 72, 0.18);
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --ground: #f3ece1;
+  --ground-glow: rgba(212, 165, 72, 0.16);
+  --card-top: #fffdf9;
+  --card-bottom: #f9f2e7;
+  --well: #e9dfcf;
+  --tile-top: #fffaf2;
+  --tile-bottom: #f3eadc;
+  --text: #1c1710;
+  --text-2: #5f5547;
+  --text-3: #6a5f51;
+  --gold: #d9ab4f;
+  --gold-text: #7f5c10;
+  --gold-edge: #7f5c10;
+  --on-gold: #1a1409;
+  --gold-top: #e4b75b;
+  --gold-bottom: #cf9f43;
+  --danger: #b0332b;
+  --success: #145f3f;
+  --edge: rgba(120, 88, 36, 0.10);
+  --hi: rgba(255, 255, 255, 0.95);
+  --shade: rgba(122, 88, 34, 0.14);
+  --drop: rgba(104, 72, 24, 0.34);
+  --well-shade: rgba(104, 72, 24, 0.22);
+  --gold-hi: rgba(255, 246, 222, 0.75);
+  --gold-shade: rgba(110, 72, 8, 0.32);
+  --gold-drop: rgba(140, 98, 26, 0.45);
+  --bar-top: #fffdf8;
+  --bar-bottom: #f5ecdf;
+  --chip-coral: #a8392f; --chip-coral-bg: rgba(201, 79, 69, 0.13);
+  --chip-sky: #22599a;   --chip-sky-bg: rgba(47, 116, 192, 0.13);
+  --chip-mint: #136a47;  --chip-mint-bg: rgba(31, 143, 98, 0.13);
+  --chip-violet: #5a3bb0; --chip-violet-bg: rgba(111, 79, 201, 0.13);
+  --chip-gold: #7f5c10;  --chip-gold-bg: rgba(212, 165, 72, 0.22);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 440px; height: 956px; overflow: hidden; }
+body {
+  font-family: "Rubik", system-ui, sans-serif; font-synthesis: none;
+  background: radial-gradient(520px 360px at 50% -80px, var(--ground-glow), transparent 70%), var(--ground);
+  background-color: var(--ground);
+  color: var(--text); -webkit-font-smoothing: antialiased;
+}
+[dir="rtl"] { letter-spacing: 0; }
+bdi, .ltr { unicode-bidi: isolate; }
+
+/* ── The phone canvas: status bar, scroll area, floating tab bar. ── */
+.screen { position: relative; width: 440px; height: 956px; overflow: hidden; }
+.status { height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 14px 34px 0; font-weight: 600; font-size: 17px; direction: ltr; }
+[dir="rtl"] .status { flex-direction: row-reverse; }
+.status .glyphs { display: flex; gap: 6px; align-items: center; }
+.status svg { display: block; }
+.scroll { position: absolute; top: 54px; left: 0; right: 0; bottom: 0; overflow: hidden; padding: 0 20px 140px; }
+
+/* ── Navigation: a large title, an optional back row, at most one trailing
+   action. No account, language or theme buttons here: they live in Settings. ── */
+.navrow { height: 44px; display: flex; align-items: center; justify-content: space-between; margin: 0 -8px; }
+.back { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; min-width: 44px; padding: 0 8px; color: var(--gold-text); font-size: 17px; font-weight: 500; text-decoration: none; }
+[dir="rtl"] .back svg { transform: scaleX(-1); }
+.title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 4px; }
+.large-title { font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: -0.4px; }
+[dir="rtl"] .large-title { letter-spacing: 0; }
+.subtitle { margin-top: 4px; font-size: 15px; line-height: 20px; color: var(--text-2); }
+.section-h { margin: 26px 4px 10px; font-size: 13px; line-height: 18px; font-weight: 600; color: var(--text-2); }
+[dir="ltr"] .section-h { text-transform: uppercase; letter-spacing: 0.4px; }
+
+/* ── Clay surfaces. ── */
+.card {
+  position: relative; border-radius: 26px; padding: 18px;
+  background: linear-gradient(180deg, var(--card-top), var(--card-bottom));
+  background-color: var(--card-bottom);
+  border: 1px solid var(--edge);
+  box-shadow: inset 0 1.5px 0 var(--hi), inset 0 -10px 18px -12px var(--shade), 0 18px 30px -18px var(--drop);
+}
+.card + .card { margin-top: 14px; }
+.tile {
+  border-radius: 18px; padding: 12px;
+  background: linear-gradient(180deg, var(--tile-top), var(--tile-bottom));
+  background-color: var(--tile-bottom);
+  border: 1px solid var(--edge);
+  box-shadow: inset 0 1px 0 var(--hi), inset 0 -6px 10px -7px var(--shade), 0 8px 14px -10px var(--drop);
+}
+.well {
+  border-radius: 16px; background-color: var(--well);
+  box-shadow: inset 0 3px 7px -2px var(--well-shade), inset 0 -1px 0 var(--hi);
+}
+
+/* ── Buttons: 50pt primary, 44pt minimum everywhere. ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 50px; padding: 0 22px; border-radius: 18px; border: 0;
+  font: 600 17px/1 "Rubik", sans-serif; text-decoration: none; white-space: nowrap;
+}
+.btn-primary {
+  color: var(--on-gold);
+  background: linear-gradient(180deg, var(--gold-top), var(--gold-bottom));
+  background-color: var(--gold-bottom);
+  box-shadow: inset 0 1.5px 0 var(--gold-hi), inset 0 -6px 10px -6px var(--gold-shade), 0 12px 20px -12px var(--gold-drop);
+}
+.btn-secondary {
+  color: var(--text);
+  background: linear-gradient(180deg, var(--tile-top), var(--tile-bottom));
+  background-color: var(--tile-bottom);
+  border: 1px solid var(--edge);
+  box-shadow: inset 0 1px 0 var(--hi), inset 0 -6px 10px -7px var(--shade), 0 10px 16px -12px var(--drop);
+}
+.btn-block { display: flex; width: 100%; }
+.btn-sm { min-height: 44px; padding: 0 16px; font-size: 15px; border-radius: 15px; }
+.icon-btn { flex: none; width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 50%; }
+
+/* ── Icon chips: a tint, a clay rim, the icon filled in the tint. ── */
+.chip { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; border-radius: 14px; box-shadow: inset 0 1px 0 var(--hi), inset 0 -5px 8px -6px var(--shade); }
+.chip svg { width: 24px; height: 24px; }
+.chip-sm { width: 36px; height: 36px; border-radius: 12px; }
+.chip-sm svg { width: 20px; height: 20px; }
+.t-coral { color: var(--chip-coral); background-color: var(--chip-coral-bg); }
+.t-sky { color: var(--chip-sky); background-color: var(--chip-sky-bg); }
+.t-mint { color: var(--chip-mint); background-color: var(--chip-mint-bg); }
+.t-violet { color: var(--chip-violet); background-color: var(--chip-violet-bg); }
+.t-gold { color: var(--chip-gold); background-color: var(--chip-gold-bg); }
+
+/* ── Grouped list rows (Settings, activity). 52pt rows. ── */
+.list { padding: 4px 0; }
+.row { display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 6px 18px; text-decoration: none; color: inherit; }
+.row + .row { box-shadow: inset 0 1px 0 var(--edge); }
+.row .grow { flex: 1; min-width: 0; }
+.row .label { font-size: 17px; line-height: 22px; font-weight: 500; }
+.row .detail { font-size: 14px; line-height: 19px; color: var(--text-2); margin-top: 1px; }
+.row .value { font-size: 16px; color: var(--text-2); }
+.row .caret { color: var(--text-3); display: inline-flex; }
+/* A trailing chevron means "forward": it points left in RTL. */
+[dir="rtl"] .caret svg { transform: scaleX(-1); }
+.caret { color: var(--text-3); display: inline-flex; }
+.card.list { padding: 4px 0; }
+
+/* ── Segmented control: a sunken track, a raised gold-edged pill. ── */
+.seg { display: flex; padding: 4px; gap: 4px; border-radius: 16px; background-color: var(--well); border: 1px solid var(--text-3); box-shadow: inset 0 3px 7px -2px var(--well-shade); }
+.seg > a { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; border-radius: 12px; font-size: 16px; font-weight: 500; color: var(--text-2); text-decoration: none; border: 1.5px solid transparent; }
+.seg > a[aria-checked="true"] {
+  color: var(--text); font-weight: 600; border-color: var(--gold-edge);
+  background: linear-gradient(180deg, var(--tile-top), var(--tile-bottom)); background-color: var(--tile-bottom);
+  box-shadow: inset 0 1px 0 var(--hi), inset 0 -4px 8px -5px var(--shade), 0 6px 10px -6px var(--drop);
+}
+.seg svg { width: 18px; height: 18px; }
+
+/* ── Switch: 51 x 31 like iOS, inside a 44pt hit area. ── */
+.switch { position: relative; display: inline-flex; align-items: center; flex: none; width: 56px; height: 44px; }
+.switch::before { content: ""; position: absolute; inset: 6px 0; border-radius: 16px; background-color: var(--well); border: 1px solid var(--text-3); box-shadow: inset 0 3px 6px -2px var(--well-shade); }
+.switch[aria-checked="true"]::before { background: linear-gradient(180deg, var(--gold-top), var(--gold-bottom)); background-color: var(--gold-bottom); border-color: var(--gold-edge); box-shadow: inset 0 3px 6px -2px var(--gold-shade); }
+.switch > span { position: absolute; top: 10px; width: 24px; height: 24px; border-radius: 50%; inset-inline-start: 4px; background-color: var(--text-2); box-shadow: inset 0 1px 0 var(--hi), inset 0 -3px 5px -2px var(--shade), 0 3px 6px -2px var(--drop); }
+.switch[aria-checked="true"] > span { inset-inline-start: 28px; background-color: var(--on-gold); box-shadow: inset 0 1px 0 rgba(255, 236, 205, 0.18), 0 3px 6px -2px var(--gold-shade); }
+
+/* ── Progress. ── */
+.bar { height: 10px; border-radius: 6px; background-color: var(--well); box-shadow: inset 0 2px 4px -1px var(--well-shade); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(180deg, var(--gold-top), var(--gold-bottom)); }
+.pill { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 13px; font-size: 13px; font-weight: 500; }
+.pill svg { width: 15px; height: 15px; }
+.pill.ok { color: var(--success); background-color: rgba(111, 207, 159, 0.12); }
+[data-theme="light"] .pill.ok { background-color: rgba(20, 95, 63, 0.10); }
+.pill.wait { color: var(--gold-text); background-color: var(--chip-gold-bg); }
+.pill.todo { color: var(--text-2); background-color: var(--well); }
+
+/* ── The floating clay tab bar, above the home indicator (34pt). ── */
+.tabbar {
+  position: absolute; left: 16px; right: 16px; bottom: 30px; height: 70px; padding: 0 8px;
+  display: flex; align-items: center; justify-content: space-around; border-radius: 30px;
+  background: linear-gradient(180deg, var(--bar-top), var(--bar-bottom)); background-color: var(--bar-bottom);
+  border: 1px solid var(--edge);
+  box-shadow: inset 0 1.5px 0 var(--hi), inset 0 -8px 14px -10px var(--shade), 0 18px 30px -12px var(--drop);
+}
+.tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 76px; height: 60px; border-radius: 22px; text-decoration: none; color: var(--text-2); font-size: 12px; font-weight: 500; }
+.tab svg { width: 26px; height: 26px; }
+.tab[aria-current="page"] { color: var(--gold-text); font-weight: 700; background-color: var(--chip-gold-bg); box-shadow: inset 0 1px 0 var(--hi), inset 0 -4px 8px -6px var(--shade); }
+/* Content scrolls under the floating bar; the ground fades in behind it, as
+   iOS does, so rows do not show through around the bar. Paint only. */
+.screen::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 150px; pointer-events: none;
+  background: linear-gradient(180deg, transparent, var(--ground) 62%); }
+.tabbar, .home-indicator, .overlay { z-index: 2; }
+.home-indicator { position: absolute; bottom: 9px; left: 50%; width: 140px; height: 5px; margin-left: -70px; border-radius: 3px; background-color: var(--text); opacity: 0.85; }
+
+/* ── Small helpers. ── */
+.h-row { display: flex; align-items: center; gap: 12px; }
+.between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.t-h { font-size: 17px; line-height: 22px; font-weight: 600; }
+.t-body { font-size: 16px; line-height: 24px; color: var(--text); }
+.t-2 { color: var(--text-2); }
+.t-sm { font-size: 14px; line-height: 19px; }
+.t-xs { font-size: 13px; line-height: 18px; }
+.num { font-size: 26px; line-height: 30px; font-weight: 700; }
+.gold { color: var(--gold-text); }
+.mt-6 { margin-top: 6px; } .mt-10 { margin-top: 10px; } .mt-14 { margin-top: 14px; } .mt-18 { margin-top: 18px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }

@@ -1,0 +1,84 @@
+name: redesign-mockups
+
+# Step Redesign-1 (docs/design/redesign-mockups). Static mockup pages only:
+# scripts/redesign/build.mjs writes them from fixtures, and
+# scripts/redesign/render.mjs opens each from file:// in the runner image's
+# own Chrome through puppeteer-core (pinned, installed outside the app), takes
+# the 440 x 956 pt screen at 3x, and audits it: WCAG AA text contrast in both
+# themes, 3:1 control boundaries, 44 pt touch targets, Arabic shaping, no
+# price, plan, subscription, upgrade or free wording and no dash, shadow cost.
+# Any finding fails the run. Then the committed PNGs are compared with the
+# fresh renders, so what the repository shows is what the script makes.
+#
+# No server, no app build, no secret, no network beyond the two pinned
+# installs. Nothing here is imported by the app.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/redesign/**'
+      - 'docs/design/redesign-mockups/**'
+      - '.github/workflows/redesign-mockups.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    name: Render and audit the redesign mockups (no secrets)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: puppeteer-core, pinned, outside the app
+        run: |
+          node --version
+          google-chrome --version
+          npm install --prefix "$RUNNER_TEMP/pp" --no-audit --no-fund --ignore-scripts puppeteer-core@23.11.1
+
+      - name: Render and audit the fourteen mockups
+        env:
+          PUPPETEER_DIR: ${{ runner.temp }}/pp
+        run: CHROME="$(command -v google-chrome)" node scripts/redesign/render.mjs --out "$RUNNER_TEMP/mock"
+
+      - name: The committed PNGs match the fresh renders
+        run: |
+          set -eu
+          python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
+          python3 - "$RUNNER_TEMP/mock" <<'PY'
+          import glob, os, sys
+          from PIL import Image, ImageChops
+          fresh = sys.argv[1]
+          want = sorted(os.path.basename(p) for p in glob.glob(os.path.join(fresh, '*.png')))
+          have = sorted(os.path.basename(p) for p in glob.glob('docs/design/redesign-mockups/*.png'))
+          if not have:
+              print('no committed PNG yet'); sys.exit(0)
+          fails = 0 if want == have else 1
+          print(('ok   ' if not fails else 'FAIL ') + f'committed set equals the {len(want)} renders (missing {sorted(set(want) - set(have))}, extra {sorted(set(have) - set(want))})')
+          for n in sorted(set(want) & set(have)):
+              a = Image.open(os.path.join('docs/design/redesign-mockups', n)).convert('RGB')
+              b = Image.open(os.path.join(fresh, n)).convert('RGB')
+              if a.size != b.size:
+                  print(f'FAIL {n}: size {a.size} vs {b.size}'); fails += 1; continue
+              diff = ImageChops.difference(a, b).convert('L').point(lambda v: 255 if v > 24 else 0)
+              r = diff.histogram()[255] / (a.width * a.height)
+              ok = r <= 0.015
+              print(('ok   ' if ok else 'FAIL ') + f'{n}: {r:.4%} of pixels differ from the fresh render')
+              fails += 0 if ok else 1
+          sys.exit(1 if fails else 0)
+          PY
+
+      - name: Keep the renders
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: redesign-mockups
+          path: ${{ runner.temp }}/mock
+          if-no-files-found: error
+          retention-days: 14
