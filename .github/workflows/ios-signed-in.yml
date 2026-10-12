@@ -39,16 +39,30 @@ name: ios-signed-in
 #
 # COST. Standard macos-26 runner, free on this public repository (ios-smoke.yml).
 
+# STEP CI-COST-1: THE RUN STARTS WHEN THE SITE IS LIVE, ONCE. Every
+# push-triggered run in Oct 1-12 started within seconds of the merge and read
+# the site before Vercel had finished deploying it (about a minute, once
+# forty), so five were re-dispatched by hand after the deploy (65 macOS
+# minutes) and six failed on the old copy. Vercel's GitHub integration posts
+# a Deployment status for every production build, so that is the trigger:
+# `deployment_status`, environment Production, state success. That event's
+# ref is the deployed commit's sha, which the `reviewer` environment (main
+# only) would refuse, so the event runs a RELAY job instead: Linux, seconds,
+# no environment and no secret, which reads what the deployed commit changed
+# and, if it touched the shell, the app's code or this workflow, dispatches
+# this same workflow on main with the repository's own token (a
+# workflow_dispatch made with GITHUB_TOKEN is the documented exception to
+# "no chaining"). The signed-in job runs on that dispatch, after the deploy,
+# once per merge that matters, and never on a docs-only merge.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'ios/**'
-      - 'native/**'
-      - 'capacitor.config.ts'
-      - '.github/workflows/ios-signed-in.yml'
+  deployment_status:
   workflow_dispatch:
     inputs:
+      deployed_sha:
+        description: 'the deployed commit the relay saw (informational)'
+        type: string
+        required: false
+        default: ''
       scenario:
         description: 'screens: the signed-in screens (as on every push). background-upload: the measurement of an upload sent to the background. screenshots: the App Store set, 6.9-inch, en and ar (dispatch only)'
         type: choice
@@ -58,12 +72,45 @@ on:
 permissions:
   contents: read
 
+# Never cancelled mid-way: a cancelled run can leave the reviewer account
+# with the AI permission given. A second run queues behind the first.
 concurrency:
   group: ios-signed-in-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
+  relay:
+    name: After the production deploy, dispatch the signed-in run if the app changed
+    if: ${{ github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Check out the deployed commit and its parent
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.deployment.sha }}
+          fetch-depth: 2
+      - name: Decide, and dispatch on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.deployment.sha }}
+        run: |
+          set -eu
+          changed=$(git diff --name-only HEAD~1 HEAD || true)
+          echo "deployed $SHA changed:"; echo "$changed" | sed 's/^/  /'
+          if echo "$changed" | grep -qE '^(ios/|native/|capacitor\.config\.ts|src/|\.github/workflows/ios-signed-in\.yml)'; then
+            gh workflow run ios-signed-in.yml --ref main -f scenario=screens -f "deployed_sha=$SHA"
+            echo "dispatched the signed-in run on main for $SHA"
+          else
+            echo "nothing the signed-in run reads changed: no run"
+          fi
+
   signed-in:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     name: iOS — simulator run of the signed-in screens with the reviewer account (no npm)
     runs-on: macos-26
     environment: reviewer
@@ -154,7 +201,7 @@ jobs:
       # later step is a navigation or a scroll, each followed by the probe and a
       # screenshot. `l` is the locale the page is on.
       - name: Signed-in run against the live site
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.scenario == 'screens' }}
+        if: ${{ inputs.scenario == 'screens' }}
         env:
           KF_SMOKE_EMAIL: ${{ secrets.REVIEWER_EMAIL }}
           KF_SMOKE_PASSWORD: ${{ secrets.REVIEWER_PASSWORD }}
@@ -242,7 +289,7 @@ jobs:
           test -n "$(sf smoke.done)" || { echo "FAIL: the run did not finish; lines seen: $seen"; grep -iE 'KFSmoke|crash|fatal' "$RUNNER_TEMP/app.log" | tail -n 30 || true; exit 1; }
 
       - name: Assert the signed-in screens and the 3.1.3(f) reading
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.scenario == 'screens' }}
+        if: ${{ inputs.scenario == 'screens' }}
         run: |
           python3 - "$RUNNER_TEMP/smoke-signed-in.jsonl" <<'PY'
           import json, re, sys

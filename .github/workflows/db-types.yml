@@ -18,10 +18,11 @@ name: db-types
 # billed. Running Postgres in a container does not change that -- the container
 # runs on the same runner, and there is no separate charge for containers.
 
+# Step CI-Cost-1: pull requests only. The merge push ran the same check on
+# the same tree the pull request's merge ref was checked with (32 runs in
+# Oct 1-12, each a repeat); typecheck keeps its main run as the baseline.
 on:
   pull_request:
-    branches: [main]
-  push:
     branches: [main]
 
 # Least privilege: this job reads the tree and regenerates a file in the
@@ -36,10 +37,38 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Step CI-Cost-1: what this run is about. On a pull request or a merge that
+  # touched only docs/**, *.md or *.png the real jobs below are SKIPPED, and a
+  # skipped job reports its required check as success, so the branch rule
+  # holds with the same names and no second workflow can mask a failure.
+  detect:
+    name: Does this change touch the code
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.d.outputs.code }}
+    steps:
+      - name: Check out the change and its base
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - id: d
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -eu
+          if [ -n "$BASE_SHA" ]; then git fetch --no-tags --depth=1 origin "$BASE_SHA"; range="$BASE_SHA...HEAD"; else range="HEAD~1..HEAD"; fi
+          changed=$(git diff --name-only "$range" || git diff --name-only HEAD~1 HEAD)
+          echo "$changed" | sed 's/^/  /'
+          if echo "$changed" | grep -vqE '^(docs/|.*\.md$|.*\.png$)'; then echo "code=yes" >> "$GITHUB_OUTPUT"; echo "code changed: run"; else echo "code=no" >> "$GITHUB_OUTPUT"; echo "docs only: skip"; fi
+
   # Job id is the status-check context string. Keep it stable: renaming it
   # silently detaches any branch-protection rule that requires the old name, and
   # a rule requiring a context nothing publishes blocks every PR indefinitely.
   db-types:
+    needs: detect
+    if: ${{ needs.detect.outputs.code == 'yes' }}
     name: db-types
     runs-on: ubuntu-24.04
     steps:
