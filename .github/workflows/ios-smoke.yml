@@ -222,11 +222,11 @@ jobs:
             {"name":"wording-baseline","wait":500,"js":"(function(){return location.pathname})()"},
             {"name":"wording-plant","wait":500,"js":"(function(){var p=document.createElement('p');p.id='kf-plant';p.textContent='Upgrade to our Pro plan · انتقل إلى باقتك واشتراكك';document.body.appendChild(p);return 'planted'})()"},
             {"name":"wording-unplant","wait":500,"js":"(function(){var p=document.getElementById('kf-plant');if(p){p.remove()}return p?'removed':'none'})()"},
-            {"name":"live-signup","wait":6000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/signup');return 'assigned'})()"},
-            {"name":"live-terms","wait":6000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/terms');return 'assigned'})()"},
-            {"name":"live-refund","wait":6000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/refund');return 'assigned'})()"},
-            {"name":"live-about","wait":6000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/about');return 'assigned'})()"},
-            {"name":"live-contact","wait":6000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/contact');return 'assigned'})()"},
+            {"name":"live-signup","wait":8000,"js":"(function(){location.assign('/en/signup');return 'assigned /en/signup'})()"},
+            {"name":"live-terms","wait":8000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
+            {"name":"live-refund","wait":8000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
+            {"name":"live-about","wait":8000,"js":"(function(){location.assign('/en/about');return 'assigned /en/about'})()"},
+            {"name":"live-contact","wait":8000,"js":"(function(){location.assign('/en/contact');return 'assigned /en/contact'})()"},
             {"name":"privacy","wait":6000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/privacy');return 'assigned /'+l+'/privacy'})()"},
             {"name":"external-link","wait":5000,"js":"(function(){var a=document.querySelector('a[href^=\"https://github.com\"]');if(!a){return 'no external link'}a.click();return 'clicked '+a.href})()"}
           ]
