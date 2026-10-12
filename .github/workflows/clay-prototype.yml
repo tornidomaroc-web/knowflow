@@ -18,7 +18,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'src/app/[locale]/preview/**'
+      - 'src/app/\[locale\]/preview/**'
       - 'scripts/clay/**'
       - '.github/workflows/clay-prototype.yml'
   workflow_dispatch:
@@ -67,9 +67,8 @@ jobs:
 
       - name: Render and audit
         env:
-          CHROME: google-chrome
           PUPPETEER_DIR: ${{ runner.temp }}/pp
-        run: node scripts/clay/render.mjs --out "$RUNNER_TEMP/clay"
+        run: CHROME="$(command -v google-chrome)" node scripts/clay/render.mjs --out "$RUNNER_TEMP/clay"
 
       - name: Server log
         if: always()
