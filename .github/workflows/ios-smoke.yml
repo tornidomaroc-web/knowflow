@@ -247,7 +247,10 @@ jobs:
           # on older ones tmp/ itself: find the files wherever they land.
           sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
           seen=0
-          for i in $(seq 1 300); do
+          # 600 s: Step Wording-1 added eight readings (the planted proof and the
+          # live signed-out pages), about 18 s each with the acknowledgement;
+          # at 300 s the loop ended mid-run on 2026-10-12 (run 38264230960).
+          for i in $(seq 1 600); do
             f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
             if [ "$n" -gt "$seen" ]; then
               seen=$n
