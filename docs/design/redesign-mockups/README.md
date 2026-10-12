@@ -38,3 +38,5 @@ audits each one (WCAG AA text in both themes, 3:1 controls, 44 pt targets,
 Arabic shaping, no plan, price or free wording, shadow cost) and checks the
 committed PNGs match fresh renders. Icons: Phosphor Icons 2.1.1, MIT
 (`scripts/redesign/icons/LICENSE-phosphor.txt`).
+
+<!-- CI-Cost-1 docs-only test: this line proves a docs-only pull request starts no macOS run and still reports every required check. Removed with the test PR. -->
