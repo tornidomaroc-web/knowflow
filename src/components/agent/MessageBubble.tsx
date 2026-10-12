@@ -39,10 +39,10 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
       <div className={`flex max-w-[85%] flex-col gap-2 md:max-w-[75%] ${isUser ? 'items-end' : 'items-start'}`}>
         <div
           dir="auto"
-          className={`whitespace-pre-wrap rounded-2xl p-4 text-sm shadow-soft ${
+          className={`whitespace-pre-wrap rounded-2xl p-4 text-sm ${
             isUser
-              ? 'bg-primary text-primary-foreground'
-              : 'kf-card border border-border bg-surface text-foreground'
+              ? 'kf-bubble-user bg-primary text-primary-foreground shadow-soft'
+              : 'kf-card border border-border bg-surface text-foreground shadow-soft'
           }`}
         >
           {/* Markdown marks inherit the bubble's text color so they read on both

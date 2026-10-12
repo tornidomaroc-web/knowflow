@@ -191,7 +191,7 @@ function audit() {
     const cs = getComputedStyle(el);
     for (const s of [cs, getComputedStyle(el, '::before'), getComputedStyle(el, '::after')]) {
       if (s.boxShadow && s.boxShadow !== 'none') {
-        const layers = s.boxShadow.split(/,(?![^(]*\))/);
+        const layers = s.boxShadow.split(/,(?![^(]*\))/).filter((l) => !/rgba\(0, 0, 0, 0\) 0px 0px 0px 0px/.test(l.trim()) && !/^\s*0px 0px 0px 0px/.test(l));
         shadowed++;
         if (layers.length > maxLayers) { maxLayers = layers.length; heaviest = name(el); }
         for (const l of layers) { const px = (l.replace(/rgba?\([^)]*\)/g, '').match(/-?[\d.]+px/g) || []).map(parseFloat); if ((px[2] || 0) > 0) blurred++; }
