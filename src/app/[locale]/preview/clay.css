@@ -54,6 +54,13 @@
   --input: #ffffff;
   --faint: #6e6458;            /* 4.72:1 on #efe7da worst case; was 2.77 */
   --control-border: #857a6c;   /* 3.3:1 on --raised; was 2.95 */
+  /* The supporting tints carry text on the material tiles ("pdf", "xlsx"), on
+     their own 12% fill over white: coral 3.83, sky 4.10, mint 3.53 failed AA
+     (audit, run 38246090275). One step darker each: 5.29 / 5.49 / 5.05.
+     Violet passed (4.89) and stays. Not the brand: gold is untouched. */
+  --coral: #a63c33;
+  --sky: #245f9f;
+  --mint: #16714d;
 
   --clay-hi: rgba(255, 255, 255, 0.95);
   --clay-shade: rgba(122, 88, 34, 0.10);
@@ -177,3 +184,9 @@
     inset 0 1px 0 var(--clay-hi),
     inset 0 -3px 6px -3px var(--clay-shade);
 }
+
+/* ── NOTICES on the gold tint (the partial-summary line): gold text on its own
+   10% fill over a raised ground measured 4.37:1 in light. The darker gold the
+   button already uses on hover (--accent-hover) carries it instead; the
+   brand gold itself does not move. ── */
+[data-theme="light"] [data-look="clay"] .bg-primary-subtle.text-primary { color: var(--primary-hover); }
