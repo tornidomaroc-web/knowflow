@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+// Step Clay-1: scoped under [data-look="clay"], so it styles nothing unless ?look=clay.
+import '../clay.css'
 import { SubjectsList } from '@/components/dashboard/SubjectsList'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
@@ -40,14 +42,15 @@ export default async function SubjectsPreview({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ state?: string }>
+  searchParams: Promise<{ state?: string; look?: string }>
 }) {
   if (process.env.VERCEL_ENV === 'production') notFound()
   const { locale } = await params
   if (!locales.includes(locale as Locale)) notFound()
   const safeLocale = locale as Locale
   const t = useTranslation(safeLocale)
-  const { state } = await searchParams
+  const { state, look: lookParam } = await searchParams
+  const look = lookParam === 'clay' || lookParam === 'current' ? lookParam : undefined
   const ar = safeLocale === 'ar'
 
   const subjects = state === 'zero' ? [] : [
@@ -79,8 +82,8 @@ export default async function SubjectsPreview({
   ]
 
   return (
-    <div className="min-h-screen">
-      <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
+    <div className="min-h-screen" data-look={look}>
+      <div className={look ? 'hidden' : 'flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs'}>
         <span className="font-semibold text-foreground">subjects · preview</span>
         <span className="text-faint">{state === 'zero' ? 'zero' : 'full'} · {safeLocale}</span>
       </div>
