@@ -96,6 +96,7 @@ export default async function SubjectPreview({
       <PlatformProvider platform={platform}>
       <DashboardShell
         platform={platform}
+        activeNav="knowledge"
         locale={safeLocale}
         email="student@example.com"
         isPro={false}

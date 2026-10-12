@@ -29,12 +29,15 @@ export function MobileNav({
   locale,
   labels,
   platform = 'web',
+  activeNav,
 }: {
   userEmail: string;
   isPro?: boolean;
   locale: Locale;
   labels: NavLabels & { signOut: string };
   platform?: Platform;
+  /** The design previews name the active tab (their paths are not under /dashboard). */
+  activeNav?: string;
 }) {
   const pathname = usePathname();
   const items = getNavItems(locale, labels);
@@ -82,7 +85,7 @@ export function MobileNav({
         style={{ bottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
       >
         {items.map((item) => {
-          const active = isNavActive(pathname, item);
+          const active = activeNav ? item.key === activeNav : isNavActive(pathname, item);
           const glyphs = TAB_ICONS[item.key as keyof typeof TAB_ICONS];
           const Icon = active ? glyphs.fill : glyphs.outline;
           return (

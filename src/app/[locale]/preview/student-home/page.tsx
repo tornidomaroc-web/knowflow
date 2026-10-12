@@ -187,6 +187,7 @@ export default async function StudentHomePreview({
       <PlatformProvider platform={platform}>
       <DashboardShell
         platform={platform}
+        activeNav="dashboard"
         locale={safeLocale}
         email="student@example.com"
         isPro={false}

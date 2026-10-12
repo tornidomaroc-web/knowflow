@@ -131,9 +131,10 @@ function audit() {
   };
   for (const sw of document.querySelectorAll('[role="switch"]')) {
     if (!visible(sw) || disabled(sw)) continue;
-    check('switch track', sw, edgeOrFill(getComputedStyle(sw), grounds(sw, false)));
-    const thumb = sw.querySelector('span');
-    if (thumb) check('switch thumb', thumb, worst(parse(getComputedStyle(thumb).backgroundColor), grounds(sw, true)));
+    const track = sw.querySelector('.kf-switch-track') || sw;
+    check('switch track', track, edgeOrFill(getComputedStyle(track), grounds(sw, false)));
+    const thumb = sw.querySelector('.kf-switch-thumb') || sw.querySelector('span');
+    if (thumb) check('switch thumb', thumb, worst(parse(getComputedStyle(thumb).backgroundColor), grounds(track, true)));
   }
   for (const g of document.querySelectorAll('[role="group"], [role="radiogroup"]')) {
     if (!visible(g)) continue;
@@ -142,7 +143,7 @@ function audit() {
     if (chosen) check('chosen segment', chosen, edgeOrFill(getComputedStyle(chosen), grounds(g, true)));
   }
   for (const f of document.querySelectorAll('input:not([type=hidden]):not([type=file]):not([type=checkbox]):not([type=radio]), select, textarea, .kf-composer'))
-    if (visible(f) && !disabled(f)) check('field', f, edgeOrFill(getComputedStyle(f), grounds(f, false)));
+    if (visible(f) && !disabled(f) && !(f.tagName === 'TEXTAREA' && f.closest('.kf-composer'))) check('field', f, edgeOrFill(getComputedStyle(f), grounds(f, false)));
 
   const targets = [];
   for (const el of document.querySelectorAll('a[href], button, [role="switch"], [role="radio"]')) {
@@ -160,7 +161,7 @@ function audit() {
   const draw = (s, font, dir) => {
     const w = Math.ceil(ctx.measureText(s).width) + 8, h = 48;
     const c = document.createElement('canvas'); c.width = Math.min(w, 4000); c.height = h;
-    const x = c.getContext('2d'); x.font = font; x.direction = dir; x.textBaseline = 'middle'; x.fillText(s, dir === 'rtl' ? c.width - 4 : 4, h / 2);
+    const x = c.getContext('2d'); x.font = font; x.direction = dir; x.textBaseline = 'middle'; x.fontKerning = 'none'; x.fillText(s, dir === 'rtl' ? c.width - 4 : 4, h / 2);
     return { w: c.width, data: x.getImageData(0, 0, c.width, h).data };
   };
   for (const el of document.body.querySelectorAll('*')) {
@@ -181,7 +182,7 @@ function audit() {
   }
   const rubik = [...document.fonts].some((f) => /Rubik|__/.test(f.family) && f.status === 'loaded') || document.fonts.check('16px Rubik');
 
-  let maxLayers = 0, blurred = 0, shadowed = 0;
+  let maxLayers = 0, blurred = 0, shadowed = 0, heaviest = '';
   const filters = [];
   for (const el of document.body.querySelectorAll('*')) {
     const cs = getComputedStyle(el);
@@ -189,14 +190,14 @@ function audit() {
       if (s.boxShadow && s.boxShadow !== 'none') {
         const layers = s.boxShadow.split(/,(?![^(]*\))/);
         shadowed++;
-        maxLayers = Math.max(maxLayers, layers.length);
+        if (layers.length > maxLayers) { maxLayers = layers.length; heaviest = name(el); }
         for (const l of layers) { const px = (l.replace(/rgba?\([^)]*\)/g, '').match(/-?[\d.]+px/g) || []).map(parseFloat); if ((px[2] || 0) > 0) blurred++; }
       }
     }
     if ((cs.filter && cs.filter !== 'none') || (cs.backdropFilter && cs.backdropFilter !== 'none')) filters.push(name(el));
   }
 
-  return { text, controls, targets, shaping, shapingControl, rubik, cost: { shadowed, maxLayers, blurred, filters }, visibleText: document.body.innerText };
+  return { text, controls, targets, shaping, shapingControl, rubik, cost: { shadowed, maxLayers, blurred, filters, heaviest }, visibleText: document.body.innerText };
 }
 
 // 24 scroll steps timed with requestAnimationFrame: the longest frame gap
@@ -246,7 +247,7 @@ for (const job of JOBS) {
     ...(job.locale === 'ar' ? a.shaping.filter((s) => !s.ok).map((s) => `shaping not joined ${s.el}`) : []),
     ...(a.shapingControl ? [] : ['shaping control failed: ZWNJ changed Latin pixels']),
     ...(a.rubik ? [] : ['Rubik not loaded']),
-    ...(a.cost.maxLayers > 3 ? [`${a.cost.maxLayers} shadow layers on one element`] : []),
+    ...(a.cost.maxLayers > 3 ? [`${a.cost.maxLayers} shadow layers on ${a.cost.heaviest}`] : []),
     ...a.cost.filters.map((f) => `filter on ${f}`),
     ...(words.length ? [`wording ${JSON.stringify(words)}`] : []),
   ];

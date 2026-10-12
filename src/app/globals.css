@@ -517,6 +517,8 @@ body { background-color: var(--background); color: var(--foreground); }
   --muted-foreground: #b3a593;
   --faint: #a4967f;
   --control-border: #8a7d6c;
+  /* --danger #e8675f was 4.39:1 on a card top (#322a21); this is 5.8 / 5.5 on a tile top. */
+  --danger: #f08a80;
   --clay-top: #322a21;
   --clay-tile-top: #362e24;
   --clay-well: #1d1913;
@@ -533,8 +535,13 @@ body { background-color: var(--background); color: var(--foreground); }
   --raised: #f3ede3;
   --muted: #f0eae0;
   --input: #ffffff;
+  /* Every token the dark block above sets is set here too: a token left out
+     would keep the dark value in light (the first render had
+     --muted-foreground #b3a593 on white, 2.07:1). */
+  --muted-foreground: #6b6155;
   --faint: #6e6458;
   --control-border: #857a6c;
+  --danger: #b3322b;
   --coral: #a63c33;
   --sky: #245f9f;
   --mint: #16714d;
@@ -583,7 +590,9 @@ body { background-color: var(--background); color: var(--foreground); }
 .kf-clay .kf-chip { border-radius: 0.875rem; box-shadow: inset 0 1px 0 var(--clay-hi), inset 0 -5px 8px -6px var(--clay-shade); }
 
 /* Buttons: every buttonVariants() control carries `pressable` (Button.tsx is
-   untouched, so the visual-system proof holds). Rest raised, press sunk. */
+   untouched, so the visual-system proof holds). Rest raised, press sunk; and
+   every one at least 44 pt tall, the small size included (it is 36 px). */
+.kf-clay .pressable { min-height: 2.75rem; }
 .kf-clay .pressable.bg-primary {
   background-image: linear-gradient(180deg, var(--primary-hover), var(--primary));
   box-shadow: inset 0 1.5px 0 var(--clay-gold-hi), inset 0 -6px 10px -6px var(--clay-gold-shade), 0 12px 20px -12px var(--clay-drop);
@@ -621,10 +630,10 @@ body { background-color: var(--background); color: var(--foreground); }
    holds 3:1 on its track in both positions (off: --muted-foreground on the
    well, 6.0 dark / 5.0 light; on: the dark bead on gold, 8.3 / 7.1). The old
    off state (a surface thumb on a muted track, 1.1:1) read as disabled. */
-.kf-clay [role="switch"] { border: 1px solid var(--control-border); background-color: var(--clay-well); box-shadow: inset 0 3px 6px -2px var(--clay-well-shade); }
-.kf-clay [role="switch"][aria-checked="true"] { border-color: var(--primary); background-color: var(--primary); background-image: linear-gradient(180deg, var(--primary-hover), var(--primary)); box-shadow: inset 0 3px 6px -2px var(--clay-gold-shade); }
-.kf-clay [role="switch"] > span { background-color: var(--muted-foreground); box-shadow: inset 0 1px 0 var(--clay-hi), inset 0 -3px 5px -2px var(--clay-shade), 0 3px 6px -2px var(--clay-drop); }
-.kf-clay [role="switch"][aria-checked="true"] > span { background-color: var(--primary-foreground); box-shadow: inset 0 1px 0 rgba(255, 236, 205, 0.18), 0 3px 6px -2px var(--clay-gold-shade); }
+.kf-clay .kf-switch-track { border: 1px solid var(--control-border); background-color: var(--clay-well); box-shadow: inset 0 3px 6px -2px var(--clay-well-shade); }
+.kf-clay [aria-checked="true"] > .kf-switch-track { border-color: var(--primary); background-color: var(--primary); background-image: linear-gradient(180deg, var(--primary-hover), var(--primary)); box-shadow: inset 0 3px 6px -2px var(--clay-gold-shade); }
+.kf-clay .kf-switch-thumb { background-color: var(--muted-foreground); box-shadow: inset 0 1px 0 var(--clay-hi), inset 0 -3px 5px -2px var(--clay-shade), 0 3px 6px -2px var(--clay-drop); }
+.kf-clay [aria-checked="true"] .kf-switch-thumb { background-color: var(--primary-foreground); box-shadow: inset 0 1px 0 rgba(255, 236, 205, 0.18), 0 3px 6px -2px var(--clay-gold-shade); }
 
 /* Fields: a sunken well with a control boundary. */
 .kf-clay input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),

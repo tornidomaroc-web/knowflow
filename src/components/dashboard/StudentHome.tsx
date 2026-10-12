@@ -329,7 +329,7 @@ export function StudentHome({
             </h2>
             <Link
               href={subjectsHref}
-              className="group inline-flex items-center gap-1.5 text-xs font-semibold text-accent transition-colors hover:text-accent-hover"
+              className="group inline-flex min-h-[2.75rem] items-center gap-1.5 text-xs font-semibold text-accent transition-colors hover:text-accent-hover"
             >
               {labels.allSubjects}
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100" />

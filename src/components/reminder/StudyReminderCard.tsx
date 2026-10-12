@@ -168,13 +168,19 @@ export function StudyReminderCard({
           data-kf-reminder="toggle"
           disabled={busy}
           onClick={on ? turnOff : turnOn}
-          className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 ${on ? 'bg-primary' : 'bg-muted ring-1 ring-inset ring-border'}`}
-          // Step Redesign-2: inside the shell the clay rules give the track a
-          // control boundary and the thumb its own 3:1 bead (globals.css).
+          // Step Redesign-2: the button is the 44 pt hit area; the track is the
+          // span inside it, and the clay rules give the track a control boundary
+          // and the thumb its own 3:1 bead (globals.css, .kf-switch-*).
+          className="relative inline-flex h-11 w-16 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
         >
           <span
-            className={`inline-block h-6 w-6 rounded-full bg-surface shadow-soft transition-transform ${on ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'}`}
-          />
+            aria-hidden="true"
+            className={`kf-switch-track relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${on ? 'bg-primary' : 'bg-muted ring-1 ring-inset ring-border'}`}
+          >
+            <span
+              className={`kf-switch-thumb inline-block h-6 w-6 rounded-full bg-surface shadow-soft transition-transform ${on ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'}`}
+            />
+          </span>
         </button>
       </div>
       <div className="mt-4 flex items-center justify-between gap-4">

@@ -33,6 +33,7 @@ export function DashboardShell({
   isPro,
   labels,
   platform = 'web',
+  activeNav,
   children,
 }: {
   locale: Locale;
@@ -40,6 +41,8 @@ export function DashboardShell({
   isPro: boolean;
   labels: NavLabels & { signOut: string };
   platform?: Platform;
+  /** The design previews only: which tab is active (see MobileNav). */
+  activeNav?: string;
   children: ReactNode;
 }) {
   const native = platform === 'native';
@@ -52,7 +55,7 @@ export function DashboardShell({
   return (
     <div className="kf-clay min-h-screen bg-background" data-kf-shell={platform}>
       <Sidebar userEmail={email} isPro={isPro} locale={locale} labels={labels} />
-      <MobileNav userEmail={email} isPro={isPro} locale={locale} labels={labels} platform={platform} />
+      <MobileNav userEmail={email} isPro={isPro} locale={locale} labels={labels} platform={platform} activeNav={activeNav} />
       {/*
         The content canvas for every dashboard screen. WORDING CORRECTED #85:
         this line read "The light content canvas ..." and is no longer true —

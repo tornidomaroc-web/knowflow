@@ -86,7 +86,7 @@ export default async function SettingsPreview({
       </div>
 
       <PlatformProvider platform={native ? 'native' : 'web'}>
-      <DashboardShell locale={safeLocale} email="student@example.com" isPro={isPro} labels={labels} platform={native ? 'native' : 'web'}>
+      <DashboardShell locale={safeLocale} email="student@example.com" isPro={isPro} labels={labels} activeNav="settings" platform={native ? 'native' : 'web'}>
         <SettingsPanel
           email="student@example.com"
           isPro={isPro}
@@ -100,7 +100,7 @@ export default async function SettingsPreview({
           supportEmail={SUPPORT_EMAIL}
           labels={{
             title: s.title,
-            subtitle: s.subtitle,
+            subtitle: native ? s.subtitleApp : s.subtitle,
             account: s.account,
             email: s.email,
             plan: s.plan,
