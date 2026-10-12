@@ -9,7 +9,9 @@ import { FREE_LIMITS } from '@/lib/limits'
 import { DAILY_CAPS } from '@/lib/rate-limit'
 import { buildHomeLabels, buildHomeProgress, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
 import { resolvePlatform } from '@/lib/platform'
+import { formatDayDate } from '@/lib/format-date'
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { PlatformProvider } from '@/components/platform/PlatformProvider'
 import { formatDate } from '@/lib/format-date'
 
 /**
@@ -154,7 +156,7 @@ export default async function StudentHomePreview({
     <div className="min-h-screen">
       {/* Preview chrome. Deliberately plain and clearly not part of the product,
           so it cannot be mistaken for a design decision. */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
+      <div className={rawPlatform ? 'hidden' : 'flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs'}>
         <span className="font-semibold text-foreground">student home · preview</span>
         <span className="text-faint">
           {state} · {safeLocale} · {theme}
@@ -182,7 +184,9 @@ export default async function StudentHomePreview({
       {/* The real chrome (register #83 (b)): the sidebar and mobile nav carry
           the language switch, and this is the one place it can be seen without
           a session. The email is a literal. */}
+      <PlatformProvider platform={platform}>
       <DashboardShell
+        platform={platform}
         locale={safeLocale}
         email="student@example.com"
         isPro={false}
@@ -201,6 +205,7 @@ export default async function StudentHomePreview({
           stats={stats}
           streak={streak}
           {...buildHrefs(safeLocale, platform)}
+          dateLine={formatDayDate(new Date('2026-10-12T12:00:00Z'), safeLocale, 'Africa/Casablanca')}
           continueCard={
             full
               ? { subject: subjects[0].name, date: formatDate(recentActivity[0].created_at, safeLocale), href: `/${safeLocale}/dashboard/agent` }
@@ -223,6 +228,7 @@ export default async function StudentHomePreview({
           recentActivity={recentActivity}
         />
       </DashboardShell>
+      </PlatformProvider>
     </div>
   )
 }

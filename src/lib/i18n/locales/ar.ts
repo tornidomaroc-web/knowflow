@@ -13,7 +13,7 @@ export const ar: Translation = {
     // The verb phrase already inside `auth.hasAccount`, not a fresh translation.
     signIn: "سجّل الدخول",
     getStarted: "ابدأ مجانًا",
-    // Step Wording-1, agent draft for the owner's approval (docs/copy-drafts).
+    // Step Wording-1, approved by the owner (docs/copy/ARABIC_STRINGS_app_v1.md).
     createAccount: "أنشئ حسابًا",
     // Screen-reader only: the hamburger's name (#48). Never rendered as text.
     menu: "القائمة",
@@ -328,7 +328,7 @@ export const ar: Translation = {
       errorLimitFree: "وصلت إلى حد المواد في الباقة المجانية: {limit}.",
       errorLimitUpgrade: "انتقل إلى الباقة الاحترافية لتضيف المزيد.",
       errorLimitPro: "وصلت إلى حد المواد في باقتك: {limit}.",
-      // Step Wording-1, agent draft for the owner's approval (docs/copy-drafts).
+      // Step Wording-1, approved by the owner (docs/copy/ARABIC_STRINGS_app_v1.md).
       errorLimitApp: "وصلت إلى الحد الأقصى لعدد المواد في حسابك: {limit}."
     },
     kbDetail: {
@@ -400,7 +400,7 @@ export const ar: Translation = {
     settings: {
       title: "الإعدادات",
       subtitle: "حسابك وباقتك وتفضيلاتك.",
-      // Step Wording-1, agent draft for the owner's approval (docs/copy-drafts).
+      // Step Wording-1, approved by the owner (docs/copy/ARABIC_STRINGS_app_v1.md).
       subtitleApp: "حسابك وتفضيلاتك.",
       freePlanDesc: "الباقة المجانية. رصيدك اليومي في صفحتك الرئيسية.",
       proPlanDesc: "شكرًا لدعمك KnowFlow.",
@@ -490,6 +490,8 @@ export const ar: Translation = {
       notificationBody: "افتح KnowFlow وراجِع ملفًا واحدًا اليوم."
     },
     agent: {
+      // Step Redesign-2, agent draft for the owner (docs/copy-drafts/redesign_v1.md).
+      sources: "المصادر",
       chatWith: "تسأل عن",
       startTyping: "كل جواب يأتي من ملفات هذه المادة.",
       emptyTitle: "ما الذي يحيّرك اليوم؟",
@@ -505,6 +507,11 @@ export const ar: Translation = {
     upload: {
       uploadFailed: "لم نتأكد من وصول ملفك. حدّث الصفحة لترى إن كان قد وصل، وإن لم يصل فارفعه مرة أخرى.",
       dropHere: "اسحب ملفاتك إلى هنا أو اضغط لرفعها",
+      // Step Redesign-2, agent drafts for the owner (docs/copy-drafts/redesign_v1.md).
+      uploadButton: "ارفع ملفًا",
+      typesLabel: "الأنواع المقبولة",
+      sizeLine: "حتى {limit} للملف الواحد",
+      dropHereTouch: "اسحب ملفاتك إلى هنا أو اضغط لرفعها",
       supported: "الملفات المقبولة: PDF, DOCX, PPTX, XLSX, TXT, MD (حتى {limit} للملف الواحد)",
       uploading: "نرفع ملفك…",
       reading: "نقرأ ملفك…",

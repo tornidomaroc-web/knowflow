@@ -92,7 +92,7 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
       // widens only a child holding an open panel ([&>*:has(>div)]); this block
       // holds none, so on a phone it sat at half width beside an empty cell
       // (seen in the store screenshots, 2026-10-09).
-      <div className="col-span-full rounded-xl border border-border bg-background p-4">
+      <div className="kf-well col-span-full rounded-xl border border-border bg-background p-4">
         <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {s.heading}
         </h3>

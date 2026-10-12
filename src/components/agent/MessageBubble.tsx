@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import { FileName } from '@/components/ui/FileName';
 
@@ -14,24 +15,38 @@ interface MessageBubbleProps {
   content: string;
   isStreaming?: boolean;
   citations?: Citation[];
+  /**
+   * Step Redesign-2: where a source pill goes, the material's card on its
+   * subject page (`/dashboard/knowledge/<kb>#material-<document id>`). Without
+   * it the pills stay labels, as before.
+   */
+  sourceHref?: (c: Citation) => string;
+  /** The heading over the source pills ("Sources" / "المصادر"). */
+  sourcesLabel?: string;
 }
 
-export function MessageBubble({ role, content, isStreaming, citations }: MessageBubbleProps) {
+/**
+ * One turn of the conversation. The student's bubble is gold and sits at the
+ * end of the line; the answer is a clay card at the start, with its sources
+ * under it as pills that open the material (Step Redesign-2). The pill row
+ * stays dir="ltr" (register #124): the "[1]" index sits left of the name in
+ * both languages, and FileName keeps the name one unit.
+ */
+export function MessageBubble({ role, content, isStreaming, citations, sourceHref, sourcesLabel }: MessageBubbleProps) {
   const isUser = role === 'user';
-
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div className={`flex max-w-[75%] flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}>
+      <div className={`flex max-w-[85%] flex-col gap-2 md:max-w-[75%] ${isUser ? 'items-end' : 'items-start'}`}>
         <div
           dir="auto"
           className={`whitespace-pre-wrap rounded-2xl p-4 text-sm shadow-soft ${
             isUser
               ? 'bg-primary text-primary-foreground'
-              : 'border border-border bg-surface text-foreground'
+              : 'kf-card border border-border bg-surface text-foreground'
           }`}
         >
           {/* Markdown marks inherit the bubble's text color so they read on both
-              the emerald user bubble and the light assistant bubble. */}
+              the gold user bubble and the surface assistant bubble. */}
           <ReactMarkdown
             components={{
               p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
@@ -60,19 +75,31 @@ export function MessageBubble({ role, content, isStreaming, citations }: Message
             <span className="mt-2 inline-block animate-pulse font-bold text-primary">▋</span>
           )}
         </div>
-
         {!isUser && !isStreaming && citations && citations.length > 0 && (
-          <div className="flex flex-wrap gap-2 px-1" dir="ltr">
-            {citations.map((c) => (
-              <span
-                key={c.chunk_id}
-                title={`${c.filename} · ${(c.similarity * 100).toFixed(0)}% match`}
-                className="cursor-default rounded-full border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-              >
-                [{c.index}] <FileName name={c.filename} inline />
-              </span>
-            ))}
-          </div>
+          <>
+            {sourcesLabel && <p className="px-1 text-[11px] font-semibold text-muted-foreground">{sourcesLabel}</p>}
+            <div className="flex flex-wrap gap-2 px-1" dir="ltr">
+              {citations.map((c) => {
+                const pill = (
+                  <span
+                    title={`${c.filename} · ${(c.similarity * 100).toFixed(0)}% match`}
+                    className="cursor-default rounded-full border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                  >
+                    [{c.index}] <FileName name={c.filename} inline />
+                  </span>
+                );
+                // With a destination the pill is a link to the material, 44 pt tall
+                // through its padding, and reads in the text colour.
+                return sourceHref ? (
+                  <Link key={c.chunk_id} href={sourceHref(c)} className="kf-tile inline-flex min-h-[2.75rem] items-center rounded-full bg-raised px-1 [&>span]:cursor-pointer [&>span]:border-0 [&>span]:text-xs [&>span]:text-foreground">
+                    {pill}
+                  </Link>
+                ) : (
+                  <span key={c.chunk_id} className="contents">{pill}</span>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>

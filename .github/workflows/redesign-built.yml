@@ -1,0 +1,117 @@
+name: redesign-built
+
+# Step Redesign-2 (docs/design/redesign-built). Builds this commit with `next
+# build`, serves it on the runner with `next start`, and
+# scripts/redesign-built/render.mjs drives the runner image's own Chrome
+# through puppeteer-core over the design preview routes (the real components
+# in the real shell, fixture data, no auth, a 404 on production) as the app
+# renders them (?platform=native): the six screens plus the Ask conversation
+# and the bottom of Settings, Arabic and English, dark and light, 32 renders,
+# each audited for WCAG AA text contrast, 3:1 control boundaries, 44 pt touch
+# targets, Arabic shaping, the app's wording rule and the shadow budget, with
+# a scroll-timing measure reported. A finding fails the run. The committed
+# PNGs are compared with the fresh renders, and a side-by-side with each
+# mockup is composed.
+#
+# NO SECRET. The Supabase values below are placeholders pointing at a closed
+# local port: the preview routes make no Supabase call, and the middleware's
+# getUser() returns without a request when there is no session cookie.
+# Nothing is deployed and no production data is read.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/redesign-built/**'
+      - 'docs/design/redesign-built/**'
+      - '.github/workflows/redesign-built.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    name: Render and audit the built screens (no secrets)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-not-a-key
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install the app's locked dependencies
+        run: |
+          node --version
+          google-chrome --version
+          npm ci --no-audit --no-fund
+
+      - name: Build
+        run: npx next build
+
+      - name: Serve and wait until the preview route answers
+        run: |
+          set -eu
+          nohup npx next start -p 3000 > "$RUNNER_TEMP/next.log" 2>&1 &
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000/en/preview/subjects?platform=native" || true)
+            if [ "$code" = "200" ]; then echo "up after $i tries"; exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/next.log"; exit 1
+
+      - name: puppeteer-core, pinned, outside the app
+        run: npm install --prefix "$RUNNER_TEMP/pp" --no-audit --no-fund --ignore-scripts puppeteer-core@23.11.1
+
+      - name: Render and audit the 32 screens
+        env:
+          PUPPETEER_DIR: ${{ runner.temp }}/pp
+        run: CHROME="$(command -v google-chrome)" node scripts/redesign-built/render.mjs --out "$RUNNER_TEMP/built"
+
+      - name: The committed PNGs match the fresh renders; the side-by-sides
+        run: |
+          set -eu
+          python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
+          python3 - "$RUNNER_TEMP/built" <<'PY'
+          import glob, os, sys
+          from PIL import Image, ImageChops
+          fresh = sys.argv[1]
+          want = sorted(os.path.basename(p) for p in glob.glob(os.path.join(fresh, '*.png')))
+          have = sorted(os.path.basename(p) for p in glob.glob('docs/design/redesign-built/*.png'))
+          if not have:
+              print('no committed PNG yet'); sys.exit(0)
+          fails = 0 if want == have else 1
+          print(('ok   ' if not fails else 'FAIL ') + f'committed set equals the {len(want)} renders (missing {sorted(set(want) - set(have))}, extra {sorted(set(have) - set(want))})')
+          for n in sorted(set(want) & set(have)):
+              a = Image.open(os.path.join('docs/design/redesign-built', n)).convert('RGB')
+              b = Image.open(os.path.join(fresh, n)).convert('RGB')
+              if a.size != b.size:
+                  print(f'FAIL {n}: size {a.size} vs {b.size}'); fails += 1; continue
+              diff = ImageChops.difference(a, b).convert('L').point(lambda v: 255 if v > 24 else 0)
+              r = diff.histogram()[255] / (a.width * a.height)
+              ok = r <= 0.015
+              print(('ok   ' if ok else 'FAIL ') + f'{n}: {r:.4%} of pixels differ from the fresh render')
+              fails += 0 if ok else 1
+          sys.exit(1 if fails else 0)
+          PY
+          python3 scripts/redesign-built/compare.py "$RUNNER_TEMP/built" "$RUNNER_TEMP/built/side-by-side"
+
+      - name: Server log
+        if: always()
+        run: tail -n 40 "$RUNNER_TEMP/next.log" || true
+
+      - name: Keep the renders
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: redesign-built
+          path: ${{ runner.temp }}/built
+          if-no-files-found: error
+          retention-days: 14

@@ -4,6 +4,8 @@ import { SubjectHeader } from '@/components/materials/SubjectHeader'
 import { MaterialCard } from '@/components/materials/MaterialCard'
 import { DropZone } from '@/components/upload/DropZone'
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { PlatformProvider } from '@/components/platform/PlatformProvider'
+import { resolvePlatform } from '@/lib/platform'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { emptyStats } from '@/lib/subject-stats'
 import { withSupportEmail } from '@/lib/site'
@@ -29,7 +31,13 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }))
 }
 
-export default async function SubjectPreview({ params }: { params: Promise<{ locale: string }> }) {
+export default async function SubjectPreview({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>
+  searchParams: Promise<{ platform?: string }>
+}) {
   if (process.env.VERCEL_ENV === 'production') notFound()
   const { locale } = await params
   if (!locales.includes(locale as Locale)) notFound()
@@ -37,6 +45,9 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
   const t = useTranslation(safeLocale)
   const ar = safeLocale === 'ar'
   const sd = t.dashboard.subjectDetail
+  // `?platform=native` renders the app's structure (the upload button, no top bar).
+  const { platform: rawPlatform } = await searchParams
+  const platform = resolvePlatform(rawPlatform)
 
   const materials: { id: string; filename: string; type: string; status: string; added: string; summary: boolean; quiz: boolean; chunk_count?: number; embedding_status?: string }[] = [
     { id: 'd1', filename: ar ? 'مبادئ-الاقتصاد-الجزئي.md' : 'Microeconomics-Principles.pdf', type: ar ? 'md' : 'pdf', status: 'ready', added: '2026-09-23T21:30:00Z', summary: true, quiz: true },
@@ -78,11 +89,13 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
 
   return (
     <div className="min-h-screen">
-      <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
+      <div className={rawPlatform ? 'hidden' : 'flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs'}>
         <span className="font-semibold text-foreground">subject · preview</span>
         <span className="text-faint">{safeLocale}</span>
       </div>
+      <PlatformProvider platform={platform}>
       <DashboardShell
+        platform={platform}
         locale={safeLocale}
         email="student@example.com"
         isPro={false}
@@ -144,6 +157,7 @@ export default async function SubjectPreview({ params }: { params: Promise<{ loc
           </section>
         </div>
       </DashboardShell>
+      </PlatformProvider>
     </div>
   )
 }

@@ -5,6 +5,8 @@ import { ChatBox } from '@/components/agent/ChatBox'
 import { AgentEmptyState } from '@/components/agent/AgentEmptyState'
 import { MessageBubble } from '@/components/agent/MessageBubble'
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { PlatformProvider } from '@/components/platform/PlatformProvider'
+import { resolvePlatform } from '@/lib/platform'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { PreviewHistory } from './PreviewHistory'
 import { PreviewSubjectChips } from './PreviewSubjectChips'
@@ -49,7 +51,7 @@ export default async function AskPreview({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ view?: string }>
+  searchParams: Promise<{ view?: string; platform?: string }>
 }) {
   if (process.env.VERCEL_ENV === 'production') notFound()
   const { locale } = await params
@@ -57,7 +59,9 @@ export default async function AskPreview({
   const safeLocale = locale as Locale
   const t = useTranslation(safeLocale)
   const ar = safeLocale === 'ar'
-  const raw = (await searchParams).view
+  const sp = await searchParams
+  const raw = sp.view
+  const platform = resolvePlatform(sp.platform)
   const view: View = raw === 'none' || raw === 'zero' || raw === 'history' || raw === 'answer' || raw === 'subjects' || raw === 'noanswer' ? raw : 'default'
 
   // #129 (c): five subjects and their files, through the real rule.
@@ -89,7 +93,7 @@ export default async function AskPreview({
 
   return (
     <div className="min-h-screen">
-      <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
+      <div className={sp.platform ? 'hidden' : 'flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs'}>
         <span className="font-semibold text-foreground">ask · preview</span>
         <span className="text-faint">{safeLocale} · {view}</span>
         {(['default', 'none', 'zero', 'history', 'answer', 'subjects', 'noanswer'] as const).filter((v) => v !== view).map((v) => (
@@ -98,7 +102,9 @@ export default async function AskPreview({
           </Link>
         ))}
       </div>
+      <PlatformProvider platform={platform}>
       <DashboardShell
+        platform={platform}
         locale={safeLocale}
         email="student@example.com"
         isPro={false}
@@ -156,6 +162,7 @@ export default async function AskPreview({
           </div>
         )}
       </DashboardShell>
+      </PlatformProvider>
     </div>
   )
 }

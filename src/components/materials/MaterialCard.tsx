@@ -42,6 +42,7 @@ export function MaterialCard({
   hasSummary,
   hasQuiz,
   noText = false,
+  anchorId,
   labels,
   children,
 }: {
@@ -53,6 +54,8 @@ export function MaterialCard({
   hasSummary: boolean;
   hasQuiz: boolean;
   noText?: boolean;
+  /** Step Redesign-2: the id an Ask source link scrolls to (`material-<document id>`). */
+  anchorId?: string;
   labels: MaterialCardLabels;
   children?: ReactNode;
 }) {
@@ -78,9 +81,9 @@ export function MaterialCard({
     : fileType === 'xlsx' ? 'bg-mint-subtle text-mint'
     : 'bg-accent-subtle text-accent';
   return (
-    <article className="rise rounded-2xl border border-border bg-surface p-4 md:p-5">
+    <article id={anchorId} className="kf-card rise rounded-2xl border border-border bg-surface p-4 md:p-5">
       <div className="flex items-start gap-3">
-        <span className={`inline-flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl ${tile}`}>
+        <span className={`kf-chip inline-flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl ${tile}`}>
           <FileText className="h-5 w-5" />
           <span className="text-[9px] font-bold uppercase leading-none">{fileType ?? ''}</span>
         </span>
@@ -98,7 +101,7 @@ export function MaterialCard({
       {empty && <p className="mt-3 text-sm text-danger">{labels.noTextLine}</p>}
 
       {status === 'ready' && !empty && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-raised px-3 py-2 text-xs">
+        <div className="kf-well mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl bg-raised px-3 py-2 text-xs">
           <span className="font-medium text-muted-foreground">{labels.checklist}</span>
           <Check done={hasSummary} done_label={labels.summaryDone} todo_label={labels.summaryTodo} />
           <Check done={hasQuiz} done_label={labels.quizDone} todo_label={labels.quizTodo} />
@@ -116,7 +119,9 @@ export function MaterialCard({
 
 function Check({ done, done_label, todo_label }: { done: boolean; done_label: string; todo_label: string }) {
   return (
-    <span className={cn('inline-flex items-center gap-1.5', done ? 'text-success' : 'text-faint')}>
+    // Step Redesign-2: a pill each; the one still to do is a plain pill in the
+    // secondary text colour, not a faint hole (the mockup critique).
+    <span className={cn('inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 font-medium', done ? 'bg-surface text-success' : 'bg-surface text-muted-foreground')}>
       {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
       {done ? done_label : todo_label}
     </span>

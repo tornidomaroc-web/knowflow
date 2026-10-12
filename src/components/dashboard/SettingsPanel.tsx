@@ -17,7 +17,6 @@ export interface SettingsPanelLabels {
   freePlanDesc: string;
   proPlanDesc: string;
   renews: string;
-  /** Shown INSTEAD of `renews` once a cancellation is scheduled. */
   cancels: string;
   upgrade: string;
   activeSubscription: string;
@@ -36,59 +35,33 @@ export interface SettingsPanelLabels {
 export interface SettingsPanelProps {
   email: string;
   isPro: boolean;
-  /** Formatted renewal date, or null when not applicable. Shown only for Pro. */
   renewsOn: string | null;
-  /**
-   * Formatted date the subscription runs until once a cancellation is
-   * SCHEDULED, or null. Non-null replaces the renewal line: telling a customer
-   * who has just cancelled that their plan "renews" on that date would be
-   * exactly backwards, and it is the same date.
-   *
-   * Null also covers "we could not ask Paddle" - see readScheduledCancellation.
-   * The page degrades to the plain entitlement rather than to an error.
-   */
   cancelsOn: string | null;
-  /**
-   * Where Upgrade goes, or NULL when no purchase link may be shown. The page
-   * decides from `purchaseLinksAllowed()` (Apple 3.1.1(a), src/lib/platform.ts):
-   * on the web a free student gets the button; in the store build the plan
-   * card is status only. Null, not a boolean beside a string, so a caller
-   * cannot pass an href and forget the gate.
-   */
   upgradeHref: string | null;
   locale: Locale;
-  /** This page's own path, so the language links keep the student here. */
   pathname: string;
   privacyHref: string;
   termsHref: string;
   supportEmail: string;
   labels: SettingsPanelLabels;
-  /** STORE_PATH.md S3(a): the study reminder, inside the app only; after Preferences. */
   reminderCard?: ReactNode;
-  /** Apple 5.1.2(i): the AI permission card; rendered after Preferences. */
   consentCard?: ReactNode;
-  /** The cancel-subscription card, Pro only; rendered after Preferences. */
   subscriptionCard?: ReactNode;
-  /** The delete-account card; rendered last, as the destructive action should be. */
   deleteCard: ReactNode;
+  /**
+   * Step Redesign-2: the sign-out row in the Account card. The app has no top
+   * bar any more, so this is where it signs out; the web shows it too (its
+   * sidebar and top bar keep theirs). A client component, handed in by the
+   * page as the delete card is, so this panel stays renderable on the server.
+   */
+  signOutRow?: ReactNode;
 }
 
 /**
- * Settings (register #46) — dumb, presentational, and built for the store
- * shell first. Tier, dates and the upgrade href arrive as plain props from the
- * server wrapper (the sole caller of getEntitlement); nothing here reads a
- * cookie, a session or an environment variable.
- *
- * ORDER, AND WHY. Account (who you are) → Plan (what you have) → Preferences
- * (language and appearance, the two things a student changes most) → the
- * subscription exit for Pro → help and the legal pages Apple 5.1.1(i) wants
- * reachable inside the app → delete, last, because the destructive action must
- * come after the gentler ones (register #70).
- *
- * THE PLAN CARD IS STATUS ONLY UNLESS `upgradeHref` IS GIVEN. That is the
- * whole of Apple 3.1.1(a) on this screen: no button, no link, no sentence that
- * points at a purchase outside the app. The web passes the href; the native
- * build passes null.
+ * The Settings screen (register #46). Every section is a card with an icon
+ * tile; Step Redesign-2 gives it the large title, the clay cards and the
+ * Account card's sign-out row, and keeps the plan card for the web and for a
+ * Pro student only (Apple 3.1.3(f)).
  */
 export function SettingsPanel({
   email,
@@ -106,6 +79,7 @@ export function SettingsPanel({
   consentCard,
   subscriptionCard,
   deleteCard,
+  signOutRow,
 }: SettingsPanelProps) {
   const initial = (email.trim()[0] ?? '?').toUpperCase();
 
@@ -113,7 +87,7 @@ export function SettingsPanel({
     <div>
       <div className="max-w-3xl space-y-6">
         <header>
-          <h1 className="text-2xl font-bold text-foreground md:text-3xl">{labels.title}</h1>
+          <h1 className="kf-title text-2xl font-bold text-foreground md:text-3xl">{labels.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{labels.subtitle}</p>
         </header>
 
@@ -123,7 +97,7 @@ export function SettingsPanel({
           <div className="mt-4 flex items-center gap-4">
             <span
               aria-hidden="true"
-              className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-lg font-bold text-primary"
+              className="kf-chip inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-lg font-bold text-primary"
             >
               {initial}
             </span>
@@ -134,6 +108,7 @@ export function SettingsPanel({
               </p>
             </div>
           </div>
+          {signOutRow && <div className="mt-3 border-t border-border pt-1">{signOutRow}</div>}
         </Card>
 
         {/* ── Plan ── Apple 3.1.3(f), measured in the simulator 2026-10-08: inside
@@ -147,7 +122,7 @@ export function SettingsPanel({
             <SectionLabel icon={Trophy} tint="bg-accent-subtle text-accent">{labels.plan}</SectionLabel>
             <Badge variant={isPro ? 'primary' : 'neutral'}>{isPro ? labels.pro : labels.free}</Badge>
           </div>
-          <div className="mt-4 rounded-xl bg-raised p-4">
+          <div className="kf-tile mt-4 rounded-xl bg-raised p-4">
             <p className="text-base font-semibold text-foreground">{isPro ? labels.pro : labels.free}</p>
             <p className="mt-1 text-sm text-muted-foreground">{isPro ? labels.proPlanDesc : labels.freePlanDesc}</p>
             {isPro && cancelsOn && (
@@ -188,7 +163,7 @@ export function SettingsPanel({
                   (register #83). `lang` on each so a screen reader says it right.
                   Plain `<a>`s, not `<Link>`s: a switch must reach the middleware
                   as a page load, never as a prefetch or a cached payload (#136). */}
-              <div role="group" aria-label={labels.language} className="inline-flex rounded-xl border border-border bg-raised p-1">
+              <div role="group" aria-label={labels.language} className="inline-flex w-full rounded-xl border border-border bg-raised p-1 sm:w-auto">
                 {locales.map((l) => {
                   const selected = l === locale;
                   return (
@@ -198,7 +173,7 @@ export function SettingsPanel({
                       lang={l}
                       aria-current={selected ? 'true' : undefined}
                       className={cn(
-                        'inline-flex h-10 min-w-[6rem] items-center justify-center rounded-lg px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        'inline-flex h-11 min-w-[6rem] flex-1 items-center justify-center rounded-lg px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                         selected ? 'bg-surface text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
@@ -209,7 +184,7 @@ export function SettingsPanel({
               </div>
             </PreferenceRow>
             <PreferenceRow label={labels.appearance}>
-              <ThemeToggle labels={{ appearance: labels.appearance, dark: labels.themeDark, light: labels.themeLight }} />
+              <ThemeToggle labels={{ appearance: labels.appearance, dark: labels.themeDark, light: labels.themeLight }} className="w-full sm:w-auto" />
             </PreferenceRow>
           </div>
         </Card>
@@ -245,7 +220,7 @@ function SectionLabel({ children, icon: Icon, tint }: { children: ReactNode; ico
   // section is before the word is read (VISUAL_LANGUAGE.md rule 1).
   return (
     <h2 className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
-      <span className={`section-icon inline-flex h-8 w-8 items-center justify-center rounded-lg ${tint}`}>
+      <span className={`section-icon kf-chip inline-flex h-8 w-8 items-center justify-center rounded-lg ${tint}`}>
         <Icon className="h-4 w-4" />
       </span>
       {children}
@@ -281,7 +256,7 @@ function LinkRow({
 }) {
   const inner = (
     <>
-      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-subtle text-primary">
+      <span className="kf-chip inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-subtle text-primary">
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">

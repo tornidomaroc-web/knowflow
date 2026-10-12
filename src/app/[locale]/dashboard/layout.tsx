@@ -72,7 +72,7 @@ export default async function DashboardLayout({
       labels={t.dashboard.aiConsent}
       privacyHref={`/${safeLocale}/privacy`}
     >
-    <DashboardShell locale={safeLocale} email={user.email || ''} isPro={isPro} labels={labels}>
+    <DashboardShell locale={safeLocale} email={user.email || ''} isPro={isPro} labels={labels} platform={platform}>
       {passwordReplaced && (
         <PasswordReplacedNotice
           locale={safeLocale}

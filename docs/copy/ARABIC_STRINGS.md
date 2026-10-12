@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
 Generated 2026-10-12 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **413 Arabic strings.**
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **418 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -529,6 +529,7 @@ file is not read by the app.
 
 | Key | العربية | English |
 |---|---|---|
+| `dashboard.agent.sources` | المصادر | Sources |
 | `dashboard.agent.chatWith` | تسأل عن | Asking about |
 | `dashboard.agent.startTyping` | كل جواب يأتي من ملفات هذه المادة. | Every answer comes from this subject's own materials. |
 | `dashboard.agent.emptyTitle` | ما الذي يحيّرك اليوم؟ | What do you want to understand? |
@@ -547,6 +548,10 @@ file is not read by the app.
 |---|---|---|
 | `dashboard.upload.uploadFailed` | لم نتأكد من وصول ملفك. حدّث الصفحة لترى إن كان قد وصل، وإن لم يصل فارفعه مرة أخرى. | We could not confirm that your file was uploaded. Refresh the page to see whether it arrived, and upload it again if it did not. |
 | `dashboard.upload.dropHere` | اسحب ملفاتك إلى هنا أو اضغط لرفعها | Drop files here or click to upload |
+| `dashboard.upload.uploadButton` | ارفع ملفًا | Upload a file |
+| `dashboard.upload.typesLabel` | الأنواع المقبولة | Accepted types |
+| `dashboard.upload.sizeLine` | حتى {limit} للملف الواحد | Up to {limit} per file |
+| `dashboard.upload.dropHereTouch` | اسحب ملفاتك إلى هنا أو اضغط لرفعها | Drop files here or tap to upload |
 | `dashboard.upload.supported` | الملفات المقبولة: PDF, DOCX, PPTX, XLSX, TXT, MD (حتى {limit} للملف الواحد) | Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (up to {limit} per file) |
 | `dashboard.upload.uploading` | نرفع ملفك… | Uploading… |
 | `dashboard.upload.reading` | نقرأ ملفك… | Reading your file… |

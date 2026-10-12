@@ -23,3 +23,21 @@ export function formatDate(value: string | number | Date, locale: Locale): strin
     year: 'numeric',
   }).format(d);
 }
+
+/**
+ * The home's date line (Step Redesign-2): the weekday and the day, derived
+ * from the real date in the student's zone, never written by hand (the
+ * mockup had "الأحد 12 أكتوبر" for a Monday). Western digits in both
+ * languages, as formatDate. An unknown or invalid zone falls back to UTC.
+ */
+export function formatDayDate(value: string | number | Date, locale: Locale, timeZone?: string): string {
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const opts: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long' };
+  try {
+    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB', { ...opts, timeZone }).format(d);
+  } catch {
+    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB', opts).format(d);
+  }
+}
+

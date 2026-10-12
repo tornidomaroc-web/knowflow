@@ -136,6 +136,7 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
                   hasSummary={Boolean(doc.summary_generated_at)}
                   hasQuiz={quizzedIds.has(doc.id)}
                   noText={hasNoText(doc)}
+                  anchorId={`material-${doc.id}`}
                   labels={cardLabels}
                 >
                   {/* #128: a file with no text offers no summary or quiz, which

@@ -522,6 +522,8 @@ export const en = {
       notificationBody: "Open KnowFlow and review one material today."
     },
     agent: {
+      // Step Redesign-2: over the source pills under an answer.
+      sources: "Sources",
       chatWith: "Asking about",
       startTyping: "Every answer comes from this subject's own materials.",
       emptyTitle: "What do you want to understand?",
@@ -539,6 +541,12 @@ export const en = {
     upload: {
       uploadFailed: "We could not confirm that your file was uploaded. Refresh the page to see whether it arrived, and upload it again if it did not.",
       dropHere: "Drop files here or click to upload",
+      // Step Redesign-2: the app shows one button; the types and the size are two
+      // lines with the Latin list isolated; "tap" on a touch screen.
+      uploadButton: "Upload a file",
+      typesLabel: "Accepted types",
+      sizeLine: "Up to {limit} per file",
+      dropHereTouch: "Drop files here or tap to upload",
       supported: "Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (up to {limit} per file)",
       uploading: "Uploading…",
       // #113. What the student reads during the synchronous wait, in order:

@@ -38,6 +38,18 @@ export function formatReminderTime(hour: number, minute: number): string {
 }
 
 /**
+ * The time as a student reads it (Step Redesign-2): "7:00 pm" in English,
+ * "7:00 م" in Arabic, Western digits with the Arabic marker. The input and
+ * the data attributes keep "HH:MM"; this is for the sentence beside them.
+ */
+export function formatReminderClock(value: string, locale: 'ar' | 'en'): string {
+  const at = parseReminderTime(value);
+  if (!at) return value;
+  const d = new Date(Date.UTC(2026, 0, 1, at.hour, at.minute));
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' }).format(d);
+}
+
+/**
  * The one notification, repeating every day at hour:minute (the plugin turns
  * `schedule.on` into a repeating calendar trigger). Its words are the
  * student's language at the moment it was saved; the card saves it again when
