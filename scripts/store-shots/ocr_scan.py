@@ -48,7 +48,8 @@ for p in sys.argv[1:]:
     hit = EMAIL.search(text) or MARKERS.search(text)
     need(not hit, f'{name}: no email address or test account marker ({hit.group(0) if hit else "none"})')
     w = WORDS.search(text)
-    need(not w, f'{name}: no price, plan, upgrade or free word ({w.group(0) if w else "none"})')
+    ctx = text[max(0, w.start() - 40):w.end() + 40].replace('\n', ' | ') if w else ''
+    need(not w, f'{name}: no price, plan, upgrade or free word ({w.group(0) if w else "none"}{": " + repr(ctx) if w else ""})')
 
 print(f'\n{fails} failure(s)')
 sys.exit(1 if fails else 0)
