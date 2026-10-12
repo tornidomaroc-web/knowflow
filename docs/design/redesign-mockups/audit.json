@@ -1,0 +1,309 @@
+[
+  {
+    "file": "ar-dark-1-home",
+    "locale": "ar",
+    "theme": "dark",
+    "findings": [],
+    "text": 31,
+    "textWorst": 4.82,
+    "controls": [],
+    "targets": 10,
+    "targetMin": 44,
+    "shaping": 22,
+    "maxLayers": 3
+  },
+  {
+    "file": "ar-dark-2-subjects",
+    "locale": "ar",
+    "theme": "dark",
+    "findings": [],
+    "text": 22,
+    "textWorst": 4.82,
+    "controls": [],
+    "targets": 10,
+    "targetMin": 44,
+    "shaping": 16,
+    "maxLayers": 3
+  },
+  {
+    "file": "ar-dark-3-subject",
+    "locale": "ar",
+    "theme": "dark",
+    "findings": [],
+    "text": 35,
+    "textWorst": 4.82,
+    "controls": [],
+    "targets": 11,
+    "targetMin": 44,
+    "shaping": 29,
+    "maxLayers": 3
+  },
+  {
+    "file": "ar-dark-4-ask",
+    "locale": "ar",
+    "theme": "dark",
+    "findings": [],
+    "text": 14,
+    "textWorst": 4.82,
+    "controls": [
+      {
+        "el": "field edge: label.well \"اكتب سؤالك هنا\"",
+        "got": 6.23,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 10,
+    "targetMin": 44,
+    "shaping": 13,
+    "maxLayers": 3
+  },
+  {
+    "file": "ar-dark-5-summary",
+    "locale": "ar",
+    "theme": "dark",
+    "findings": [],
+    "text": 22,
+    "textWorst": 4.82,
+    "controls": [],
+    "targets": 7,
+    "targetMin": 44,
+    "shaping": 17,
+    "maxLayers": 3
+  },
+  {
+    "file": "ar-dark-6-settings",
+    "locale": "ar",
+    "theme": "dark",
+    "findings": [],
+    "text": 26,
+    "textWorst": 4.82,
+    "controls": [
+      {
+        "el": "switch track: a.switch \"\"",
+        "got": 7.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span \"\"",
+        "got": 7.12,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.seg \"العربيةEnglish\"",
+        "got": 5.23,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a \"العربية\"",
+        "got": 8.24,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.seg \"داكنفاتح\"",
+        "got": 5.23,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a \"داكن\"",
+        "got": 8.24,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 15,
+    "targetMin": 44,
+    "shaping": 21,
+    "maxLayers": 3
+  },
+  {
+    "file": "ar-light-1-home",
+    "locale": "ar",
+    "theme": "light",
+    "findings": [],
+    "text": 31,
+    "textWorst": 4.55,
+    "controls": [],
+    "targets": 10,
+    "targetMin": 44,
+    "shaping": 22,
+    "maxLayers": 3
+  },
+  {
+    "file": "ar-light-2-subjects",
+    "locale": "ar",
+    "theme": "light",
+    "findings": [],
+    "text": 22,
+    "textWorst": 4.55,
+    "controls": [],
+    "targets": 10,
+    "targetMin": 44,
+    "shaping": 16,
+    "maxLayers": 3
+  },
+  {
+    "file": "ar-light-3-subject",
+    "locale": "ar",
+    "theme": "light",
+    "findings": [],
+    "text": 35,
+    "textWorst": 4.55,
+    "controls": [],
+    "targets": 11,
+    "targetMin": 44,
+    "shaping": 29,
+    "maxLayers": 3
+  },
+  {
+    "file": "ar-light-4-ask",
+    "locale": "ar",
+    "theme": "light",
+    "findings": [],
+    "text": 14,
+    "textWorst": 4.55,
+    "controls": [
+      {
+        "el": "field edge: label.well \"اكتب سؤالك هنا\"",
+        "got": 4.81,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 10,
+    "targetMin": 44,
+    "shaping": 13,
+    "maxLayers": 3
+  },
+  {
+    "file": "ar-light-5-summary",
+    "locale": "ar",
+    "theme": "light",
+    "findings": [],
+    "text": 22,
+    "textWorst": 4.55,
+    "controls": [],
+    "targets": 7,
+    "targetMin": 44,
+    "shaping": 17,
+    "maxLayers": 3
+  },
+  {
+    "file": "ar-light-6-settings",
+    "locale": "ar",
+    "theme": "light",
+    "findings": [],
+    "text": 26,
+    "textWorst": 4.55,
+    "controls": [
+      {
+        "el": "switch track: a.switch \"\"",
+        "got": 5.49,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span \"\"",
+        "got": 7.57,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.seg \"العربيةEnglish\"",
+        "got": 5.61,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a \"العربية\"",
+        "got": 4.63,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.seg \"داكنفاتح\"",
+        "got": 5.61,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a \"فاتح\"",
+        "got": 4.63,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 15,
+    "targetMin": 44,
+    "shaping": 21,
+    "maxLayers": 3
+  },
+  {
+    "file": "en-dark-2-subjects",
+    "locale": "en",
+    "theme": "dark",
+    "findings": [],
+    "text": 22,
+    "textWorst": 4.82,
+    "controls": [],
+    "targets": 10,
+    "targetMin": 44,
+    "shaping": 0,
+    "maxLayers": 3
+  },
+  {
+    "file": "en-dark-6-settings",
+    "locale": "en",
+    "theme": "dark",
+    "findings": [],
+    "text": 26,
+    "textWorst": 4.82,
+    "controls": [
+      {
+        "el": "switch track: a.switch \"\"",
+        "got": 7.51,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span \"\"",
+        "got": 7.12,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.seg \"العربيةEnglish\"",
+        "got": 5.23,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a \"English\"",
+        "got": 8.24,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div.seg \"DarkLight\"",
+        "got": 5.23,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a \"Dark\"",
+        "got": 8.24,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 15,
+    "targetMin": 44,
+    "shaping": 1,
+    "maxLayers": 3
+  }
+]
