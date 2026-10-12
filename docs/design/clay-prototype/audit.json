@@ -1,0 +1,811 @@
+[
+  {
+    "look": "clay",
+    "locale": "ar",
+    "theme": "dark",
+    "s": "subjects",
+    "file": "ar-dark-subjects.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subjects?look=clay&theme=dark",
+    "n": 0,
+    "text": 66,
+    "controls": [],
+    "cost": {
+      "shadowed": 27,
+      "maxLayers": 3,
+      "blurred": 41,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [],
+      "controls": [],
+      "cost": [],
+      "liveCopy": []
+    },
+    "minTextMargin": 1.16
+  },
+  {
+    "look": "clay",
+    "locale": "ar",
+    "theme": "dark",
+    "s": "subject",
+    "file": "ar-dark-subject.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?look=clay&theme=dark",
+    "n": 0,
+    "text": 106,
+    "controls": [
+      {
+        "el": "field: input \"\"",
+        "got": 3.45,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input \"\"",
+        "got": 3.45,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "cost": {
+      "shadowed": 36,
+      "maxLayers": 3,
+      "blurred": 53,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [],
+      "controls": [],
+      "cost": [],
+      "liveCopy": []
+    },
+    "minTextMargin": 1.05
+  },
+  {
+    "look": "clay",
+    "locale": "ar",
+    "theme": "dark",
+    "s": "settings",
+    "file": "ar-dark-settings.png",
+    "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&look=clay&theme=dark",
+    "n": 0,
+    "text": 38,
+    "controls": [
+      {
+        "el": "switch track: button[role=switch] \"\"",
+        "got": 3.45,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span \"\"",
+        "got": 5.6,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input \"\"",
+        "got": 3.45,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div[role=group] \"Englishالعربية\"",
+        "got": 3.45,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a \"العربية\"",
+        "got": 6.78,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div[role=radiogroup] \"داكنفاتح\"",
+        "got": 3.45,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: button[role=radio] \"داكن\"",
+        "got": 6.78,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "cost": {
+      "shadowed": 19,
+      "maxLayers": 3,
+      "blurred": 27,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [],
+      "controls": [],
+      "cost": [],
+      "liveCopy": [
+        "ل | الإعدادات | الإعدادات |  | حسابك وباقتك وتفضيلاتك. |  | الحساب | S |  | ال"
+      ]
+    },
+    "minTextMargin": 1.17
+  },
+  {
+    "look": "clay",
+    "locale": "ar",
+    "theme": "light",
+    "s": "subjects",
+    "file": "ar-light-subjects.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subjects?look=clay&theme=light",
+    "n": 0,
+    "text": 66,
+    "controls": [],
+    "cost": {
+      "shadowed": 27,
+      "maxLayers": 3,
+      "blurred": 41,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [],
+      "controls": [],
+      "cost": [],
+      "liveCopy": []
+    },
+    "minTextMargin": 1.12
+  },
+  {
+    "look": "clay",
+    "locale": "ar",
+    "theme": "light",
+    "s": "subject",
+    "file": "ar-light-subject.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?look=clay&theme=light",
+    "n": 0,
+    "text": 106,
+    "controls": [
+      {
+        "el": "field: input \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "cost": {
+      "shadowed": 36,
+      "maxLayers": 3,
+      "blurred": 53,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [],
+      "controls": [],
+      "cost": [],
+      "liveCopy": []
+    },
+    "minTextMargin": 1.01
+  },
+  {
+    "look": "clay",
+    "locale": "ar",
+    "theme": "light",
+    "s": "settings",
+    "file": "ar-light-settings.png",
+    "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&look=clay&theme=light",
+    "n": 0,
+    "text": 38,
+    "controls": [
+      {
+        "el": "switch track: button[role=switch] \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span \"\"",
+        "got": 5.06,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div[role=group] \"Englishالعربية\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a \"العربية\"",
+        "got": 4.56,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div[role=radiogroup] \"داكنفاتح\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: button[role=radio] \"فاتح\"",
+        "got": 4.56,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "cost": {
+      "shadowed": 19,
+      "maxLayers": 3,
+      "blurred": 27,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [],
+      "controls": [],
+      "cost": [],
+      "liveCopy": [
+        "ل | الإعدادات | الإعدادات |  | حسابك وباقتك وتفضيلاتك. |  | الحساب | S |  | ال"
+      ]
+    },
+    "minTextMargin": 1.16
+  },
+  {
+    "look": "clay",
+    "locale": "en",
+    "theme": "dark",
+    "s": "subjects",
+    "file": "en-dark-subjects.png",
+    "url": "http://127.0.0.1:3000/en/preview/subjects?look=clay&theme=dark",
+    "n": 0,
+    "text": 66,
+    "controls": [],
+    "cost": {
+      "shadowed": 27,
+      "maxLayers": 3,
+      "blurred": 41,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [],
+      "controls": [],
+      "cost": [],
+      "liveCopy": []
+    },
+    "minTextMargin": 1.16
+  },
+  {
+    "look": "clay",
+    "locale": "en",
+    "theme": "dark",
+    "s": "subject",
+    "file": "en-dark-subject.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?look=clay&theme=dark",
+    "n": 0,
+    "text": 105,
+    "controls": [
+      {
+        "el": "field: input \"\"",
+        "got": 3.45,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input \"\"",
+        "got": 3.45,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "cost": {
+      "shadowed": 36,
+      "maxLayers": 3,
+      "blurred": 53,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [],
+      "controls": [],
+      "cost": [],
+      "liveCopy": []
+    },
+    "minTextMargin": 1.05
+  },
+  {
+    "look": "clay",
+    "locale": "en",
+    "theme": "dark",
+    "s": "settings",
+    "file": "en-dark-settings.png",
+    "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&look=clay&theme=dark",
+    "n": 0,
+    "text": 38,
+    "controls": [
+      {
+        "el": "switch track: button[role=switch] \"\"",
+        "got": 3.45,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span \"\"",
+        "got": 5.6,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input \"\"",
+        "got": 3.45,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div[role=group] \"Englishالعربية\"",
+        "got": 3.45,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a \"English\"",
+        "got": 6.78,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div[role=radiogroup] \"DarkLight\"",
+        "got": 3.45,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: button[role=radio] \"Dark\"",
+        "got": 6.78,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "cost": {
+      "shadowed": 19,
+      "maxLayers": 3,
+      "blurred": 27,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [],
+      "controls": [],
+      "cost": [],
+      "liveCopy": [
+        "tings | Settings |  | Your account, plan and preferences. |  | ACCOUNT"
+      ]
+    },
+    "minTextMargin": 1.17
+  },
+  {
+    "look": "clay",
+    "locale": "en",
+    "theme": "light",
+    "s": "subjects",
+    "file": "en-light-subjects.png",
+    "url": "http://127.0.0.1:3000/en/preview/subjects?look=clay&theme=light",
+    "n": 0,
+    "text": 66,
+    "controls": [],
+    "cost": {
+      "shadowed": 27,
+      "maxLayers": 3,
+      "blurred": 41,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [],
+      "controls": [],
+      "cost": [],
+      "liveCopy": []
+    },
+    "minTextMargin": 1.12
+  },
+  {
+    "look": "clay",
+    "locale": "en",
+    "theme": "light",
+    "s": "subject",
+    "file": "en-light-subject.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?look=clay&theme=light",
+    "n": 0,
+    "text": 105,
+    "controls": [
+      {
+        "el": "field: input \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "cost": {
+      "shadowed": 36,
+      "maxLayers": 3,
+      "blurred": 53,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [],
+      "controls": [],
+      "cost": [],
+      "liveCopy": []
+    },
+    "minTextMargin": 1.01
+  },
+  {
+    "look": "clay",
+    "locale": "en",
+    "theme": "light",
+    "s": "settings",
+    "file": "en-light-settings.png",
+    "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&look=clay&theme=light",
+    "n": 0,
+    "text": 38,
+    "controls": [
+      {
+        "el": "switch track: button[role=switch] \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "switch thumb: span \"\"",
+        "got": 5.06,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "field: input \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div[role=group] \"Englishالعربية\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: a \"English\"",
+        "got": 4.56,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "segmented track: div[role=radiogroup] \"DarkLight\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      },
+      {
+        "el": "chosen segment: button[role=radio] \"Light\"",
+        "got": 4.56,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "cost": {
+      "shadowed": 19,
+      "maxLayers": 3,
+      "blurred": 27,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [],
+      "controls": [],
+      "cost": [],
+      "liveCopy": [
+        "tings | Settings |  | Your account, plan and preferences. |  | ACCOUNT"
+      ]
+    },
+    "minTextMargin": 1.16
+  },
+  {
+    "look": "current",
+    "locale": "ar",
+    "theme": "dark",
+    "s": "subjects",
+    "file": "before/ar-dark-subjects.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subjects?look=current&theme=dark",
+    "n": 10,
+    "text": 66,
+    "controls": [],
+    "cost": {
+      "shadowed": 0,
+      "maxLayers": 0,
+      "blurred": 0,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [
+        {
+          "el": "span \"آخر سؤال 24 سبتمبر 2026\"",
+          "got": 3.05,
+          "need": 4.5,
+          "ok": false
+        },
+        {
+          "el": "bdi \"24 سبتمبر 2026\"",
+          "got": 3.05,
+          "need": 4.5,
+          "ok": false
+        },
+        {
+          "el": "span \"آخر إضافة 23 سبتمبر 2026\"",
+          "got": 3.05,
+          "need": 4.5,
+          "ok": false
+        },
+        {
+          "el": "bdi \"23 سبتمبر 2026\"",
+          "got": 3.05,
+          "need": 4.5,
+          "ok": false
+        },
+        {
+          "el": "span \"آخر إضافة 12 سبتمبر 2026\"",
+          "got": 3.05,
+          "need": 4.5,
+          "ok": false
+        },
+        {
+          "el": "bdi \"12 سبتمبر 2026\"",
+          "got": 3.05,
+          "need": 4.5,
+          "ok": false
+        },
+        {
+          "el": "span \"أُنشئت 20 سبتمبر 2026\"",
+          "got": 3.05,
+          "need": 4.5,
+          "ok": false
+        },
+        {
+          "el": "bdi \"20 سبتمبر 2026\"",
+          "got": 3.05,
+          "need": 4.5,
+          "ok": false
+        },
+        {
+          "el": "span \"آخر إضافة 20 سبتمبر 2026\"",
+          "got": 3.05,
+          "need": 4.5,
+          "ok": false
+        },
+        {
+          "el": "bdi \"20 سبتمبر 2026\"",
+          "got": 3.05,
+          "need": 4.5,
+          "ok": false
+        }
+      ],
+      "controls": [],
+      "cost": [],
+      "liveCopy": []
+    },
+    "minTextMargin": 0.68
+  },
+  {
+    "look": "current",
+    "locale": "ar",
+    "theme": "dark",
+    "s": "subject",
+    "file": "before/ar-dark-subject.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?look=current&theme=dark",
+    "n": 6,
+    "text": 106,
+    "controls": [
+      {
+        "el": "field: input \"\"",
+        "got": 1.29,
+        "need": 3,
+        "ok": false
+      },
+      {
+        "el": "field: input \"\"",
+        "got": 1.29,
+        "need": 3,
+        "ok": false
+      }
+    ],
+    "cost": {
+      "shadowed": 0,
+      "maxLayers": 0,
+      "blurred": 0,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [
+        {
+          "el": "span \"بلا اختبار بعد\"",
+          "got": 2.76,
+          "need": 4.5,
+          "ok": false
+        },
+        {
+          "el": "span \"بلا ملخص بعد\"",
+          "got": 2.76,
+          "need": 4.5,
+          "ok": false
+        },
+        {
+          "el": "span \"بلا ملخص بعد\"",
+          "got": 2.76,
+          "need": 4.5,
+          "ok": false
+        },
+        {
+          "el": "span \"بلا اختبار بعد\"",
+          "got": 2.76,
+          "need": 4.5,
+          "ok": false
+        }
+      ],
+      "controls": [
+        {
+          "el": "field: input \"\"",
+          "got": 1.29,
+          "need": 3,
+          "ok": false
+        },
+        {
+          "el": "field: input \"\"",
+          "got": 1.29,
+          "need": 3,
+          "ok": false
+        }
+      ],
+      "cost": [],
+      "liveCopy": []
+    },
+    "minTextMargin": 0.61
+  },
+  {
+    "look": "current",
+    "locale": "ar",
+    "theme": "dark",
+    "s": "settings",
+    "file": "before/ar-dark-settings.png",
+    "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&look=current&theme=dark",
+    "n": 8,
+    "text": 38,
+    "controls": [
+      {
+        "el": "switch track: button[role=switch] \"\"",
+        "got": 1.06,
+        "need": 3,
+        "ok": false
+      },
+      {
+        "el": "switch thumb: span \"\"",
+        "got": 1.06,
+        "need": 3,
+        "ok": false
+      },
+      {
+        "el": "field: input \"\"",
+        "got": 1.29,
+        "need": 3,
+        "ok": false
+      },
+      {
+        "el": "segmented track: div[role=group] \"Englishالعربية\"",
+        "got": 1.29,
+        "need": 3,
+        "ok": false
+      },
+      {
+        "el": "chosen segment: a \"العربية\"",
+        "got": 1.11,
+        "need": 3,
+        "ok": false
+      },
+      {
+        "el": "segmented track: div[role=radiogroup] \"داكنفاتح\"",
+        "got": 1.29,
+        "need": 3,
+        "ok": false
+      },
+      {
+        "el": "chosen segment: button[role=radio] \"داكن\"",
+        "got": 1.11,
+        "need": 3,
+        "ok": false
+      }
+    ],
+    "cost": {
+      "shadowed": 9,
+      "maxLayers": 4,
+      "blurred": 16,
+      "filters": []
+    },
+    "bad": {
+      "status": [],
+      "text": [],
+      "controls": [
+        {
+          "el": "switch track: button[role=switch] \"\"",
+          "got": 1.06,
+          "need": 3,
+          "ok": false
+        },
+        {
+          "el": "switch thumb: span \"\"",
+          "got": 1.06,
+          "need": 3,
+          "ok": false
+        },
+        {
+          "el": "field: input \"\"",
+          "got": 1.29,
+          "need": 3,
+          "ok": false
+        },
+        {
+          "el": "segmented track: div[role=group] \"Englishالعربية\"",
+          "got": 1.29,
+          "need": 3,
+          "ok": false
+        },
+        {
+          "el": "chosen segment: a \"العربية\"",
+          "got": 1.11,
+          "need": 3,
+          "ok": false
+        },
+        {
+          "el": "segmented track: div[role=radiogroup] \"داكنفاتح\"",
+          "got": 1.29,
+          "need": 3,
+          "ok": false
+        },
+        {
+          "el": "chosen segment: button[role=radio] \"داكن\"",
+          "got": 1.11,
+          "need": 3,
+          "ok": false
+        }
+      ],
+      "cost": [
+        "4 shadow layers on one element"
+      ],
+      "liveCopy": [
+        "ل | الإعدادات | الإعدادات |  | حسابك وباقتك وتفضيلاتك. |  | الحساب | S |  | ال"
+      ]
+    },
+    "minTextMargin": 1.22
+  }
+]
