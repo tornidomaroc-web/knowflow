@@ -170,15 +170,18 @@ function audit() {
     const cs = getComputedStyle(el);
     const font = `${cs.fontWeight} 20px ${cs.fontFamily}`;
     ctx.font = font;
-    const a1 = draw(t, font, 'rtl'), a2 = draw([...t].join('‌'), font, 'rtl');
+    const a1 = draw(t, font, 'rtl'), a2 = draw([...t].join(String.fromCharCode(0x200c)), font, 'rtl');
     shaping.push({ el: name(el), ok: a1.w !== a2.w || a1.data.some((v, i) => v !== a2.data[i]) });
   }
+  // The control: letters that never join (alef, dal, ra, waw) must measure
+  // the same with a ZWNJ between them, so a width change on a joining string
+  // can only be shaping. (The first control drew Latin and compared pixels
+  // against an undefined array, so it could never pass.)
   let shapingControl = true;
   {
-    const font = `600 20px ${getComputedStyle(document.body).fontFamily}`;
-    ctx.font = font;
-    const l1 = draw('Summary ready', font, 'ltr'), l2 = draw([...'Summary ready'].join('‌'), font, 'ltr');
-    shapingControl = l1.w === l2.w && !l1.data.some((v, i) => v !== l2[i]);
+    ctx.font = `600 20px ${getComputedStyle(document.body).fontFamily}`; ctx.fontKerning = 'none';
+    const plain = ctx.measureText('ادرو ادرو').width, apart = ctx.measureText([...'ادرو ادرو'].join(String.fromCharCode(0x200c))).width;
+    shapingControl = Math.abs(plain - apart) < 0.5;
   }
   const rubik = [...document.fonts].some((f) => /Rubik|__/.test(f.family) && f.status === 'loaded') || document.fonts.check('16px Rubik');
 
@@ -245,7 +248,7 @@ for (const job of JOBS) {
     ...a.controls.filter((c) => !c.ok).map((c) => `control ${c.got}:1 < 3:1 ${c.el}`),
     ...a.targets.filter((t) => !t.ok).map((t) => `target ${t.w} x ${t.h} < 44 x 44 ${t.el}`),
     ...(job.locale === 'ar' ? a.shaping.filter((s) => !s.ok).map((s) => `shaping not joined ${s.el}`) : []),
-    ...(a.shapingControl ? [] : ['shaping control failed: ZWNJ changed Latin pixels']),
+    ...(a.shapingControl ? [] : ['shaping control failed: a ZWNJ changed the width of letters that never join']),
     ...(a.rubik ? [] : ['Rubik not loaded']),
     ...(a.cost.maxLayers > 3 ? [`${a.cost.maxLayers} shadow layers on ${a.cost.heaviest}`] : []),
     ...a.cost.filters.map((f) => `filter on ${f}`),

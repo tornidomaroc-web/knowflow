@@ -180,7 +180,7 @@ export function StudentHome({
           >
             <div className="min-w-0">
               <p className="text-xl font-bold">{labels.askTitle}</p>
-              <p className="mt-1 text-sm opacity-80">{labels.askDesc}</p>
+              <p className="mt-1 text-sm opacity-90">{labels.askDesc}</p>
               <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-black/15 px-3 py-1.5 text-xs font-semibold">
                 <MessageCircle className="h-3.5 w-3.5" />
                 {labels.askTitle}

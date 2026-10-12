@@ -635,6 +635,11 @@ body { background-color: var(--background); color: var(--foreground); }
 .kf-clay .kf-switch-thumb { background-color: var(--muted-foreground); box-shadow: inset 0 1px 0 var(--clay-hi), inset 0 -3px 5px -2px var(--clay-shade), 0 3px 6px -2px var(--clay-drop); }
 .kf-clay [aria-checked="true"] .kf-switch-thumb { background-color: var(--primary-foreground); box-shadow: inset 0 1px 0 rgba(255, 236, 205, 0.18), 0 3px 6px -2px var(--clay-gold-shade); }
 
+/* A notice on the gold tint (the partial-summary line) inside a well: in
+   light the brand gold read 3.6:1 there; the darker gold the buttons use on
+   hover carries it (5.4:1). The brand gold itself does not move. */
+[data-theme="light"] .kf-clay .bg-primary-subtle.text-primary { color: var(--primary-hover); }
+
 /* Fields: a sunken well with a control boundary. */
 .kf-clay input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
 .kf-clay select,
@@ -651,6 +656,9 @@ body { background-color: var(--background); color: var(--foreground); }
   box-shadow: inset 0 1.5px 0 var(--clay-hi), inset 0 -8px 14px -10px var(--clay-shade), 0 18px 30px -12px var(--clay-drop);
 }
 .kf-clay .kf-tab-active { background-color: var(--accent-subtle); box-shadow: inset 0 1px 0 var(--clay-hi), inset 0 -4px 8px -6px var(--clay-shade); }
+/* In light the brand gold read 4.03:1 on its own tinted capsule; the deeper
+   gold the buttons use on hover is 6.2:1 there. Dark keeps the brand gold. */
+[data-theme="light"] .kf-clay .kf-tab-active { color: var(--accent-hover); }
 /* Content scrolls under the floating bar; the ground fades in behind it, as
    iOS does. Paint only, under the bar's layer. */
 .kf-clay .kf-tabfade { background: linear-gradient(180deg, transparent, var(--background) 62%); }

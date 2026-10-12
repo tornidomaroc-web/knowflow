@@ -59,10 +59,10 @@ export default async function SubjectPreview({
     // #123: a ready material with no summary yet, and a failed one, so the
     // study kit's summaryTodo and the statusError chip can be looked at.
     { id: 'd4', filename: ar ? 'ملاحظات المحاضرة 5.docx' : 'Lecture-5-notes.docx', type: 'docx', status: 'ready', added: '2026-09-24T10:00:00Z', summary: false, quiz: true },
-    { id: 'd5', filename: ar ? 'جدول الأسعار.xlsx' : 'Price-table.xlsx', type: 'xlsx', status: 'error', added: '2026-09-24T09:00:00Z', summary: false, quiz: false },
+    { id: 'd5', filename: ar ? 'جدول الطلب.xlsx' : 'Demand-table.xlsx', type: 'xlsx', status: 'error', added: '2026-09-24T09:00:00Z', summary: false, quiz: false },
     // #124: a name long enough to truncate at 375px, so the ellipsis side and
     // the extension can be looked at; and a mixed Arabic/Latin name.
-    { id: 'd6', filename: ar ? 'ملاحظات المحاضرة الخامسة عن مرونة الطلب السعرية والدخلية والتقاطعية - النسخة النهائية 12.pdf' : 'Lecture 5 notes on price, income and cross elasticity of demand - final version 12.pdf', type: 'pdf', status: 'ready', added: '2026-09-25T12:00:00Z', summary: true, quiz: true },
+    { id: 'd6', filename: ar ? 'ملاحظات المحاضرة الخامسة عن مرونة الطلب الدخلية والتقاطعية وأثرها على السوق - النسخة النهائية 12.pdf' : 'Lecture 5 notes on income and cross elasticity of demand in markets - final version 12.pdf', type: 'pdf', status: 'ready', added: '2026-09-25T12:00:00Z', summary: true, quiz: true },
     { id: 'd7', filename: ar ? 'ملخص Chapter 3 (1).pdf' : 'Summary الفصل 3 (1).pdf', type: 'pdf', status: 'ready', added: '2026-09-25T13:00:00Z', summary: false, quiz: false },
   ]
   const stats = { ...emptyStats(), materials: 8, ready: 5, processing: 1, failed: 1, summarised: 3, quizzed: 3 }
@@ -71,8 +71,8 @@ export default async function SubjectPreview({
   // #123 batch 2: a summary already generated and cut short, so the partial
   // notice shows without a click.
   const partialSummary = ar
-    ? 'يعرّف الملف الطلب والعرض، ثم يشرح مرونة الطلب السعرية وكيف تُقاس.'
-    : 'The file defines demand and supply, then explains price elasticity of demand and how it is measured.'
+    ? 'يعرّف الملف الطلب والعرض، ثم يشرح مرونة الطلب وكيف تُقاس.'
+    : 'The file defines demand and supply, then explains elasticity of demand and how it is measured.'
   const cardLabels = {
     statusReady: sd.statusReady,
     statusProcessing: sd.statusProcessing,

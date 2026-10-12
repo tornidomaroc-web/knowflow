@@ -151,7 +151,7 @@ function SubjectCard({ subject: s, locale, labels, index }: { subject: SubjectIt
               {labels.ask}
             </Link>
           )}
-          <Link href={s.href} className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
+          <Link href={s.href} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'min-w-[2.75rem]')}>
             {empty ? <Upload className="h-4 w-4" /> : <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />}
             {empty ? labels.addMaterial : null}
             {empty ? null : <span className="sr-only">{s.name}</span>}
