@@ -10,7 +10,10 @@ standard library only.
    cmap table, so no caption letter can fall back to another font. Chrome
    shapes Arabic through the font's GSUB table, which the file carries.
 3. The licence file sits next to the font.
-4. No caption carries a dash, a price or a plan word.
+4. No caption carries a dash, an @, a price or a plan word.
+5. Rubik's GSUB gives the Arabic script the init, medi and fina forms and
+   the rlig lam-alef ligature (its default glyphs are the isolated forms);
+   render.mjs proves in Chrome that the captions really join.
 
 Usage: python3 scripts/store-shots/check.py <png> [<png> ...]
 """
@@ -63,7 +66,26 @@ def cmap_codepoints(path):
             for g in range(struct.unpack('>I', c[so + 12:so + 16])[0]):
                 s, e, _ = struct.unpack('>III', c[so + 16 + 12 * g:so + 28 + 12 * g])
                 cov.update(range(s, e + 1))
-    return cov, set(tables)
+    return cov, tables, d
+
+
+def arabic_features(d, tables):
+    """The feature tags Rubik's GSUB gives the Arabic script's default language."""
+    off = tables['GSUB'][0]
+    script_list, feature_list = struct.unpack('>HH', d[off + 4:off + 8])
+    sl, fl = off + script_list, off + feature_list
+    tags = []
+    for i in range(struct.unpack('>H', d[fl:fl + 2])[0]):
+        tags.append(d[fl + 2 + 6 * i:fl + 6 + 6 * i].decode('latin1'))
+    for i in range(struct.unpack('>H', d[sl:sl + 2])[0]):
+        tag = d[sl + 2 + 6 * i:sl + 6 + 6 * i].decode('latin1')
+        if tag != 'arab':
+            continue
+        st = sl + struct.unpack('>H', d[sl + 6 + 6 * i:sl + 8 + 6 * i])[0]
+        ls = st + struct.unpack('>H', d[st:st + 2])[0]
+        n = struct.unpack('>H', d[ls + 4:ls + 6])[0]
+        return {tags[j] for j in struct.unpack('>%dH' % n, d[ls + 6:ls + 6 + 2 * n])}
+    return set()
 
 
 # 1. The PNGs.
@@ -80,16 +102,18 @@ for p in pngs:
 
 # 2. The font covers every caption letter; 3. the licence is there; 4. the words.
 captions = json.load(open(os.path.join(DESIGNED, 'captions.json'), encoding='utf-8'))
-cov, tables = cmap_codepoints(FONT)
+cov, tables, font = cmap_codepoints(FONT)
 need('GSUB' in tables and 'GPOS' in tables, 'Rubik carries GSUB and GPOS (Arabic shaping and positioning)')
+feats = arabic_features(font, tables) if 'GSUB' in tables else set()
+need({'init', 'medi', 'fina', 'rlig'} <= feats, f'Rubik GSUB gives the arab script its joining forms and lam-alef (features: {sorted(feats)})')
 need(os.path.isfile(os.path.join(os.path.dirname(FONT), 'OFL.txt')), 'OFL.txt sits next to the font')
-forbidden = re.compile(r'—|–|\$|\bfree\b|\bpro\b|\bplan\b|upgrade|price|مجان|الترقية|باقة|سعر', re.I)
+forbidden = re.compile(r'@|—|–|\$|\bfree\b|\bpro\b|\bplan\b|upgrade|price|مجان|الترقية|باقة|سعر', re.I)
 for locale in ('en', 'ar'):
     for entry in captions[locale]:
         text = entry['caption'].replace('|', '')
         missing = sorted({ch for ch in text if not ch.isspace() and ord(ch) not in cov})
         need(not missing, f'{locale}/{entry["file"]}: every caption letter has a Rubik glyph (missing: {missing})')
-        need(not forbidden.search(text), f'{locale}/{entry["file"]}: no dash, price or plan word in the caption')
+        need(not forbidden.search(text), f'{locale}/{entry["file"]}: no dash, email, price or plan word in the caption')
         need(len(text.split()) <= 6, f'{locale}/{entry["file"]}: caption is short ({len(text.split())} words)')
 
 print(f'\n{len(fails)} failure(s)')
