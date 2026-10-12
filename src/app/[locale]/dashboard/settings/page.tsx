@@ -8,6 +8,7 @@ import { StudyReminderCard } from '@/components/reminder/StudyReminderCard'
 import { studyReminderAllowed } from '@/lib/study-reminder'
 import { CancelSubscriptionCard } from '@/components/dashboard/CancelSubscriptionCard'
 import { readScheduledCancellation } from '@/lib/subscription/cancel'
+import { deletionWouldCancelBilling } from '@/lib/subscription/billing-note'
 import { paddleClient } from '@/lib/paddle'
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n'
 import { SUPPORT_EMAIL, withSupportEmail } from '@/lib/site'
@@ -80,7 +81,8 @@ export default async function SettingsPage({
       supportEmail={SUPPORT_EMAIL}
       labels={{
         title: s.title,
-        subtitle: s.subtitle,
+        // Step Wording-1: inside the app no plan is shown, so none is named.
+        subtitle: purchaseLinksAllowed(platform) ? s.subtitle : s.subtitleApp,
         account: s.account,
         email: s.email,
         plan: s.plan,
@@ -125,7 +127,11 @@ export default async function SettingsPage({
         ) : null
       }
       deleteCard={
-        <DeleteAccountCard homeHref={`/${safeLocale}`} labels={withSupportEmail(s.deleteAccount)} />
+        <DeleteAccountCard
+          homeHref={`/${safeLocale}`}
+          labels={withSupportEmail(s.deleteAccount)}
+          showBillingNote={await deletionWouldCancelBilling(supabase, user.id)}
+        />
       }
     />
   )

@@ -13,6 +13,8 @@ export const en = {
     // than written fresh, so the header and the auth pages say one thing.
     signIn: "Sign in",
     getStarted: "Start free",
+    // Step Wording-1: the same button inside the app, which may not say "free".
+    createAccount: "Create account",
     // Screen-reader only: the hamburger's name (#48). Never rendered as text.
     menu: "Menu",
     // The theme toggle (#46). `appearance` names the control for a screen
@@ -345,7 +347,9 @@ export const en = {
       // 3.1.1(a); src/lib/platform.ts), so the store build never prints it.
       errorLimitFree: "You've reached the free plan's limit of {limit} subjects.",
       errorLimitUpgrade: "Upgrade to Pro for more.",
-      errorLimitPro: "You've reached your limit of {limit} subjects."
+      errorLimitPro: "You've reached your limit of {limit} subjects.",
+      // Step Wording-1: inside the app, for every tier, no plan named.
+      errorLimitApp: "You've reached your limit of {limit} subjects."
     },
     kbDetail: {
       documents: "Materials",
@@ -424,6 +428,8 @@ export const en = {
       // Preferences card, and the help-and-legal card Apple 5.1.1(i) wants
       // reachable inside the app. No key here names a price.
       subtitle: "Your account, plan and preferences.",
+      // Step Wording-1: inside the app, where no plan is shown or named.
+      subtitleApp: "Your account and preferences.",
       freePlanDesc: "The free plan. Your daily allowance is on your home screen.",
       proPlanDesc: "Thank you for supporting KnowFlow.",
       preferences: "Preferences",

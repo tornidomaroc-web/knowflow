@@ -128,7 +128,7 @@ export default async function SettingsPreview({
               <CancelSubscriptionCard labels={withSupportEmail(s.cancelSubscription)} accessUntil={renewsOn} alreadyScheduled={false} />
             ) : null
           }
-          deleteCard={<DeleteAccountCard homeHref={`/${safeLocale}`} labels={withSupportEmail(s.deleteAccount)} />}
+          deleteCard={<DeleteAccountCard homeHref={`/${safeLocale}`} showBillingNote={isPro} labels={withSupportEmail(s.deleteAccount)} />}
         />
       </DashboardShell>
     </div>

@@ -1,5 +1,6 @@
 import { Locale } from '@/lib/i18n';
 import { SUPPORT_EMAIL } from '@/lib/site';
+import { PlatformText } from '@/components/platform/PlatformText';
 
 export default async function TermsPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
@@ -20,8 +21,9 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">User Content</h2>
         <p className="mb-6">You retain full ownership of all documents and data you upload to your knowledge bases. You grant us the necessary licenses solely to process and serve this content back to you via your agents.</p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Payment Terms</h2>
-        <p className="mb-6">Subscriptions to our Pro plan are billed on a monthly basis. You may cancel your subscription at any time without penalty, and you will retain access until the end of your billing cycle.</p>
+        {/* Step Wording-1: the app sells nothing; its variant says so and names no plan. */}
+        <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground"><PlatformText web="Payment Terms" app="Payments" /></h2>
+        <p className="mb-6"><PlatformText web="Subscriptions to our Pro plan are billed on a monthly basis. You may cancel your subscription at any time without penalty, and you will retain access until the end of your billing cycle." app="Nothing is sold or charged inside this app. Any payment made for a KnowFlow account is governed by the terms shown when it is made." /></p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Limitation of Liability</h2>
         <p className="mb-6">KnowFlow and its AI agents attempt to provide accurate responses, but we cannot guarantee absolute correctness. We are not liable for any damages resulting from business decisions based on agent outputs.</p>

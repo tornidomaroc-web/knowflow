@@ -95,17 +95,23 @@ private final class Smoke {
     // decides the architecture (STORE_PATH.md §8.3): Capacitor's own object,
     // inside a document served from the live site.
     //
-    // `purchase` is the Apple 3.1.3(f) reading taken on every signed-in screen
-    // (ios-signed-in.yml): the words and the links that would name a price, a
-    // plan, an upgrade or a checkout, in both locales, over the page's visible
-    // text and every anchor. The workflow fails on any hit.
+    // `purchase` is the Apple 3.1.3(f) reading taken on every screen
+    // (ios-signed-in.yml, ios-smoke.yml): the words and the links that would
+    // name a plan, a subscription, an upgrade, a premium or Pro tier, a price,
+    // a checkout or "free", in both locales, over the page's whole text (below
+    // the fold too: innerText is the document, not the viewport) and every
+    // anchor. The words are `kfWording`, the function in
+    // scripts/lib/app-wording.mjs copied here byte for byte (each backslash
+    // doubled for this string); scripts/verify-app-wording.mjs fails if the two
+    // drift. Arabic is matched by normalised stem, so باقتك and اشتراكك count.
+    // The workflows fail on any hit.
     //
     // Before anything is read or photographed, every leaf element whose text
     // is an e-mail address is masked to "[email]": the workflow screenshots
     // the screen right after each probe, and the Settings screen shows the
     // account's address, which must not reach a public artifact.
     private static let probe = """
-    (function(){try{var C=window.Capacitor;Array.prototype.slice.call(document.querySelectorAll('p,span,div,a,b,strong')).forEach(function(el){if(el.children.length===0&&/\\S+@\\S+\\.\\S+/.test(el.textContent||'')){el.textContent='[email]'}});var T=(document.body&&document.body.innerText||'');var words=['Upgrade','Checkout','checkout','/month','Pricing','Free plan','الترقية','الاحترافي','الأسعار','شهرياً','شهريًا','الباقة','باقة','مجاني'];var hits=words.filter(function(w){return T.indexOf(w)>=0});if(/\\bPro\\b/.test(T))hits.push('Pro');if(/\\bPlan\\b/.test(T))hits.push('Plan');if(/\\bFree\\b/.test(T))hits.push('Free');var hrefs=Array.prototype.slice.call(document.querySelectorAll('a[href]')).map(function(a){return a.getAttribute('href')||''}).filter(function(h){return /pricing|checkout|paddle|upgrade/i.test(h)});return JSON.stringify({ready:document.readyState,href:location.href,title:document.title,bridge:!!(C&&C.isNativePlatform&&C.isNativePlatform()),platform:(C&&C.getPlatform)?C.getPlatform():null,marker:/KnowFlowApp\\/1/.test(navigator.userAgent),google:document.querySelectorAll('[fill="#4285F4"]').length,pricing:document.querySelectorAll('a[href*="/pricing"]').length,nav:window.__kfNav||0,signedIn:!!document.querySelector('a[href$="/dashboard/settings"]'),purchase:{words:hits,hrefs:hrefs},text:T.replace(/\\s+/g,' ').slice(0,400)})}catch(e){return JSON.stringify({error:String(e)})}})()
+    (function(){try{var C=window.Capacitor;Array.prototype.slice.call(document.querySelectorAll('p,span,div,a,b,strong')).forEach(function(el){if(el.children.length===0&&/\\S+@\\S+\\.\\S+/.test(el.textContent||'')){el.textContent='[email]'}});var T=(document.body&&document.body.innerText||'');function kfWording(T){var h=[];var E=[['plan',/\\bplans?\\b/i],['subscription',/\\bsubscri(?:be|bed|bes|ber|bers|bing|ption|ptions)\\b/i],['upgrade',/\\bupgrad(?:e|es|ed|ing)\\b/i],['premium',/\\bpremium\\b/i],['pro',/\\bpro\\b/i],['price',/\\bpric(?:e|es|ed|ing)\\b/i],['free',/\\bfree\\b/i],['checkout',/\\bcheck-?out\\b/i],['currency',/\\$\\s?\\d|\\d\\s?(?:usd|eur|mad|dhs?|dirhams?)\\b|\\/\\s?mo(?:nth)?\\b|\\bper month\\b/i]];for(var i=0;i<E.length;i++){if(E[i][1].test(T))h.push(E[i][0])}var N=T.replace(/[ً-ٰٟـ]/g,'').replace(/[آأإٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي');var A=[['باقة',/باق[هتا]/],['اشتراك',/اشترا?ك/],['ترقية',/ترقي[هت]/],['مجاني',/مجان/],['سعر',/سعر|اسعار/],['احترافي',/احتراف/],['خطة',/(?:^|[^ء-ي])(?:ال|و|ب|ف|ل)?خط[هت]/],['شهريا',/شهريا/]];for(var j=0;j<A.length;j++){if(A[j][1].test(N))h.push(A[j][0])}return h}var hrefs=Array.prototype.slice.call(document.querySelectorAll('a[href]')).map(function(a){return a.getAttribute('href')||''}).filter(function(h){return /pricing|checkout|paddle|upgrade/i.test(h)});return JSON.stringify({ready:document.readyState,href:location.href,title:document.title,bridge:!!(C&&C.isNativePlatform&&C.isNativePlatform()),platform:(C&&C.getPlatform)?C.getPlatform():null,marker:/KnowFlowApp\\/1/.test(navigator.userAgent),google:document.querySelectorAll('[fill="#4285F4"]').length,pricing:document.querySelectorAll('a[href*="/pricing"]').length,nav:window.__kfNav||0,signedIn:!!document.querySelector('a[href$="/dashboard/settings"]'),purchase:{words:kfWording(T),hrefs:hrefs},text:T.replace(/\\s+/g,' ').slice(0,400)})}catch(e){return JSON.stringify({error:String(e)})}})()
     """
 
     private func waitForPage(attempt: Int) {

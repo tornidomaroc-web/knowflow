@@ -1,5 +1,6 @@
 import { Locale } from '@/lib/i18n';
 import { SUPPORT_EMAIL } from '@/lib/site';
+import { PlatformText } from '@/components/platform/PlatformText';
 
 export default async function PrivacyPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
@@ -17,7 +18,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
         <p className="mb-6">We collect information you provide directly to us when you create an account, upload materials, or contact us. This includes your name, your email address, and the content of the files you upload to your subjects.</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">How We Use Your Information</h2>
-        <p className="mb-6">We use what we collect to run KnowFlow: to store your materials, to answer your questions from them, to generate summaries and quizzes, and to count your usage against the limits of your plan. We do not sell your personal data or the content of your materials, and we do not use them for advertising.</p>
+        <p className="mb-6">We use what we collect to run KnowFlow: to store your materials, to answer your questions from them, to generate summaries and quizzes, and to count your usage against <PlatformText web="the limits of your plan" app="your account's limits" />. We do not sell your personal data or the content of your materials, and we do not use them for advertising.</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Who We Share It With</h2>
         <p className="mb-6">KnowFlow is built on services run by other companies. Each one is used only to provide the part of KnowFlow described here. We do not authorise any of them to use your content for their own purposes, and none of them pays us for your data. We require each of them to protect your data to the standard this policy describes and to use it only to provide their service to us.</p>
@@ -25,7 +26,8 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
           <li><strong>Supabase</strong> stores your account, the files you upload, your materials, your conversations and your quizzes.</li>
           <li><strong>Anthropic</strong> generates your summaries, your quizzes, and the answers to your questions.</li>
           <li><strong>Voyage AI</strong>, part of MongoDB, converts the text of your materials and your questions into the numerical form the search uses, so that KnowFlow can find the right passage.</li>
-          <li><strong>Paddle</strong> takes the payment if you subscribe to Pro. Paddle is the seller of record and collects your payment details directly, so we never see your card.</li>
+          {/* Step Wording-1: inside the app nothing is sold, so no plan is named; the processor is still disclosed. */}
+          <li><strong>Paddle</strong> <PlatformText web="takes the payment if you subscribe to Pro. Paddle is the seller of record and collects your payment details directly, so we never see your card." app="processes any payment made for a KnowFlow account, as the seller of record, and collects the payment details directly, so we never see a card. Nothing is paid inside this app." /></li>
           <li><strong>Resend</strong> sends the emails KnowFlow has to send you, such as your sign-up confirmation and password resets.</li>
           <li><strong>Vercel</strong> hosts the website and handles every request made to it.</li>
           <li><strong>Railway</strong> runs the service that reads your uploaded file and turns it into text.</li>
@@ -42,7 +44,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
         <p className="mb-6">You can view the materials you have uploaded, and the email address on your account, from your dashboard.</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Deleting Your Account and Data</h2>
-        <p className="mb-6"><strong>You can delete your account yourself, from Settings in your dashboard.</strong> Deleting your account permanently removes your subjects, materials, conversations, quizzes and study history, together with every file you have uploaded, and immediately cancels any active subscription. It cannot be undone, and nothing can be restored afterwards. Changing your account details is still not available.</p>
+        <p className="mb-6"><strong>You can delete your account yourself, from Settings in your dashboard.</strong> Deleting your account permanently removes your subjects, materials, conversations, quizzes and study history, together with every file you have uploaded, and <PlatformText web="immediately cancels any active subscription" app="stops any recurring payment the account has" />. It cannot be undone, and nothing can be restored afterwards. Changing your account details is still not available.</p>
         <p className="mb-6">If you cannot reach your dashboard, you can still request deletion of your account and its associated data by emailing <a className="underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> from the address you registered with.</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">How Long We Keep It</h2>

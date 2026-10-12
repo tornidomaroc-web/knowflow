@@ -35,7 +35,8 @@ export function SiteChrome({ locale, showPricing, children }: { locale: Locale; 
           pricing: t.nav.pricing,
           about: t.nav.about,
           signIn: t.nav.signIn,
-          getStarted: t.nav.getStarted,
+          // Step Wording-1: the app's chrome may not say "free".
+          getStarted: showPricing ? t.nav.getStarted : t.nav.createAccount,
           menu: t.nav.menu,
           appearance: t.nav.appearance,
           themeDark: t.nav.themeDark,
@@ -44,6 +45,7 @@ export function SiteChrome({ locale, showPricing, children }: { locale: Locale; 
       />
       <main className="flex-1">{children}</main>
       <SiteFooter
+        showRefund={showPricing}
         locale={locale}
         labels={{
           home: t.nav.home,

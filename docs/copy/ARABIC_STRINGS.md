@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-10-09 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **410 Arabic strings.**
+Generated 2026-10-12 by `scripts/export-arabic-strings.mjs` from
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **413 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -20,6 +20,7 @@ file is not read by the app.
 | `nav.about` | عن KnowFlow | About |
 | `nav.signIn` | سجّل الدخول | Sign in |
 | `nav.getStarted` | ابدأ مجانًا | Start free |
+| `nav.createAccount` | أنشئ حسابًا | Create account |
 | `nav.menu` | القائمة | Menu |
 | `nav.appearance` | المظهر | Appearance |
 | `nav.themeDark` | داكن | Dark |
@@ -361,6 +362,7 @@ file is not read by the app.
 | `dashboard.newKb.errorLimitFree` | وصلت إلى حد المواد في الباقة المجانية: {limit}. | You've reached the free plan's limit of {limit} subjects. |
 | `dashboard.newKb.errorLimitUpgrade` | انتقل إلى الباقة الاحترافية لتضيف المزيد. | Upgrade to Pro for more. |
 | `dashboard.newKb.errorLimitPro` | وصلت إلى حد المواد في باقتك: {limit}. | You've reached your limit of {limit} subjects. |
+| `dashboard.newKb.errorLimitApp` | وصلت إلى الحد الأقصى لعدد المواد في حسابك: {limit}. | You've reached your limit of {limit} subjects. |
 
 ## Signed-in app: kbDetail (`dashboard.kbDetail`)
 
@@ -435,6 +437,7 @@ file is not read by the app.
 |---|---|---|
 | `dashboard.settings.title` | الإعدادات | Settings |
 | `dashboard.settings.subtitle` | حسابك وباقتك وتفضيلاتك. | Your account, plan and preferences. |
+| `dashboard.settings.subtitleApp` | حسابك وتفضيلاتك. | Your account and preferences. |
 | `dashboard.settings.freePlanDesc` | الباقة المجانية. رصيدك اليومي في صفحتك الرئيسية. | The free plan. Your daily allowance is on your home screen. |
 | `dashboard.settings.proPlanDesc` | شكرًا لدعمك KnowFlow. | Thank you for supporting KnowFlow. |
 | `dashboard.settings.preferences` | التفضيلات | Preferences |

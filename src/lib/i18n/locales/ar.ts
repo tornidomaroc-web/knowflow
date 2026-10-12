@@ -13,6 +13,8 @@ export const ar: Translation = {
     // The verb phrase already inside `auth.hasAccount`, not a fresh translation.
     signIn: "سجّل الدخول",
     getStarted: "ابدأ مجانًا",
+    // Step Wording-1, agent draft for the owner's approval (docs/copy-drafts).
+    createAccount: "أنشئ حسابًا",
     // Screen-reader only: the hamburger's name (#48). Never rendered as text.
     menu: "القائمة",
     appearance: "المظهر",
@@ -325,7 +327,9 @@ export const ar: Translation = {
       errorAuth: "سجّل الدخول أولًا.",
       errorLimitFree: "وصلت إلى حد المواد في الباقة المجانية: {limit}.",
       errorLimitUpgrade: "انتقل إلى الباقة الاحترافية لتضيف المزيد.",
-      errorLimitPro: "وصلت إلى حد المواد في باقتك: {limit}."
+      errorLimitPro: "وصلت إلى حد المواد في باقتك: {limit}.",
+      // Step Wording-1, agent draft for the owner's approval (docs/copy-drafts).
+      errorLimitApp: "وصلت إلى الحد الأقصى لعدد المواد في حسابك: {limit}."
     },
     kbDetail: {
       documents: "الملفات",
@@ -396,6 +400,8 @@ export const ar: Translation = {
     settings: {
       title: "الإعدادات",
       subtitle: "حسابك وباقتك وتفضيلاتك.",
+      // Step Wording-1, agent draft for the owner's approval (docs/copy-drafts).
+      subtitleApp: "حسابك وتفضيلاتك.",
       freePlanDesc: "الباقة المجانية. رصيدك اليومي في صفحتك الرئيسية.",
       proPlanDesc: "شكرًا لدعمك KnowFlow.",
       preferences: "التفضيلات",

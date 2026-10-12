@@ -219,6 +219,14 @@ jobs:
           [
             {"name":"signup-link","wait":5000,"js":"(function(){window.__kfNav=1;var a=Array.prototype.slice.call(document.querySelectorAll('a')).filter(function(a){return /\\/signup$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no signup link'}a.click();return 'clicked '+a.getAttribute('href')})()"},
             {"name":"dashboard-direct","wait":6000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard');return 'assigned /'+l+'/dashboard'})()"},
+            {"name":"wording-baseline","wait":500,"js":"(function(){return location.pathname})()"},
+            {"name":"wording-plant","wait":500,"js":"(function(){var p=document.createElement('p');p.id='kf-plant';p.textContent='Upgrade to our Pro plan · انتقل إلى باقتك واشتراكك';document.body.appendChild(p);return 'planted'})()"},
+            {"name":"wording-unplant","wait":500,"js":"(function(){var p=document.getElementById('kf-plant');if(p){p.remove()}return p?'removed':'none'})()"},
+            {"name":"live-signup","wait":8000,"js":"(function(){location.assign('/en/signup');return 'assigned /en/signup'})()"},
+            {"name":"live-terms","wait":8000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
+            {"name":"live-refund","wait":8000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
+            {"name":"live-about","wait":8000,"js":"(function(){location.assign('/en/about');return 'assigned /en/about'})()"},
+            {"name":"live-contact","wait":8000,"js":"(function(){location.assign('/en/contact');return 'assigned /en/contact'})()"},
             {"name":"privacy","wait":6000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/privacy');return 'assigned /'+l+'/privacy'})()"},
             {"name":"external-link","wait":5000,"js":"(function(){var a=document.querySelector('a[href^=\"https://github.com\"]');if(!a){return 'no external link'}a.click();return 'clicked '+a.href})()"}
           ]
@@ -239,7 +247,10 @@ jobs:
           # on older ones tmp/ itself: find the files wherever they land.
           sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
           seen=0
-          for i in $(seq 1 300); do
+          # 600 s: Step Wording-1 added eight readings (the planted proof and the
+          # live signed-out pages), about 18 s each with the acknowledgement;
+          # at 300 s the loop ended mid-run on 2026-10-12 (run 38264230960).
+          for i in $(seq 1 600); do
             f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
             if [ "$n" -gt "$seen" ]; then
               seen=$n
@@ -379,6 +390,24 @@ jobs:
           D = by.get("dashboard-direct", {}).get("probe", {})
           need(re.search(r"/(en|ar)/login$", D.get("href", "") or ""), f"3. a direct load of the dashboard without a session bounces to login: {D.get('href')}")
           need(D.get("google") == 0 and D.get("bridge") is True, f"3. ...and that page is the twin with the bridge: google={D.get('google')} bridge={D.get('bridge')}")
+          # Step Wording-1, PLANTED PROOF: the probe's word rule (the same bytes as
+          # scripts/lib/app-wording.mjs) runs in WKWebView on a live page. A
+          # planted English and Arabic sentence must be caught; removed, the
+          # reading must be the baseline again. This holds whatever the live
+          # site says, so it gates the pull request before the copy deploys.
+          WB = (by.get("wording-baseline", {}).get("probe", {}).get("purchase") or {}).get("words")
+          WP = (by.get("wording-plant", {}).get("probe", {}).get("purchase") or {}).get("words")
+          WU = (by.get("wording-unplant", {}).get("probe", {}).get("purchase") or {}).get("words")
+          need(isinstance(WB, list), f"7. the probe reports its word list in the app: {WB}")
+          need(isinstance(WP, list) and {"plan", "upgrade", "pro", "\u0628\u0627\u0642\u0629", "\u0627\u0634\u062a\u0631\u0627\u0643"} <= set(WP), f"7. a planted plan, upgrade, Pro, باقتك and اشتراكك sentence is caught in the web view: {WP}")
+          need(WU == WB, f"7. ...and with it removed the reading is the baseline again: {WU} vs {WB}")
+          # The live signed-out pages the app reaches, read with the new rule.
+          # REPORTED here, not failed: this run reads the deployed site, which
+          # carries the old copy until the pull request merges; the signed-in
+          # run on main fails on any hit after the deploy.
+          for page in ("launch", "signup-link", "live-signup", "live-terms", "live-refund", "live-about", "live-contact", "privacy"):
+              w = (by.get(page, {}).get("probe", {}).get("purchase") or {}).get("words")
+              print(f"info live {page}: {by.get(page, {}).get('probe', {}).get('href')} words={w}")
           P = by.get("privacy", {}).get("probe", {})
           need(re.search(r"/(en|ar)/privacy$", P.get("href", "") or ""), f"1. the privacy page loads in the app: {P.get('href')}")
           need(P.get("pricing") == 0, f"1. the privacy page in the app has no Pricing link (twin chrome): pricing={P.get('pricing')}")

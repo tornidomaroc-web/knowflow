@@ -140,6 +140,23 @@ jobs:
       - name: Verify the platform marker only removes, and every purchase link and Google button is gated (STORE_PATH.md step a)
         run: node --experimental-strip-types scripts/verify-platform-gate.mjs
 
+      # Step Wording-1, Apple 3.1.3(f). The app's one wording rule
+      # (scripts/lib/app-wording.mjs: plan, subscription, upgrade, premium, Pro,
+      # price, checkout, free; Arabic by normalised stem) over every surface the
+      # app reaches, rendered from its real .tsx with the real dictionary in
+      # both locales as the reviewer sees it, plus the whole dictionary against
+      # its stated gates, plus the in-app probe's copy of the rule. The planted
+      # run comes first and MUST fail: a planted sentence in Settings and in the
+      # dictionary, so a proof that cannot fail cannot pass here.
+      - name: Verify the wording proof fails on a planted sentence (Step Wording-1)
+        run: |
+          if KF_WORDING_PLANT=1 node --experimental-strip-types scripts/verify-app-wording.mjs; then
+            echo "the planted sentence was NOT caught: the wording proof is blind"; exit 1
+          fi
+          echo "planted sentence caught, as it must be"
+      - name: Verify the app shows no plan, subscription, upgrade, price or free wording (Step Wording-1)
+        run: node --experimental-strip-types scripts/verify-app-wording.mjs
+
       # Register #96, corrected: viewport-fit=cover is declared and every fixed bar
       # accounts for its safe-area inset.
       - name: Verify the iPhone safe areas are declared and used (register #96)

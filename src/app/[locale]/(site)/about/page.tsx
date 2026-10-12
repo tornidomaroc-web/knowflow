@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PlatformText } from '@/components/platform/PlatformText';
 import { useTranslation, Locale } from '@/lib/i18n';
 
 export default async function AboutPage({ params }: { params: Promise<{ locale: Locale }> }) {
@@ -34,7 +35,8 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
         <section className="text-center pt-12 border-t border-border">
           <h2 className="text-3xl font-semibold mb-8">{t.about.ctaTitle}</h2>
           <Link href={`/${locale}/signup`} className="inline-block rounded-xl bg-primary text-primary-foreground px-8 py-4 text-sm font-semibold hover:bg-primary-hover transition-colors">
-            {t.about.cta}
+            {/* Step Wording-1: the app's twin may not say "free". */}
+            <PlatformText web={t.about.cta} app={t.nav.createAccount} />
           </Link>
         </section>
       </div>
