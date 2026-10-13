@@ -61,9 +61,9 @@ jobs:
       - name: ${{ inputs.mode }} the account
         env:
           PUPPETEER_DIR: ${{ runner.temp }}/pp
-          CHROME: google-chrome
           KF_SHOTS_EMAIL: ${{ inputs.locale == 'ar' && secrets.SHOTS_AR_EMAIL || secrets.SHOTS_EN_EMAIL }}
           KF_SHOTS_PASSWORD: ${{ inputs.locale == 'ar' && secrets.SHOTS_AR_PASSWORD || secrets.SHOTS_EN_PASSWORD }}
           LOCALE: ${{ inputs.locale }}
           MODE: ${{ inputs.mode }}
-        run: node scripts/store-seed/seed.mjs --locale "$LOCALE" --mode "$MODE"
+        # puppeteer-core needs Chrome by absolute path (run 38426913389 failed on the bare name).
+        run: CHROME="$(command -v google-chrome)" node scripts/store-seed/seed.mjs --locale "$LOCALE" --mode "$MODE"
