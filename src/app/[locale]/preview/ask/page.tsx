@@ -155,7 +155,7 @@ export default async function AskPreview({
           </div>
         ) : view === 'noanswer' ? (
           <div className="flex h-[28rem] flex-col overflow-hidden rounded-xl border border-border bg-surface">
-            <AskNoAnswerableSubject href={`/${safeLocale}/dashboard/knowledge`} labels={{ title: t.dashboard.home.step2Title, cta: t.dashboard.subjects.addMaterial }} />
+            <AskNoAnswerableSubject href={`/${safeLocale}/dashboard/knowledge`} labels={{ title: t.dashboard.home.step2Title, cta: t.dashboard.upload.uploadButton }} />
           </div>
         ) : view === 'history' ? (
           <div className="h-[28rem] overflow-hidden rounded-xl border border-border">

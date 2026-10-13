@@ -1,0 +1,23 @@
+{
+  "_about": "Step Store-Shots-1. What the two App Store screenshot accounts hold, read by scripts/store-seed/seed.mjs (which creates it through the live app's own pages) and by the capture checks in ios-signed-in.yml (which refuse a shot that shows the other language's subject names). Agent drafts for the owner's approval: the notes in ar/ and en/ were written by the agent, original, at Moroccan 2nd year bac level. Subjects are created in the order listed, so the list shows them newest first, in reverse. Four files per account keeps the day's upload allowance (5) intact. One summary, one quiz and one Ask question per account.",
+  "ar": {
+    "subjects": [
+      { "name": "التاريخ والجغرافيا", "description": "الثانية باكالوريا، الدورة الأولى", "language": "ar", "files": ["الحرب العالمية الأولى.md"] },
+      { "name": "الاقتصاد العام", "description": "الثانية باكالوريا، علوم اقتصادية", "language": "ar", "files": ["النمو الاقتصادي والتنمية.md"] },
+      { "name": "علوم الحياة والأرض", "description": "الثانية باكالوريا، علوم تجريبية", "language": "ar", "files": ["التنفس الخلوي والتخمر.md", "الخبر الوراثي ونقله.md"] }
+    ],
+    "summary": { "subject": "علوم الحياة والأرض", "file": "التنفس الخلوي والتخمر.md" },
+    "quiz": { "subject": "علوم الحياة والأرض", "file": "التنفس الخلوي والتخمر.md" },
+    "ask": { "subject": "علوم الحياة والأرض", "question": "ما الفرق بين التنفس الخلوي والتخمر من حيث الحصيلة الطاقية؟" }
+  },
+  "en": {
+    "subjects": [
+      { "name": "History", "description": "Year 2, first term", "language": "en", "files": ["Causes of the First World War.md"] },
+      { "name": "Economics", "description": "Year 2, economics track", "language": "en", "files": ["Economic growth and development.md"] },
+      { "name": "Biology", "description": "Year 2, life sciences", "language": "en", "files": ["Cellular respiration and fermentation.md", "DNA and protein synthesis.md"] }
+    ],
+    "summary": { "subject": "Biology", "file": "Cellular respiration and fermentation.md" },
+    "quiz": { "subject": "Biology", "file": "Cellular respiration and fermentation.md" },
+    "ask": { "subject": "Biology", "question": "How does the energy yield of respiration compare with fermentation?" }
+  }
+}

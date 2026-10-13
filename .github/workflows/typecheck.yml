@@ -191,6 +191,14 @@ jobs:
             echo "the planted sentence was NOT caught: the wording proof is blind"; exit 1
           fi
           echo "planted sentence caught, as it must be"
+      # Step Store-Shots-1: the Pro-only cancel card may name the subscription
+      # but never invite a new one inside the app; planted, it must fail.
+      - name: Verify the wording proof fails on a planted "subscribe again" in the app's cancel card (Step Store-Shots-1)
+        run: |
+          if KF_WORDING_PLANT_RESUB=1 node --experimental-strip-types scripts/verify-app-wording.mjs; then
+            echo "the planted line was NOT caught: the cancel-card check is blind"; exit 1
+          fi
+          echo "planted line caught, as it must be"
       - name: Verify the app shows no plan, subscription, upgrade, price or free wording (Step Wording-1)
         run: node --experimental-strip-types scripts/verify-app-wording.mjs
 

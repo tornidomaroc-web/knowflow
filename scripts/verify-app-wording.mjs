@@ -183,6 +183,32 @@ for (const locale of ['en', 'ar']) {
   scan(`server refusals ${locale}`, `<p>${lines.join(' ')}</p>`);
 }
 
+// ── 3b. Pro only, and still no invitation to buy (Step Store-Shots-1) ────────
+// The cancel card is Pro only (GATED below), so it may say "subscription": a
+// paying student manages what they bought. It may NOT invite a purchase the
+// app cannot sell ("you can subscribe again at any time"): the app leaves that
+// line out, the web keeps it. Rendered both ways from the real .tsx in both
+// locales; the web rendering must still carry the line, or this check could
+// pass because the card rendered nothing. KF_WORDING_PLANT_RESUB=1 plants the
+// line into the app rendering, and the proof must then fail.
+const BUY_AGAIN = [/\bsubscribe again\b/i, /\bresubscrib\w*/i, /اشترا?ك[^.،]{0,12}مرة أخرى/];
+const PLANT_RESUB = process.env.KF_WORDING_PLANT_RESUB === '1';
+{
+  const { CancelSubscriptionCard } = await load('src/components/dashboard/CancelSubscriptionCard.tsx');
+  for (const [locale, d] of [['en', en], ['ar', ar]]) {
+    const labels = d.dashboard.settings.cancelSubscription;
+    const props = { labels, accessUntil: '1 Nov 2026', alreadyScheduled: false };
+    const web = readable(renderToStaticMarkup(React.createElement(PlatformProvider, { platform: 'web' }, React.createElement(CancelSubscriptionCard, props))));
+    let app = readable(native(React.createElement(CancelSubscriptionCard, props)));
+    if (PLANT_RESUB) app += ' ' + labels.canResubscribe;
+    surfaces.push(`cancel card ${locale}`);
+    check(BUY_AGAIN.some((r) => r.test(web)), `cancel card ${locale}: the web rendering lost "${labels.canResubscribe}", so this check would pass on nothing`);
+    check(app.length > 40 && app.includes(labels.noRefund), `cancel card ${locale}: the app rendering is empty or lost its body`);
+    const hit = BUY_AGAIN.find((r) => r.test(app));
+    check(!hit, `cancel card ${locale}: the app invites the student to subscribe again (${hit}): "${app.slice(0, 160)}…"`);
+  }
+}
+
 // ── 4. The dictionary, whole ─────────────────────────────────────────────────
 // Each key whose copy names a plan, a price or "free", and the gate that keeps
 // it away from the reviewer inside the app. A prefix ends in a dot.

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button, Card } from '@/components/ui';
+import { usePlatform } from '@/components/platform/PlatformProvider';
 
 export interface CancelSubscriptionLabels {
   heading: string;
@@ -68,6 +69,7 @@ export function CancelSubscriptionCard({
   accessUntil,
   alreadyScheduled,
 }: CancelSubscriptionCardProps) {
+  const native = usePlatform() === 'native';
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -152,7 +154,10 @@ export function CancelSubscriptionCard({
             {accessUntil ? ` ${accessUntil}` : ''}
           </p>
           <p className="mb-1 text-xs text-muted-foreground">{labels.noRefund}</p>
-          <p className="mb-4 text-xs text-muted-foreground">{labels.canResubscribe}</p>
+          {/* Step Store-Shots-1: "you can subscribe again" invites a purchase the
+              app cannot sell (Apple 3.1.1 / 3.1.3(f)), so the app leaves it out;
+              the web keeps it. The spacing it carried moves to the line above. */}
+          {native ? <div className="mb-3" /> : <p className="mb-4 text-xs text-muted-foreground">{labels.canResubscribe}</p>}
 
           {error && (
             <p role="alert" className="mb-4 text-sm font-medium text-danger">

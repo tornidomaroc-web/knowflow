@@ -1,0 +1,69 @@
+name: store-seed
+
+# Step Store-Shots-1. Fills ONE App Store screenshot account with the agent's
+# notes (docs/store/screenshot-content), through the live app's own pages in
+# the runner's Chrome: sign in, allow AI processing in Settings, create the
+# subjects, upload the files, one summary, one quiz, one Ask question. The
+# owner's exception of 2026-10-13 covers these two accounts only
+# (+kfshots-ar, +kfshots-en); scripts/store-seed/seed.mjs refuses any other.
+#
+# `verify` signs in and reports the user id prefix and the AI consent: the
+# first run after the owner creates an account. `seed` is idempotent: what
+# exists is skipped, so a re-run spends nothing twice; it reports every
+# upload, summary, quiz and Ask call it made.
+#
+# SECRETS. The account e-mail and password live only in the GitHub environment
+# `screenshots` (main only); they reach the script as environment variables
+# and are never printed. No service-role key, no Supabase key at all: the app's
+# pages are used as a student uses them.
+#
+# Linux, dispatch only, never on a pull request or a push.
+
+on:
+  workflow_dispatch:
+    inputs:
+      locale:
+        description: 'which account: ar (+kfshots-ar) or en (+kfshots-en)'
+        type: choice
+        options: [ar, en]
+        required: true
+      mode:
+        description: 'verify: sign in and report only. seed: create what is missing (spends AI calls)'
+        type: choice
+        options: [verify, seed]
+        default: verify
+
+permissions:
+  contents: read
+
+concurrency:
+  group: store-seed-${{ inputs.locale }}
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    name: ${{ inputs.mode }} the ${{ inputs.locale }} screenshot account (live site, no API key)
+    runs-on: ubuntu-24.04
+    environment: screenshots
+    timeout-minutes: 30
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: puppeteer-core, pinned, outside the app
+        run: |
+          google-chrome --version
+          npm install --prefix "$RUNNER_TEMP/pp" --no-audit --no-fund --ignore-scripts puppeteer-core@23.11.1
+
+      - name: ${{ inputs.mode }} the account
+        env:
+          PUPPETEER_DIR: ${{ runner.temp }}/pp
+          CHROME: google-chrome
+          KF_SHOTS_EMAIL: ${{ inputs.locale == 'ar' && secrets.SHOTS_AR_EMAIL || secrets.SHOTS_EN_EMAIL }}
+          KF_SHOTS_PASSWORD: ${{ inputs.locale == 'ar' && secrets.SHOTS_AR_PASSWORD || secrets.SHOTS_EN_PASSWORD }}
+          LOCALE: ${{ inputs.locale }}
+          MODE: ${{ inputs.mode }}
+        run: node scripts/store-seed/seed.mjs --locale "$LOCALE" --mode "$MODE"
