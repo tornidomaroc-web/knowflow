@@ -301,6 +301,8 @@ export const ar: Translation = {
       quizDone: "الاختبار جاهز",
       quizTodo: "بلا اختبار بعد",
       added: "أُضيف",
+      // Step Redesign-3, agent drafts (docs/copy-drafts/redesign_v2.md).
+      fileTypes: { pdf: "مستند", docx: "وورد", pptx: "عرض", xlsx: "جدول", txt: "نص", md: "نص" },
     },
     suggestions: {
       heading: "جرّب أن تسأل",

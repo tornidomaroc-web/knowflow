@@ -318,6 +318,9 @@ export const en = {
       quizDone: "Quiz ready",
       quizTodo: "No quiz yet",
       added: "Added",
+      // Step Redesign-3: the file-type label on a material's tile and its
+      // date line. English keeps the letters; Arabic names the kind of file.
+      fileTypes: { pdf: "PDF", docx: "DOCX", pptx: "PPTX", xlsx: "XLSX", txt: "TXT", md: "MD" },
     },
     suggestions: {
       heading: "Try asking",

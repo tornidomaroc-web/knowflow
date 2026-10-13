@@ -61,7 +61,7 @@ jobs:
           if [ -n "$BASE_SHA" ]; then git fetch --no-tags --depth=1 origin "$BASE_SHA"; range="$BASE_SHA...HEAD"; else range="HEAD~1..HEAD"; fi
           changed=$(git diff --name-only --no-renames "$range" || git diff --name-only --no-renames HEAD~1 HEAD)
           echo "$changed" | sed 's/^/  /'
-          if [ -z "$changed" ] || echo "$changed" | grep -vqE '^(docs/.+|[^/]+\.md|\.github/[^/]+\.md)$' || echo "$changed" | grep -qE '(^|/)\.\.(/|$)'; then echo "code=yes" >> "$GITHUB_OUTPUT"; echo "code changed: run"; else echo "code=no" >> "$GITHUB_OUTPUT"; echo "docs only: skip"; fi
+          if [ -z "$changed" ] || echo "$changed" | grep -vqE '^(docs/.+|[^/]+\.md|\.github/[^/]+\.md)$' || echo "$changed" | grep -qE '(^|/)\.\.(/|$)|^docs/copy/'; then echo "code=yes" >> "$GITHUB_OUTPUT"; echo "code changed: run"; else echo "code=no" >> "$GITHUB_OUTPUT"; echo "docs only: skip"; fi
 
   # Job id is the status-check context string. Keep it stable: renaming it
   # silently detaches any branch-protection rule that requires the old name, and

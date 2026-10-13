@@ -3,6 +3,7 @@ import React from 'react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { DropZone } from '@/components/upload/DropZone'
+import { NoMaterials } from '@/components/materials/NoMaterials'
 import { SummarySection } from '@/components/summary/SummarySection'
 import { QuizSection } from '@/components/quiz/QuizSection'
 import { DeleteMaterialControl } from '@/components/materials/DeleteMaterialControl'
@@ -88,6 +89,7 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
     quizDone: sd.quizDone,
     quizTodo: sd.quizTodo,
     added: sd.added,
+    fileTypes: sd.fileTypes,
   }
 
   return (
@@ -120,9 +122,7 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
             {t.dashboard.kbDetail.documents}
           </h2>
           {docs.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-sm text-muted-foreground">
-              {t.dashboard.kbDetail.noDocuments}
-            </div>
+            <NoMaterials text={t.dashboard.kbDetail.noDocuments} />
           ) : (
             <div className="space-y-3">
               {docs.map((doc) => (

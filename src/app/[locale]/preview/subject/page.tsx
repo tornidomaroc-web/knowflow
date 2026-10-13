@@ -12,6 +12,7 @@ import { withSupportEmail } from '@/lib/site'
 import { PreviewRenameFields } from './PreviewRenameFields'
 import { PreviewStudyKit } from './PreviewStudyKit'
 import { hasNoText } from '@/lib/material-text'
+import { NoMaterials } from '@/components/materials/NoMaterials'
 
 /**
  * DESIGN PREVIEW for the subject page (register #85, SIGNED_IN_FEATURES.md
@@ -36,7 +37,7 @@ export default async function SubjectPreview({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ platform?: string }>
+  searchParams: Promise<{ platform?: string; view?: string }>
 }) {
   if (process.env.VERCEL_ENV === 'production') notFound()
   const { locale } = await params
@@ -46,7 +47,10 @@ export default async function SubjectPreview({
   const ar = safeLocale === 'ar'
   const sd = t.dashboard.subjectDetail
   // `?platform=native` renders the app's structure (the upload button, no top bar).
-  const { platform: rawPlatform } = await searchParams
+  // Step Redesign-3: `?view=empty` a subject with no files (the drawn empty
+  // state); `?view=quizempty` the first card's quiz panel on its drawn "no
+  // quiz from this file" state.
+  const { platform: rawPlatform, view } = await searchParams
   const platform = resolvePlatform(rawPlatform)
 
   const materials: { id: string; filename: string; type: string; status: string; added: string; summary: boolean; quiz: boolean; chunk_count?: number; embedding_status?: string }[] = [
@@ -65,7 +69,7 @@ export default async function SubjectPreview({
     { id: 'd6', filename: ar ? 'ملاحظات المحاضرة الخامسة عن مرونة الطلب الدخلية والتقاطعية وأثرها على السوق - النسخة النهائية 12.pdf' : 'Lecture 5 notes on income and cross elasticity of demand in markets - final version 12.pdf', type: 'pdf', status: 'ready', added: '2026-09-25T12:00:00Z', summary: true, quiz: true },
     { id: 'd7', filename: ar ? 'ملخص Chapter 3 (1).pdf' : 'Summary الفصل 3 (1).pdf', type: 'pdf', status: 'ready', added: '2026-09-25T13:00:00Z', summary: false, quiz: false },
   ]
-  const stats = { ...emptyStats(), materials: 8, ready: 5, processing: 1, failed: 1, summarised: 3, quizzed: 3 }
+  const stats = view === 'empty' ? emptyStats() : { ...emptyStats(), materials: 8, ready: 5, processing: 1, failed: 1, summarised: 3, quizzed: 3 }
   const renameLabels = t.dashboard.kbDetail.renameMaterial
   const deleteLabels = withSupportEmail(t.dashboard.kbDetail.deleteMaterial)
   // #123 batch 2: a summary already generated and cut short, so the partial
@@ -85,6 +89,7 @@ export default async function SubjectPreview({
     quizDone: sd.quizDone,
     quizTodo: sd.quizTodo,
     added: sd.added,
+    fileTypes: sd.fileTypes,
   }
 
   return (
@@ -128,6 +133,7 @@ export default async function SubjectPreview({
           <DropZone kbId="00000000-0000-0000-0000-000000000000" />
           <section className="space-y-3">
             <h2 className="text-xs font-semibold uppercase text-muted-foreground">{t.dashboard.kbDetail.documents}</h2>
+            {view === 'empty' ? <NoMaterials text={t.dashboard.kbDetail.noDocuments} /> : (
             <div className="space-y-3">
               {materials.map((m) => (
                 <MaterialCard
@@ -150,11 +156,12 @@ export default async function SubjectPreview({
                   {/* #123 batch 2: the study kit as the subject page renders it,
                       idle on the no-summary card, and with a partial summary. */}
                   {m.id === 'd4' ? <PreviewStudyKit docId={m.id} summary={null} partial={false} deleteLabels={deleteLabels} /> : null}
-                  {m.id === 'd1' ? <PreviewStudyKit docId={m.id} summary={partialSummary} partial deleteLabels={deleteLabels} /> : null}
+                  {m.id === 'd1' ? <PreviewStudyKit docId={m.id} summary={partialSummary} partial quizEmpty={view === 'quizempty'} deleteLabels={deleteLabels} /> : null}
                   {m.id === 'd8' ? <PreviewStudyKit docId={m.id} summary={null} partial={false} noText deleteLabels={deleteLabels} /> : null}
                 </MaterialCard>
               ))}
             </div>
+            )}
           </section>
         </div>
       </DashboardShell>

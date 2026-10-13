@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { readServerLimitMessage } from '@/lib/limit-messages';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
+import { EmptyQuiz } from '@/components/illustrations';
 
 // Only the fields this section needs from a document, mirroring SummarySection's
 // SummaryDoc rather than accepting a whole `Document`.
@@ -72,7 +73,8 @@ function answeredIndex(r: GradedResultView, optionCount: number): number | null 
   return s;
 }
 
-export function QuizSection({ doc }: { doc: QuizDoc }) {
+/** `previewEmpty` (design previews only): open on the drawn "no quiz from this file" state. */
+export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previewEmpty?: boolean }) {
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
   // `useTranslation` is a plain dictionary lookup, not a React hook, despite the
@@ -92,7 +94,7 @@ export function QuizSection({ doc }: { doc: QuizDoc }) {
   const [results, setResults] = useState<GradedResultView[]>([]);
   const [score, setScore] = useState(0);
   const [total, setTotal] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(previewEmpty ? q.errors.notEnoughText : null);
 
   // Status map for POST /api/quiz/generate. Its real set, read from the route:
   // 400 (missing document_id — unreachable from this UI), 401, 404, 409, 422,
@@ -250,7 +252,17 @@ export function QuizSection({ doc }: { doc: QuizDoc }) {
         >
           {phase === 'loading' ? q.starting : q.start}
         </button>
-        {error && <p className="mt-2 text-xs text-danger">{error}</p>}
+        {/* Step Redesign-3: "no quiz can be made from this file" is the one
+            quiz empty state the app has (there is no list of quizzes), so it
+            is drawn, with the route's sentence under the picture. */}
+        {error && error === q.errors.notEnoughText ? (
+          <div data-kf-quiz-empty="" className="kf-card mt-3 flex flex-col items-center rounded-2xl border border-dashed border-border bg-surface p-5 text-center">
+            <EmptyQuiz size={80} title={error} />
+            <p className="mt-2 text-sm text-muted-foreground">{error}</p>
+          </div>
+        ) : (
+          error && <p className="mt-2 text-xs text-danger">{error}</p>
+        )}
       </div>
     );
   }

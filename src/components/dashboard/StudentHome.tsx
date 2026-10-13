@@ -163,7 +163,7 @@ export function StudentHome({
               className={
                 isPro
                   ? 'inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground'
-                  : 'inline-flex items-center gap-1.5 rounded-full bg-accent-subtle px-3 py-1 text-xs font-semibold text-accent'
+                  : 'kf-plan-pill inline-flex items-center gap-1.5 rounded-full bg-accent-subtle px-3 py-1 text-xs font-semibold text-accent'
               }
             >
               <Sparkles className="h-3.5 w-3.5" />
@@ -196,8 +196,14 @@ export function StudentHome({
             <Flame lit={lit} size={72} className="shrink-0" />
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase text-muted-foreground">{labels.streakLabel}</p>
-              {streak === null ? (
-                <p className="text-4xl font-bold text-faint">-</p>
+              {/* Step Redesign-3: no streak yet (0, or unknown before the
+                  time zone is known) is an empty gold ring, a place for the
+                  first day, not a dash. The line under it says why. */}
+              {!streak ? (
+                <p className="flex h-10 items-center">
+                  <span aria-hidden="true" data-kf-streak-ring="" className="kf-streak-ring inline-block h-9 w-9 rounded-full border-[5px] border-accent" />
+                  {streak === 0 && <span className="sr-only">0 {labels.streakUnit}</span>}
+                </p>
               ) : (
                 <p>
                   <span className="text-4xl font-bold text-foreground">{streak}</span>

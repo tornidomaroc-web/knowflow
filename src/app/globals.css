@@ -669,3 +669,22 @@ body { background-color: var(--background); color: var(--foreground); }
 /* Content scrolls under the floating bar; the ground fades in behind it, as
    iOS does. Paint only, under the bar's layer. */
 .kf-clay .kf-tabfade { background: linear-gradient(180deg, transparent, var(--background) 62%); }
+
+/* Step Redesign-3. The web's phone top bar, in the same clay as the tab bar:
+   a slab with a lit lower edge and one drop, its bottom corners rounded. The
+   marketing and sign-in pages have their own header (SiteHeader) outside
+   .kf-clay and are untouched. */
+.kf-clay .kf-topbar {
+  border-color: var(--clay-edge);
+  border-radius: 0 0 1.375rem 1.375rem;
+  background-image: linear-gradient(180deg, var(--raised), var(--clay-tile-top));
+  background-color: var(--raised);
+  box-shadow: inset 0 -1.5px 0 var(--clay-hi), inset 0 8px 14px -10px var(--clay-shade), 0 14px 24px -14px var(--clay-drop);
+}
+/* Inside the app: the ground behind the status bar, fading out below it. */
+.kf-clay .kf-topfade { background: linear-gradient(0deg, transparent, var(--background) 55%); }
+/* The web home's plan pill on its gold tint read 4.37:1 in light (the
+   Redesign-3 render of the web shell); the deeper gold is 6.2:1 there. */
+[data-theme="light"] .kf-clay .kf-plan-pill.text-accent { color: var(--accent-hover); }
+/* No streak yet: an empty gold ring, raised like the gold controls. */
+.kf-clay .kf-streak-ring { box-shadow: 0 6px 10px -6px var(--clay-drop); }

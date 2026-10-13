@@ -40,6 +40,8 @@ jobs:
   # Step CI-Relay-Fix: a STRICT allowlist, the same in db-types.yml and
   # ingestion-image.yml: only docs/**, a top-level *.md and .github/*.md are
   # docs (no *.md or *.png elsewhere, no `..` segment), an empty list is code,
+  # and docs/copy/** is CODE (Step Redesign-3): its batch files are what
+  # verify-arabic-copy.mjs holds ar.ts to, so a copy-only change must run it,
   # and --no-renames lists both sides of a move (a plain --name-only lists a
   # file moved from src/ into docs/ as docs/ alone). Fail closed: the real
   # jobs run unless detect said `no`, so a detect that fails or never runs
@@ -64,7 +66,7 @@ jobs:
           if [ -n "$BASE_SHA" ]; then git fetch --no-tags --depth=1 origin "$BASE_SHA"; range="$BASE_SHA...HEAD"; else range="HEAD~1..HEAD"; fi
           changed=$(git diff --name-only --no-renames "$range" || git diff --name-only --no-renames HEAD~1 HEAD)
           echo "$changed" | sed 's/^/  /'
-          if [ -z "$changed" ] || echo "$changed" | grep -vqE '^(docs/.+|[^/]+\.md|\.github/[^/]+\.md)$' || echo "$changed" | grep -qE '(^|/)\.\.(/|$)'; then echo "code=yes" >> "$GITHUB_OUTPUT"; echo "code changed: run"; else echo "code=no" >> "$GITHUB_OUTPUT"; echo "docs only: skip"; fi
+          if [ -z "$changed" ] || echo "$changed" | grep -vqE '^(docs/.+|[^/]+\.md|\.github/[^/]+\.md)$' || echo "$changed" | grep -qE '(^|/)\.\.(/|$)|^docs/copy/'; then echo "code=yes" >> "$GITHUB_OUTPUT"; echo "code changed: run"; else echo "code=no" >> "$GITHUB_OUTPUT"; echo "docs only: skip"; fi
 
   tsc:
     needs: detect

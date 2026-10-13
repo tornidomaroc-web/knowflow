@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ChatBox } from '@/components/agent/ChatBox'
 import { AgentEmptyState } from '@/components/agent/AgentEmptyState'
-import { MessageBubble } from '@/components/agent/MessageBubble'
+import { AskTitle } from '@/components/agent/AskTitle'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { PlatformProvider } from '@/components/platform/PlatformProvider'
 import { resolvePlatform } from '@/lib/platform'
@@ -27,8 +27,9 @@ import { answerableSubjectIds, initialAskSubject } from '@/lib/material-text'
  *   zero       a student with no subjects (AgentEmptyState, `home.newKbDesc`);
  *   history    the history list as the phone's drawer shows it, empty
  *              (`agent.noHistory`);
- *   answer     an answered question with three citation pills (#124: an
- *              Arabic name with a chapter number, a Latin name, a mixed one).
+ *   answer     a full conversation in the real ChatBox (Step Redesign-3): two
+ *              questions, two answers, each with its sources (#124: an Arabic
+ *              name with a chapter number, a Latin name, a mixed one).
  *   subjects   the subject bar (#129 (c)) over five subjects whose files mix
  *              ready, no-text, processing and failed: only the two with a
  *              file Ask can answer from are offered, computed by the real rule.
@@ -91,6 +92,29 @@ export default async function AskPreview({
           { filename: ar ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved exercises - Chapter 3.pdf', lead: null },
         ]
 
+  // #124 and Step Redesign-3: the citation names mix an Arabic name with a
+  // chapter number, a Latin name, and a mixed one.
+  const conversation = [
+    { role: 'user', content: ar ? 'ما هي مرونة الطلب؟' : 'What is elasticity of demand?' },
+    {
+      role: 'assistant',
+      content: ar ? 'مرونة الطلب هي مدى تغيّر الكمية المطلوبة عند تغيّر أحد العوامل المؤثرة فيها، مثل الدخل.' : 'Elasticity of demand is how much the quantity demanded changes when one of its factors changes, such as income.',
+      citations: [
+        { index: 1, document_id: 'd2', chunk_id: 'c1', filename: ar ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved exercises - Chapter 3.pdf', similarity: 0.91 },
+        { index: 2, document_id: 'd1', chunk_id: 'c2', filename: 'xilvaroth-n11-20260810.pdf', similarity: 0.84 },
+      ],
+    },
+    { role: 'user', content: ar ? 'أعطني مثالًا من التمارين.' : 'Give me an example from the exercises.' },
+    {
+      role: 'assistant',
+      content: ar ? 'في التمرين الثاني ارتفع الدخل بنسبة 10% فارتفعت الكمية المطلوبة بنسبة 20%، فمرونة الطلب الدخلية تساوي 2.' : 'In exercise 2 income rose by 10% and the quantity demanded rose by 20%, so the income elasticity of demand is 2.',
+      citations: [
+        { index: 1, document_id: 'd2', chunk_id: 'c4', filename: ar ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved exercises - Chapter 3.pdf', similarity: 0.93 },
+        { index: 2, document_id: 'd6', chunk_id: 'c3', filename: ar ? 'ملخص Chapter 3 (1).pdf' : 'Summary الفصل 3 (1).pdf', similarity: 0.8 },
+      ],
+    },
+  ]
+
   return (
     <div className="min-h-screen">
       <div className={sp.platform ? 'hidden' : 'flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs'}>
@@ -137,31 +161,22 @@ export default async function AskPreview({
           <div className="h-[28rem] overflow-hidden rounded-xl border border-border">
             <PreviewHistory />
           </div>
-        ) : view === 'answer' ? (
-          // #124: an answered question with its citation pills, so the file
-          // names under an answer can be looked at (Arabic with a chapter
-          // number, Latin, and a mixed name).
-          <div className="space-y-3 rounded-xl border border-border bg-surface p-3">
-            <MessageBubble role="user" content={ar ? 'ما هي مرونة الطلب؟' : 'What is elasticity of demand?'} />
-            <MessageBubble
-              role="assistant"
-              content={ar ? 'مرونة الطلب هي مدى تغيّر الكمية المطلوبة عند تغيّر أحد العوامل المؤثرة فيها.' : 'Elasticity of demand is how much the quantity demanded changes when one of its factors changes.'}
-              citations={[
-                { index: 1, document_id: 'd2', chunk_id: 'c1', filename: ar ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved exercises - Chapter 3.pdf', similarity: 0.91 },
-                { index: 2, document_id: 'd1', chunk_id: 'c2', filename: 'xilvaroth-n11-20260810.pdf', similarity: 0.84 },
-                { index: 3, document_id: 'd6', chunk_id: 'c3', filename: ar ? 'ملخص Chapter 3 (1).pdf' : 'Summary الفصل 3 (1).pdf', similarity: 0.8 },
-              ]}
-              sourceHref={(c) => `/${safeLocale}/dashboard/knowledge/k1#material-${c.document_id}`}
-              sourcesLabel={t.dashboard.agent.sources}
-            />
-          </div>
         ) : (
-          <div className={`kf-card flex flex-col overflow-hidden rounded-xl border border-border bg-surface md:h-[calc(100dvh-4rem)] ${platform === 'native' ? 'h-[calc(100dvh-1.25rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]' : 'h-[calc(100dvh-4.5rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]'}`}>
-            <ChatBox
-              kbId="00000000-0000-0000-0000-000000000000"
-              kbName={ar ? 'مبادئ الاقتصاد الجزئي' : 'Microeconomics'}
-              materials={materials}
-            />
+          // Step Redesign-3: the default (an empty conversation) and `answer`
+          // (a full conversation: two questions, two answers, each answer with
+          // its sources under "Sources") are the REAL ChatBox at the page's
+          // height, as /dashboard/agent lays it out: the large title inside
+          // the app, the conversation scrolling, the composer at the bottom.
+          <div className={`flex flex-col md:h-[calc(100dvh-4rem)] ${platform === 'native' ? 'h-[calc(100dvh-1.25rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]' : 'h-[calc(100dvh-4.5rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]'}`}>
+            {platform === 'native' && <AskTitle text={t.dashboard.nav.agent} />}
+            <div className="kf-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-surface">
+              <ChatBox
+                kbId="00000000-0000-0000-0000-000000000000"
+                kbName={ar ? 'مبادئ الاقتصاد الجزئي' : 'Microeconomics'}
+                materials={materials}
+                initialMessages={view === 'answer' ? conversation : null}
+              />
+            </div>
           </div>
         )}
       </DashboardShell>

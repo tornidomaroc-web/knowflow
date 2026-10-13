@@ -130,6 +130,66 @@ export function Trophy(p: Props) {
   );
 }
 
+/*
+ * STEP REDESIGN-3: THE THREE EMPTY STATES, drawn in the clay manner of the
+ * cards (a lit top edge, a shade inside the lower edge, a soft drop under the
+ * object), still from the theme's own tokens, so each re-colours with light
+ * and dark and costs no request. The shade and the lit edge are flat shapes,
+ * not filters (the render audit refuses filter and backdrop-filter).
+ */
+
+/** A soft drop under an object: an ellipse in the clay drop colour. */
+function Ground({ cx = 48, cy = 84, rx = 30 }: { cx?: number; cy?: number; rx?: number }) {
+  return <ellipse cx={cx} cy={cy} rx={rx} ry="4.5" fill="var(--clay-drop, rgba(0,0,0,0.3))" opacity="0.35" />;
+}
+
+/** An open tray with a dotted page waiting and a gold arrow into it: a subject with no files yet. */
+export function EmptyFiles(p: Props) {
+  return (
+    <Svg name="empty-files" {...p}>
+      <Ground />
+      <rect x="30" y="14" width="36" height="44" rx="6" fill="var(--surface)" stroke="var(--faint)" strokeWidth="2.5" strokeDasharray="5 4" />
+      <path d="M48 22v20m0 0l-7-7m7 7l7-7" stroke="var(--accent)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 52h18l4 8h24l4-8h18v20a8 8 0 0 1-8 8H22a8 8 0 0 1-8-8V52z" fill="var(--sky-subtle)" stroke="var(--sky)" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M20 56h10M66 56h10" stroke="var(--clay-hi, rgba(255,255,255,0.6))" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="80" cy="20" r="3" fill="var(--coral)" />
+      <circle cx="18" cy="30" r="2.5" fill="var(--mint)" />
+    </Svg>
+  );
+}
+
+/** A speech bubble holding a gold question mark over a closed book: nothing to ask yet. */
+export function EmptyAsk(p: Props) {
+  return (
+    <Svg name="empty-ask" {...p}>
+      <Ground />
+      <rect x="22" y="58" width="52" height="20" rx="6" fill="var(--violet-subtle)" stroke="var(--violet)" strokeWidth="2.5" />
+      <path d="M48 60v16" stroke="var(--violet)" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M26 12h44a8 8 0 0 1 8 8v20a8 8 0 0 1-8 8H50l-9 8v-8H26a8 8 0 0 1-8-8V20a8 8 0 0 1 8-8z" fill="var(--surface)" stroke="var(--faint)" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M41 24a7 7 0 1 1 9.5 6.5c-1.6.7-2.5 2-2.5 3.6V36" stroke="var(--accent)" strokeWidth="3.5" strokeLinecap="round" fill="none" />
+      <circle cx="48" cy="42" r="2.4" fill="var(--accent)" />
+      <circle cx="82" cy="58" r="2.5" fill="var(--coral)" />
+      <circle cx="14" cy="50" r="2.5" fill="var(--mint)" />
+    </Svg>
+  );
+}
+
+/** A quiz card with blank answer rows and a pencil resting on it: no quiz could be made yet. */
+export function EmptyQuiz(p: Props) {
+  return (
+    <Svg name="empty-quiz" {...p}>
+      <Ground />
+      <rect x="20" y="14" width="50" height="64" rx="8" fill="var(--mint-subtle)" stroke="var(--mint)" strokeWidth="2.5" />
+      <circle cx="31" cy="32" r="4.5" stroke="var(--mint)" strokeWidth="2.5" />
+      <circle cx="31" cy="48" r="4.5" stroke="var(--mint)" strokeWidth="2.5" />
+      <circle cx="31" cy="64" r="4.5" stroke="var(--mint)" strokeWidth="2.5" />
+      <path d="M41 32h18M41 48h18M41 64h12" stroke="var(--faint)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="3 4" />
+      <path d="M62 70l18-30 6 3.5-18 30-7.5 3z" fill="var(--accent)" />
+      <path d="M80 40l3-5a3.5 3.5 0 0 1 6 3.5l-3 5z" fill="var(--coral)" />
+    </Svg>
+  );
+}
+
 /** A compass: settings, where things are set. */
 export function Compass(p: Props) {
   return (

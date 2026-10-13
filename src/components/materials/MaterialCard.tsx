@@ -17,6 +17,8 @@ export interface MaterialCardLabels {
   quizDone: string;
   quizTodo: string;
   added: string;
+  /** Step Redesign-3: the file-type label in the student's language (Arabic names the kind of file). */
+  fileTypes: Record<'pdf' | 'docx' | 'pptx' | 'xlsx' | 'txt' | 'md', string>;
 }
 
 /**
@@ -80,18 +82,23 @@ export function MaterialCard({
     : fileType === 'docx' ? 'bg-sky-subtle text-sky'
     : fileType === 'xlsx' ? 'bg-mint-subtle text-mint'
     : 'bg-accent-subtle text-accent';
+  // Step Redesign-3: the label from the dictionary, so the Arabic layout reads
+  // "مستند" where it read "PDF"; a type the app does not know keeps its letters.
+  const typeLabel = fileType
+    ? (labels.fileTypes as Record<string, string> | undefined)?.[fileType] ?? fileType.toUpperCase()
+    : '';
   return (
     <article id={anchorId} className="kf-card rise rounded-2xl border border-border bg-surface p-4 md:p-5">
       <div className="flex items-start gap-3">
         <span className={`kf-chip inline-flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl ${tile}`}>
           <FileText className="h-5 w-5" />
-          <span className="text-[9px] font-bold uppercase leading-none">{fileType ?? ''}</span>
+          <span className="max-w-full truncate px-0.5 text-[9px] font-bold uppercase leading-none">{typeLabel}</span>
         </span>
         <div className="min-w-0 flex-1">
           {/* Register #124: `<p dir="auto">` showed "الفصل pdf.3"; FileName keeps "3.pdf" one unit. */}
           <FileName name={filename} className="text-sm font-semibold text-foreground" />
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {fileType?.toUpperCase()} · {labels.added}{' '}
+            {typeLabel} · {labels.added}{' '}
             <bdi>{formatDate(addedAt, locale as Locale)}</bdi>
           </p>
         </div>
