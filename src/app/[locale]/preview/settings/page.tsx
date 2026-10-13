@@ -37,7 +37,7 @@ export default async function SettingsPreview({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ plan?: string; platform?: string; theme?: string }>
+  searchParams: Promise<{ plan?: string; platform?: string; theme?: string; reminder?: string }>
 }) {
   if (process.env.VERCEL_ENV === 'production') notFound()
 
@@ -47,7 +47,7 @@ export default async function SettingsPreview({
   const t = useTranslation(safeLocale)
   const s = t.dashboard.settings
 
-  const { plan, platform, theme } = await searchParams
+  const { plan, platform, theme, reminder } = await searchParams
   const isPro = plan === 'pro'
   const native = platform === 'native'
   const otherLocale: Locale = safeLocale === 'ar' ? 'en' : 'ar'
@@ -125,7 +125,9 @@ export default async function SettingsPreview({
           }}
           // The study reminder as the app shows it (STORE_PATH.md S3(a)), off;
           // in preview mode the card talks to no plugin.
-          reminderCard={native ? <StudyReminderCard labels={t.dashboard.studyReminder} locale={safeLocale} preview="off" /> : null}
+          // Step Redesign-3: `?reminder=on` shows it switched on, its time read
+          // in the page's language ("7:00 م" / "7:00 pm") beside the picker.
+          reminderCard={native ? <StudyReminderCard labels={t.dashboard.studyReminder} locale={safeLocale} preview={reminder === 'on' ? 'on' : 'off'} /> : null}
           subscriptionCard={
             isPro ? (
               <CancelSubscriptionCard labels={withSupportEmail(s.cancelSubscription)} accessUntil={renewsOn} alreadyScheduled={false} />

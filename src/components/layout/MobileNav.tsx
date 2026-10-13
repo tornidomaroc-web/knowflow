@@ -50,7 +50,7 @@ export function MobileNav({
            makes the inset real, and the bar grows by it so its content stays
            below the sensors. Register #96, corrected. */
         <header
-          className="fixed inset-x-0 top-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center justify-between border-b border-border bg-surface px-4 pt-[env(safe-area-inset-top)] md:hidden"
+          className="kf-topbar fixed inset-x-0 top-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center justify-between border-b border-border bg-surface px-4 pt-[env(safe-area-inset-top)] md:hidden"
         >
           <Link href={`/${locale}/dashboard`} className="text-lg font-bold tracking-tight text-foreground">
             Know<span className="text-primary">Flow</span>
@@ -76,6 +76,12 @@ export function MobileNav({
           </div>
         </header>
       )}
+      {/* Step Redesign-3: the app has no top bar, so the page scrolled under the
+          status bar and its text ran into the clock (ios-signed-in run
+          38397283151, ar-settings-bottom). A scrim the height of the top inset,
+          the ground fading out below it, as iOS does under a large title.
+          Paint only; zero tall where there is no inset (the web, a desktop). */}
+      {native && <div aria-hidden="true" className="kf-topfade pointer-events-none fixed inset-x-0 top-0 z-30 h-[calc(env(safe-area-inset-top)+0.75rem)] md:hidden" />}
       {/* The ground fades in under the floating bar, so rows do not show
           through around it. Paint only, under the bar's layer. */}
       <div aria-hidden="true" className="kf-tabfade pointer-events-none fixed inset-x-0 bottom-0 z-20 h-[calc(7rem+env(safe-area-inset-bottom))] md:hidden" />

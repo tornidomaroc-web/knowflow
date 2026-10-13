@@ -25,6 +25,7 @@ on:
       - 'src/**'
       - 'scripts/redesign-built/**'
       - 'docs/design/redesign-built/**'
+      - 'docs/store/redesign3-renders/**'
       - '.github/workflows/redesign-built.yml'
   workflow_dispatch:
 
@@ -79,22 +80,33 @@ jobs:
           PUPPETEER_DIR: ${{ runner.temp }}/pp
         run: CHROME="$(command -v google-chrome)" node scripts/redesign-built/render.mjs --out "$RUNNER_TEMP/built"
 
+      # Step Redesign-3: the changed screens at iPhone 15 size (393 x 852 pt,
+      # 3x), Arabic and English, dark and light, the app screens with the
+      # app's user agent (KnowFlowApp/1) and the web's top bar with Safari's;
+      # each proves its item in the page and passes the same audit. Reviewed
+      # from the repo: docs/store/redesign3-renders/.
+      - name: Render and audit the Redesign-3 screens (iPhone 15)
+        if: ${{ !cancelled() }}
+        env:
+          PUPPETEER_DIR: ${{ runner.temp }}/pp
+        run: CHROME="$(command -v google-chrome)" node scripts/redesign-built/render-redesign3.mjs --out "$RUNNER_TEMP/redesign3"
+
       - name: The committed PNGs match the fresh renders; the side-by-sides
         run: |
           set -eu
           python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
-          python3 - "$RUNNER_TEMP/built" <<'PY'
+          cat > "$RUNNER_TEMP/same.py" <<'PY'
           import glob, os, sys
           from PIL import Image, ImageChops
-          fresh = sys.argv[1]
+          fresh, kept = sys.argv[1], sys.argv[2]
           want = sorted(os.path.basename(p) for p in glob.glob(os.path.join(fresh, '*.png')))
-          have = sorted(os.path.basename(p) for p in glob.glob('docs/design/redesign-built/*.png'))
+          have = sorted(os.path.basename(p) for p in glob.glob(os.path.join(kept, '*.png')))
           if not have:
-              print('no committed PNG yet'); sys.exit(0)
+              print(f'no committed PNG in {kept} yet'); sys.exit(0)
           fails = 0 if want == have else 1
           print(('ok   ' if not fails else 'FAIL ') + f'committed set equals the {len(want)} renders (missing {sorted(set(want) - set(have))}, extra {sorted(set(have) - set(want))})')
           for n in sorted(set(want) & set(have)):
-              a = Image.open(os.path.join('docs/design/redesign-built', n)).convert('RGB')
+              a = Image.open(os.path.join(kept, n)).convert('RGB')
               b = Image.open(os.path.join(fresh, n)).convert('RGB')
               if a.size != b.size:
                   print(f'FAIL {n}: size {a.size} vs {b.size}'); fails += 1; continue
@@ -105,6 +117,8 @@ jobs:
               fails += 0 if ok else 1
           sys.exit(1 if fails else 0)
           PY
+          python3 "$RUNNER_TEMP/same.py" "$RUNNER_TEMP/built" docs/design/redesign-built
+          python3 "$RUNNER_TEMP/same.py" "$RUNNER_TEMP/redesign3" docs/store/redesign3-renders
           python3 scripts/redesign-built/compare.py "$RUNNER_TEMP/built" "$RUNNER_TEMP/built/side-by-side"
 
       - name: Server log
@@ -116,6 +130,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: redesign-built
-          path: ${{ runner.temp }}/built
+          path: |
+            ${{ runner.temp }}/built
+            ${{ runner.temp }}/redesign3
           if-no-files-found: error
           retention-days: 14

@@ -17,6 +17,7 @@ export function PreviewStudyKit({
   summary,
   partial,
   noText = false,
+  quizEmpty = false,
   deleteLabels,
 }: {
   docId: string
@@ -24,12 +25,14 @@ export function PreviewStudyKit({
   partial: boolean
   /** #128: as the subject page, a file with no text gets no summary or quiz. */
   noText?: boolean
+  /** Step Redesign-3: the quiz panel on its drawn "no quiz from this file" state. */
+  quizEmpty?: boolean
   deleteLabels: DeleteMaterialLabels
 }) {
   return (
     <>
       {!noText && <SummarySection doc={{ id: docId, status: 'ready', summary, summary_is_partial: partial }} />}
-      {!noText && <QuizSection doc={{ id: docId, status: 'ready' }} />}
+      {!noText && <QuizSection doc={{ id: docId, status: 'ready' }} previewEmpty={quizEmpty} />}
       <DeleteMaterialControl documentId={docId} labels={deleteLabels} onDeleted={() => {}} />
     </>
   )

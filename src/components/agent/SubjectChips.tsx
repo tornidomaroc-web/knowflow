@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
-import { ChatPages } from '@/components/illustrations';
+import { EmptyAsk } from '@/components/illustrations';
 
 /**
  * Ask's subject bar (register #129 (c)): only the subjects Ask can answer
@@ -53,7 +53,7 @@ export function AskNoAnswerableSubject({ href, labels }: { href: string; labels:
   return (
     <div className="flex flex-1 items-center justify-center p-6">
       <div className="flex max-w-sm flex-col items-center text-center">
-        <ChatPages size={96} title={labels.title} />
+        <EmptyAsk size={112} title={labels.title} />
         <p className="mt-4 text-base font-semibold text-foreground">{labels.title}</p>
         <Link href={href} className={cn(buttonVariants({ variant: 'primary' }), 'mt-4')}>
           <Upload className="h-4 w-4" />

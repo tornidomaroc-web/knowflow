@@ -259,6 +259,11 @@ jobs:
             {"name":"ar-subjects","wait":8000,"js":"(function(){location.assign('/ar/dashboard/knowledge');return 'assigned /ar/dashboard/knowledge'})()"},
             {"name":"ar-ask","wait":8000,"js":"(function(){location.assign('/ar/dashboard/agent');return 'assigned /ar/dashboard/agent'})()"},
             {"name":"ar-settings","wait":8000,"js":"(function(){location.assign('/ar/dashboard/settings');return 'assigned /ar/dashboard/settings'})()"},
+            {"name":"ar-reminder-on","wait":3000,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');if(!c){return 'no reminder card'}if(c.getAttribute('data-kf-reminder-state')!=='off'){return 'not off: '+c.getAttribute('data-kf-reminder-state')}var b=c.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked on'})()"},
+            {"name":"ar-reminder-clock","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');if(!c){return 'no reminder card'}c.scrollIntoView({block:'center'});var k=c.querySelector('[data-kf-reminder-clock]');var s=c.querySelector('[aria-live]');return c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time')+' | '+(k?k.textContent:'no clock')+' | '+(s?s.textContent:'no state line')})()"},
+            {"name":"ar-reminder-off","wait":3000,"js":"(function(){var b=document.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked off'})()"},
+            {"name":"ar-reminder-read-off","wait":1500,"js":"(function(){window.__kfP='pending';window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
+            {"name":"ar-reminder-pending-off","wait":300,"js":"(function(){return String(window.__kfP)})()"},
             {"name":"ar-settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
             {"name":"ar-privacy","wait":8000,"js":"(function(){location.assign('/ar/privacy');return 'assigned /ar/privacy'})()"},
             {"name":"ar-terms","wait":8000,"js":"(function(){location.assign('/ar/terms');return 'assigned /ar/terms'})()"},
@@ -352,13 +357,25 @@ jobs:
           need(by.get("reminder-read-on", {}).get("result") == "on 19:00" and pend("reminder-pending-on") == [(7001, 19, 0)], f"switching it on schedules one daily reminder at 19:00: {by.get('reminder-read-on', {}).get('result')} {pend('reminder-pending-on')}")
           need(by.get("reminder-read-time", {}).get("result") == "on 07:30" and pend("reminder-pending-time") == [(7001, 7, 30)], f"a new time replaces it: {by.get('reminder-read-time', {}).get('result')} {pend('reminder-pending-time')}")
           need(by.get("reminder-read-off", {}).get("result") == "off 07:30" and pend("reminder-pending-off") == [], f"switching it off cancels it: {by.get('reminder-read-off', {}).get('result')} {pend('reminder-pending-off')}")
+          # Step Redesign-3: the reminder's time in Arabic, as the student reads
+          # it in the simulator whatever the engine's own locale (a native time
+          # input drew "07:00 PM" on /ar): the clock beside the picker and the
+          # state line both read "7:00 م", Western digits, the Arabic marker,
+          # no Latin AM/PM. The shot of this step is kept with the others
+          # (signed-in-<n>-ar-reminder-clock.png). Then off again, nothing left.
+          def clk(v): return re.sub(r"[‎‏؜⁦-⁩]", "", v or "").replace(" ", " ").replace(" ", " ")
+          RC = clk(str(by.get("ar-reminder-clock", {}).get("result", "")))
+          parts = [x.strip() for x in RC.split("|")]
+          need(by.get("ar-reminder-on", {}).get("result") == "clicked on", f"the Arabic Settings shows the reminder off and switches it on: {by.get('ar-reminder-on', {}).get('result')}")
+          need(len(parts) == 3 and parts[0] == "on 19:00" and re.fullmatch("7:00 م", parts[1]) is not None and "7:00 م" in parts[2] and not re.search(r"(?i)\b[ap]\.?m\b", RC), f"the Arabic reminder reads its time in Arabic, beside the picker and in the sentence: {RC}")
+          need(by.get("ar-reminder-read-off", {}).get("result") == "off 19:00" and pend("ar-reminder-pending-off") == [], f"...and switching it off cancels it: {by.get('ar-reminder-read-off', {}).get('result')} {pend('ar-reminder-pending-off')}")
           # Step Wording-1: the legal and site twins and the main screens in
           # Arabic too, each read on the page it was sent to (a bounce to the
           # login page would read clean and prove nothing).
           VISITED = {"en-privacy": r"/en/privacy$", "en-terms": r"/en/terms$", "en-refund": r"/en/refund$", "en-about": r"/en/about$", "en-contact": r"/en/contact$", "ar-home": r"/ar/dashboard$", "ar-subjects": r"/ar/dashboard/knowledge$", "ar-ask": r"/ar/dashboard/agent$", "ar-settings": r"/ar/dashboard/settings$", "ar-settings-bottom": r"/ar/dashboard/settings$", "ar-privacy": r"/ar/privacy$", "ar-terms": r"/ar/terms$", "ar-refund": r"/ar/refund$", "ar-about": r"/ar/about$", "ar-contact": r"/ar/contact$"}
           for name, path in VISITED.items():
               need(re.search(path, P(name).get("href", "") or ""), f"{name} opened its page: {P(name).get('href')}")
-          for name in ("home", "home-bottom", "subjects", "subject", "summary", "quiz-open", "consent", "quiz", "ask", "settings", "consent-on", "consent-off", "reminder-card", "reminder-read-on", "reminder-read-off", "settings-bottom", *VISITED):
+          for name in ("home", "home-bottom", "subjects", "subject", "summary", "quiz-open", "consent", "quiz", "ask", "settings", "consent-on", "consent-off", "reminder-card", "reminder-read-on", "reminder-read-off", "settings-bottom", "ar-reminder-clock", *VISITED):
               p = P(name).get("purchase", {}) or {}
               need(not p.get("words") and not p.get("hrefs"), f"3.1.3(f) on {name}: no plan, subscription, upgrade, price or free word (scripts/lib/app-wording.mjs) and no purchase link: words={p.get('words')} hrefs={p.get('hrefs')}")
               need(P(name).get("google") == 0, f"no Google button on {name}: {P(name).get('google')}")

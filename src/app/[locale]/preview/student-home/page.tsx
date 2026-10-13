@@ -54,7 +54,7 @@ export default async function StudentHomePreview({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ state?: string; theme?: string; platform?: string }>
+  searchParams: Promise<{ state?: string; theme?: string; platform?: string; streak?: string }>
 }) {
   // ── THE GATE. A `noindex` tag is not access control: it asks crawlers not to
   //    list the path, and does nothing about anyone who has the URL. This route
@@ -79,7 +79,7 @@ export default async function StudentHomePreview({
   const t = useTranslation(safeLocale)
   const home = t.dashboard.home
 
-  const { state: rawState, theme: rawTheme, platform: rawPlatform } = await searchParams
+  const { state: rawState, theme: rawTheme, platform: rawPlatform, streak: rawStreak } = await searchParams
   // `?platform=native` shows the home as the app renders it (no Upgrade link),
   // the same switch the settings preview has; the store screenshots use it.
   const platform = resolvePlatform(rawPlatform)
@@ -137,7 +137,8 @@ export default async function StudentHomePreview({
   // A brand-new account has its full allowance and a null streak (no timezone
   // cookie has been written yet), which is exactly what the ghost is for.
   const used = full ? { query: 3, upload: 1 } : { query: 0, upload: 0 }
-  const streak = full ? 5 : null
+  // Step Redesign-3: `?streak=0`, a known streak of zero days (the gold ring, as for null).
+  const streak = rawStreak === '0' ? 0 : full ? 5 : null
 
   const stats = [
     { label: home.knowledgeBases, value: counts.subjects, desc: home.knowledgeBasesDesc },

@@ -23,7 +23,10 @@ interface ChatBoxProps {
   /** The subject's materials (name and summary lead), for the suggested first questions (#85, #121). */
   materials?: MaterialForSuggestion[];
   initialConversationId?: string | null;
-  initialMessages?: { role: string; content: string }[] | null;
+  /** A loaded conversation. `citations` only where they are known: the
+   *  messages table stores none, so a reopened conversation shows its answers
+   *  without sources (the design preview passes them, Step Redesign-3). */
+  initialMessages?: { role: string; content: string; citations?: Citation[] }[] | null;
   onConversationCreated?: (id: string) => void;
 }
 
@@ -87,7 +90,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
   const t = useTranslation(safeLocale);
   const { ensure: ensureAiConsent } = useAiConsent();
   const [messages, setMessages] = useState<Message[]>(
-    initialMessages?.map((m, i) => ({ id: String(i), role: m.role as 'user' | 'assistant', content: m.content })) ?? []
+    initialMessages?.map((m, i) => ({ id: String(i), role: m.role as 'user' | 'assistant', content: m.content, citations: m.citations })) ?? []
   );
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -264,7 +267,10 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
         )}
       </div>
 
-      <div className="border-t border-border bg-surface p-3 pb-6 md:p-4">
+      {/* Step Redesign-3: the composer is the last row of a column whose height
+          the page fixes, so it stays put at the bottom while the conversation
+          above it scrolls (`sticky` keeps it there should the column ever grow). */}
+      <div data-kf-composer="" className="sticky bottom-0 shrink-0 border-t border-border bg-surface p-3 pb-6 md:p-4">
         <div className="kf-composer flex items-end gap-2 rounded-2xl border border-control-border bg-background p-2 focus-within:border-primary">
           <textarea
             value={input}

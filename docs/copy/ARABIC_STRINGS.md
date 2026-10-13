@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-10-12 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **418 Arabic strings.**
+Generated 2026-10-13 by `scripts/export-arabic-strings.mjs` from
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **424 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -326,6 +326,12 @@ file is not read by the app.
 | `dashboard.subjectDetail.quizDone` | الاختبار جاهز | Quiz ready |
 | `dashboard.subjectDetail.quizTodo` | بلا اختبار بعد | No quiz yet |
 | `dashboard.subjectDetail.added` | أُضيف | Added |
+| `dashboard.subjectDetail.fileTypes.pdf` | مستند | PDF |
+| `dashboard.subjectDetail.fileTypes.docx` | وورد | DOCX |
+| `dashboard.subjectDetail.fileTypes.pptx` | عرض | PPTX |
+| `dashboard.subjectDetail.fileTypes.xlsx` | جدول | XLSX |
+| `dashboard.subjectDetail.fileTypes.txt` | نص | TXT |
+| `dashboard.subjectDetail.fileTypes.md` | نص | MD |
 
 ## Signed-in app: suggestions (`dashboard.suggestions`)
 

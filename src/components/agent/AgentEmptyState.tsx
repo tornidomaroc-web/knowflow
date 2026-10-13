@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { buttonVariants } from '@/components/ui';
-import { ChatPages } from '@/components/illustrations';
+import { EmptyAsk } from '@/components/illustrations';
 
 interface AgentEmptyStateLabels {
   title: string;
@@ -22,8 +22,9 @@ export interface AgentEmptyStateProps {
 export function AgentEmptyState({ newHref, labels }: AgentEmptyStateProps) {
   return (
     <div>
-      <div className="rise mx-auto flex max-w-md flex-col items-center rounded-2xl border border-dashed border-border bg-surface p-10 text-center">
-        <ChatPages size={112} title={labels.title} />
+      {/* Step Redesign-3: the drawn Ask empty state (illustrations, EmptyAsk). */}
+      <div className="kf-card rise mx-auto flex max-w-md flex-col items-center rounded-2xl border border-dashed border-border bg-surface p-10 text-center">
+        <EmptyAsk size={128} title={labels.title} />
         <h2 className="mt-4 text-xl font-semibold text-foreground">{labels.title}</h2>
         <p className="mb-6 mt-2 text-sm text-muted-foreground">{labels.prompt}</p>
         <Link href={newHref} className={buttonVariants({ variant: 'primary' })}>

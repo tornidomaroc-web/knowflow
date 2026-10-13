@@ -185,17 +185,31 @@ export function StudyReminderCard({
       </div>
       <div className="mt-4 flex items-center justify-between gap-4">
         <label htmlFor="kf-reminder-time" className="text-sm text-foreground">{labels.timeLabel}</label>
-        <input
-          id="kf-reminder-time"
-          type="time"
-          step={60}
-          dir="ltr"
-          value={time}
-          disabled={busy}
-          data-kf-reminder="time"
-          onChange={(e) => void changeTime(e.target.value)}
-          className="h-11 rounded-xl border border-border bg-raised px-3 text-sm tabular-nums text-foreground"
-        />
+        {/*
+          Step Redesign-3. A native `<input type="time">` draws its own text in
+          the ENGINE's locale, not the page's: the CI render of /ar showed
+          "07:00 PM" (headless Chromium is en-US), and an iPhone set to English
+          does the same inside the Arabic app. No `Intl` call can reach that
+          text. So the time the student reads is ours, formatted with an
+          explicit locale (formatReminderClock: "7:00 م" / "7:00 pm"), and the
+          real input lies over it, transparent and the same size, so a tap
+          still opens the system picker and the value, the label and the
+          data attribute the signed-in run sets are unchanged.
+        */}
+        <span className="kf-reminder-clock relative inline-flex h-11 min-w-[6.5rem] items-center justify-center rounded-xl border border-control-border bg-raised px-3 text-sm tabular-nums text-foreground">
+          <span aria-hidden="true" data-kf-reminder-clock="">{formatReminderClock(time, locale === 'ar' ? 'ar' : 'en')}</span>
+          <input
+            id="kf-reminder-time"
+            type="time"
+            step={60}
+            dir="ltr"
+            value={time}
+            disabled={busy}
+            data-kf-reminder="time"
+            onChange={(e) => void changeTime(e.target.value)}
+            className="absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-xl opacity-0"
+          />
+        </span>
       </div>
       <p className="mt-3 text-sm text-foreground" aria-live="polite">
         {/* Step Redesign-2: the clock as a student reads it, "7:00 م" / "7:00 pm". */}

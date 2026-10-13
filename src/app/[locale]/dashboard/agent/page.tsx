@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { KBSelector } from '@/components/agent/KBSelector';
 import { AgentEmptyState } from '@/components/agent/AgentEmptyState';
+import { AskTitle } from '@/components/agent/AskTitle';
 import { Locale, locales, useTranslation, resolveLocale } from '@/lib/i18n';
 import type { KnowledgeBase } from '@/types';
 import { summaryLead } from '@/lib/ask-suggestions';
@@ -107,6 +108,11 @@ export default async function AgentPage({
       */}
       {/* #129 (c): the subjects with a file Ask can answer from, from the
           same ready rows, on #128's rule. */}
+      {/* Step Redesign-3: inside the app the screen opens on its large
+          title, as every other screen does (there is no top bar); the
+          conversation box takes the rest of the column, its composer pinned
+          at the bottom above the tab bar. The web keeps its top bar. */}
+      {platform === 'native' && <AskTitle text={t.dashboard.nav.agent} />}
       <KBSelector kbs={kbs as KnowledgeBase[]} materials={materialLeads} answerableIds={[...answerableSubjectIds(materials ?? [])]} />
     </div>
   );

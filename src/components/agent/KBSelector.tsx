@@ -104,7 +104,7 @@ export function KBSelector({ kbs, materials = [], answerableIds }: { kbs: Knowle
   );
 
   return (
-    <div className="kf-card flex h-full flex-1 overflow-hidden rounded-xl border border-border bg-surface">
+    <div className="kf-card flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-surface">
       {/* Desktop: persistent history column. Mobile: the same list lives in the Sheet below. */}
       <div className="hidden h-full w-64 shrink-0 border-e border-border md:block">{sidebar}</div>
       {/* Mobile-only: display:none on this wrapper removes the fixed Sheet (and
