@@ -30,6 +30,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: store-shots-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   render:
     name: Render and check the designed screenshots (Chrome headless, no secrets)

@@ -37,17 +37,16 @@ name: ingestion-image
 #
 # Actions minutes are not billed: this repository is PUBLIC.
 
+# Step CI-Cost-1: pull requests only. The merge push ran the same check on
+# the same tree the pull request's merge ref was checked with (32 runs in
+# Oct 1-12, each a repeat); typecheck keeps its main run as the baseline.
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
 
-# No `paths:` filter, deliberately. A path-filtered job never reports a status on
-# PRs it skips; if this check is ever promoted to required, a rule demanding a
-# context that nothing publishes blocks every unrelated PR indefinitely. Running
-# a few unnecessary minutes on TypeScript-only PRs is the cheaper mistake, and
-# minutes are free here.
+# No `paths:` filter, deliberately, and still none (Step CI-Cost-1): a
+# path-filtered job never reports a status on PRs it skips; the detect job
+# below skips the real job instead, which reports success under this name.
 
 # Least privilege: this job reads the tree and builds a container from it. It never
 # writes to the repo, never pushes an image, never posts a comment, and needs NO
@@ -61,11 +60,39 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Step CI-Cost-1: what this run is about. On a pull request or a merge that
+  # touched only docs/**, *.md or *.png the real jobs below are SKIPPED, and a
+  # skipped job reports its required check as success, so the branch rule
+  # holds with the same names and no second workflow can mask a failure.
+  detect:
+    name: Does this change touch the code
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.d.outputs.code }}
+    steps:
+      - name: Check out the change and its base
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - id: d
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -eu
+          if [ -n "$BASE_SHA" ]; then git fetch --no-tags --depth=1 origin "$BASE_SHA"; range="$BASE_SHA...HEAD"; else range="HEAD~1..HEAD"; fi
+          changed=$(git diff --name-only "$range" || git diff --name-only HEAD~1 HEAD)
+          echo "$changed" | sed 's/^/  /'
+          if echo "$changed" | grep -vqE '^(docs/|.*\.md$|.*\.png$)'; then echo "code=yes" >> "$GITHUB_OUTPUT"; echo "code changed: run"; else echo "code=no" >> "$GITHUB_OUTPUT"; echo "docs only: skip"; fi
+
   # Job id is the status-check context string. Keep it stable: renaming it
   # silently detaches any branch-protection rule that requires the old name, and
   # a rule requiring a context nothing publishes blocks every PR indefinitely.
   # (Same warning as db-types.yml:39-41, for the same reason.)
   ingestion-image:
+    needs: detect
+    if: ${{ needs.detect.outputs.code == 'yes' }}
     name: ingestion-image
     # Pinned, not `ubuntu-latest`: `latest` silently rolls to the next LTS image
     # and can change the preinstalled Docker version with no commit to this repo.

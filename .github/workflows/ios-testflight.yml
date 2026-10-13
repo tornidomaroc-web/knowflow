@@ -53,14 +53,10 @@ name: ios-testflight
 # COST. Standard macos-26 runner, free on this public repository
 # (ios-smoke.yml). Apple requires uploads built with Xcode 26 or later.
 
+# Step CI-Cost-1: dispatch only, on main. A build on every ios/** push was a
+# TestFlight build nobody used (five in Oct 1-12). Builds happen when we
+# decide: a pipeline check, the final build after the icon.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'ios/**'
-      - 'native/**'
-      - 'capacitor.config.ts'
-      - '.github/workflows/ios-testflight.yml'
   workflow_dispatch:
 
 permissions:

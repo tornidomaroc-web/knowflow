@@ -31,6 +31,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: redesign-built-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   render:
     name: Render and audit the built screens (no secrets)
