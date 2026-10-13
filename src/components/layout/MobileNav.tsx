@@ -52,8 +52,11 @@ export function MobileNav({
         <header
           className="kf-topbar fixed inset-x-0 top-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center justify-between border-b border-border bg-surface px-4 pt-[env(safe-area-inset-top)] md:hidden"
         >
-          {/* Step Redesign-3: 44 pt tall, as every control (the render audit found 28). */}
-          <Link href={`/${locale}/dashboard`} className="inline-flex min-h-[2.75rem] items-center text-lg font-bold tracking-tight text-foreground">
+          {/* Step Redesign-3: 44 pt tall, as every control (the render audit found 28).
+              dir="ltr": as a flex box its two halves are flex items, and the
+              Arabic page's row direction read them as "FlowKnow" (the first
+              render of this change). The wordmark is Latin in both languages. */}
+          <Link href={`/${locale}/dashboard`} dir="ltr" className="inline-flex min-h-[2.75rem] items-center text-lg font-bold tracking-tight text-foreground">
             Know<span className="text-primary">Flow</span>
           </Link>
           <div className="flex items-center gap-2">

@@ -87,7 +87,10 @@ for (const job of JOBS) {
     }
     if (key === 'app-home-streak') f.ring = !!q('[data-kf-streak-ring]') && !/^-$/.test(txt('[data-kf-streak-ring]'));
     if (key === 'app-settings-reminder') { f.clock = txt('[data-kf-reminder-clock]'); f.stateLine = txt('[data-kf-reminder-state] [aria-live]'); }
-    if (key === 'web-topbar') { const h = q('header.kf-topbar'); f.topbar = !!h; f.topbarShadow = h ? getComputedStyle(h).boxShadow !== 'none' : false; }
+    if (key === 'web-topbar') { const h = q('header.kf-topbar'); f.topbar = !!h; f.topbarShadow = h ? getComputedStyle(h).boxShadow !== 'none' : false;
+      // The wordmark reads KnowFlow left to right in both languages (the first
+      // Arabic render showed "FlowKnow"): its halves, in screen order.
+      const a = h?.querySelector('a'); f.wordmark = a ? [...a.childNodes].map((n) => ({ t: n.textContent, x: (() => { const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect().left; })() })).sort((p, q) => p.x - q.x).map((n) => n.t).join('') : null; }
     return f;
   }, job.s.key);
   if (job.s.to === 'bottom') await tab.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
@@ -114,7 +117,10 @@ for (const job of JOBS) {
     const want7 = ar ? '7:00 م' : '7:00 pm';
     want.push([norm(facts.clock) === want7 && norm(facts.stateLine).includes(want7), `the reminder time reads ${JSON.stringify(facts.clock)} / ${JSON.stringify(facts.stateLine)}, want ${want7}`]);
   }
-  if (k === 'web-topbar') want.push([facts.topbar && facts.topbarShadow && facts.shell === 'web', `the web's phone top bar in clay: ${JSON.stringify(facts)}`]);
+  if (k === 'web-topbar') {
+    want.push([facts.topbar && facts.topbarShadow && facts.shell === 'web', `the web's phone top bar in clay: ${JSON.stringify(facts)}`]);
+    want.push([facts.wordmark === 'KnowFlow', `the wordmark reads ${JSON.stringify(facts.wordmark)} on screen`]);
+  }
 
   const words = kfWording(a.visibleText);
   const bad = [
