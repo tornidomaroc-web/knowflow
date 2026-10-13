@@ -142,7 +142,7 @@ export function KBSelector({ kbs, materials = [], answerableIds }: { kbs: Knowle
         {!selectedKb && (
           <AskNoAnswerableSubject
             href={`/${safeLocale}/dashboard/knowledge`}
-            labels={{ title: t.dashboard.home.step2Title, cta: t.dashboard.subjects.addMaterial }}
+            labels={{ title: t.dashboard.home.step2Title, cta: t.dashboard.upload.uploadButton }}
           />
         )}
         {selectedKb && (
