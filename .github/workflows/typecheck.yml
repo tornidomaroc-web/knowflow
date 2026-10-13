@@ -37,6 +37,13 @@ jobs:
   # touched only docs/**, *.md or *.png the real jobs below are SKIPPED, and a
   # skipped job reports its required check as success, so the branch rule
   # holds with the same names and no second workflow can mask a failure.
+  # Step CI-Relay-Fix: a STRICT allowlist, the same in db-types.yml and
+  # ingestion-image.yml: only docs/**, a top-level *.md and .github/*.md are
+  # docs (no *.md or *.png elsewhere, no `..` segment), an empty list is code,
+  # and --no-renames lists both sides of a move (a plain --name-only lists a
+  # file moved from src/ into docs/ as docs/ alone). Fail closed: the real
+  # jobs run unless detect said `no`, so a detect that fails or never runs
+  # cannot turn a required check into a skipped green.
   detect:
     name: Does this change touch the code
     runs-on: ubuntu-24.04
@@ -55,13 +62,13 @@ jobs:
         run: |
           set -eu
           if [ -n "$BASE_SHA" ]; then git fetch --no-tags --depth=1 origin "$BASE_SHA"; range="$BASE_SHA...HEAD"; else range="HEAD~1..HEAD"; fi
-          changed=$(git diff --name-only "$range" || git diff --name-only HEAD~1 HEAD)
+          changed=$(git diff --name-only --no-renames "$range" || git diff --name-only --no-renames HEAD~1 HEAD)
           echo "$changed" | sed 's/^/  /'
-          if echo "$changed" | grep -vqE '^(docs/|.*\.md$|.*\.png$)'; then echo "code=yes" >> "$GITHUB_OUTPUT"; echo "code changed: run"; else echo "code=no" >> "$GITHUB_OUTPUT"; echo "docs only: skip"; fi
+          if [ -z "$changed" ] || echo "$changed" | grep -vqE '^(docs/.+|[^/]+\.md|\.github/[^/]+\.md)$' || echo "$changed" | grep -qE '(^|/)\.\.(/|$)'; then echo "code=yes" >> "$GITHUB_OUTPUT"; echo "code changed: run"; else echo "code=no" >> "$GITHUB_OUTPUT"; echo "docs only: skip"; fi
 
   tsc:
     needs: detect
-    if: ${{ needs.detect.outputs.code == 'yes' }}
+    if: ${{ !cancelled() && needs.detect.outputs.code != 'no' }}
     # Pinned, not `ubuntu-latest`: `latest` silently rolls to the next LTS image
     # and can change toolchain behaviour with no commit to this repo.
     runs-on: ubuntu-24.04
@@ -299,7 +306,7 @@ jobs:
   # same sitting.
   entitlement-read:
     needs: detect
-    if: ${{ needs.detect.outputs.code == 'yes' }}
+    if: ${{ !cancelled() && needs.detect.outputs.code != 'no' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -341,7 +348,7 @@ jobs:
   # it a path filter or an `if:`, must update the protection in the same sitting.
   entitlement-rls:
     needs: detect
-    if: ${{ needs.detect.outputs.code == 'yes' }}
+    if: ${{ !cancelled() && needs.detect.outputs.code != 'no' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -391,7 +398,7 @@ jobs:
   # same sitting.
   public-grants:
     needs: detect
-    if: ${{ needs.detect.outputs.code == 'yes' }}
+    if: ${{ !cancelled() && needs.detect.outputs.code != 'no' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

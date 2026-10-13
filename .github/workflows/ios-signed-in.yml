@@ -87,22 +87,35 @@ jobs:
     permissions:
       contents: read
       actions: write
+      deployments: read
     steps:
-      - name: Check out the deployed commit and its parent
+      - name: Check out the deployed commit
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           ref: ${{ github.event.deployment.sha }}
-          fetch-depth: 2
+          fetch-depth: 1
+      # Step CI-Relay-Fix. The base is the commit of the PREVIOUS Production
+      # deployment, not HEAD~1: a rebase merge of several commits, or two
+      # merges Vercel deploys as one, changed more than the last commit.
+      # --no-renames lists both sides of a move. The site is built from more
+      # than src/ (the dependencies, next/tailwind/postcss config, vercel.json),
+      # and the job runs fetch-native-plugins.py. Fail closed: if the previous
+      # deployment or the diff cannot be read, the run is dispatched.
       - name: Decide, and dispatch on main
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ github.event.deployment.sha }}
+          DEPLOYMENT_ID: ${{ github.event.deployment.id }}
         run: |
           set -eu
-          changed=$(git diff --name-only HEAD~1 HEAD || true)
-          echo "deployed $SHA changed:"; echo "$changed" | sed 's/^/  /'
-          if echo "$changed" | grep -qE '^(ios/|native/|capacitor\.config\.ts|src/|\.github/workflows/ios-signed-in\.yml)'; then
+          prev=$(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=Production&per_page=30" --jq "[.[] | select(.id < $DEPLOYMENT_ID)][0].sha // empty" || true)
+          changed="(unknown)"
+          if [ -n "$prev" ] && git fetch --no-tags --depth=1 origin "$prev"; then
+            changed=$(git diff --name-only --no-renames "$prev" "$SHA") || changed="(unknown)"
+          fi
+          echo "deployed $SHA, previous Production ${prev:-(none read)}, changed:"; echo "$changed" | sed 's/^/  /'
+          if [ "$changed" = "(unknown)" ] || echo "$changed" | grep -qE '^(ios/|native/|capacitor\.config\.ts|src/|package(-lock)?\.json$|next\.config\.ts$|tailwind\.config\.ts$|postcss\.config\.js$|vercel\.json$|\.github/scripts/fetch-native-plugins\.py$|\.github/workflows/ios-signed-in\.yml$)'; then
             gh workflow run ios-signed-in.yml --ref main -f scenario=screens -f "deployed_sha=$SHA"
             echo "dispatched the signed-in run on main for $SHA"
           else

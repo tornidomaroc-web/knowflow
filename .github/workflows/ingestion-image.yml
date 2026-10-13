@@ -82,9 +82,9 @@ jobs:
         run: |
           set -eu
           if [ -n "$BASE_SHA" ]; then git fetch --no-tags --depth=1 origin "$BASE_SHA"; range="$BASE_SHA...HEAD"; else range="HEAD~1..HEAD"; fi
-          changed=$(git diff --name-only "$range" || git diff --name-only HEAD~1 HEAD)
+          changed=$(git diff --name-only --no-renames "$range" || git diff --name-only --no-renames HEAD~1 HEAD)
           echo "$changed" | sed 's/^/  /'
-          if echo "$changed" | grep -vqE '^(docs/|.*\.md$|.*\.png$)'; then echo "code=yes" >> "$GITHUB_OUTPUT"; echo "code changed: run"; else echo "code=no" >> "$GITHUB_OUTPUT"; echo "docs only: skip"; fi
+          if [ -z "$changed" ] || echo "$changed" | grep -vqE '^(docs/.+|[^/]+\.md|\.github/[^/]+\.md)$' || echo "$changed" | grep -qE '(^|/)\.\.(/|$)'; then echo "code=yes" >> "$GITHUB_OUTPUT"; echo "code changed: run"; else echo "code=no" >> "$GITHUB_OUTPUT"; echo "docs only: skip"; fi
 
   # Job id is the status-check context string. Keep it stable: renaming it
   # silently detaches any branch-protection rule that requires the old name, and
@@ -92,7 +92,7 @@ jobs:
   # (Same warning as db-types.yml:39-41, for the same reason.)
   ingestion-image:
     needs: detect
-    if: ${{ needs.detect.outputs.code == 'yes' }}
+    if: ${{ !cancelled() && needs.detect.outputs.code != 'no' }}
     name: ingestion-image
     # Pinned, not `ubuntu-latest`: `latest` silently rolls to the next LTS image
     # and can change the preinstalled Docker version with no commit to this repo.
