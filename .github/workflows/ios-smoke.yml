@@ -217,17 +217,17 @@ jobs:
           set -eu
           cat > "$RUNNER_TEMP/steps.json" <<'JSON'
           [
-            {"name":"signup-link","wait":5000,"js":"(function(){window.__kfNav=1;var a=Array.prototype.slice.call(document.querySelectorAll('a')).filter(function(a){return /\\/signup$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no signup link'}a.click();return 'clicked '+a.getAttribute('href')})()"},
-            {"name":"dashboard-direct","wait":6000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard');return 'assigned /'+l+'/dashboard'})()"},
+            {"name":"signup-link","until":"/(en|ar)/signup$","wait":5000,"js":"(function(){window.__kfNav=1;var a=Array.prototype.slice.call(document.querySelectorAll('a')).filter(function(a){return /\\/signup$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no signup link'}a.click();return 'clicked '+a.getAttribute('href')})()"},
+            {"name":"dashboard-direct","until":"/(en|ar)/login$","wait":3000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard');return 'assigned /'+l+'/dashboard'})()"},
             {"name":"wording-baseline","wait":500,"js":"(function(){return location.pathname})()"},
             {"name":"wording-plant","wait":500,"js":"(function(){var p=document.createElement('p');p.id='kf-plant';p.textContent='Upgrade to our Pro plan · انتقل إلى باقتك واشتراكك';document.body.appendChild(p);return 'planted'})()"},
             {"name":"wording-unplant","wait":500,"js":"(function(){var p=document.getElementById('kf-plant');if(p){p.remove()}return p?'removed':'none'})()"},
-            {"name":"live-signup","wait":8000,"js":"(function(){location.assign('/en/signup');return 'assigned /en/signup'})()"},
-            {"name":"live-terms","wait":8000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
-            {"name":"live-refund","wait":8000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
-            {"name":"live-about","wait":8000,"js":"(function(){location.assign('/en/about');return 'assigned /en/about'})()"},
-            {"name":"live-contact","wait":8000,"js":"(function(){location.assign('/en/contact');return 'assigned /en/contact'})()"},
-            {"name":"privacy","wait":6000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/privacy');return 'assigned /'+l+'/privacy'})()"},
+            {"name":"live-signup","until":"/en/signup$","wait":4000,"js":"(function(){location.assign('/en/signup');return 'assigned /en/signup'})()"},
+            {"name":"live-terms","until":"/en/terms$","wait":4000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
+            {"name":"live-refund","until":"/en/refund$","wait":4000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
+            {"name":"live-about","until":"/en/about$","wait":4000,"js":"(function(){location.assign('/en/about');return 'assigned /en/about'})()"},
+            {"name":"live-contact","until":"/en/contact$","wait":4000,"js":"(function(){location.assign('/en/contact');return 'assigned /en/contact'})()"},
+            {"name":"privacy","until":"/(en|ar)/privacy$","wait":3000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/privacy');return 'assigned /'+l+'/privacy'})()"},
             {"name":"external-link","wait":5000,"js":"(function(){var a=document.querySelector('a[href^=\"https://github.com\"]');if(!a){return 'no external link'}a.click();return 'clicked '+a.href})()"}
           ]
           JSON
@@ -366,9 +366,10 @@ jobs:
 
       - name: Assert the five proofs from the readings
         run: |
-          python3 - "$RUNNER_TEMP/smoke-online.jsonl" "$RUNNER_TEMP/smoke-offline.jsonl" "$RUNNER_TEMP/smoke-notify-a.jsonl" "$RUNNER_TEMP/smoke-notify-b.jsonl" <<'PY'
+          python3 - "$RUNNER_TEMP/smoke-online.jsonl" "$RUNNER_TEMP/smoke-offline.jsonl" "$RUNNER_TEMP/smoke-notify-a.jsonl" "$RUNNER_TEMP/smoke-notify-b.jsonl" "$RUNNER_TEMP/steps.json" <<'PY'
           import json, re, sys
           online = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
+          ROWS, STEPS = online, sys.argv[5]
           offline = [json.loads(l) for l in open(sys.argv[2]) if l.strip()]
           na = {r["step"]: r for r in (json.loads(l) for l in open(sys.argv[3]) if l.strip())}
           nb = {r["step"]: r for r in (json.loads(l) for l in open(sys.argv[4]) if l.strip())}
@@ -430,6 +431,13 @@ jobs:
           need(pend("notify-b-pending-1900") == [(7001, 19, 0)], f"6. one daily reminder pending at 19:00: {pend('notify-b-pending-1900')}")
           need(pend("notify-b-pending-0730") == [(7001, 7, 30)], f"6. saving 07:30 replaces it, still one: {pend('notify-b-pending-0730')}")
           need(pend("notify-b-pending-none") == [], f"6. cancelling leaves none pending: {pend('notify-b-pending-none')}")
+          # Every page step (a step naming `until`) left the page it started on
+          # and reached its own before its reading, or fails here: never read
+          # as the page before it (run 38426358277, ar-terms on /ar/privacy).
+          sys.path.insert(0, "scripts/ios")
+          from page_steps import page_step_checks
+          for ok, msg in page_step_checks(ROWS, [json.load(open(STEPS))]):
+              need(ok, msg)
           print(f"\n{len(fails)} failure(s)")
           sys.exit(1 if fails else 0)
           PY

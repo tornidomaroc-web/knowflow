@@ -10,7 +10,11 @@ scenario screenshots), from the harness's readings and the PNG sizes.
   - Settings: no e-mail text, the reminder on at 19:00;
   - each set ended signed out; every PNG exactly 1320 x 2868.
 
-Usage: python3 scripts/store-seed/check_capture.py smoke-shots.jsonl sizes.txt
+  - every page step (nav, login, sign-out) left the page it started on and
+    reached its own (scripts/ios/page_steps.py): a slow load fails the
+    capture instead of being photographed as the page before it.
+
+Usage: python3 scripts/store-seed/check_capture.py smoke-shots.jsonl sizes.txt steps-ar.json steps-en.json
 """
 import json
 import os
@@ -18,6 +22,8 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(ROOT, 'scripts', 'ios'))
+from page_steps import page_step_checks  # noqa: E402
 CAPTIONS = json.load(open(os.path.join(ROOT, 'docs', 'store', 'screenshots-designed', 'captions.json'), encoding='utf-8'))
 
 rows = [json.loads(l) for l in open(sys.argv[1], encoding='utf-8') if l.strip()]
@@ -58,6 +64,10 @@ for loc in ('ar', 'en'):
 
 need('sources: yes' in str(by.get('shot-ar-04-ask', {}).get('result', '')), 'Ask (ar): the answer shows its sources under المصادر')
 need(str(by.get('shot-en-04-quiz', {}).get('result', '')).startswith('quiz in view'), 'Quiz (en): the stored quiz is on screen from question 1')
+steps_lists = [json.load(open(p, encoding='utf-8')) for p in sys.argv[3:]]
+need(len(steps_lists) == 2, f'both steps files given ({len(steps_lists)})')
+for ok, msg in page_step_checks(rows, steps_lists):
+    need(ok, msg)
 need(len(sizes) == 10 and all(' 1320 x 2868,' in l for l in sizes), f'every PNG is 1320 x 2868 ({len(sizes)} files)')
 print(f'\n{len(fails)} failure(s)')
 sys.exit(1 if fails else 0)

@@ -254,17 +254,17 @@ jobs:
           cat > "$RUNNER_TEMP/steps.json" <<'JSON'
           [
             {"name":"google-hint","wait":500,"js":"(function(){var h=document.querySelector('[data-kf-google-hint]');if(!h){return 'no hint'}var a=h.querySelector('a');return (h.innerText||'').replace(/\\s+/g,' ').trim()+' | '+(a?a.getAttribute('href'):'no link')})()"},
-            {"name":"login","wait":10000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);var f=e.form;if(!f){return 'no form'}setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted'})()"},
+            {"name":"login","until":"/(en|ar)/dashboard$","timeout":30000,"wait":3000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);var f=e.form;if(!f){return 'no form'}setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted'})()"},
             {"name":"home","wait":3000,"js":"(function(){window.scrollTo(0,0);return location.pathname})()"},
             {"name":"home-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
-            {"name":"subjects","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/knowledge\"]');if(!a){return 'no Subjects link'}a.click();return 'clicked Subjects'})()"},
-            {"name":"subject","wait":10000,"js":"(function(){var a=Array.prototype.slice.call(document.querySelectorAll('a[href*=\"/dashboard/knowledge/\"]')).filter(function(a){return !/\\/new$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no subject link'}a.click();return 'clicked a subject'})()"},
+            {"name":"subjects","until":"/dashboard/knowledge$","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/knowledge\"]');if(!a){return 'no Subjects link'}a.click();return 'clicked Subjects'})()"},
+            {"name":"subject","until":"/dashboard/knowledge/[0-9a-f-]{36}$","wait":10000,"js":"(function(){var a=Array.prototype.slice.call(document.querySelectorAll('a[href*=\"/dashboard/knowledge/\"]')).filter(function(a){return !/\\/new$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no subject link'}a.click();return 'clicked a subject'})()"},
             {"name":"summary","wait":2000,"js":"(function(){var h=Array.prototype.slice.call(document.querySelectorAll('h1,h2,h3,h4,p,span,div')).filter(function(x){return x.children.length===0&&/^(SUMMARY|Summary|الملخص|ملخص)$/.test((x.innerText||'').trim())})[0];if(!h){return 'no summary heading'}h.scrollIntoView({block:'start'});return 'scrolled to summary'})()"},
             {"name":"quiz-open","wait":4000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){return /Quiz me on this material|اختبرني في هذا الملف/.test(x.innerText||'')})[0];if(!b){return 'no quiz button'}b.click();return 'clicked quiz'})()"},
             {"name":"consent","wait":15000,"js":"(function(){var d=document.querySelector('[data-kf-consent-sheet=open]');if(!d){return 'no consent sheet'}var t=d.innerText||'';var names=['Anthropic','Voyage AI'].filter(function(n){return t.indexOf(n)>=0});var b=d.querySelector('[data-kf-consent=accept]');if(!b){return 'no accept button'}b.click();return 'accepted: '+names.join(', ')})()"},
             {"name":"quiz","wait":2000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){return /Check my answers|صحّح إجاباتي/.test(x.innerText||'')})[0];if(!b){return 'no quiz on screen'}b.scrollIntoView({block:'end'});return 'scrolled to quiz'})()"},
-            {"name":"ask","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/agent\"]');if(!a){return 'no Ask link'}a.click();return 'clicked Ask'})()"},
-            {"name":"settings","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings link'}a.click();return 'clicked Settings'})()"},
+            {"name":"ask","until":"/dashboard/agent$","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/agent\"]');if(!a){return 'no Ask link'}a.click();return 'clicked Ask'})()"},
+            {"name":"settings","until":"/dashboard/settings$","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings link'}a.click();return 'clicked Settings'})()"},
             {"name":"consent-on","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-consent-state]');if(!c){return 'no consent card'}c.scrollIntoView({block:'center'});return c.getAttribute('data-kf-consent-state')})()"},
             {"name":"consent-withdraw","wait":5000,"js":"(function(){var b=document.querySelector('[data-kf-consent=withdraw]');if(!b){return 'no withdraw button'}b.click();return 'clicked withdraw'})()"},
             {"name":"consent-off","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-consent-state]');if(!c){return 'no consent card'}return c.getAttribute('data-kf-consent-state')})()"},
@@ -279,27 +279,27 @@ jobs:
             {"name":"reminder-read-off","wait":1500,"js":"(function(){window.__kfP='pending';window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
             {"name":"reminder-pending-off","wait":300,"js":"(function(){return String(window.__kfP)})()"},
             {"name":"settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
-            {"name":"en-privacy","wait":8000,"js":"(function(){location.assign('/en/privacy');return 'assigned /en/privacy'})()"},
-            {"name":"en-terms","wait":8000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
-            {"name":"en-refund","wait":8000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
-            {"name":"en-about","wait":8000,"js":"(function(){location.assign('/en/about');return 'assigned /en/about'})()"},
-            {"name":"en-contact","wait":8000,"js":"(function(){location.assign('/en/contact');return 'assigned /en/contact'})()"},
-            {"name":"ar-home","wait":8000,"js":"(function(){location.assign('/ar/dashboard');return 'assigned /ar/dashboard'})()"},
-            {"name":"ar-subjects","wait":8000,"js":"(function(){location.assign('/ar/dashboard/knowledge');return 'assigned /ar/dashboard/knowledge'})()"},
-            {"name":"ar-ask","wait":8000,"js":"(function(){location.assign('/ar/dashboard/agent');return 'assigned /ar/dashboard/agent'})()"},
-            {"name":"ar-settings","wait":8000,"js":"(function(){location.assign('/ar/dashboard/settings');return 'assigned /ar/dashboard/settings'})()"},
+            {"name":"en-privacy","until":"/en/privacy$","wait":4000,"js":"(function(){location.assign('/en/privacy');return 'assigned /en/privacy'})()"},
+            {"name":"en-terms","until":"/en/terms$","wait":4000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
+            {"name":"en-refund","until":"/en/refund$","wait":4000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
+            {"name":"en-about","until":"/en/about$","wait":4000,"js":"(function(){location.assign('/en/about');return 'assigned /en/about'})()"},
+            {"name":"en-contact","until":"/en/contact$","wait":4000,"js":"(function(){location.assign('/en/contact');return 'assigned /en/contact'})()"},
+            {"name":"ar-home","until":"/ar/dashboard$","wait":4000,"js":"(function(){location.assign('/ar/dashboard');return 'assigned /ar/dashboard'})()"},
+            {"name":"ar-subjects","until":"/ar/dashboard/knowledge$","wait":4000,"js":"(function(){location.assign('/ar/dashboard/knowledge');return 'assigned /ar/dashboard/knowledge'})()"},
+            {"name":"ar-ask","until":"/ar/dashboard/agent$","wait":4000,"js":"(function(){location.assign('/ar/dashboard/agent');return 'assigned /ar/dashboard/agent'})()"},
+            {"name":"ar-settings","until":"/ar/dashboard/settings$","wait":4000,"js":"(function(){location.assign('/ar/dashboard/settings');return 'assigned /ar/dashboard/settings'})()"},
             {"name":"ar-reminder-on","wait":3000,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');if(!c){return 'no reminder card'}if(c.getAttribute('data-kf-reminder-state')!=='off'){return 'not off: '+c.getAttribute('data-kf-reminder-state')}var b=c.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked on'})()"},
             {"name":"ar-reminder-clock","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');if(!c){return 'no reminder card'}c.scrollIntoView({block:'center'});var k=c.querySelector('[data-kf-reminder-clock]');var s=c.querySelector('[aria-live]');return c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time')+' | '+(k?k.textContent:'no clock')+' | '+(s?s.textContent:'no state line')})()"},
             {"name":"ar-reminder-off","wait":3000,"js":"(function(){var b=document.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked off'})()"},
             {"name":"ar-reminder-read-off","wait":1500,"js":"(function(){window.__kfP='pending';window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
             {"name":"ar-reminder-pending-off","wait":300,"js":"(function(){return String(window.__kfP)})()"},
             {"name":"ar-settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
-            {"name":"ar-privacy","wait":8000,"js":"(function(){location.assign('/ar/privacy');return 'assigned /ar/privacy'})()"},
-            {"name":"ar-terms","wait":8000,"js":"(function(){location.assign('/ar/terms');return 'assigned /ar/terms'})()"},
-            {"name":"ar-refund","wait":8000,"js":"(function(){location.assign('/ar/refund');return 'assigned /ar/refund'})()"},
-            {"name":"ar-about","wait":8000,"js":"(function(){location.assign('/ar/about');return 'assigned /ar/about'})()"},
-            {"name":"ar-contact","wait":8000,"js":"(function(){location.assign('/ar/contact');return 'assigned /ar/contact'})()"},
-            {"name":"restore-en","wait":6000,"js":"(function(){location.assign('/en/dashboard');return 'assigned /en/dashboard'})()"}
+            {"name":"ar-privacy","until":"/ar/privacy$","wait":4000,"js":"(function(){location.assign('/ar/privacy');return 'assigned /ar/privacy'})()"},
+            {"name":"ar-terms","until":"/ar/terms$","wait":4000,"js":"(function(){location.assign('/ar/terms');return 'assigned /ar/terms'})()"},
+            {"name":"ar-refund","until":"/ar/refund$","wait":4000,"js":"(function(){location.assign('/ar/refund');return 'assigned /ar/refund'})()"},
+            {"name":"ar-about","until":"/ar/about$","wait":4000,"js":"(function(){location.assign('/ar/about');return 'assigned /ar/about'})()"},
+            {"name":"ar-contact","until":"/ar/contact$","wait":4000,"js":"(function(){location.assign('/ar/contact');return 'assigned /ar/contact'})()"},
+            {"name":"restore-en","until":"/en/dashboard$","wait":4000,"js":"(function(){location.assign('/en/dashboard');return 'assigned /en/dashboard'})()"}
           ]
           JSON
           steps=$(base64 < "$RUNNER_TEMP/steps.json" | tr -d '\n')
@@ -338,9 +338,10 @@ jobs:
       - name: Assert the signed-in screens and the 3.1.3(f) reading
         if: ${{ inputs.scenario == 'screens' }}
         run: |
-          python3 - "$RUNNER_TEMP/smoke-signed-in.jsonl" <<'PY'
+          python3 - "$RUNNER_TEMP/smoke-signed-in.jsonl" "$RUNNER_TEMP/steps.json" <<'PY'
           import json, re, sys
           rows = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
+          ROWS, STEPS = rows, sys.argv[2]
           by = {r["step"]: r for r in rows}
           fails = []
           def need(cond, msg):
@@ -408,6 +409,13 @@ jobs:
               p = P(name).get("purchase", {}) or {}
               need(not p.get("words") and not p.get("hrefs"), f"3.1.3(f) on {name}: no plan, subscription, upgrade, price or free word (scripts/lib/app-wording.mjs) and no purchase link: words={p.get('words')} hrefs={p.get('hrefs')}")
               need(P(name).get("google") == 0, f"no Google button on {name}: {P(name).get('google')}")
+          # Every page step (a step naming `until`) left the page it started on
+          # and reached its own before its reading, or fails here: never read
+          # as the page before it (run 38426358277, ar-terms on /ar/privacy).
+          sys.path.insert(0, "scripts/ios")
+          from page_steps import page_step_checks
+          for ok, msg in page_step_checks(ROWS, [json.load(open(STEPS))]):
+              need(ok, msg)
           print(f"\n{len(fails)} failure(s) of {len(rows)} readings")
           sys.exit(1 if fails else 0)
           PY
@@ -657,7 +665,7 @@ jobs:
             echo "$(basename "$(dirname "$f")")/$(basename "$f"): ${w} x ${h}, $(stat -f %z "$f") bytes"
           done > "$RUNNER_TEMP/store/sizes.txt"
           cat "$RUNNER_TEMP/store/sizes.txt"
-          python3 scripts/store-seed/check_capture.py "$RUNNER_TEMP/smoke-shots.jsonl" "$RUNNER_TEMP/store/sizes.txt"
+          python3 scripts/store-seed/check_capture.py "$RUNNER_TEMP/smoke-shots.jsonl" "$RUNNER_TEMP/store/sizes.txt" "$RUNNER_TEMP/steps-ar.json" "$RUNNER_TEMP/steps-en.json"
 
       - name: Keep the store screenshots
         if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.scenario == 'screenshots' }}

@@ -140,16 +140,66 @@ private final class Smoke {
         let js = step["js"] as? String ?? ""
         let wait = (step["wait"] as? Double) ?? 4000
         NSLog("[KFSmoke] step %@", name)
-        eval(js) { result in
-            DispatchQueue.main.asyncAfter(deadline: .now() + wait / 1000) {
-                self.probeNow { probe in
-                    self.record(step: name, result: result, probe: probe)
-                    // After the last step the app may be in the background (an
-                    // external link opened Safari) and its timers suspended, so
-                    // the done-file is written at once; nothing can overwrite
-                    // that screen before the workflow photographs it.
-                    if self.index >= self.steps.count { self.runNext() } else { self.afterAck { self.runNext() } }
+        // A page step names `until`, the pattern its URL must match: the URL is
+        // read before its script, and `wait` starts only once the URL has left
+        // that start, matches `until` and the document is complete, or after
+        // `timeout` ms (20 s by default). The reading then carries `nav`, and
+        // scripts/ios/page_steps.py fails the step if it did not arrive. A
+        // fixed wait alone let a slow load be read as the page before it (run
+        // 38426358277: ar-terms read /ar/privacy after 8 s).
+        guard let until = step["until"] as? String else {
+            eval(js) { result in self.settle(name: name, result: result, wait: wait, nav: nil) }
+            return
+        }
+        let timeout = (step["timeout"] as? Double) ?? 20000
+        location { start, _ in
+            let began = Date()
+            self.eval(js) { result in
+                self.waitForURL(start: start, until: until, deadline: began.addingTimeInterval(timeout / 1000)) { arrived in
+                    let nav: [String: Any] = ["start": start, "until": until, "arrived": arrived, "ms": Int(Date().timeIntervalSince(began) * 1000)]
+                    self.settle(name: name, result: result, wait: wait, nav: nav)
                 }
+            }
+        }
+    }
+
+    private func settle(name: String, result: String, wait: Double, nav: [String: Any]?) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + wait / 1000) {
+            self.probeNow { probe in
+                self.record(step: name, result: result, probe: probe, nav: nav)
+                // After the last step the app may be in the background (an
+                // external link opened Safari) and its timers suspended, so
+                // the done-file is written at once; nothing can overwrite
+                // that screen before the workflow photographs it.
+                if self.index >= self.steps.count { self.runNext() } else { self.afterAck { self.runNext() } }
+            }
+        }
+    }
+
+    /// The page's URL and readyState, read without the probe's masking and
+    /// wording work, so it can be polled; a read that fails mid-navigation
+    /// gives an empty URL.
+    private func location(_ done: @escaping (String, String) -> Void) {
+        eval("JSON.stringify([location.href,document.readyState])") { raw in
+            if let data = raw.data(using: .utf8),
+               let pair = try? JSONSerialization.jsonObject(with: data) as? [String], pair.count == 2 {
+                done(pair[0], pair[1])
+            } else {
+                done("", "")
+            }
+        }
+    }
+
+    private func waitForURL(start: String, until: String, deadline: Date, _ done: @escaping (Bool) -> Void) {
+        let pattern = try? NSRegularExpression(pattern: until)
+        location { href, ready in
+            let matches = pattern?.firstMatch(in: href, range: NSRange(href.startIndex..., in: href)) != nil
+            if !href.isEmpty && href != start && matches && ready == "complete" {
+                done(true)
+            } else if Date() >= deadline || pattern == nil {
+                done(false)
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.waitForURL(start: start, until: until, deadline: deadline, done) }
             }
         }
     }
@@ -207,14 +257,15 @@ private final class Smoke {
         }
     }
 
-    private func record(step: String, result: String, probe: [String: Any]) {
-        let line: [String: Any] = [
+    private func record(step: String, result: String, probe: [String: Any], nav: [String: Any]? = nil) {
+        var line: [String: Any] = [
             "step": step,
             "result": String(result.prefix(4000)),
             "t": Int(Date().timeIntervalSince(started)),
             "appState": UIApplication.shared.applicationState.rawValue,
             "probe": probe,
         ]
+        if let nav = nav { line["nav"] = nav }
         // The whole line is scrubbed: a probe's `text` on the Settings screen
         // carries the account's e-mail, which must not reach the artifact.
         if let data = try? JSONSerialization.data(withJSONObject: line), let raw = String(data: data, encoding: .utf8) {
