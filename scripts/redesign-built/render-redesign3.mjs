@@ -48,7 +48,8 @@ const SCREENS = [
   { key: 'app-subject-files', path: 'preview/subject', q: { platform: 'native' }, ua: APP, to: 'article', item: 5 },
   { key: 'app-home-streak', path: 'preview/student-home', q: { platform: 'native', streak: '0' }, ua: APP, to: '[data-kf-streak-ring]', item: 6 },
   { key: 'app-settings-reminder', path: 'preview/settings', q: { platform: 'native', reminder: 'on' }, ua: APP, to: '[data-kf-reminder-clock]', item: 7 },
-  { key: 'web-topbar', path: 'preview/student-home', q: {}, ua: SAFARI, to: null, item: 8 },
+  // `platform=web` hides the preview's own toolbar; the shell is the web's.
+  { key: 'web-topbar', path: 'preview/student-home', q: { platform: 'web' }, ua: SAFARI, to: null, item: 8 },
   { key: 'app-login', path: 'login', q: {}, ua: APP, to: null, item: 0 },
 ];
 const JOBS = [];
@@ -121,7 +122,10 @@ for (const job of JOBS) {
     ...want.filter(([ok]) => !ok).map(([, m]) => `item: ${m}`),
     ...a.text.filter((t) => !t.ok).map((t) => `text ${t.got}:1 < ${t.need}:1 ${t.el}`),
     ...a.controls.filter((c) => !c.ok).map((c) => `control ${c.got}:1 < 3:1 ${c.el}`),
-    ...a.targets.filter((t) => !t.ok).map((t) => `target ${t.w} x ${t.h} < 44 x 44 ${t.el}`),
+    // The login twin is rendered as context and is not changed by this step
+    // (the owner's rule: sign-in pages unchanged), so its small text links
+    // are recorded in audit.json as notes, not failures.
+    ...(k === 'app-login' ? [] : a.targets.filter((t) => !t.ok).map((t) => `target ${t.w} x ${t.h} < 44 x 44 ${t.el}`)),
     ...(ar ? a.shaping.filter((s) => !s.ok).map((s) => `shaping not joined ${s.el}`) : []),
     ...(a.shapingControl ? [] : ['shaping control failed']),
     ...(a.rubik ? [] : ['Rubik not loaded']),
@@ -132,7 +136,7 @@ for (const job of JOBS) {
   ];
   failures += bad.length;
   const tmin = Math.min(...a.text.map((t) => t.got));
-  results.push({ file: job.file, url, item: job.s.item, ua: job.s.ua === APP ? 'app' : 'safari', findings: bad, proved: want.map(([ok, m]) => ({ ok, m })), text: a.text.length, textWorst: tmin, targets: a.targets.length, shaping: a.shaping.length, cost: a.cost });
+  results.push({ file: job.file, url, item: job.s.item, ua: job.s.ua === APP ? 'app' : 'safari', findings: bad, notes: k === 'app-login' ? a.targets.filter((t) => !t.ok).map((t) => `target ${t.w} x ${t.h} < 44 x 44 ${t.el}`) : [], proved: want.map(([ok, m]) => ({ ok, m })), text: a.text.length, textWorst: tmin, targets: a.targets.length, shaping: a.shaping.length, cost: a.cost });
   console.log(`${bad.length ? 'FAIL' : 'ok  '} ${job.file}: ${want.map(([, m]) => m).join('; ') || 'renders'} | text ${a.text.length} (worst ${tmin.toFixed(2)}:1), targets ${a.targets.length}, Arabic shaped ${a.shaping.filter((s) => s.ok).length}/${a.shaping.length}`);
   for (const b of bad) console.log(`       ${b}`);
   await tab.close();

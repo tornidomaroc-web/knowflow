@@ -52,7 +52,8 @@ export function MobileNav({
         <header
           className="kf-topbar fixed inset-x-0 top-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center justify-between border-b border-border bg-surface px-4 pt-[env(safe-area-inset-top)] md:hidden"
         >
-          <Link href={`/${locale}/dashboard`} className="text-lg font-bold tracking-tight text-foreground">
+          {/* Step Redesign-3: 44 pt tall, as every control (the render audit found 28). */}
+          <Link href={`/${locale}/dashboard`} className="inline-flex min-h-[2.75rem] items-center text-lg font-bold tracking-tight text-foreground">
             Know<span className="text-primary">Flow</span>
           </Link>
           <div className="flex items-center gap-2">

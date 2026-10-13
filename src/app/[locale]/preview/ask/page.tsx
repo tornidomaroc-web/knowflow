@@ -98,7 +98,7 @@ export default async function AskPreview({
     { role: 'user', content: ar ? 'ما هي مرونة الطلب؟' : 'What is elasticity of demand?' },
     {
       role: 'assistant',
-      content: ar ? 'مرونة الطلب هي مدى تغيّر الكمية المطلوبة عند تغيّر أحد العوامل المؤثرة فيها، مثل السعر أو الدخل.' : 'Elasticity of demand is how much the quantity demanded changes when one of its factors changes, such as the price or income.',
+      content: ar ? 'مرونة الطلب هي مدى تغيّر الكمية المطلوبة عند تغيّر أحد العوامل المؤثرة فيها، مثل الدخل.' : 'Elasticity of demand is how much the quantity demanded changes when one of its factors changes, such as income.',
       citations: [
         { index: 1, document_id: 'd2', chunk_id: 'c1', filename: ar ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved exercises - Chapter 3.pdf', similarity: 0.91 },
         { index: 2, document_id: 'd1', chunk_id: 'c2', filename: 'xilvaroth-n11-20260810.pdf', similarity: 0.84 },
@@ -107,7 +107,7 @@ export default async function AskPreview({
     { role: 'user', content: ar ? 'أعطني مثالًا من التمارين.' : 'Give me an example from the exercises.' },
     {
       role: 'assistant',
-      content: ar ? 'في التمرين الثاني ارتفع السعر بنسبة 10% فانخفضت الكمية المطلوبة بنسبة 20%، فالمرونة تساوي 2، أي أن الطلب مرن.' : 'In exercise 2 the price rose by 10% and the quantity demanded fell by 20%, so the elasticity is 2: demand is elastic.',
+      content: ar ? 'في التمرين الثاني ارتفع الدخل بنسبة 10% فارتفعت الكمية المطلوبة بنسبة 20%، فمرونة الطلب الدخلية تساوي 2.' : 'In exercise 2 income rose by 10% and the quantity demanded rose by 20%, so the income elasticity of demand is 2.',
       citations: [
         { index: 1, document_id: 'd2', chunk_id: 'c4', filename: ar ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved exercises - Chapter 3.pdf', similarity: 0.93 },
         { index: 2, document_id: 'd6', chunk_id: 'c3', filename: ar ? 'ملخص Chapter 3 (1).pdf' : 'Summary الفصل 3 (1).pdf', similarity: 0.8 },
