@@ -63,6 +63,11 @@ page.on('request', (r) => {
 });
 const go = async (path) => { const r = await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle2', timeout: 90000 }); return r?.status(); };
 const settle = (ms) => new Promise((r) => setTimeout(r, ms));
+// Click IN THE PAGE (element.click()), never by screen position: at phone size
+// the floating tab bar covers the bottom of the viewport, and a positional
+// click on a button scrolled to the bottom edge lands on the bar (seed run
+// 38437948365: the consent sheet never opened). The iOS runs click this way too.
+const tap = async (sel) => { await page.waitForSelector(sel, { timeout: 15000 }); await page.$eval(sel, (e) => e.click()); };
 let failed = false;
 const need = (ok, msg) => { log((ok ? 'ok   ' : 'FAIL ') + msg); if (!ok) failed = true; return ok; };
 
@@ -83,8 +88,10 @@ await page.type('input[name=email]', EMAIL);
 await page.type('input[name=password]', PASSWORD);
 // The sign-in answers in the page (Supabase), then the app routes to the
 // dashboard client-side: wait for the address itself, up to 20 s.
-const authAnswer = page.waitForResponse((r) => /\/auth\/v1\/token/.test(r.url()), { timeout: 30000 }).catch(() => null);
-await page.click('button[type=submit]');
+// Only the POST: the browser's CORS preflight (OPTIONS, 200) to the same
+// address arrived first and was reported as the answer (runs 38434348392, 38434925052).
+const authAnswer = page.waitForResponse((r) => /\/auth\/v1\/token/.test(r.url()) && r.request().method() === 'POST', { timeout: 30000 }).catch(() => null);
+await tap('button[type=submit]');
 const auth = await authAnswer;
 for (let i = 0; i < 40 && !new RegExp(`/${L}/dashboard`).test(page.url()); i++) await settle(500);
 await settle(1500);
@@ -106,9 +113,9 @@ if (MODE === 'verify') { await browser.close(); process.exit(failed ? 1 : 0); }
 // ── 1. AI processing allowed, in Settings, as the student would ─────────────
 if (!s.consent) {
   await go(`/${L}/dashboard/settings`);
-  await page.click('[data-kf-consent=allow]');
+  await tap('[data-kf-consent=allow]');
   await page.waitForSelector('[data-kf-consent-sheet=open] [data-kf-consent=accept]', { timeout: 15000 });
-  await page.click('[data-kf-consent-sheet=open] [data-kf-consent=accept]');
+  await tap('[data-kf-consent-sheet=open] [data-kf-consent=accept]');
   await settle(4000);
   await go(`/${L}/dashboard/settings`);
 }
@@ -126,7 +133,7 @@ for (const subj of plan.subjects) {
   await page.type('form input[type=text]', subj.name);
   await page.type('form textarea', subj.description);
   await page.select('form select', subj.language);
-  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }).catch(() => null), page.click('form button[type=submit]')]);
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }).catch(() => null), tap('form button[type=submit]')]);
   need(/\/dashboard\/knowledge$/.test(new URL(page.url()).pathname), `subject created: ${subj.name}`);
 }
 const links = await subjectLinks();
@@ -162,7 +169,7 @@ async function cardHandle(subjectId, file) {
 }
 async function clickIn(card, label) {
   const btns = await card.$$('button');
-  for (const b of btns) if (((await b.evaluate((e) => e.textContent || '')).trim()) === label) { await b.click(); return true; }
+  for (const b of btns) if (((await b.evaluate((e) => e.textContent || '')).trim()) === label) { await b.evaluate((e) => e.click()); return true; }
   return false;
 }
 {
@@ -205,7 +212,7 @@ async function clickIn(card, label) {
   else {
     await page.type('[data-kf-composer] textarea', plan.ask.question);
     const res = page.waitForResponse((r) => r.url().includes('/api/agent') && r.request().method() === 'POST', { timeout: 180000 });
-    await page.click('[data-kf-composer] button');
+    await tap('[data-kf-composer] button');
     const r = await res.catch(() => null);
     const body = r ? await r.text().catch(() => '') : '';
     const cites = r ? (r.headers()['x-citations'] ? 'with sources' : 'NO sources header') : 'no answer';
