@@ -1,0 +1,1306 @@
+[
+  {
+    "file": "ar-dark-app-ask.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&theme=dark",
+    "item": 3,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the large title reads \"اسأل\""
+      },
+      {
+        "ok": true,
+        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+      }
+    ],
+    "text": 16,
+    "textWorst": 4.72,
+    "targets": 8,
+    "shaping": 16,
+    "cost": {
+      "shadowed": 12,
+      "maxLayers": 3,
+      "blurred": 18,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-dark-app-ask-conversation.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=answer&theme=dark",
+    "item": 3,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the large title reads \"اسأل\""
+      },
+      {
+        "ok": true,
+        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+      },
+      {
+        "ok": true,
+        "m": "\"المصادر\" under each of the two answers: 2"
+      }
+    ],
+    "text": 24,
+    "textWorst": 4.72,
+    "targets": 9,
+    "shaping": 16,
+    "cost": {
+      "shadowed": 14,
+      "maxLayers": 3,
+      "blurred": 25,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-dark-app-ask-empty.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=zero&theme=dark",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn Ask empty state: empty-ask"
+      }
+    ],
+    "text": 7,
+    "textWorst": 4.72,
+    "targets": 5,
+    "shaping": 7,
+    "cost": {
+      "shadowed": 4,
+      "maxLayers": 3,
+      "blurred": 6,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-dark-app-ask-noanswer.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=noanswer&theme=dark",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn Ask empty state: empty-ask"
+      }
+    ],
+    "text": 6,
+    "textWorst": 4.72,
+    "targets": 5,
+    "shaping": 6,
+    "cost": {
+      "shadowed": 3,
+      "maxLayers": 3,
+      "blurred": 5,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-dark-app-subject-empty.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&view=empty&theme=dark",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn files empty state: spark-book,empty-files"
+      }
+    ],
+    "text": 18,
+    "textWorst": 4.72,
+    "targets": 5,
+    "shaping": 14,
+    "cost": {
+      "shadowed": 8,
+      "maxLayers": 3,
+      "blurred": 14,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-dark-app-subject-quiz-empty.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&view=quizempty&theme=dark",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn quiz empty state: spark-book,empty-quiz"
+      }
+    ],
+    "text": 104,
+    "textWorst": 4.72,
+    "targets": 16,
+    "shaping": 88,
+    "cost": {
+      "shadowed": 40,
+      "maxLayers": 3,
+      "blurred": 62,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-dark-app-subject-files.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&theme=dark",
+    "item": 5,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "file-type labels in Arabic: نص, مستند, مستند, عرض, وورد, جدول, مستند, مستند"
+      }
+    ],
+    "text": 103,
+    "textWorst": 4.72,
+    "targets": 16,
+    "shaping": 87,
+    "cost": {
+      "shadowed": 39,
+      "maxLayers": 3,
+      "blurred": 61,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-dark-app-home-streak.png",
+    "url": "http://127.0.0.1:3000/ar/preview/student-home?platform=native&streak=0&theme=dark",
+    "item": 6,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the gold ring stands where the dash was"
+      }
+    ],
+    "text": 51,
+    "textWorst": 4.61,
+    "targets": 10,
+    "shaping": 42,
+    "cost": {
+      "shadowed": 14,
+      "maxLayers": 3,
+      "blurred": 25,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-dark-app-settings-reminder.png",
+    "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&reminder=on&theme=dark",
+    "item": 7,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the reminder time reads \"7:00 م\" / \"مفعّل. سنذكّرك كل يوم في الساعة 7:00 م.\", want 7:00 م"
+      }
+    ],
+    "text": 35,
+    "textWorst": 4.72,
+    "targets": 14,
+    "shaping": 30,
+    "cost": {
+      "shadowed": 22,
+      "maxLayers": 3,
+      "blurred": 30,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-dark-web-topbar.png",
+    "url": "http://127.0.0.1:3000/ar/preview/student-home?platform=web&theme=dark",
+    "item": 8,
+    "ua": "safari",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the web's phone top bar in clay: {\"shell\":\"web\",\"title\":\"أهلًا بك.\",\"topbar\":true,\"topbarShadow\":true,\"wordmark\":\"KnowFlow\"}"
+      },
+      {
+        "ok": true,
+        "m": "the wordmark reads \"KnowFlow\" on screen"
+      }
+    ],
+    "text": 55,
+    "textWorst": 4.61,
+    "targets": 15,
+    "shaping": 43,
+    "cost": {
+      "shadowed": 15,
+      "maxLayers": 3,
+      "blurred": 27,
+      "filters": [],
+      "heaviest": "header.kf-topbar \"KnowFlowEnglish\""
+    }
+  },
+  {
+    "file": "ar-dark-app-login.png",
+    "url": "http://127.0.0.1:3000/ar/login?theme=dark",
+    "item": 0,
+    "ua": "app",
+    "findings": [],
+    "notes": [
+      "target 183 x 43 < 44 x 44 a.rounded-md \"KnowFlow\"",
+      "target 107 x 17 < 44 x 44 a.text-sm \"نسيت كلمة المرور؟\"",
+      "target 178 x 17 < 44 x 44 a.text-sm \"ليس لديك حساب؟ أنشئ حسابًا\""
+    ],
+    "proved": [],
+    "text": 11,
+    "textWorst": 6.5,
+    "targets": 5,
+    "shaping": 9,
+    "cost": {
+      "shadowed": 0,
+      "maxLayers": 0,
+      "blurred": 0,
+      "filters": [],
+      "heaviest": ""
+    }
+  },
+  {
+    "file": "ar-light-app-ask.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&theme=light",
+    "item": 3,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the large title reads \"اسأل\""
+      },
+      {
+        "ok": true,
+        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+      }
+    ],
+    "text": 16,
+    "textWorst": 5.2,
+    "targets": 8,
+    "shaping": 16,
+    "cost": {
+      "shadowed": 12,
+      "maxLayers": 3,
+      "blurred": 18,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-light-app-ask-conversation.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=answer&theme=light",
+    "item": 3,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the large title reads \"اسأل\""
+      },
+      {
+        "ok": true,
+        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+      },
+      {
+        "ok": true,
+        "m": "\"المصادر\" under each of the two answers: 2"
+      }
+    ],
+    "text": 24,
+    "textWorst": 5.2,
+    "targets": 9,
+    "shaping": 16,
+    "cost": {
+      "shadowed": 14,
+      "maxLayers": 3,
+      "blurred": 25,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-light-app-ask-empty.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=zero&theme=light",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn Ask empty state: empty-ask"
+      }
+    ],
+    "text": 7,
+    "textWorst": 5.2,
+    "targets": 5,
+    "shaping": 7,
+    "cost": {
+      "shadowed": 4,
+      "maxLayers": 3,
+      "blurred": 6,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-light-app-ask-noanswer.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=noanswer&theme=light",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn Ask empty state: empty-ask"
+      }
+    ],
+    "text": 6,
+    "textWorst": 5.2,
+    "targets": 5,
+    "shaping": 6,
+    "cost": {
+      "shadowed": 3,
+      "maxLayers": 3,
+      "blurred": 5,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-light-app-subject-empty.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&view=empty&theme=light",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn files empty state: spark-book,empty-files"
+      }
+    ],
+    "text": 18,
+    "textWorst": 5.2,
+    "targets": 5,
+    "shaping": 14,
+    "cost": {
+      "shadowed": 8,
+      "maxLayers": 3,
+      "blurred": 14,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-light-app-subject-quiz-empty.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&view=quizempty&theme=light",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn quiz empty state: spark-book,empty-quiz"
+      }
+    ],
+    "text": 104,
+    "textWorst": 4.59,
+    "targets": 16,
+    "shaping": 88,
+    "cost": {
+      "shadowed": 40,
+      "maxLayers": 3,
+      "blurred": 62,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-light-app-subject-files.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&theme=light",
+    "item": 5,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "file-type labels in Arabic: نص, مستند, مستند, عرض, وورد, جدول, مستند, مستند"
+      }
+    ],
+    "text": 103,
+    "textWorst": 4.59,
+    "targets": 16,
+    "shaping": 87,
+    "cost": {
+      "shadowed": 39,
+      "maxLayers": 3,
+      "blurred": 61,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-light-app-home-streak.png",
+    "url": "http://127.0.0.1:3000/ar/preview/student-home?platform=native&streak=0&theme=light",
+    "item": 6,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the gold ring stands where the dash was"
+      }
+    ],
+    "text": 51,
+    "textWorst": 4.66,
+    "targets": 10,
+    "shaping": 42,
+    "cost": {
+      "shadowed": 14,
+      "maxLayers": 3,
+      "blurred": 25,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-light-app-settings-reminder.png",
+    "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&reminder=on&theme=light",
+    "item": 7,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the reminder time reads \"7:00 م\" / \"مفعّل. سنذكّرك كل يوم في الساعة 7:00 م.\", want 7:00 م"
+      }
+    ],
+    "text": 35,
+    "textWorst": 4.59,
+    "targets": 14,
+    "shaping": 30,
+    "cost": {
+      "shadowed": 22,
+      "maxLayers": 3,
+      "blurred": 30,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+    }
+  },
+  {
+    "file": "ar-light-web-topbar.png",
+    "url": "http://127.0.0.1:3000/ar/preview/student-home?platform=web&theme=light",
+    "item": 8,
+    "ua": "safari",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the web's phone top bar in clay: {\"shell\":\"web\",\"title\":\"أهلًا بك.\",\"topbar\":true,\"topbarShadow\":true,\"wordmark\":\"KnowFlow\"}"
+      },
+      {
+        "ok": true,
+        "m": "the wordmark reads \"KnowFlow\" on screen"
+      }
+    ],
+    "text": 55,
+    "textWorst": 4.56,
+    "targets": 15,
+    "shaping": 43,
+    "cost": {
+      "shadowed": 15,
+      "maxLayers": 3,
+      "blurred": 27,
+      "filters": [],
+      "heaviest": "header.kf-topbar \"KnowFlowEnglish\""
+    }
+  },
+  {
+    "file": "ar-light-app-login.png",
+    "url": "http://127.0.0.1:3000/ar/login?theme=light",
+    "item": 0,
+    "ua": "app",
+    "findings": [],
+    "notes": [
+      "target 183 x 43 < 44 x 44 a.rounded-md \"KnowFlow\"",
+      "target 107 x 17 < 44 x 44 a.text-sm \"نسيت كلمة المرور؟\"",
+      "target 178 x 17 < 44 x 44 a.text-sm \"ليس لديك حساب؟ أنشئ حسابًا\""
+    ],
+    "proved": [],
+    "text": 11,
+    "textWorst": 4.97,
+    "targets": 5,
+    "shaping": 9,
+    "cost": {
+      "shadowed": 0,
+      "maxLayers": 0,
+      "blurred": 0,
+      "filters": [],
+      "heaviest": ""
+    }
+  },
+  {
+    "file": "en-dark-app-ask.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&theme=dark",
+    "item": 3,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the large title reads \"Ask\""
+      },
+      {
+        "ok": true,
+        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+      }
+    ],
+    "text": 16,
+    "textWorst": 4.72,
+    "targets": 8,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 12,
+      "maxLayers": 3,
+      "blurred": 18,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-dark-app-ask-conversation.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&view=answer&theme=dark",
+    "item": 3,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the large title reads \"Ask\""
+      },
+      {
+        "ok": true,
+        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+      },
+      {
+        "ok": true,
+        "m": "\"Sources\" under each of the two answers: 2"
+      }
+    ],
+    "text": 22,
+    "textWorst": 4.72,
+    "targets": 9,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 14,
+      "maxLayers": 3,
+      "blurred": 25,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-dark-app-ask-empty.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&view=zero&theme=dark",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn Ask empty state: empty-ask"
+      }
+    ],
+    "text": 7,
+    "textWorst": 4.72,
+    "targets": 5,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 4,
+      "maxLayers": 3,
+      "blurred": 6,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-dark-app-ask-noanswer.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&view=noanswer&theme=dark",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn Ask empty state: empty-ask"
+      }
+    ],
+    "text": 6,
+    "textWorst": 4.72,
+    "targets": 5,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 3,
+      "maxLayers": 3,
+      "blurred": 5,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-dark-app-subject-empty.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&view=empty&theme=dark",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn files empty state: spark-book,empty-files"
+      }
+    ],
+    "text": 18,
+    "textWorst": 4.72,
+    "targets": 5,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 8,
+      "maxLayers": 3,
+      "blurred": 14,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-dark-app-subject-quiz-empty.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&view=quizempty&theme=dark",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn quiz empty state: spark-book,empty-quiz"
+      }
+    ],
+    "text": 103,
+    "textWorst": 4.72,
+    "targets": 16,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 40,
+      "maxLayers": 3,
+      "blurred": 62,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-dark-app-subject-files.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&theme=dark",
+    "item": 5,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "file-type labels in Latin capitals: PDF, PDF, PDF, PPTX, DOCX, XLSX, PDF, PDF"
+      }
+    ],
+    "text": 102,
+    "textWorst": 4.72,
+    "targets": 16,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 39,
+      "maxLayers": 3,
+      "blurred": 61,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-dark-app-home-streak.png",
+    "url": "http://127.0.0.1:3000/en/preview/student-home?platform=native&streak=0&theme=dark",
+    "item": 6,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the gold ring stands where the dash was"
+      }
+    ],
+    "text": 51,
+    "textWorst": 4.61,
+    "targets": 10,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 14,
+      "maxLayers": 3,
+      "blurred": 25,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-dark-app-settings-reminder.png",
+    "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&reminder=on&theme=dark",
+    "item": 7,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the reminder time reads \"7:00 pm\" / \"On. We will remind you every day at 7:00 pm.\", want 7:00 pm"
+      }
+    ],
+    "text": 35,
+    "textWorst": 4.72,
+    "targets": 14,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 22,
+      "maxLayers": 3,
+      "blurred": 30,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-dark-web-topbar.png",
+    "url": "http://127.0.0.1:3000/en/preview/student-home?platform=web&theme=dark",
+    "item": 8,
+    "ua": "safari",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the web's phone top bar in clay: {\"shell\":\"web\",\"title\":\"Welcome back.\",\"topbar\":true,\"topbarShadow\":true,\"wordmark\":\"KnowFlow\"}"
+      },
+      {
+        "ok": true,
+        "m": "the wordmark reads \"KnowFlow\" on screen"
+      }
+    ],
+    "text": 55,
+    "textWorst": 4.61,
+    "targets": 15,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 15,
+      "maxLayers": 3,
+      "blurred": 27,
+      "filters": [],
+      "heaviest": "header.kf-topbar \"KnowFlowالعربية\""
+    }
+  },
+  {
+    "file": "en-dark-app-login.png",
+    "url": "http://127.0.0.1:3000/en/login?theme=dark",
+    "item": 0,
+    "ua": "app",
+    "findings": [],
+    "notes": [
+      "target 176 x 43 < 44 x 44 a.rounded-md \"KnowFlow\"",
+      "target 149 x 17 < 44 x 44 a.text-sm \"Forgot your password?\"",
+      "target 206 x 17 < 44 x 44 a.text-sm \"Don't have an account? Sign up\""
+    ],
+    "proved": [],
+    "text": 11,
+    "textWorst": 6.5,
+    "targets": 5,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 0,
+      "maxLayers": 0,
+      "blurred": 0,
+      "filters": [],
+      "heaviest": ""
+    }
+  },
+  {
+    "file": "en-light-app-ask.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&theme=light",
+    "item": 3,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the large title reads \"Ask\""
+      },
+      {
+        "ok": true,
+        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+      }
+    ],
+    "text": 16,
+    "textWorst": 5.2,
+    "targets": 8,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 12,
+      "maxLayers": 3,
+      "blurred": 18,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-light-app-ask-conversation.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&view=answer&theme=light",
+    "item": 3,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the large title reads \"Ask\""
+      },
+      {
+        "ok": true,
+        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+      },
+      {
+        "ok": true,
+        "m": "\"Sources\" under each of the two answers: 2"
+      }
+    ],
+    "text": 22,
+    "textWorst": 5.2,
+    "targets": 9,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 14,
+      "maxLayers": 3,
+      "blurred": 25,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-light-app-ask-empty.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&view=zero&theme=light",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn Ask empty state: empty-ask"
+      }
+    ],
+    "text": 7,
+    "textWorst": 5.2,
+    "targets": 5,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 4,
+      "maxLayers": 3,
+      "blurred": 6,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-light-app-ask-noanswer.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&view=noanswer&theme=light",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn Ask empty state: empty-ask"
+      }
+    ],
+    "text": 6,
+    "textWorst": 5.2,
+    "targets": 5,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 3,
+      "maxLayers": 3,
+      "blurred": 5,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-light-app-subject-empty.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&view=empty&theme=light",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn files empty state: spark-book,empty-files"
+      }
+    ],
+    "text": 18,
+    "textWorst": 5.2,
+    "targets": 5,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 8,
+      "maxLayers": 3,
+      "blurred": 14,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-light-app-subject-quiz-empty.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&view=quizempty&theme=light",
+    "item": 4,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the drawn quiz empty state: spark-book,empty-quiz"
+      }
+    ],
+    "text": 103,
+    "textWorst": 4.59,
+    "targets": 16,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 40,
+      "maxLayers": 3,
+      "blurred": 62,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-light-app-subject-files.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&theme=light",
+    "item": 5,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "file-type labels in Latin capitals: PDF, PDF, PDF, PPTX, DOCX, XLSX, PDF, PDF"
+      }
+    ],
+    "text": 102,
+    "textWorst": 4.59,
+    "targets": 16,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 39,
+      "maxLayers": 3,
+      "blurred": 61,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-light-app-home-streak.png",
+    "url": "http://127.0.0.1:3000/en/preview/student-home?platform=native&streak=0&theme=light",
+    "item": 6,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the gold ring stands where the dash was"
+      }
+    ],
+    "text": 51,
+    "textWorst": 4.66,
+    "targets": 10,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 14,
+      "maxLayers": 3,
+      "blurred": 25,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-light-app-settings-reminder.png",
+    "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&reminder=on&theme=light",
+    "item": 7,
+    "ua": "app",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the reminder time reads \"7:00 pm\" / \"On. We will remind you every day at 7:00 pm.\", want 7:00 pm"
+      }
+    ],
+    "text": 35,
+    "textWorst": 4.59,
+    "targets": 14,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 22,
+      "maxLayers": 3,
+      "blurred": 30,
+      "filters": [],
+      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+    }
+  },
+  {
+    "file": "en-light-web-topbar.png",
+    "url": "http://127.0.0.1:3000/en/preview/student-home?platform=web&theme=light",
+    "item": 8,
+    "ua": "safari",
+    "findings": [],
+    "notes": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the web's phone top bar in clay: {\"shell\":\"web\",\"title\":\"Welcome back.\",\"topbar\":true,\"topbarShadow\":true,\"wordmark\":\"KnowFlow\"}"
+      },
+      {
+        "ok": true,
+        "m": "the wordmark reads \"KnowFlow\" on screen"
+      }
+    ],
+    "text": 55,
+    "textWorst": 4.56,
+    "targets": 15,
+    "shaping": 1,
+    "cost": {
+      "shadowed": 15,
+      "maxLayers": 3,
+      "blurred": 27,
+      "filters": [],
+      "heaviest": "header.kf-topbar \"KnowFlowالعربية\""
+    }
+  },
+  {
+    "file": "en-light-app-login.png",
+    "url": "http://127.0.0.1:3000/en/login?theme=light",
+    "item": 0,
+    "ua": "app",
+    "findings": [],
+    "notes": [
+      "target 176 x 43 < 44 x 44 a.rounded-md \"KnowFlow\"",
+      "target 149 x 17 < 44 x 44 a.text-sm \"Forgot your password?\"",
+      "target 206 x 17 < 44 x 44 a.text-sm \"Don't have an account? Sign up\""
+    ],
+    "proved": [],
+    "text": 11,
+    "textWorst": 4.97,
+    "targets": 5,
+    "shaping": 0,
+    "cost": {
+      "shadowed": 0,
+      "maxLayers": 0,
+      "blurred": 0,
+      "filters": [],
+      "heaviest": ""
+    }
+  }
+]

@@ -6,16 +6,16 @@
     "file": "ar-dark-home.png",
     "url": "http://127.0.0.1:3000/ar/preview/student-home?platform=native&theme=dark",
     "findings": [],
-    "text": 51,
+    "text": 50,
     "textWorst": 4.61,
     "controls": [],
     "targets": 10,
     "targetMin": 44,
     "shaping": 41,
     "cost": {
-      "shadowed": 13,
+      "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 24,
+      "blurred": 25,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     },
@@ -74,7 +74,7 @@
     ],
     "targets": 16,
     "targetMin": 44,
-    "shaping": 80,
+    "shaping": 87,
     "cost": {
       "shadowed": 39,
       "maxLayers": 3,
@@ -94,7 +94,7 @@
     "file": "ar-dark-ask.png",
     "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&theme=dark",
     "findings": [],
-    "text": 15,
+    "text": 16,
     "textWorst": 4.72,
     "controls": [
       {
@@ -106,7 +106,7 @@
     ],
     "targets": 8,
     "targetMin": 44,
-    "shaping": 15,
+    "shaping": 16,
     "cost": {
       "shadowed": 12,
       "maxLayers": 3,
@@ -126,16 +126,23 @@
     "file": "ar-dark-ask-answer.png",
     "url": "http://127.0.0.1:3000/ar/preview/ask?view=answer&platform=native&theme=dark",
     "findings": [],
-    "text": 15,
+    "text": 24,
     "textWorst": 4.72,
-    "controls": [],
-    "targets": 7,
+    "controls": [
+      {
+        "el": "field: div.kf-composer \"\"",
+        "got": 3.82,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 9,
     "targetMin": 44,
-    "shaping": 9,
+    "shaping": 16,
     "cost": {
-      "shadowed": 7,
+      "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 13,
+      "blurred": 25,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     },
@@ -169,7 +176,7 @@
     ],
     "targets": 16,
     "targetMin": 44,
-    "shaping": 80,
+    "shaping": 87,
     "cost": {
       "shadowed": 39,
       "maxLayers": 3,
@@ -189,7 +196,7 @@
     "file": "ar-dark-settings.png",
     "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&theme=dark",
     "findings": [],
-    "text": 34,
+    "text": 35,
     "textWorst": 4.72,
     "controls": [
       {
@@ -225,12 +232,6 @@
       {
         "el": "chosen segment: button.inline-flex \"داكن\"",
         "got": 7.72,
-        "need": 3,
-        "ok": true
-      },
-      {
-        "el": "field: input.h-11 \"\"",
-        "got": 3.51,
         "need": 3,
         "ok": true
       }
@@ -257,7 +258,7 @@
     "file": "ar-dark-settings-bottom.png",
     "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&theme=dark",
     "findings": [],
-    "text": 34,
+    "text": 35,
     "textWorst": 4.72,
     "controls": [
       {
@@ -295,12 +296,6 @@
         "got": 7.72,
         "need": 3,
         "ok": true
-      },
-      {
-        "el": "field: input.h-11 \"\"",
-        "got": 3.51,
-        "need": 3,
-        "ok": true
       }
     ],
     "targets": 14,
@@ -325,16 +320,16 @@
     "file": "ar-light-home.png",
     "url": "http://127.0.0.1:3000/ar/preview/student-home?platform=native&theme=light",
     "findings": [],
-    "text": 51,
+    "text": 50,
     "textWorst": 4.66,
     "controls": [],
     "targets": 10,
     "targetMin": 44,
     "shaping": 41,
     "cost": {
-      "shadowed": 13,
+      "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 24,
+      "blurred": 25,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     },
@@ -393,7 +388,7 @@
     ],
     "targets": 16,
     "targetMin": 44,
-    "shaping": 80,
+    "shaping": 87,
     "cost": {
       "shadowed": 39,
       "maxLayers": 3,
@@ -413,7 +408,7 @@
     "file": "ar-light-ask.png",
     "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&theme=light",
     "findings": [],
-    "text": 15,
+    "text": 16,
     "textWorst": 5.2,
     "controls": [
       {
@@ -425,7 +420,7 @@
     ],
     "targets": 8,
     "targetMin": 44,
-    "shaping": 15,
+    "shaping": 16,
     "cost": {
       "shadowed": 12,
       "maxLayers": 3,
@@ -445,16 +440,23 @@
     "file": "ar-light-ask-answer.png",
     "url": "http://127.0.0.1:3000/ar/preview/ask?view=answer&platform=native&theme=light",
     "findings": [],
-    "text": 15,
+    "text": 24,
     "textWorst": 5.2,
-    "controls": [],
-    "targets": 7,
+    "controls": [
+      {
+        "el": "field: div.kf-composer \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 9,
     "targetMin": 44,
-    "shaping": 9,
+    "shaping": 16,
     "cost": {
-      "shadowed": 7,
+      "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 13,
+      "blurred": 25,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     },
@@ -488,7 +490,7 @@
     ],
     "targets": 16,
     "targetMin": 44,
-    "shaping": 80,
+    "shaping": 87,
     "cost": {
       "shadowed": 39,
       "maxLayers": 3,
@@ -508,7 +510,7 @@
     "file": "ar-light-settings.png",
     "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&theme=light",
     "findings": [],
-    "text": 34,
+    "text": 35,
     "textWorst": 4.59,
     "controls": [
       {
@@ -544,12 +546,6 @@
       {
         "el": "chosen segment: button.inline-flex \"فاتح\"",
         "got": 4.03,
-        "need": 3,
-        "ok": true
-      },
-      {
-        "el": "field: input.h-11 \"\"",
-        "got": 4.14,
         "need": 3,
         "ok": true
       }
@@ -576,7 +572,7 @@
     "file": "ar-light-settings-bottom.png",
     "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&theme=light",
     "findings": [],
-    "text": 34,
+    "text": 35,
     "textWorst": 4.59,
     "controls": [
       {
@@ -614,12 +610,6 @@
         "got": 4.03,
         "need": 3,
         "ok": true
-      },
-      {
-        "el": "field: input.h-11 \"\"",
-        "got": 4.14,
-        "need": 3,
-        "ok": true
       }
     ],
     "targets": 14,
@@ -644,16 +634,16 @@
     "file": "en-dark-home.png",
     "url": "http://127.0.0.1:3000/en/preview/student-home?platform=native&theme=dark",
     "findings": [],
-    "text": 51,
+    "text": 50,
     "textWorst": 4.61,
     "controls": [],
     "targets": 10,
     "targetMin": 44,
     "shaping": 0,
     "cost": {
-      "shadowed": 13,
+      "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 24,
+      "blurred": 25,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     },
@@ -732,7 +722,7 @@
     "file": "en-dark-ask.png",
     "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&theme=dark",
     "findings": [],
-    "text": 15,
+    "text": 16,
     "textWorst": 4.72,
     "controls": [
       {
@@ -764,16 +754,23 @@
     "file": "en-dark-ask-answer.png",
     "url": "http://127.0.0.1:3000/en/preview/ask?view=answer&platform=native&theme=dark",
     "findings": [],
-    "text": 14,
+    "text": 22,
     "textWorst": 4.72,
-    "controls": [],
-    "targets": 7,
+    "controls": [
+      {
+        "el": "field: div.kf-composer \"\"",
+        "got": 3.82,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 9,
     "targetMin": 44,
     "shaping": 1,
     "cost": {
-      "shadowed": 7,
+      "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 13,
+      "blurred": 25,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     },
@@ -827,7 +824,7 @@
     "file": "en-dark-settings.png",
     "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&theme=dark",
     "findings": [],
-    "text": 34,
+    "text": 35,
     "textWorst": 4.72,
     "controls": [
       {
@@ -863,12 +860,6 @@
       {
         "el": "chosen segment: button.inline-flex \"Dark\"",
         "got": 7.72,
-        "need": 3,
-        "ok": true
-      },
-      {
-        "el": "field: input.h-11 \"\"",
-        "got": 3.51,
         "need": 3,
         "ok": true
       }
@@ -895,7 +886,7 @@
     "file": "en-dark-settings-bottom.png",
     "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&theme=dark",
     "findings": [],
-    "text": 34,
+    "text": 35,
     "textWorst": 4.72,
     "controls": [
       {
@@ -933,12 +924,6 @@
         "got": 7.72,
         "need": 3,
         "ok": true
-      },
-      {
-        "el": "field: input.h-11 \"\"",
-        "got": 3.51,
-        "need": 3,
-        "ok": true
       }
     ],
     "targets": 14,
@@ -963,16 +948,16 @@
     "file": "en-light-home.png",
     "url": "http://127.0.0.1:3000/en/preview/student-home?platform=native&theme=light",
     "findings": [],
-    "text": 51,
+    "text": 50,
     "textWorst": 4.66,
     "controls": [],
     "targets": 10,
     "targetMin": 44,
     "shaping": 0,
     "cost": {
-      "shadowed": 13,
+      "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 24,
+      "blurred": 25,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     },
@@ -1051,7 +1036,7 @@
     "file": "en-light-ask.png",
     "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&theme=light",
     "findings": [],
-    "text": 15,
+    "text": 16,
     "textWorst": 5.2,
     "controls": [
       {
@@ -1083,16 +1068,23 @@
     "file": "en-light-ask-answer.png",
     "url": "http://127.0.0.1:3000/en/preview/ask?view=answer&platform=native&theme=light",
     "findings": [],
-    "text": 14,
+    "text": 22,
     "textWorst": 5.2,
-    "controls": [],
-    "targets": 7,
+    "controls": [
+      {
+        "el": "field: div.kf-composer \"\"",
+        "got": 4.2,
+        "need": 3,
+        "ok": true
+      }
+    ],
+    "targets": 9,
     "targetMin": 44,
     "shaping": 1,
     "cost": {
-      "shadowed": 7,
+      "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 13,
+      "blurred": 25,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     },
@@ -1146,7 +1138,7 @@
     "file": "en-light-settings.png",
     "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&theme=light",
     "findings": [],
-    "text": 34,
+    "text": 35,
     "textWorst": 4.59,
     "controls": [
       {
@@ -1182,12 +1174,6 @@
       {
         "el": "chosen segment: button.inline-flex \"Light\"",
         "got": 4.03,
-        "need": 3,
-        "ok": true
-      },
-      {
-        "el": "field: input.h-11 \"\"",
-        "got": 4.14,
         "need": 3,
         "ok": true
       }
@@ -1214,7 +1200,7 @@
     "file": "en-light-settings-bottom.png",
     "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&theme=light",
     "findings": [],
-    "text": 34,
+    "text": 35,
     "textWorst": 4.59,
     "controls": [
       {
@@ -1250,12 +1236,6 @@
       {
         "el": "chosen segment: button.inline-flex \"Light\"",
         "got": 4.03,
-        "need": 3,
-        "ok": true
-      },
-      {
-        "el": "field: input.h-11 \"\"",
-        "got": 4.14,
         "need": 3,
         "ok": true
       }
