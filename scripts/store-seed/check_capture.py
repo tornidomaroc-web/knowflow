@@ -62,6 +62,7 @@ for loc in ('ar', 'en'):
     need(bool(m) and int(m.group(1)) >= int(m.group(2)) + 4, f'Summary ({loc}): the heading sits fully below any bar: {s3[:120]}')
     need(by.get(f'signout-{loc}', {}).get('result') == 'signed out', f'{loc}: the set ends signed out')
 
+need(str(by.get('quiz-open', {}).get('result', '')).startswith('clicked quiz on '), f"Quiz (en): opened on the seeded file's own card: {by.get('quiz-open', {}).get('result')}")
 need('sources: yes' in str(by.get('shot-ar-04-ask', {}).get('result', '')), 'Ask (ar): the answer shows its sources under المصادر')
 need(str(by.get('shot-en-04-quiz', {}).get('result', '')).startswith('quiz in view'), 'Quiz (en): the stored quiz is on screen from question 1')
 steps_lists = [json.load(open(p, encoding='utf-8')) for p in sys.argv[3:]]

@@ -623,13 +623,24 @@ jobs:
             loc=$1 email=$2 password=$3
             python3 scripts/store-seed/capture_steps.py "$loc" > "$RUNNER_TEMP/steps-$loc.json"
             steps=$(base64 < "$RUNNER_TEMP/steps-$loc.json" | tr -d '\n')
-            rm -f "$(sf smoke.jsonl)" "$(sf smoke.done)" "$data"/tmp/*/ack-* 2>/dev/null || true
+            # The app writes smoke.* and its acks straight in $data/tmp (its
+            # temporaryDirectory); the previous set's acks left there let the
+            # next set run without waiting for a single screenshot (run
+            # 38464393735: en/04-quiz.png was the Settings screen). Delete
+            # them as ios-smoke.yml does, and prove none is left.
+            find "$data/tmp" -maxdepth 3 \( -name 'smoke.*' -o -name 'ack-*' \) -delete 2>/dev/null || true
+            test -z "$(find "$data/tmp" -maxdepth 3 -name 'ack-*' 2>/dev/null)" || { echo "FAIL: acks of an earlier set are still there"; return 1; }
+            ahead=0
             SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_NOTIFY=provisional SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" SIMCTL_CHILD_KF_SMOKE_EMAIL="$email" SIMCTL_CHILD_KF_SMOKE_PASSWORD="$password" xcrun simctl launch --terminate-running-process "$UDID" com.knowflow.app --kf-smoke &
             seen=0
             for i in $(seq 1 1200); do
               f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
               if [ "$n" -gt "$seen" ]; then
                 seen=$n
+                # The app waits for ack-n only if ack-n is not there yet: one
+                # already there means the app went on without waiting, and the
+                # screenshot below may show a later step (run 38464393735).
+                if [ -e "$(dirname "$f")/ack-$seen" ]; then echo "FAIL: ack-$seen of the $loc set was there before its screenshot"; ahead=1; fi
                 name=$(tail -n 1 "$f" | python3 -c 'import json,sys; print(json.loads(sys.stdin.readline())["step"])')
                 case "$name" in
                   shot-en-*) out="$RUNNER_TEMP/store/en/${name#shot-en-}.png" ;;
@@ -645,6 +656,7 @@ jobs:
             done
             f=$(sf smoke.jsonl); [ -n "$f" ] && cat "$f" >> "$RUNNER_TEMP/smoke-shots.jsonl"
             test -n "$(sf smoke.done)" || { echo "FAIL: the $loc set did not finish; lines seen: $seen"; return 1; }
+            test "$ahead" = 0 || { echo "FAIL: the $loc app did not wait for its screenshots; they may not match their steps"; return 1; }
             xcrun simctl terminate "$UDID" com.knowflow.app || true
           }
           status=0
