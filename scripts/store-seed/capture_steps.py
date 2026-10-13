@@ -14,6 +14,12 @@ history would show its answer without sources (one Ask call per capture).
 The English quiz opens the quiz the seeding made (a stored quiz costs no
 call). The set ends signed out, so the next account starts at the login page.
 
+Every step that opens a page names `until`, the pattern its URL must match:
+the harness waits for the URL to leave the page the step started on and match
+it before the step's `wait` runs, and check_capture.py fails the capture when
+it did not (scripts/ios/page_steps.py), so a slow load is never photographed
+as the page before it.
+
 Usage: python3 scripts/store-seed/capture_steps.py ar|en > steps.json
 """
 import json
@@ -55,17 +61,17 @@ def steps(locale):
     subject = p['summary']['subject']
     L = locale
     out = [
-        {"name": "login", "wait": 10000, "js": LOGIN},
-        {"name": f"nav-{L}-subjects", "wait": 9000, "js": "(function(){location.assign('/" + L + "/dashboard/knowledge');return 'assigned'})()"},
+        {"name": "login", "until": "/(en|ar)/dashboard$", "timeout": 30000, "wait": 3000, "js": LOGIN},
+        {"name": f"nav-{L}-subjects", "until": f"/{L}/dashboard/knowledge$", "wait": 4000, "js": "(function(){location.assign('/" + L + "/dashboard/knowledge');return 'assigned'})()"},
         {"name": f"shot-{L}-01-subjects", "wait": 1500, "js": with_purity("(function(){window.scrollTo(0,0);return location.pathname})()", L)},
-        {"name": f"nav-{L}-subject", "wait": 10000, "js": "(function(){var n=" + json.dumps(subject, ensure_ascii=False) + ";var a=Array.prototype.slice.call(document.querySelectorAll('a[href*=\"/dashboard/knowledge/\"]')).filter(function(a){var c=a.closest('article,li')||a;return !/\\/new$/.test(a.getAttribute('href')||'')&&(c.textContent||'').indexOf(n)>=0})[0];if(!a){return 'no subject '+n}a.click();return 'opened '+n})()"},
+        {"name": f"nav-{L}-subject", "until": f"/{L}/dashboard/knowledge/[0-9a-f-]{{36}}$", "wait": 10000, "js": "(function(){var n=" + json.dumps(subject, ensure_ascii=False) + ";var a=Array.prototype.slice.call(document.querySelectorAll('a[href*=\"/dashboard/knowledge/\"]')).filter(function(a){var c=a.closest('article,li')||a;return !/\\/new$/.test(a.getAttribute('href')||'')&&(c.textContent||'').indexOf(n)>=0})[0];if(!a){return 'no subject '+n}a.click();return 'opened '+n})()"},
         {"name": f"shot-{L}-02-material", "wait": 1500, "js": with_purity("(function(){window.scrollTo(0,0);return location.pathname})()", L)},
         {"name": f"shot-{L}-03-summary", "wait": 1500, "js": with_purity(SUMMARY, L)},
     ]
     if L == 'ar':
         q = json.dumps(p['ask']['question'], ensure_ascii=False)
         out += [
-            {"name": "nav-ar-ask", "wait": 9000, "js": "(function(){var a=document.querySelector('a[href*=\"/dashboard/agent?kb=\"]');if(!a){return 'no ask link'}a.click();return 'opened Ask on the subject'})()"},
+            {"name": "nav-ar-ask", "until": "/ar/dashboard/agent[?]kb=", "wait": 9000, "js": "(function(){var a=document.querySelector('a[href*=\"/dashboard/agent?kb=\"]');if(!a){return 'no ask link'}a.click();return 'opened Ask on the subject'})()"},
             {"name": "ask-send", "wait": 35000, "js": "(function(){var t=document.querySelector('[data-kf-composer] textarea');if(!t){return 'no composer'}var s=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set;s.call(t," + q + ");t.dispatchEvent(new Event('input',{bubbles:true}));setTimeout(function(){var b=document.querySelector('[data-kf-composer] button');if(b){b.click()}},300);return 'sent'})()"},
             {"name": "shot-ar-04-ask", "wait": 1500, "js": with_purity("(function(){var t=document.body.innerText||'';return 'answer shown; sources: '+(/(^|\\n)المصادر(\\n|$)/.test(t)?'yes':'no')})()", L)},
         ]
@@ -75,10 +81,10 @@ def steps(locale):
             {"name": "shot-en-04-quiz", "wait": 1500, "js": with_purity(QUIZ, L)},
         ]
     out += [
-        {"name": f"nav-{L}-settings", "wait": 8000, "js": "(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings'}a.click();return 'clicked Settings'})()"},
+        {"name": f"nav-{L}-settings", "until": f"/{L}/dashboard/settings$", "wait": 8000, "js": "(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings'}a.click();return 'clicked Settings'})()"},
         {"name": f"reminder-{L}-on", "wait": 3000, "js": "(function(){var c=document.querySelector('[data-kf-reminder-state]');if(!c){return 'no reminder card'}if(c.getAttribute('data-kf-reminder-state')==='on'){return 'already on'}var b=c.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked on'})()"},
         {"name": f"shot-{L}-05-settings", "wait": 1500, "js": with_purity(SETTINGS, L)},
-        {"name": f"signout-{L}", "wait": 6000, "js": "(function(){var b=document.querySelector('[data-kf-signout=row]');if(!b){return 'no sign-out row'}b.click();return 'signed out'})()"},
+        {"name": f"signout-{L}", "until": "/(en|ar)/login$", "wait": 3000, "js": "(function(){var b=document.querySelector('[data-kf-signout=row]');if(!b){return 'no sign-out row'}b.click();return 'signed out'})()"},
     ]
     return out
 
