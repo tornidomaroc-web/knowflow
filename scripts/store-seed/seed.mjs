@@ -81,10 +81,22 @@ async function session() {
 need((await go(`/${L}/login`)) === 200, `the login page opens (/${L}/login)`);
 await page.type('input[name=email]', EMAIL);
 await page.type('input[name=password]', PASSWORD);
-await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }).catch(() => null), page.click('button[type=submit]')]);
+// The sign-in answers in the page (Supabase), then the app routes to the
+// dashboard client-side: wait for the address itself, up to 20 s.
+const authAnswer = page.waitForResponse((r) => /\/auth\/v1\/token/.test(r.url()), { timeout: 30000 }).catch(() => null);
+await page.click('button[type=submit]');
+const auth = await authAnswer;
+for (let i = 0; i < 40 && !new RegExp(`/${L}/dashboard`).test(page.url()); i++) await settle(500);
 await settle(1500);
 const signedIn = new RegExp(`/${L}/dashboard`).test(page.url());
 need(signedIn, `signed in: landed on ${new URL(page.url()).pathname}`);
+if (!signedIn) {
+  // Why, without any credential: the auth answer's status and the login
+  // page's own error line (the app's copy, e.g. invalid credentials).
+  log(`auth answer: ${auth ? `HTTP ${auth.status()}` : 'none seen'}`);
+  const err = await page.evaluate(() => [...document.querySelectorAll('[role=alert], .text-danger, .bg-danger-subtle')].map((e) => (e.textContent || '').trim()).filter(Boolean).join(' | '));
+  log(`login page says: ${err.replace(/\S+@\S+/g, '[email]') || '(nothing)'}`);
+}
 let s = await session();
 need(!!s && ALLOWED.test(s.email || ''), `the session belongs to a screenshot account (user id ${s?.id ? s.id.slice(0, 8) + '…' : 'none'})`);
 if (!signedIn || !s) { await browser.close(); process.exit(1); }
