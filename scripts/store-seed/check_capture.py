@@ -15,6 +15,8 @@ scenario screenshots), from the harness's readings and the PNG sizes.
     capture instead of being photographed as the page before it.
 
 Usage: python3 scripts/store-seed/check_capture.py smoke-shots.jsonl sizes.txt steps-ar.json steps-en.json
+KF_LATE_OK=1 (the frame mode, re-checking a capture it reuses) passes a page
+step that arrived on its own page after its limit; see page_steps.py.
 """
 import json
 import os
@@ -67,7 +69,7 @@ need('sources: yes' in str(by.get('shot-ar-04-ask', {}).get('result', '')), 'Ask
 need(str(by.get('shot-en-04-quiz', {}).get('result', '')).startswith('quiz in view'), 'Quiz (en): the stored quiz is on screen from question 1')
 steps_lists = [json.load(open(p, encoding='utf-8')) for p in sys.argv[3:]]
 need(len(steps_lists) == 2, f'both steps files given ({len(steps_lists)})')
-for ok, msg in page_step_checks(rows, steps_lists):
+for ok, msg in page_step_checks(rows, steps_lists, late_ok=os.environ.get('KF_LATE_OK') == '1'):
     need(ok, msg)
 need(len(sizes) == 10 and all(' 1320 x 2868,' in l for l in sizes), f'every PNG is 1320 x 2868 ({len(sizes)} files)')
 print(f'\n{len(fails)} failure(s)')

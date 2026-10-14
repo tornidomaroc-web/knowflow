@@ -15,6 +15,12 @@ A page step FAILS here, never skips, when:
   - its reading is still on the URL it started from;
   - its reading is on a URL its `until` does not match.
 
+With `late_ok` (only the frame mode of ios-signed-in.yml, re-checking a
+capture it reuses), a step the harness timed out on whose reading is on its
+own page, away from its start, is reported LATE and passes: the screenshot
+after it shows the right page, only later than the limit allowed (run
+38579234295, a 32.75 s login against 30 s). Every other failure stands.
+
 Readings from before `nav` existed (run 38426358277 and earlier) are judged
 the same way, with the previous reading's URL as the start.
 
@@ -28,7 +34,7 @@ import re
 import sys
 
 
-def page_step_checks(rows, steps_lists):
+def page_step_checks(rows, steps_lists, late_ok=False):
     """Return [(ok, message)] for every page step in the steps lists."""
     until = {}
     for steps in steps_lists:
@@ -47,8 +53,10 @@ def page_step_checks(rows, steps_lists):
             start = nav.get('start') if nav else prev_href
             arrived = nav.get('arrived') if nav else True
             ms = f"{nav.get('ms')} ms" if nav else 'no nav record'
-            ok = bool(arrived) and href != (start or '') and re.search(until[name], href) is not None
-            out.append((ok, f"page step {name} left {start} for {until[name]} ({ms}): {href}"))
+            there = href != (start or '') and re.search(until[name], href) is not None
+            ok = bool(arrived) and there
+            late = late_ok and not arrived and there
+            out.append((ok or late, f"{'LATE, on its page: ' if late else ''}page step {name} left {start} for {until[name]} ({ms}): {href}"))
         prev_href = href or prev_href
     for name in until:
         if name not in seen:

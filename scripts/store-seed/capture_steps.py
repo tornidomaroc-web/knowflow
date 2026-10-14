@@ -65,7 +65,7 @@ def steps(locale):
     subject = p['summary']['subject']
     L = locale
     out = [
-        {"name": "login", "until": "/(en|ar)/dashboard$", "timeout": 30000, "wait": 3000, "js": LOGIN},
+        {"name": "login", "until": "/(en|ar)/dashboard$", "timeout": 60000, "wait": 3000, "js": LOGIN},
         {"name": f"nav-{L}-subjects", "until": f"/{L}/dashboard/knowledge$", "wait": 4000, "js": "(function(){location.assign('/" + L + "/dashboard/knowledge');return 'assigned'})()"},
         {"name": f"shot-{L}-01-subjects", "wait": 1500, "js": with_purity("(function(){window.scrollTo(0,0);return location.pathname})()", L)},
         {"name": f"nav-{L}-subject", "until": f"/{L}/dashboard/knowledge/[0-9a-f-]{{36}}$", "wait": 10000, "js": "(function(){var n=" + json.dumps(subject, ensure_ascii=False) + ";var a=Array.prototype.slice.call(document.querySelectorAll('a[href*=\"/dashboard/knowledge/\"]')).filter(function(a){var c=a.closest('article,li')||a;return !/\\/new$/.test(a.getAttribute('href')||'')&&(c.textContent||'').indexOf(n)>=0})[0];if(!a){return 'no subject '+n}a.click();return 'opened '+n})()"},

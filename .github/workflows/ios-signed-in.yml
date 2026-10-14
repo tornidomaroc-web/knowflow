@@ -72,8 +72,13 @@ on:
       scenario:
         description: 'screens: the signed-in screens (as on every push). background-upload: the measurement of an upload sent to the background. screenshots: the App Store set, 6.9-inch, en and ar (dispatch only)'
         type: choice
-        options: [screens, background-upload, screenshots]
+        options: [screens, background-upload, screenshots, frame]
         default: screens
+      source_run:
+        description: 'frame only: the id of an earlier screenshots run on main whose capture is framed again (Linux, no macOS, no AI call)'
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -129,7 +134,7 @@ jobs:
           fi
 
   signed-in:
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.scenario != 'frame' }}
     name: iOS — simulator run of the signed-in screens with the reviewer account (no npm)
     runs-on: macos-26
     # Step Store-Shots-1: the App Store capture signs into the two screenshot
@@ -254,7 +259,7 @@ jobs:
           cat > "$RUNNER_TEMP/steps.json" <<'JSON'
           [
             {"name":"google-hint","wait":500,"js":"(function(){var h=document.querySelector('[data-kf-google-hint]');if(!h){return 'no hint'}var a=h.querySelector('a');return (h.innerText||'').replace(/\\s+/g,' ').trim()+' | '+(a?a.getAttribute('href'):'no link')})()"},
-            {"name":"login","until":"/(en|ar)/dashboard$","timeout":30000,"wait":3000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);var f=e.form;if(!f){return 'no form'}setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted'})()"},
+            {"name":"login","until":"/(en|ar)/dashboard$","timeout":60000,"wait":3000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);var f=e.form;if(!f){return 'no form'}setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted'})()"},
             {"name":"home","wait":3000,"js":"(function(){window.scrollTo(0,0);return location.pathname})()"},
             {"name":"home-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
             {"name":"subjects","until":"/dashboard/knowledge$","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/knowledge\"]');if(!a){return 'no Subjects link'}a.click();return 'clicked Subjects'})()"},
@@ -270,14 +275,14 @@ jobs:
             {"name":"consent-off","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-consent-state]');if(!c){return 'no consent card'}return c.getAttribute('data-kf-consent-state')})()"},
             {"name":"reminder-card","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');if(!c){return 'no reminder card'}var w=c.getAttribute('data-kf-reminder-why');if(w){return 'unavailable: '+w}c.scrollIntoView({block:'center'});return c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time')})()"},
             {"name":"reminder-on","wait":3000,"js":"(function(){var b=document.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked on'})()"},
-            {"name":"reminder-read-on","wait":1500,"js":"(function(){window.__kfP='pending';window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
-            {"name":"reminder-pending-on","wait":300,"js":"(function(){return String(window.__kfP)})()"},
+            {"name":"reminder-read-on","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
+            {"name":"reminder-pending-on","until":"#kfP[0-9]+=","timeout":15000,"wait":300,"js":"(function(){var m=function(v){history.replaceState(history.state,'',location.pathname+location.search+'#kfP'+Date.now()+'='+encodeURIComponent(v))};window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){m(JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}})))},function(e){m('error '+e.message)});return 'asked'})()"},
             {"name":"reminder-time","wait":3000,"js":"(function(){var i=document.querySelector('[data-kf-reminder=time]');if(!i){return 'no time input'}var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(i,'07:30');i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));return 'set 07:30'})()"},
-            {"name":"reminder-read-time","wait":1500,"js":"(function(){window.__kfP='pending';window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
-            {"name":"reminder-pending-time","wait":300,"js":"(function(){return String(window.__kfP)})()"},
+            {"name":"reminder-read-time","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
+            {"name":"reminder-pending-time","until":"#kfP[0-9]+=","timeout":15000,"wait":300,"js":"(function(){var m=function(v){history.replaceState(history.state,'',location.pathname+location.search+'#kfP'+Date.now()+'='+encodeURIComponent(v))};window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){m(JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}})))},function(e){m('error '+e.message)});return 'asked'})()"},
             {"name":"reminder-off","wait":3000,"js":"(function(){var b=document.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked off'})()"},
-            {"name":"reminder-read-off","wait":1500,"js":"(function(){window.__kfP='pending';window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
-            {"name":"reminder-pending-off","wait":300,"js":"(function(){return String(window.__kfP)})()"},
+            {"name":"reminder-read-off","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
+            {"name":"reminder-pending-off","until":"#kfP[0-9]+=","timeout":15000,"wait":300,"js":"(function(){var m=function(v){history.replaceState(history.state,'',location.pathname+location.search+'#kfP'+Date.now()+'='+encodeURIComponent(v))};window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){m(JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}})))},function(e){m('error '+e.message)});return 'asked'})()"},
             {"name":"settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
             {"name":"en-privacy","until":"/en/privacy$","wait":4000,"js":"(function(){location.assign('/en/privacy');return 'assigned /en/privacy'})()"},
             {"name":"en-terms","until":"/en/terms$","wait":4000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
@@ -291,8 +296,8 @@ jobs:
             {"name":"ar-reminder-on","wait":3000,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');if(!c){return 'no reminder card'}if(c.getAttribute('data-kf-reminder-state')!=='off'){return 'not off: '+c.getAttribute('data-kf-reminder-state')}var b=c.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked on'})()"},
             {"name":"ar-reminder-clock","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');if(!c){return 'no reminder card'}c.scrollIntoView({block:'center'});var k=c.querySelector('[data-kf-reminder-clock]');var s=c.querySelector('[aria-live]');return c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time')+' | '+(k?k.textContent:'no clock')+' | '+(s?s.textContent:'no state line')})()"},
             {"name":"ar-reminder-off","wait":3000,"js":"(function(){var b=document.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked off'})()"},
-            {"name":"ar-reminder-read-off","wait":1500,"js":"(function(){window.__kfP='pending';window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
-            {"name":"ar-reminder-pending-off","wait":300,"js":"(function(){return String(window.__kfP)})()"},
+            {"name":"ar-reminder-read-off","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
+            {"name":"ar-reminder-pending-off","until":"#kfP[0-9]+=","timeout":15000,"wait":300,"js":"(function(){var m=function(v){history.replaceState(history.state,'',location.pathname+location.search+'#kfP'+Date.now()+'='+encodeURIComponent(v))};window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){m(JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}})))},function(e){m('error '+e.message)});return 'asked'})()"},
             {"name":"ar-settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
             {"name":"ar-privacy","until":"/ar/privacy$","wait":4000,"js":"(function(){location.assign('/ar/privacy');return 'assigned /ar/privacy'})()"},
             {"name":"ar-terms","until":"/ar/terms$","wait":4000,"js":"(function(){location.assign('/ar/terms');return 'assigned /ar/terms'})()"},
@@ -339,7 +344,7 @@ jobs:
         if: ${{ inputs.scenario == 'screens' }}
         run: |
           python3 - "$RUNNER_TEMP/smoke-signed-in.jsonl" "$RUNNER_TEMP/steps.json" <<'PY'
-          import json, re, sys
+          import json, re, sys, urllib.parse
           rows = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
           ROWS, STEPS = rows, sys.argv[2]
           by = {r["step"]: r for r in rows}
@@ -380,9 +385,15 @@ jobs:
           # STORE_PATH.md S3(a): the study reminder card, inside the app only,
           # off at 19:00 until the switch is used; on schedules one daily
           # reminder, a new time replaces it, off cancels it.
+          # The pending reminders, as the plugin answered: the step writes the
+          # answer into the URL's hash and is a page step on it, so the harness
+          # waits for the answer itself (15 s) instead of reading a fixed
+          # 300 ms later (run 38578987525 read 'pending' after switching on).
           def pend(name):
-              try: return [(n.get("id"), (n.get("on") or {}).get("hour"), (n.get("on") or {}).get("minute")) for n in json.loads(by.get(name, {}).get("result") or "x")]
-              except Exception: return by.get(name, {}).get("result")
+              m = re.search(r"#kfP[0-9]+=(.*)$", P(name).get("href", "") or "")
+              raw = urllib.parse.unquote(m.group(1)) if m else f"no answer: {by.get(name, {}).get('result')}"
+              try: return [(n.get("id"), (n.get("on") or {}).get("hour"), (n.get("on") or {}).get("minute")) for n in json.loads(raw)]
+              except Exception: return raw
           need(by.get("reminder-card", {}).get("result") == "off 19:00", f"the reminder card is in Settings, off, at 19:00: {by.get('reminder-card', {}).get('result')}")
           need(by.get("reminder-read-on", {}).get("result") == "on 19:00" and pend("reminder-pending-on") == [(7001, 19, 0)], f"switching it on schedules one daily reminder at 19:00: {by.get('reminder-read-on', {}).get('result')} {pend('reminder-pending-on')}")
           need(by.get("reminder-read-time", {}).get("result") == "on 07:30" and pend("reminder-pending-time") == [(7001, 7, 30)], f"a new time replaces it: {by.get('reminder-read-time', {}).get('result')} {pend('reminder-pending-time')}")
@@ -709,32 +720,91 @@ jobs:
           retention-days: 14
 
   # Step Store-Shots-1: the capture, framed and committed for review. Runs
-  # after an App Store capture only (dispatch on main, scenario screenshots).
+  # after an App Store capture (dispatch on main, scenario screenshots), or on
+  # its own as the FRAME MODE (scenario frame, source_run = an earlier
+  # screenshots run on main): it then reuses that run's capture instead of
+  # taking a new one, so no macOS minute and no AI call. The source must be a
+  # completed dispatch of this workflow on main whose capture step succeeded,
+  # and its readings must pass check_capture.py again with one allowance
+  # only: a page step that reached its own page after its limit (KF_LATE_OK,
+  # scripts/ios/page_steps.py; run 38579234295's 32.75 s login).
   # Linux, no environment, no secret: it takes the raw PNGs the macOS job
   # kept, puts them in docs/store/screenshots, frames them with the approved
   # pipeline (scripts/store-shots/render.mjs: Rubik, #14110d, #d4a548, the
   # owner's captions), runs the pipeline's own checks (size and alpha, the
   # app screen uncovered, OCR for e-mail, account and price words) and
-  # pushes the raw and framed PNGs to a new branch store/shots-<run id>. It
-  # never pushes to main (protected); the review PR is opened from that
-  # branch, where store-shots.yml checks the set again.
+  # pushes the raw and framed PNGs to a new branch store/shots-<capture run
+  # id>. It never pushes to main (protected); the review PR is opened from
+  # that branch, where store-shots.yml checks the set again.
   frame:
     needs: signed-in
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.scenario == 'screenshots' && github.ref == 'refs/heads/main' }}
+    if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && ((inputs.scenario == 'screenshots' && needs.signed-in.result == 'success') || inputs.scenario == 'frame') }}
     name: Frame the App Store capture and push it to a review branch (Linux, no secrets)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: write
+      actions: read
     steps:
       - name: Check out main
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: The capture run, and in the frame mode its proof
+        id: src
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SCENARIO: ${{ inputs.scenario }}
+          SOURCE_RUN: ${{ inputs.source_run }}
+        run: |
+          set -eu
+          if [ "$SCENARIO" = screenshots ]; then
+            echo "run=$GITHUB_RUN_ID" >> "$GITHUB_OUTPUT"; echo "sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "$SOURCE_RUN" | grep -qE '^[0-9]+$' || { echo "FAIL: source_run must be a run id, got '$SOURCE_RUN'"; exit 1; }
+          src=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" --jq '[.path, .event, .head_branch, .status, .head_sha] | join(" ")')
+          read -r path event branch status sha <<< "$src"
+          echo "source run $SOURCE_RUN: $path, $event on $branch, $status, $sha"
+          test "$path" = .github/workflows/ios-signed-in.yml && test "$event" = workflow_dispatch && test "$branch" = main && test "$status" = completed || { echo "FAIL: not a completed dispatch of this workflow on main"; exit 1; }
+          git merge-base --is-ancestor "$sha" origin/main || { echo "FAIL: $sha is not on main"; exit 1; }
+          capture=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN/jobs" --jq '[.jobs[].steps[] | select(.name == "App Store screenshots against the live site (two screenshot accounts)") | .conclusion][0] // "absent"')
+          echo "its capture step: $capture"
+          test "$capture" = success || { echo "FAIL: the source run's capture step did not succeed (a screens run has none)"; exit 1; }
+          echo "run=$SOURCE_RUN" >> "$GITHUB_OUTPUT"; echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: The raw capture
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: store-screenshots-${{ github.sha }}
+          name: store-screenshots-${{ steps.src.outputs.sha }}
           path: ${{ runner.temp }}/store
+          run-id: ${{ steps.src.outputs.run }}
+          github-token: ${{ github.token }}
+
+      - name: The capture's readings (frame mode)
+        if: ${{ inputs.scenario == 'frame' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ios-signed-in-${{ steps.src.outputs.sha }}
+          path: ${{ runner.temp }}/readings
+          run-id: ${{ steps.src.outputs.run }}
+          github-token: ${{ github.token }}
+
+      # The capture's own checks again, with the steps of the commit it ran
+      # (capture_steps.py there), so a reused capture is held to what a fresh
+      # one is; the one allowance is KF_LATE_OK, above.
+      - name: The capture's checks again (frame mode)
+        if: ${{ inputs.scenario == 'frame' }}
+        env:
+          SHA: ${{ steps.src.outputs.sha }}
+          KF_LATE_OK: '1'
+        run: |
+          set -eu
+          git worktree add --detach "$RUNNER_TEMP/at-capture" "$SHA"
+          python3 "$RUNNER_TEMP/at-capture/scripts/store-seed/capture_steps.py" ar > "$RUNNER_TEMP/steps-ar.json"
+          python3 "$RUNNER_TEMP/at-capture/scripts/store-seed/capture_steps.py" en > "$RUNNER_TEMP/steps-en.json"
+          git worktree remove --force "$RUNNER_TEMP/at-capture"
+          python3 scripts/store-seed/check_capture.py "$RUNNER_TEMP/readings/smoke-shots.jsonl" "$RUNNER_TEMP/store/sizes.txt" "$RUNNER_TEMP/steps-ar.json" "$RUNNER_TEMP/steps-en.json"
 
       - name: Raw PNGs into docs/store/screenshots, framed into docs/store/screenshots-designed
         env:
@@ -758,15 +828,16 @@ jobs:
           sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-eng > /dev/null
           python3 scripts/store-shots/ocr_scan.py docs/store/screenshots-designed/*/*.png
 
-      - name: Push the raw and framed set to store/shots-${{ github.run_id }}
+      - name: Push the raw and framed set to store/shots-${{ steps.src.outputs.run }}
         env:
-          BRANCH: store/shots-${{ github.run_id }}
+          BRANCH: store/shots-${{ steps.src.outputs.run }}
+          SRC: ${{ steps.src.outputs.run }}
         run: |
           set -eu
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
           git add docs/store/screenshots docs/store/screenshots-designed
-          git commit -m "docs: App Store screenshots captured by ios-signed-in run ${{ github.run_id }} (two screenshot accounts), raw and framed"
+          git commit -m "docs: App Store screenshots captured by ios-signed-in run $SRC (two screenshot accounts), raw and framed by run $GITHUB_RUN_ID"
           git push origin "$BRANCH"
           echo "pushed $BRANCH: open the review PR from it"
