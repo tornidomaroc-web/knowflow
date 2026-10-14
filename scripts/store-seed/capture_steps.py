@@ -40,6 +40,10 @@ QUIZ = r"""(function(){var b=Array.prototype.slice.call(document.querySelectorAl
 SETTINGS = r"""(function(){var h=Array.prototype.slice.call(document.querySelectorAll('h2')).filter(function(x){return /preferences|التفضيلات/i.test(x.innerText||'')})[0];if(!h){return 'no preferences card'}var c=h.closest('.rounded-xl')||h;var bar=0;Array.prototype.slice.call(document.querySelectorAll('header,nav,div')).forEach(function(x){var st=getComputedStyle(x).position;if(st!=='sticky'&&st!=='fixed'){return}var r=x.getBoundingClientRect();if(r.top<=1&&r.bottom<window.innerHeight/2&&r.width>=window.innerWidth*0.9){bar=Math.max(bar,r.bottom)}});c.scrollIntoView({block:'start'});window.scrollBy(0,-bar-16);var mail=/\S+@\S+\.\S+/.test(document.body.innerText||'');var r=document.querySelector('[data-kf-reminder-state]');return 'preferences in view; e-mail text left in page: '+mail+'; reminder '+(r?r.getAttribute('data-kf-reminder-state')+' '+r.getAttribute('data-kf-reminder-time'):'no card')})()"""
 
 
+def stem(f):
+    return f[:-3] if f.endswith('.md') else f
+
+
 def other_names(locale):
     other = PLAN['en' if locale == 'ar' else 'ar']
     names = [s['name'] for s in other['subjects']]
@@ -77,7 +81,10 @@ def steps(locale):
         ]
     else:
         out += [
-            {"name": "quiz-open", "wait": 12000, "js": "(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){return /Quiz me on this material/.test(x.innerText||'')})[0];if(!b){return 'no quiz button'}b.click();return 'clicked quiz'})()"},
+            # The button inside the card of the seeded file, whose quiz is
+            # stored (no call); never the first one on the page (run
+            # 38464393735 pressed another card's and generated a new quiz).
+            {"name": "quiz-open", "wait": 12000, "js": "(function(){var n=" + json.dumps(stem(p['quiz']['file']), ensure_ascii=False) + ";var c=Array.prototype.slice.call(document.querySelectorAll('article')).filter(function(a){return (a.textContent||'').indexOf(n)>=0})[0];if(!c){return 'no card '+n}var b=Array.prototype.slice.call(c.querySelectorAll('button')).filter(function(x){return /Quiz me on this material/.test(x.innerText||'')})[0];if(!b){return 'no quiz button on '+n}b.click();return 'clicked quiz on '+n})()"},
             {"name": "shot-en-04-quiz", "wait": 1500, "js": with_purity(QUIZ, L)},
         ]
     out += [
