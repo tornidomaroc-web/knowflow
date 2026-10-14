@@ -7,7 +7,8 @@ Step Store-Fix-3: the proof of ocr_scan.py's reader change, on capture
      Tesseract's TSV, the line holding a currency figure printed with its box;
      then the same box read with `ara+eng` (the new reader) and with `eng`.
   2. The whole framed set passes ocr_scan.py (Arabic set ara+eng, English eng).
-  3. Planted, each must fail ocr_scan.py on its own rule:
+  3. Planted, each must fail ocr_scan.py on its own rule (for مجاني: the
+     Arabic stems line names مجاني, exact or dot-blind):
        ar/04 with "$4.99" drawn in the app screen      -> the price rule
        en/04 with "$4.99" drawn in the app screen      -> the price rule
        ar/01 with "مجاني" drawn in the app screen      -> the Arabic stems
@@ -91,7 +92,7 @@ def label(text, rtl, path):
 PLANTS = [
     ('price-ar', 'ar', '04-ask.png', '$4.99', False, 'no price, plan, upgrade or free word ($4.99'),
     ('price-en', 'en', '04-quiz.png', '$4.99', False, 'no price, plan, upgrade or free word ($4.99'),
-    ('free-ar', 'ar', '01-subjects.png', 'مجاني', True, "no Arabic plan, subscription, upgrade, price or free word (the app-wording.mjs stems: ['مجاني']"),
+    ('free-ar', 'ar', '01-subjects.png', 'مجاني', True, "no Arabic plan, subscription, upgrade, price or free word (the app-wording.mjs stems"),
 ]
 for key, loc, fname, text, rtl, want in PLANTS:
     d = os.path.join(out, key, loc)
@@ -111,21 +112,10 @@ for key, loc, fname, text, rtl, want in PLANTS:
         tsv = list(csv.DictReader(io.StringIO(tess(dst, lg, psm, 'tsv')), delimiter='\t', quoting=csv.QUOTE_NONE))
         near = [w['text'] for w in tsv if w.get('level') == '5' and (w.get('text') or '').strip() and 1480 <= int(w['top']) <= 1680]
         print(f'     {key} shot at y 1480-1680, -l {lg} --psm {psm}: {near!r}')
-    if rtl:
-        for lg, psm in (('ara+eng', 4), ('ara+eng', 6), ('ara', 6)):
-            tsv = list(csv.DictReader(io.StringIO(tess(dst, lg, psm, 'tsv')), delimiter='\t', quoting=csv.QUOTE_NONE))
-            near = [w['text'] for w in tsv if w.get('level') == '5' and (w.get('text') or '').strip() and 1480 <= int(w['top']) <= 1680]
-            print(f'     {key} shot at y 1480-1680, -l {lg} --psm {psm}: {near!r}')
-        for top in (1400, 1450, 1500):
-            band = os.path.join(out, f'{key}-band-{top}.png')
-            shot.crop((0, top, shot.width, top + 240)).save(band)
-            for lg in ('ara', 'ara+eng'):
-                for psm in (6, 11):
-                    print(f'     {key} band y {top}-{top + 240}, -l {lg} --psm {psm}: {tess(band, lg, psm).strip()!r}')
     r = subprocess.run(scan + [dst], capture_output=True, text=True, encoding='utf-8')
     fl = [l for l in r.stdout.splitlines() if l.startswith('FAIL ')]
     print(f'     planted {key}: ' + (' | '.join(fl) or 'no FAIL line'))
-    need(r.returncode == 1 and any(want in l for l in fl), f'planted {text!r} in {loc}/{fname} fails ocr_scan.py on its rule')
+    need(r.returncode == 1 and any(want in l and (not rtl or text in l) for l in fl), f'planted {text!r} in {loc}/{fname} fails ocr_scan.py on its rule')
 
 print(f'\n{fails} failure(s)')
 sys.exit(1 if fails else 0)

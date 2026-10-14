@@ -17,6 +17,7 @@ on:
     paths:
       - 'scripts/store-shots/ocr_scan.py'
       - 'scripts/store-shots/ocr_proof.py'
+      - 'scripts/store-shots/arabic-stems.mjs'
       - '.github/workflows/ocr-proof.yml'
   workflow_dispatch:
 
