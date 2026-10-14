@@ -878,7 +878,9 @@ jobs:
           python3 scripts/store-shots/check.py docs/store/screenshots-designed/*/*.png
           python3 scripts/store-shots/screen_intact.py docs/store/screenshots-designed
           sudo apt-get update -qq
-          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-eng > /dev/null
+          # The Arabic set is read with ara+eng, the English with eng (ocr_scan.py;
+          # Step Store-Fix-3: eng alone read Arabic as Latin garbage, run 38646534381).
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-eng tesseract-ocr-ara > /dev/null
           python3 scripts/store-shots/ocr_scan.py docs/store/screenshots-designed/*/*.png
 
       - name: Push the raw and framed set to store/shots-${{ steps.src.outputs.run }}
