@@ -1,0 +1,62 @@
+{
+  "device": {
+    "questionTop": 16,
+    "list": 444,
+    "firstSource": 610,
+    "allSources": 662,
+    "span": 594
+  },
+  "tailWords": 65,
+  "calibration": {
+    "n": 26,
+    "span": 595,
+    "m": {
+      "questionTop": 16,
+      "list": 444,
+      "firstSource": 611,
+      "allSources": 663,
+      "atEnd": false
+    },
+    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 611; all sources bottom 663; list at end no",
+    "neighbours": {
+      "below": {
+        "n": 25,
+        "span": 575
+      },
+      "above": {
+        "n": 26,
+        "span": 595
+      }
+    }
+  },
+  "old": {
+    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 611; all sources bottom 663; list at end no",
+    "questionTop": 16,
+    "list": 444,
+    "firstSource": 611,
+    "allSources": 663,
+    "atEnd": false,
+    "gap": 167,
+    "sourcesRows": 52
+  },
+  "new": {
+    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 531; all sources bottom 583; list at end no",
+    "questionTop": 16,
+    "list": 444,
+    "firstSource": 531,
+    "allSources": 583,
+    "atEnd": false,
+    "gap": 87,
+    "sourcesRows": 52
+  },
+  "new-question": {
+    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 531; all sources bottom 583; list at end no",
+    "questionTop": 16,
+    "list": 444,
+    "firstSource": 531,
+    "allSources": 583,
+    "atEnd": false,
+    "gap": 87,
+    "sourcesRows": 52
+  }
+}

@@ -1,0 +1,238 @@
+[
+  {
+    "file": "ar-dark-answer.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=capture&theme=dark",
+    "findings": [],
+    "known": [
+      "target 146 x 34 < 44 x 44 button.whitespace-nowrap \"علوم الحياة والأرض\"",
+      "target 116 x 34 < 44 x 44 button.whitespace-nowrap \"الاقتصاد العام\"",
+      "target 134 x 34 < 44 x 44 button.whitespace-nowrap \"التاريخ والجغرافيا\""
+    ],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the answer has its blocks: h1 p p p p"
+      },
+      {
+        "ok": true,
+        "m": "between two blocks of the answer only the 8 px margin, no blank line: gaps 8, 8, 8, 8 (white-space normal)"
+      },
+      {
+        "ok": true,
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 444; first source bottom 471; all sources bottom 523; list at end no"
+      }
+    ],
+    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 471; all sources bottom 523; list at end no",
+    "bubble": {
+      "blocks": [
+        "h1",
+        "p",
+        "p",
+        "p",
+        "p"
+      ],
+      "gaps": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "whiteSpace": "normal"
+    }
+  },
+  {
+    "file": "ar-light-answer.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=capture&theme=light",
+    "findings": [],
+    "known": [
+      "target 146 x 34 < 44 x 44 button.whitespace-nowrap \"علوم الحياة والأرض\"",
+      "target 116 x 34 < 44 x 44 button.whitespace-nowrap \"الاقتصاد العام\"",
+      "target 134 x 34 < 44 x 44 button.whitespace-nowrap \"التاريخ والجغرافيا\""
+    ],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the answer has its blocks: h1 p p p p"
+      },
+      {
+        "ok": true,
+        "m": "between two blocks of the answer only the 8 px margin, no blank line: gaps 8, 8, 8, 8 (white-space normal)"
+      },
+      {
+        "ok": true,
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 444; first source bottom 471; all sources bottom 523; list at end no"
+      }
+    ],
+    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 471; all sources bottom 523; list at end no",
+    "bubble": {
+      "blocks": [
+        "h1",
+        "p",
+        "p",
+        "p",
+        "p"
+      ],
+      "gaps": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "whiteSpace": "normal"
+    }
+  },
+  {
+    "file": "en-dark-answer.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&view=capture&theme=dark",
+    "findings": [],
+    "known": [
+      "target 84 x 34 < 44 x 44 button.whitespace-nowrap \"Biology\"",
+      "target 108 x 34 < 44 x 44 button.whitespace-nowrap \"Economics\"",
+      "target 84 x 34 < 44 x 44 button.whitespace-nowrap \"History\""
+    ],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the answer has its blocks: h1 p p p p"
+      },
+      {
+        "ok": true,
+        "m": "between two blocks of the answer only the 8 px margin, no blank line: gaps 8, 8, 8, 8 (white-space normal)"
+      },
+      {
+        "ok": true,
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 444; first source bottom 531; all sources bottom 583; list at end no"
+      }
+    ],
+    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 531; all sources bottom 583; list at end no",
+    "bubble": {
+      "blocks": [
+        "h1",
+        "p",
+        "p",
+        "p",
+        "p"
+      ],
+      "gaps": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "whiteSpace": "normal"
+    }
+  },
+  {
+    "file": "en-light-answer.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&view=capture&theme=light",
+    "findings": [],
+    "known": [
+      "target 84 x 34 < 44 x 44 button.whitespace-nowrap \"Biology\"",
+      "target 108 x 34 < 44 x 44 button.whitespace-nowrap \"Economics\"",
+      "target 84 x 34 < 44 x 44 button.whitespace-nowrap \"History\""
+    ],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the answer has its blocks: h1 p p p p"
+      },
+      {
+        "ok": true,
+        "m": "between two blocks of the answer only the 8 px margin, no blank line: gaps 8, 8, 8, 8 (white-space normal)"
+      },
+      {
+        "ok": true,
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 444; first source bottom 531; all sources bottom 583; list at end no"
+      }
+    ],
+    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 531; all sources bottom 583; list at end no",
+    "bubble": {
+      "blocks": [
+        "h1",
+        "p",
+        "p",
+        "p",
+        "p"
+      ],
+      "gaps": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "whiteSpace": "normal"
+    }
+  },
+  {
+    "file": "ar-dark-settings-end.png",
+    "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&theme=dark",
+    "findings": [],
+    "known": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "scrolled to the end of Settings"
+      },
+      {
+        "ok": true,
+        "m": "the root element carries the page colour: html rgb(20, 17, 13), body rgb(20, 17, 13)"
+      }
+    ],
+    "reading": null,
+    "root": "rgb(20, 17, 13)",
+    "page": "rgb(20, 17, 13)",
+    "atEnd": true,
+    "bottom": {
+      "rows": 102,
+      "page": "rgb(20, 17, 13)"
+    }
+  },
+  {
+    "file": "en-dark-settings-end.png",
+    "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&theme=dark",
+    "findings": [],
+    "known": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "scrolled to the end of Settings"
+      },
+      {
+        "ok": true,
+        "m": "the root element carries the page colour: html rgb(20, 17, 13), body rgb(20, 17, 13)"
+      }
+    ],
+    "reading": null,
+    "root": "rgb(20, 17, 13)",
+    "page": "rgb(20, 17, 13)",
+    "atEnd": true,
+    "bottom": {
+      "rows": 102,
+      "page": "rgb(20, 17, 13)"
+    }
+  }
+]

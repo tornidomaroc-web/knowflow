@@ -439,7 +439,9 @@ jobs:
       # ar) the home-indicator inset shows the page's colour, not the web
       # view's white (relay runs 38592947638 and 38610848524: the bottom 102
       # rows were 255,255,255 under a dark page). This run is in the dark
-      # theme, so the band must be #14110d. sips turns each shot into an
+      # theme, so the band must be #14110d: nothing lighter than it (by more
+      # than 6), nothing darker than the tab bar's drop shadow makes it (24;
+      # 7 in the Linux render, run 38639956428). sips turns each shot into an
       # uncompressed BMP, read here without any library; a BMP this cannot
       # read is a failure, never a pass.
       - name: The page colour reaches the bottom edge at the end of Settings
@@ -465,18 +467,20 @@ jobs:
               step = bpp // 8
               stride = (w * step + 3) & ~3
               band = 34 * 3  # the home-indicator inset, 34 pt at 3x
-              worst, at = 0, None
+              light, dark, at = 0, 0, None
               for y in range(abs(h) - band, abs(h)):
                   row = (abs(h) - 1 - y) if h > 0 else y  # BMP rows run bottom-up unless the height is negative
                   base = off + row * stride
                   for x in range(0, w, 3):
                       bl, g, r = b[base + x * step], b[base + x * step + 1], b[base + x * step + 2]
-                      d = max(abs(r - PAGE[0]), abs(g - PAGE[1]), abs(bl - PAGE[2]))
-                      if d > worst:
-                          worst, at = d, (x, y, (r, g, bl))
-              ok = worst <= 8
+                      up = max(r - PAGE[0], g - PAGE[1], bl - PAGE[2])
+                      down = max(PAGE[0] - r, PAGE[1] - g, PAGE[2] - bl)
+                      if up > light:
+                          light, at = up, (x, y, (r, g, bl))
+                      dark = max(dark, down)
+              ok = light <= 6 and dark <= 24
               fails += 0 if ok else 1
-              print(f"{'ok  ' if ok else 'FAIL'} {path.rsplit('/', 1)[-1]}: the bottom {band} rows of {w} x {abs(h)} are the page colour {PAGE} (worst channel off by {worst} at {at})")
+              print(f"{'ok  ' if ok else 'FAIL'} {path.rsplit('/', 1)[-1]}: the bottom {band} rows of {w} x {abs(h)} are the page colour {PAGE}, nothing lighter (lightest +{light} at {at}, darkest -{dark})")
           sys.exit(1 if fails else 0)
           PY
 

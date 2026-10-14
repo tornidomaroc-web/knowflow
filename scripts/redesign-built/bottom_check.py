@@ -2,10 +2,12 @@
 of the screen is the page's colour.
 
 For every render of render-fix2.mjs that names `bottom` in its audit.json
-(the settings-end renders), every pixel of the bottom rows (the iPhone's
-home-indicator inset, 34 pt = 102 px at 3x) must be the page's background
-colour, within 2 per channel. On the phone those rows lay outside the page and
-showed the web view's white (relay runs 38592947638 and 38610848524); the
+(the settings-end renders), no pixel of the bottom rows (the iPhone's
+home-indicator inset, 34 pt = 102 px at 3x) may be lighter than the page's
+background colour by more than 2 on any channel, and none darker by more than
+24: the floating tab bar's drop shadow reaches into those rows and darkens
+them (by up to 7, run 38639956428), which is the page's own paint. On the phone those rows lay outside
+the page and showed the web view's white (relay runs 38592947638 and 38610848524); the
 native half is checked on the device by ios-signed-in.yml.
 
 Usage: python3 scripts/redesign-built/bottom_check.py DIR   (DIR/audit.json)
@@ -26,9 +28,10 @@ for r in rows:
     h = r['bottom']['rows']
     band = im.crop((0, im.height - h, im.width, im.height))
     ext = band.getextrema()
-    worst = max(max(abs(ext[i][0] - want[i]), abs(ext[i][1] - want[i])) for i in range(3))
-    ok = worst <= 2
+    lighter = max(ext[i][1] - want[i] for i in range(3))
+    darker = max(want[i] - ext[i][0] for i in range(3))
+    ok = lighter <= 2 and darker <= 24
     fails += 0 if ok else 1
-    print(('ok   ' if ok else 'FAIL ') + f"{r['file']}: the bottom {h} rows are the page colour {want} (worst channel off by {worst})")
+    print(('ok   ' if ok else 'FAIL ') + f"{r['file']}: the bottom {h} rows are the page colour {want}, nothing lighter (lightest +{lighter}, darkest -{darker}, the tab bar's shadow)")
 print(f'\n{fails} failure(s) of {len(rows)} renders')
 sys.exit(1 if fails else 0)
