@@ -42,6 +42,11 @@ WORDS = re.compile(r'\bfree\b|\bupgrade\b|\bprice\b|\bpricing\b|\bplan\b|\bpro\b
 # A bare currency figure counts only on a line with other text: the Settings
 # tab's gear icon reads as a line holding only "$3" (run 38242025815).
 CURRENCY = re.compile(r'[$€]\s?\d')
+# The Arabic model wraps runs in invisible bidi marks (LRM, RLM, ALM and the
+# embedding and isolate controls); they are removed before any rule, so the
+# gear's lone "$3" line is still a lone figure ('\u200e$3', store-shots run
+# 38656380280). They carry no letter, so no rule is loosened by it.
+BIDI = re.compile(r'[\u200e\u200f\u061c\u202a-\u202e\u2066-\u2069]')
 fails = 0
 
 
@@ -64,7 +69,7 @@ def read(path, lang='eng'):
     r = subprocess.run(['tesseract', path, '-', '-l', lang, '--psm', '11'], capture_output=True, text=True, encoding='utf-8')
     if r.returncode != 0:
         sys.exit(f'FAIL tesseract -l {lang} on {path}: {r.stderr.strip()[:300]}')
-    return r.stdout
+    return BIDI.sub('', r.stdout)
 
 
 def bands(path, lang):
