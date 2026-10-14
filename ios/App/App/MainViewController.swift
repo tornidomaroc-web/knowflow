@@ -4,10 +4,11 @@ import UIKit
 import UserNotifications
 #endif
 
-/// The bridge view controller, subclassed for one reason: the simulator smoke
-/// test (`.github/workflows/ios-smoke.yml`). Main.storyboard names this class.
+/// The bridge view controller, subclassed for two reasons: the page colour
+/// under the web view (below, every build) and the simulator smoke test
+/// (`.github/workflows/ios-smoke.yml`). Main.storyboard names this class.
 ///
-/// A device build carries none of the code below: everything is behind
+/// A device build carries none of the smoke code: all of it is behind
 /// `targetEnvironment(simulator)` and runs only when the launch environment
 /// sets `KF_SMOKE=1`. What it does there: once the first page from
 /// tryknowflow.com has loaded, it evaluates a probe inside the web view (is the
@@ -18,12 +19,30 @@ import UserNotifications
 /// line per step to `tmp/smoke.jsonl`. The workflow reads that file from the
 /// app's data container, takes a screenshot at every new line, and asserts
 /// on the probes. Nothing here is a plugin, a permission or a network call.
+///
+/// One thing here is in every build, device included: the web view's scroll
+/// view takes the page's own background colour (Step Store-Fix-2). Capacitor
+/// paints it `UIColor.systemBackground` when the config names no colour
+/// (CAPBridgeViewController.prepareWebView), which is white on a phone in
+/// light appearance, and that white showed in the home-indicator inset at the
+/// end of every scrolling page while the app was in its dark theme (Settings,
+/// relay runs 38592947638 and 38610848524). One fixed colour cannot be right:
+/// the theme is the app's own choice (`data-theme`), not the phone's. WebKit
+/// already knows the page's colour (`underPageBackgroundColor` defaults to
+/// it, from the root element's background, and changes when the toggle
+/// changes the theme), so the scroll view follows it.
 class MainViewController: CAPBridgeViewController {
     #if targetEnvironment(simulator)
     private static var smoke: Smoke?
     #endif
+    private var pageColour: NSKeyValueObservation?
 
     override open func capacitorDidLoad() {
+        if let webView = bridge?.webView {
+            pageColour = webView.observe(\.underPageBackgroundColor, options: [.initial, .new]) { webView, _ in
+                webView.scrollView.backgroundColor = webView.underPageBackgroundColor
+            }
+        }
         #if targetEnvironment(simulator)
         // The switch arrives either as an environment variable (simctl's
         // SIMCTL_CHILD_ prefix) or as a launch argument; both are accepted, and
