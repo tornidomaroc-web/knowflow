@@ -1,0 +1,72 @@
+name: ocr-proof
+
+# Step Store-Fix-3: the proof of scripts/store-shots/ocr_scan.py's reader
+# change (Arabic set read with ara+eng, English with eng; the Arabic stems of
+# the app's wording rule on the Arabic reading). It frames capture
+# 38646534381's raw set exactly as the frame job of ios-signed-in.yml does
+# (render.mjs), then scripts/store-shots/ocr_proof.py: the line that produced
+# "$4" read before and after, the whole set passing, and three plants ($4.99
+# in an Arabic and an English shot, مجاني in an Arabic one) each failing on its
+# own rule. Linux, no secret, no AI call; it reads one artifact of that run
+# (actions: read). The artifact expires with the run's retention; after that
+# this proof cannot run again, and the frame job's own scan is the check.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/store-shots/ocr_scan.py'
+      - 'scripts/store-shots/ocr_proof.py'
+      - '.github/workflows/ocr-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  proof:
+    name: The OCR reader on capture 38646534381 (Linux, no secrets)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: The raw capture of run 38646534381
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: store-screenshots-186a8c29af51782f7f116501d7f449f9d3f38967
+          path: ${{ runner.temp }}/store
+          run-id: 38646534381
+          github-token: ${{ github.token }}
+
+      - name: Framed as the frame job frames it
+        env:
+          CHROME: google-chrome
+        run: |
+          set -eu
+          for loc in en ar; do
+            test "$(ls "$RUNNER_TEMP/store/$loc"/*.png | wc -l)" -eq 5
+            cp "$RUNNER_TEMP/store/$loc"/*.png "docs/store/screenshots/$loc/"
+          done
+          cp "$RUNNER_TEMP/store/sizes.txt" docs/store/screenshots/sizes.txt
+          node scripts/store-shots/render.mjs
+
+      - name: The reader before and after, the set, the plants
+        run: |
+          set -eu
+          python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-eng tesseract-ocr-ara fonts-dejavu-core > /dev/null
+          tesseract --version | head -n 1
+          tesseract --list-langs
+          python3 scripts/store-shots/ocr_proof.py docs/store/screenshots-designed "$RUNNER_TEMP/proof"
+
+      - name: Keep the plants and the line crops
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ocr-proof
+          path: ${{ runner.temp }}/proof
+          if-no-files-found: warn
+          retention-days: 14
