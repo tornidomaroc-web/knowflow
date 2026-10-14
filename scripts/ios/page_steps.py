@@ -21,6 +21,11 @@ own page, away from its start, is reported LATE and passes: the screenshot
 after it shows the right page, only later than the limit allowed (run
 38579234295, a 32.75 s login against 30 s). Every other failure stands.
 
+URLs are compared without their # part (the page is the same page whatever
+its hash; run 38592947638), except for a step whose `until` itself names a #:
+the pending-reminder reads of ios-signed-in.yml wait for the hash the plugin's
+answer writes, so for them the hash is what arrived.
+
 Readings from before `nav` existed (run 38426358277 and earlier) are judged
 the same way, with the previous reading's URL as the start.
 
@@ -41,6 +46,9 @@ def page_step_checks(rows, steps_lists, late_ok=False):
         for s in steps:
             if s.get('until'):
                 until[s['name']] = s['until']
+    def bare(u):
+        return (u or '').split('#', 1)[0]
+
     out = []
     seen = set()
     prev_href = None
@@ -53,7 +61,9 @@ def page_step_checks(rows, steps_lists, late_ok=False):
             start = nav.get('start') if nav else prev_href
             arrived = nav.get('arrived') if nav else True
             ms = f"{nav.get('ms')} ms" if nav else 'no nav record'
-            there = href != (start or '') and re.search(until[name], href) is not None
+            keep = '#' in until[name]
+            h, s0 = (href, start or '') if keep else (bare(href), bare(start))
+            there = h != s0 and re.search(until[name], h) is not None
             ok = bool(arrived) and there
             late = late_ok and not arrived and there
             out.append((ok or late, f"{'LATE, on its page: ' if late else ''}page step {name} left {start} for {until[name]} ({ms}): {href}"))

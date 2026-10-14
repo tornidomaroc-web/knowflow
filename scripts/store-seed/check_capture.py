@@ -6,7 +6,9 @@ scenario screenshots), from the harness's readings and the PNG sizes.
   - every shot signed in, no Google button, no plan, price, upgrade or
     checkout word or link (the app's probe), and its own reading clean;
   - no shot shows a subject or file name of the other language's account;
-  - the Arabic Ask shot shows its sources; the English quiz is on screen;
+  - the Arabic Ask shot shows its sources, starts at the student's question
+    (not cut) and holds the answer down to its first source; the English quiz
+    is on screen;
   - Settings: no e-mail text, the reminder on at 19:00;
   - each set ended signed out; every PNG exactly 1320 x 2868.
 
@@ -66,6 +68,14 @@ for loc in ('ar', 'en'):
 
 need(str(by.get('quiz-open', {}).get('result', '')).startswith('clicked quiz on '), f"Quiz (en): opened on the seeded file's own card: {by.get('quiz-open', {}).get('result')}")
 need('sources: yes' in str(by.get('shot-ar-04-ask', {}).get('result', '')), 'Ask (ar): the answer shows its sources under المصادر')
+# Step Store-Fix-1: the shot starts at the student's question (nothing cut at
+# the top) and shows the answer down to at least its first source.
+a4 = str(by.get('shot-ar-04-ask', {}).get('result', ''))
+m4 = re.search(r'question top (-?\d+) of list (\d+); first source bottom (-?\d+|none); all sources bottom (-?\d+|none)', a4)
+need(bool(m4) and 0 <= int(m4.group(1)) <= 40, f'Ask (ar): the question bubble starts the shot, not cut: {a4[:220]}')
+need(bool(m4) and m4.group(3) != 'none' and int(m4.group(3)) <= int(m4.group(2)), f'Ask (ar): the answer and its first source are in view below it: {a4[:220]}')
+if m4 and m4.group(4) != 'none':
+    print(f"note Ask (ar): the whole sources row {'fits' if int(m4.group(4)) <= int(m4.group(2)) else 'runs past the list by ' + str(int(m4.group(4)) - int(m4.group(2))) + ' px'}")
 need(str(by.get('shot-en-04-quiz', {}).get('result', '')).startswith('quiz in view'), 'Quiz (en): the stored quiz is on screen from question 1')
 steps_lists = [json.load(open(p, encoding='utf-8')) for p in sys.argv[3:]]
 need(len(steps_lists) == 2, f'both steps files given ({len(steps_lists)})')

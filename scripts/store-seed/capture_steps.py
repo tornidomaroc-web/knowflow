@@ -37,6 +37,16 @@ SUMMARY = r"""(function(){var h=Array.prototype.slice.call(document.querySelecto
 
 QUIZ = r"""(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){return /Check my answers|صحّح إجاباتي/.test(x.innerText||'')})[0];if(!b){return 'no quiz on screen'}var q1=Array.prototype.slice.call(document.querySelectorAll('p,h3,h4,div,span,legend')).filter(function(x){return x.children.length<=1&&/^1\.\s/.test((x.innerText||'').trim())})[0];if(!q1){return 'no first question'}q1.scrollIntoView({block:'start'});window.scrollBy(0,-120);return 'quiz in view from question 1'})()"""
 
+# Step Store-Fix-1: the Ask shot starts at the student's question. The chat
+# scrolls to its newest line by itself (ChatBox), so ar/04 of capture
+# 38579234295 opened in the middle of the answer, its heading cut at the top.
+# The messages list is scrolled so the last question bubble sits 16 px below
+# its top; the reading says where the question, the first source and the
+# whole sources row end inside the list, and check_capture.py holds them.
+# The render script (scripts/redesign-built/render-fix.mjs) runs this same
+# string, read with `capture_steps.py --js ASK_TOP`.
+ASK_TOP = r"""(function(){var u=document.querySelectorAll('.kf-bubble-user');var q=u[u.length-1];if(!q){return 'no question bubble'}var sc=q.parentElement;while(sc&&!/(auto|scroll)/.test(getComputedStyle(sc).overflowY)){sc=sc.parentElement}if(!sc){return 'no scroll list'}sc.scrollTop=sc.scrollTop+q.getBoundingClientRect().top-sc.getBoundingClientRect().top-16;var L=sc.getBoundingClientRect(),Q=q.getBoundingClientRect();var lab=Array.prototype.slice.call(document.querySelectorAll('p')).filter(function(p){return /^(المصادر|Sources)$/.test((p.textContent||'').trim())}).pop();var row=lab?lab.nextElementSibling:null;var one=row&&row.firstElementChild?row.firstElementChild.getBoundingClientRect():null;var all=row?row.getBoundingClientRect():null;var t=document.body.innerText||'';return 'answer shown; sources: '+(/(^|\n)(المصادر|Sources)(\n|$)/.test(t)?'yes':'no')+'; question top '+Math.round(Q.top-L.top)+' of list '+Math.round(L.height)+'; first source bottom '+(one?Math.round(one.bottom-L.top):'none')+'; all sources bottom '+(all?Math.round(all.bottom-L.top):'none')})()"""
+
 SETTINGS = r"""(function(){var h=Array.prototype.slice.call(document.querySelectorAll('h2')).filter(function(x){return /preferences|التفضيلات/i.test(x.innerText||'')})[0];if(!h){return 'no preferences card'}var c=h.closest('.rounded-xl')||h;var bar=0;Array.prototype.slice.call(document.querySelectorAll('header,nav,div')).forEach(function(x){var st=getComputedStyle(x).position;if(st!=='sticky'&&st!=='fixed'){return}var r=x.getBoundingClientRect();if(r.top<=1&&r.bottom<window.innerHeight/2&&r.width>=window.innerWidth*0.9){bar=Math.max(bar,r.bottom)}});c.scrollIntoView({block:'start'});window.scrollBy(0,-bar-16);var mail=/\S+@\S+\.\S+/.test(document.body.innerText||'');var r=document.querySelector('[data-kf-reminder-state]');return 'preferences in view; e-mail text left in page: '+mail+'; reminder '+(r?r.getAttribute('data-kf-reminder-state')+' '+r.getAttribute('data-kf-reminder-time'):'no card')})()"""
 
 
@@ -77,7 +87,7 @@ def steps(locale):
         out += [
             {"name": "nav-ar-ask", "until": "/ar/dashboard/agent[?]kb=", "wait": 9000, "js": "(function(){var a=document.querySelector('a[href*=\"/dashboard/agent?kb=\"]');if(!a){return 'no ask link'}a.click();return 'opened Ask on the subject'})()"},
             {"name": "ask-send", "wait": 35000, "js": "(function(){var t=document.querySelector('[data-kf-composer] textarea');if(!t){return 'no composer'}var s=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set;s.call(t," + q + ");t.dispatchEvent(new Event('input',{bubbles:true}));setTimeout(function(){var b=document.querySelector('[data-kf-composer] button');if(b){b.click()}},300);return 'sent'})()"},
-            {"name": "shot-ar-04-ask", "wait": 1500, "js": with_purity("(function(){var t=document.body.innerText||'';return 'answer shown; sources: '+(/(^|\\n)المصادر(\\n|$)/.test(t)?'yes':'no')})()", L)},
+            {"name": "shot-ar-04-ask", "wait": 1500, "js": with_purity(ASK_TOP, L)},
         ]
     else:
         out += [
@@ -98,6 +108,10 @@ def steps(locale):
 
 if __name__ == '__main__':
     loc = sys.argv[1] if len(sys.argv) > 1 else ''
+    if loc == '--js' and len(sys.argv) > 2 and sys.argv[2] in ('ASK_TOP', 'SUMMARY'):
+        sys.stdout.reconfigure(encoding='utf-8')
+        print(globals()[sys.argv[2]])
+        sys.exit(0)
     if loc not in ('ar', 'en'):
         sys.exit('usage: capture_steps.py ar|en')
     sys.stdout.reconfigure(encoding='utf-8')

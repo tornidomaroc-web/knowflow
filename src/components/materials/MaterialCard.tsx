@@ -95,8 +95,9 @@ export function MaterialCard({
           <span className="max-w-full truncate px-0.5 text-[9px] font-bold uppercase leading-none">{typeLabel}</span>
         </span>
         <div className="min-w-0 flex-1">
-          {/* Register #124: `<p dir="auto">` showed "الفصل pdf.3"; FileName keeps "3.pdf" one unit. */}
-          <FileName name={filename} className="text-sm font-semibold text-foreground" />
+          {/* Register #124: `<p dir="auto">` showed "الفصل pdf.3"; FileName keeps "3.pdf" one unit.
+              Step Store-Fix-1: the title is the name without its extension; the badge shows the type. */}
+          <FileName name={filename} withoutExtension className="text-sm font-semibold text-foreground" />
           <p className="mt-0.5 text-xs text-muted-foreground">
             {typeLabel} · {labels.added}{' '}
             <bdi>{formatDate(addedAt, locale as Locale)}</bdi>
