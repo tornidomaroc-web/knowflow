@@ -101,6 +101,16 @@ for key, loc, fname, text, rtl, want in PLANTS:
     shot.paste(lab, ((shot.width - lab.width) // 2, 1500))
     dst = os.path.join(d, fname)
     shot.save(dst)
+    # What the reader makes of the plant: the label alone, and the shot's words
+    # at the plant's height, in each language and layout mode.
+    lab_path = os.path.join(out, f'{key}-label.png')
+    for lg in ('ara', 'ara+eng', 'eng'):
+        for psm in (7, 11):
+            print(f'     {key} label alone, -l {lg} --psm {psm}: {tess(lab_path, lg, psm).strip()!r}')
+    for lg, psm in (('ara+eng', 11), ('ara+eng', 3), ('ara', 11), ('ara', 3)):
+        tsv = list(csv.DictReader(io.StringIO(tess(dst, lg, psm, 'tsv')), delimiter='\t', quoting=csv.QUOTE_NONE))
+        near = [w['text'] for w in tsv if w.get('level') == '5' and (w.get('text') or '').strip() and 1480 <= int(w['top']) <= 1680]
+        print(f'     {key} shot at y 1480-1680, -l {lg} --psm {psm}: {near!r}')
     r = subprocess.run(scan + [dst], capture_output=True, text=True, encoding='utf-8')
     fl = [l for l in r.stdout.splitlines() if l.startswith('FAIL ')]
     print(f'     planted {key}: ' + (' | '.join(fl) or 'no FAIL line'))
