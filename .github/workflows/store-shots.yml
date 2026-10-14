@@ -83,7 +83,8 @@ jobs:
         run: |
           set -eu
           sudo apt-get update -qq
-          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-eng > /dev/null
+          # The Arabic set is read with ara+eng (ocr_scan.py, which fails if a model is missing).
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-eng tesseract-ocr-ara > /dev/null
           tesseract --version | head -1
           python3 scripts/store-shots/ocr_scan.py docs/store/screenshots-designed/*/*.png
 
