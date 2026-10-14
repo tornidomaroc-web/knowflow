@@ -21,6 +21,10 @@
  *      extension badge is `ltr`.
  *   4. Display only: no API route imports FileName or the split, and the rename
  *      control still sends `{ name: value }` untouched.
+ *   2b. Step Store-Fix-1: the material card's title and the Ask source pills
+ *      show the name WITHOUT its extension (`withoutExtension`), cut at the
+ *      last dot exactly as Rename cuts it (`splitFilename`); the pill's title
+ *      keeps the full name. DropZone and the landing keep the full name.
  *   5. No other site renders a file name raw: every JSX expression that prints
  *      `filename` or `file.name` outside FileName is listed here or fails.
  *
@@ -115,14 +119,14 @@ function fileNameMarkup(html) {
   }
   return null;
 }
-function assertRendered(site, html, name, { inline = false } = {}) {
-  const { head, tail, dir } = split ? split.splitFileNameForDisplay(name) : { head: null, tail: null, dir: null };
+function assertRendered(site, html, name, { inline = false, shown = name } = {}) {
+  const { head, tail, dir } = split ? split.splitFileNameForDisplay(shown) : { head: null, tail: null, dir: null };
   const fn = fileNameMarkup(html);
-  check(`${site}: renders "${name}" through FileName`, !!fn, fn ? '' : 'no element with data-filename in the markup');
+  check(`${site}: renders "${name}" through FileName${shown !== name ? ` as "${shown}"` : ''}`, !!fn, fn ? '' : 'no element with data-filename in the markup');
   if (!fn) return;
   check(`${site}: the wrapper's direction is the name's (${dir})`, fn.dir === dir, `got ${fn.dir}`);
   const rendered = text(fn.inner);
-  check(`${site}: the rendered text is the stored name, byte for byte`, rendered === name,
+  check(`${site}: the rendered text is ${shown === name ? 'the stored name' : 'the stored name without its extension'}, byte for byte`, rendered === shown,
     `rendered ${JSON.stringify(rendered)}`);
   check(`${site}: no bidi control character in the markup`, !BIDI_CONTROLS.test(html));
   if (tail) {
@@ -135,13 +139,23 @@ function assertRendered(site, html, name, { inline = false } = {}) {
   }
 }
 
+const { splitFilename } = await load('src/lib/material-name.ts');
+const stemOf = (n) => splitFilename(n).stem;
+
 console.log('');
-console.log('MaterialCard:');
+console.log('MaterialCard (title without its extension, Step Store-Fix-1):');
 const { MaterialCard } = await load('src/components/materials/MaterialCard.tsx');
 const cardLabels = { statusReady: 'Ready', statusProcessing: 'Processing', statusError: 'Failed', checklist: 'Kit', summaryDone: 'S', summaryTodo: 's', quizDone: 'Q', quizTodo: 'q', added: 'Added' };
 const card = (filename) =>
   renderToStaticMarkup(React.createElement(MaterialCard, { filename, fileType: 'pdf', status: 'ready', addedAt: '2026-09-25T00:00:00Z', locale: 'ar', hasSummary: true, hasQuiz: false, labels: cardLabels }));
-for (const [name] of CASES.filter(([n]) => n !== '')) assertRendered('MaterialCard', card(name), name);
+for (const [name] of CASES.filter(([n]) => n !== '')) assertRendered('MaterialCard', card(name), name, { shown: stemOf(name) });
+{
+  // The store capture's own names (ar/02, en/02): no extension on the card.
+  for (const name of ['الخبر الوراثي ونقله.md', 'Cellular respiration and fermentation.md']) {
+    const fn = fileNameMarkup(card(name));
+    check(`MaterialCard: "${name}" reads without ".md"`, !!fn && text(fn.inner) === name.slice(0, -3) && !/\.md/.test(fn.inner), fn ? JSON.stringify(text(fn.inner)) : 'no FileName');
+  }
+}
 {
   // The defect itself: on main, the card is one <p dir="auto"> holding the whole name.
   const html = card(AR_CH3);
@@ -164,16 +178,17 @@ for (const name of [AR_CH3, 'Solved-Exercises-Ch3.pdf', 'ملخص Chapter 3.pdf'
 }
 
 console.log('');
-console.log('MessageBubble (citation pills):');
+console.log('MessageBubble (citation pills, without the extension):');
 const { MessageBubble } = await load('src/components/agent/MessageBubble.tsx');
 for (const name of [AR_CH3, 'Solved exercises - Chapter 3.pdf', 'Summary الفصل 3 (1).pdf']) {
   const html = renderToStaticMarkup(React.createElement(MessageBubble, {
     role: 'assistant', content: 'x', citations: [{ index: 1, document_id: 'd', chunk_id: 'c', filename: name, similarity: 0.9 }],
   }));
-  assertRendered('MessageBubble', html, name, { inline: true });
+  assertRendered('MessageBubble', html, name, { inline: true, shown: stemOf(name) });
   check('MessageBubble: the pill row stays dir="ltr" (the [1] index left of the name)', /<div class="[^"]*flex flex-wrap gap-2 px-1" dir="ltr">/.test(html));
   const pill = html.match(/<span[^>]*title="[^"]*"[^>]*>([\s\S]*?)<\/span>/);
-  check(`MessageBubble: the pill's text is "[1] ${name}"`, !!pill && text(pill[1]) === `[1] ${name}`, pill ? JSON.stringify(text(pill[1])) : 'no pill');
+  check(`MessageBubble: the pill's text is "[1] ${stemOf(name)}"`, !!pill && text(pill[1]) === `[1] ${stemOf(name)}`, pill ? JSON.stringify(text(pill[1])) : 'no pill');
+  check(`MessageBubble: the pill's title keeps the full name "${name}"`, html.includes(`title="${name.replace(/&/g, '&amp;')} · 90% match"`));
 }
 
 console.log('');
@@ -201,7 +216,6 @@ const rename = await load('src/components/materials/RenameMaterialControl.tsx');
 const renameLabels = { openButton: 'o', label: 'Name', hint: 'h', saveButton: 'Save', cancelButton: 'Cancel', saving: '…', errorInvalid: '', errorNotFound: '', errorConflict: '', errorContact: '', errorFailed: '' };
 check('RenameMaterialFields is exported (the panel can be rendered in its editing state)', typeof rename.RenameMaterialFields === 'function');
 if (typeof rename.RenameMaterialFields === 'function') {
-  const { splitFilename } = await load('src/lib/material-name.ts');
   for (const [name, wantDir] of [[AR_CH3, 'rtl'], ['Solved-Exercises-Ch3.pdf', 'ltr'], ['ملخص Chapter 3.pdf', 'rtl'], ['Summary الفصل 3 (1).pdf', 'ltr'], ['12345.pdf', 'ltr']]) {
     const { stem, ext } = splitFilename(name);
     const html = renderToStaticMarkup(React.createElement(rename.RenameMaterialFields, {

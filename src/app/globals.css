@@ -681,8 +681,13 @@ body { background-color: var(--background); color: var(--foreground); }
   background-color: var(--raised);
   box-shadow: inset 0 -1.5px 0 var(--clay-hi), inset 0 8px 14px -10px var(--clay-shade), 0 14px 24px -14px var(--clay-drop);
 }
-/* Inside the app: the ground behind the status bar, fading out below it. */
-.kf-clay .kf-topfade { background: linear-gradient(0deg, transparent, var(--background) 55%); }
+/* Inside the app: the ground behind the status bar, fading out below it.
+   Step Store-Fix-1: OPAQUE for the whole top inset, then the 0.75rem fade.
+   The old gradient was opaque for only its top 55% (about 39 pt of a 71 pt
+   scrim on a 59 pt inset), so text scrolled under the clock read through it
+   (store capture 38579234295: ar/03, en/03, en/04). Same token as the page
+   (body and <main> paint var(--background)), in dark and in light. */
+.kf-clay .kf-topfade { background: linear-gradient(180deg, var(--background) 0, var(--background) env(safe-area-inset-top, 0px), transparent 100%); }
 /* The web home's plan pill on its gold tint read 4.37:1 in light (the
    Redesign-3 render of the web shell); the deeper gold is 6.2:1 there. */
 [data-theme="light"] .kf-clay .kf-plan-pill.text-accent { color: var(--accent-hover); }

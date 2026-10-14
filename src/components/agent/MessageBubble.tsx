@@ -30,7 +30,8 @@ interface MessageBubbleProps {
  * end of the line; the answer is a clay card at the start, with its sources
  * under it as pills that open the material (Step Redesign-2). The pill row
  * stays dir="ltr" (register #124): the "[1]" index sits left of the name in
- * both languages, and FileName keeps the name one unit.
+ * both languages, and FileName keeps the name one unit. The pill shows the
+ * name without its extension (Step Store-Fix-1); its title keeps the full name.
  */
 export function MessageBubble({ role, content, isStreaming, citations, sourceHref, sourcesLabel }: MessageBubbleProps) {
   const isUser = role === 'user';
@@ -85,7 +86,7 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
                     title={`${c.filename} · ${(c.similarity * 100).toFixed(0)}% match`}
                     className="cursor-default rounded-full border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
                   >
-                    [{c.index}] <FileName name={c.filename} inline />
+                    [{c.index}] <FileName name={c.filename} inline withoutExtension />
                   </span>
                 );
                 // With a destination the pill is a link to the material, 44 pt tall

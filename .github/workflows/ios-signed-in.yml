@@ -353,8 +353,12 @@ jobs:
               print(("ok   " if cond else "FAIL ") + msg)
               if not cond: fails.append(msg)
           def P(name): return by.get(name, {}).get("probe", {})
+          # A page is the URL without its # part: the pending-reminder reads
+          # leave their answer in the hash, and the page stays the same page
+          # (run 38592947638 failed ar-settings-bottom on /ar/dashboard/settings#kfP...).
+          def url(p): return (p.get("href", "") or "").split("#", 1)[0]
           L = P("launch")
-          need(re.match(r"^https://tryknowflow\.com/(en|ar)/login$", L.get("href", "") or ""), f"the first page is the login twin: {L.get('href')}")
+          need(re.match(r"^https://tryknowflow\.com/(en|ar)/login$", url(L)), f"the first page is the login twin: {L.get('href')}")
           need(L.get("google") == 0 and L.get("bridge") is True, f"...the twin, with the bridge: google={L.get('google')} bridge={L.get('bridge')}")
           # The line for Google-registered students: on the app's login page
           # (no Google button there), linking to the page's own forgot link.
@@ -362,10 +366,10 @@ jobs:
           need("Google" in GH and GH.endswith("/forgot-password") and "Forgot your password?" in GH, f"the login page in the app tells a Google-registered student to use the forgot link: {GH}")
           need(by.get("login", {}).get("result") == "submitted", f"the login form was filled and submitted: {by.get('login', {}).get('result')}")
           H = P("home")
-          need(re.search(r"/(en|ar)/dashboard$", H.get("href", "") or ""), f"the dashboard opened after sign-in: {H.get('href')}")
+          need(re.search(r"/(en|ar)/dashboard$", url(H)), f"the dashboard opened after sign-in: {H.get('href')}")
           need(H.get("signedIn") is True, f"...signed in (the Settings link is in the chrome): {H.get('signedIn')}")
           S = P("subject")
-          need(re.search(r"/dashboard/knowledge/[0-9a-f-]{36}$", S.get("href", "") or ""), f"a subject opened: {S.get('href')}")
+          need(re.search(r"/dashboard/knowledge/[0-9a-f-]{36}$", url(S)), f"a subject opened: {S.get('href')}")
           need("photosynthesis" in (S.get("text", "") or "").lower(), f"...and it lists the seeded material: {S.get('text', '')[:120]}")
           need(by.get("summary", {}).get("result") == "scrolled to summary", f"the summary is on the subject page: {by.get('summary', {}).get('result')}")
           need(by.get("quiz-open", {}).get("result") == "clicked quiz", f"the quiz button is on the subject page: {by.get('quiz-open', {}).get('result')}")
@@ -373,9 +377,9 @@ jobs:
           need(by.get("consent", {}).get("result") == "accepted: Anthropic, Voyage AI", f"the AI permission sheet opened before the quiz, named both companies and was accepted: {by.get('consent', {}).get('result')}")
           need(by.get("quiz", {}).get("result") == "scrolled to quiz", f"the quiz (served from its cache) is on screen with its answer button: {by.get('quiz', {}).get('result')}")
           A = P("ask")
-          need(re.search(r"/dashboard/agent$", A.get("href", "") or ""), f"the Ask screen opened: {A.get('href')}")
+          need(re.search(r"/dashboard/agent$", url(A)), f"the Ask screen opened: {A.get('href')}")
           T = P("settings")
-          need(re.search(r"/dashboard/settings$", T.get("href", "") or ""), f"Settings opened: {T.get('href')}")
+          need(re.search(r"/dashboard/settings$", url(T)), f"Settings opened: {T.get('href')}")
           # Settings shows the permission as given, and withdrawing it is saved:
           # this also leaves the reviewer account as App Review must find it,
           # without the permission, so the reviewer meets the sheet.
@@ -415,7 +419,7 @@ jobs:
           # login page would read clean and prove nothing).
           VISITED = {"en-privacy": r"/en/privacy$", "en-terms": r"/en/terms$", "en-refund": r"/en/refund$", "en-about": r"/en/about$", "en-contact": r"/en/contact$", "ar-home": r"/ar/dashboard$", "ar-subjects": r"/ar/dashboard/knowledge$", "ar-ask": r"/ar/dashboard/agent$", "ar-settings": r"/ar/dashboard/settings$", "ar-settings-bottom": r"/ar/dashboard/settings$", "ar-privacy": r"/ar/privacy$", "ar-terms": r"/ar/terms$", "ar-refund": r"/ar/refund$", "ar-about": r"/ar/about$", "ar-contact": r"/ar/contact$"}
           for name, path in VISITED.items():
-              need(re.search(path, P(name).get("href", "") or ""), f"{name} opened its page: {P(name).get('href')}")
+              need(re.search(path, url(P(name))), f"{name} opened its page: {P(name).get('href')}")
           for name in ("home", "home-bottom", "subjects", "subject", "summary", "quiz-open", "consent", "quiz", "ask", "settings", "consent-on", "consent-off", "reminder-card", "reminder-read-on", "reminder-read-off", "settings-bottom", "ar-reminder-clock", *VISITED):
               p = P(name).get("purchase", {}) or {}
               need(not p.get("words") and not p.get("hrefs"), f"3.1.3(f) on {name}: no plan, subscription, upgrade, price or free word (scripts/lib/app-wording.mjs) and no purchase link: words={p.get('words')} hrefs={p.get('hrefs')}")

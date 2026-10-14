@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { splitFileNameForDisplay } from '@/lib/file-name-display';
+import { splitFilename } from '@/lib/material-name';
 
 /**
  * The ONE way a file name reaches the screen. Register #124.
@@ -22,6 +23,13 @@ import { splitFileNameForDisplay } from '@/lib/file-name-display';
  * - INLINE (`inline`), for a citation pill or any text with words around it:
  *   an isolating `<bdi>` with the same split inside, no layout of its own.
  *
+ * `withoutExtension` (the material card's title and the Ask source pills,
+ * Step Store-Fix-1): the name shows its stem only, cut at the same last dot
+ * Rename cuts at (`splitFilename`), so what reads on the card is exactly what
+ * the student edits. The card's type badge carries the type. The store capture
+ * showed ".md" landing at the START of an Arabic name in WebKit (ar/02, ar/04),
+ * and a name without its extension has no Latin tail to misplace.
+ *
  * The whitespace classes are `pre`, not `nowrap`: the head ends with the space
  * before the tail, and a trailing space at the end of a `nowrap` box is
  * dropped, which would glue "3.pdf" to the Arabic.
@@ -30,12 +38,14 @@ export function FileName({
   name,
   className,
   inline = false,
+  withoutExtension = false,
 }: {
   name: string;
   className?: string;
   inline?: boolean;
+  withoutExtension?: boolean;
 }) {
-  const { head, tail, dir } = splitFileNameForDisplay(name);
+  const { head, tail, dir } = splitFileNameForDisplay(withoutExtension ? splitFilename(name).stem : name);
 
   if (inline) {
     return (

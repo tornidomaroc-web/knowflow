@@ -1,0 +1,522 @@
+[
+  {
+    "file": "ar-dark-material.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&theme=dark",
+    "item": 1,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "card titles without their extension: مبادئ-الاقتصاد-الجزئي | صور السبورة | تمارين محلولة - الفصل 3 | شرائح المحاضرة 4 | ملاحظات المحاضرة 5 | جدول الطلب | ملاحظات المحاضرة الخامسة عن مرونة الطلب الدخلية والتقاطعية وأثرها على السوق - النسخة النهائية 12 | ملخص Chapter 3 (1)"
+      },
+      {
+        "ok": true,
+        "m": "each card keeps its type badge: نص, مستند, مستند, عرض, وورد, جدول, مستند, مستند"
+      }
+    ],
+    "reading": null,
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(20, 17, 13)"
+    },
+    "text": 99,
+    "targets": 16,
+    "shaping": 87
+  },
+  {
+    "file": "ar-dark-ask.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=answer&theme=dark",
+    "item": 3,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "source pills without the extension: تمارين محلولة - الفصل 3 | xilvaroth-n11-20260810 | تمارين محلولة - الفصل 3 | ملخص Chapter 3 (1)"
+      },
+      {
+        "ok": true,
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+      },
+      {
+        "ok": true,
+        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+      }
+    ],
+    "reading": "answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes",
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(20, 17, 13)"
+    },
+    "text": 24,
+    "targets": 9,
+    "shaping": 16
+  },
+  {
+    "file": "ar-dark-summary.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&theme=dark",
+    "item": 2,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "the summary scrolled as the capture does: summary in view; heading top 107, bar bottom 74"
+      },
+      {
+        "ok": true,
+        "m": "the page runs under the status bar: article in main"
+      }
+    ],
+    "reading": "summary in view; heading top 107, bar bottom 74",
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(20, 17, 13)"
+    },
+    "text": 99,
+    "targets": 16,
+    "shaping": 87
+  },
+  {
+    "file": "ar-dark-ask-capture.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=answer&theme=dark",
+    "item": 3,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "source pills without the extension: تمارين محلولة - الفصل 3 | ملخص Chapter 3 (1)"
+      },
+      {
+        "ok": true,
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 505; first source bottom 455; all sources bottom 507; list at end no"
+      }
+    ],
+    "reading": "answer shown; sources: yes; question top 16 of list 505; first source bottom 455; all sources bottom 507; list at end no",
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(20, 17, 13)"
+    },
+    "text": 22,
+    "targets": 7,
+    "shaping": 18
+  },
+  {
+    "file": "ar-light-material.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&theme=light",
+    "item": 1,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "card titles without their extension: مبادئ-الاقتصاد-الجزئي | صور السبورة | تمارين محلولة - الفصل 3 | شرائح المحاضرة 4 | ملاحظات المحاضرة 5 | جدول الطلب | ملاحظات المحاضرة الخامسة عن مرونة الطلب الدخلية والتقاطعية وأثرها على السوق - النسخة النهائية 12 | ملخص Chapter 3 (1)"
+      },
+      {
+        "ok": true,
+        "m": "each card keeps its type badge: نص, مستند, مستند, عرض, وورد, جدول, مستند, مستند"
+      }
+    ],
+    "reading": null,
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(250, 247, 242)"
+    },
+    "text": 99,
+    "targets": 16,
+    "shaping": 87
+  },
+  {
+    "file": "ar-light-ask.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=answer&theme=light",
+    "item": 3,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "source pills without the extension: تمارين محلولة - الفصل 3 | xilvaroth-n11-20260810 | تمارين محلولة - الفصل 3 | ملخص Chapter 3 (1)"
+      },
+      {
+        "ok": true,
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+      },
+      {
+        "ok": true,
+        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+      }
+    ],
+    "reading": "answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes",
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(250, 247, 242)"
+    },
+    "text": 24,
+    "targets": 9,
+    "shaping": 16
+  },
+  {
+    "file": "ar-light-summary.png",
+    "url": "http://127.0.0.1:3000/ar/preview/subject?platform=native&theme=light",
+    "item": 2,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "the summary scrolled as the capture does: summary in view; heading top 107, bar bottom 74"
+      },
+      {
+        "ok": true,
+        "m": "the page runs under the status bar: article in main"
+      }
+    ],
+    "reading": "summary in view; heading top 107, bar bottom 74",
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(250, 247, 242)"
+    },
+    "text": 99,
+    "targets": 16,
+    "shaping": 87
+  },
+  {
+    "file": "ar-light-ask-capture.png",
+    "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=answer&theme=light",
+    "item": 3,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "source pills without the extension: تمارين محلولة - الفصل 3 | ملخص Chapter 3 (1)"
+      },
+      {
+        "ok": true,
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 505; first source bottom 455; all sources bottom 507; list at end no"
+      }
+    ],
+    "reading": "answer shown; sources: yes; question top 16 of list 505; first source bottom 455; all sources bottom 507; list at end no",
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(250, 247, 242)"
+    },
+    "text": 22,
+    "targets": 7,
+    "shaping": 18
+  },
+  {
+    "file": "en-dark-material.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&theme=dark",
+    "item": 1,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "card titles without their extension: Microeconomics-Principles | Whiteboard-photos | Solved-Exercises-Ch3 | Lecture-4-slides | Lecture-5-notes | Demand-table | Lecture 5 notes on income and cross elasticity of demand in markets - final version 12 | Summary الفصل 3 (1)"
+      },
+      {
+        "ok": true,
+        "m": "each card keeps its type badge: PDF, PDF, PDF, PPTX, DOCX, XLSX, PDF, PDF"
+      }
+    ],
+    "reading": null,
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(20, 17, 13)"
+    },
+    "text": 95,
+    "targets": 16,
+    "shaping": 1
+  },
+  {
+    "file": "en-dark-ask.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&view=answer&theme=dark",
+    "item": 3,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "source pills without the extension: Solved exercises - Chapter 3 | xilvaroth-n11-20260810 | Solved exercises - Chapter 3 | Summary الفصل 3 (1)"
+      },
+      {
+        "ok": true,
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+      },
+      {
+        "ok": true,
+        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+      }
+    ],
+    "reading": "answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes",
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(20, 17, 13)"
+    },
+    "text": 22,
+    "targets": 9,
+    "shaping": 1
+  },
+  {
+    "file": "en-dark-summary.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&theme=dark",
+    "item": 2,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "the summary scrolled as the capture does: summary in view; heading top 107, bar bottom 74"
+      },
+      {
+        "ok": true,
+        "m": "the page runs under the status bar: article in main"
+      }
+    ],
+    "reading": "summary in view; heading top 107, bar bottom 74",
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(20, 17, 13)"
+    },
+    "text": 95,
+    "targets": 16,
+    "shaping": 1
+  },
+  {
+    "file": "en-light-material.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&theme=light",
+    "item": 1,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "card titles without their extension: Microeconomics-Principles | Whiteboard-photos | Solved-Exercises-Ch3 | Lecture-4-slides | Lecture-5-notes | Demand-table | Lecture 5 notes on income and cross elasticity of demand in markets - final version 12 | Summary الفصل 3 (1)"
+      },
+      {
+        "ok": true,
+        "m": "each card keeps its type badge: PDF, PDF, PDF, PPTX, DOCX, XLSX, PDF, PDF"
+      }
+    ],
+    "reading": null,
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(250, 247, 242)"
+    },
+    "text": 95,
+    "targets": 16,
+    "shaping": 1
+  },
+  {
+    "file": "en-light-ask.png",
+    "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&view=answer&theme=light",
+    "item": 3,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "source pills without the extension: Solved exercises - Chapter 3 | xilvaroth-n11-20260810 | Solved exercises - Chapter 3 | Summary الفصل 3 (1)"
+      },
+      {
+        "ok": true,
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+      },
+      {
+        "ok": true,
+        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+      }
+    ],
+    "reading": "answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes",
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(250, 247, 242)"
+    },
+    "text": 22,
+    "targets": 9,
+    "shaping": 1
+  },
+  {
+    "file": "en-light-summary.png",
+    "url": "http://127.0.0.1:3000/en/preview/subject?platform=native&theme=light",
+    "item": 2,
+    "findings": [],
+    "proved": [
+      {
+        "ok": true,
+        "m": "the iPhone's top inset is emulated: 62px"
+      },
+      {
+        "ok": true,
+        "m": "the app's shell (data-kf-shell=native)"
+      },
+      {
+        "ok": true,
+        "m": "the status-bar scrim covers the inset and its fade: {\"top\":0,\"height\":74}"
+      },
+      {
+        "ok": true,
+        "m": "the summary scrolled as the capture does: summary in view; heading top 107, bar bottom 74"
+      },
+      {
+        "ok": true,
+        "m": "the page runs under the status bar: article in main"
+      }
+    ],
+    "reading": "summary in view; heading top 107, bar bottom 74",
+    "scrim": {
+      "rows": 186,
+      "page": "rgb(250, 247, 242)"
+    },
+    "text": 95,
+    "targets": 16,
+    "shaping": 1
+  }
+]
