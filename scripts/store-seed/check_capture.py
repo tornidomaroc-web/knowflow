@@ -6,9 +6,11 @@ scenario screenshots), from the harness's readings and the PNG sizes.
   - every shot signed in, no Google button, no plan, price, upgrade or
     checkout word or link (the app's probe), and its own reading clean;
   - no shot shows a subject or file name of the other language's account;
-  - the Arabic Ask shot shows its sources, starts at the student's question
-    (not cut) and holds the answer down to its first source; the English quiz
-    is on screen;
+  - the Arabic Ask shot shows its sources and starts at the student's
+    question (not cut); the English quiz is on screen. Whether the first
+    source is in view is a WARNING, not a failure (Store-Fix-2, owner ruling
+    on run 38618442205): a live answer's length is the model's, so the owner
+    judges that image in the review PR;
   - Settings: no e-mail text, the reminder on at 19:00;
   - each set ended signed out; every PNG exactly 1320 x 2868.
 
@@ -44,6 +46,20 @@ def need(cond, msg):
         fails.append(msg)
 
 
+# A warning is printed and, in a workflow, written to the job summary; it
+# never fails the capture.
+warns = []
+
+
+def warn(msg):
+    warns.append(msg)
+    print(f'WARNING {msg}')
+    summary = os.environ.get('GITHUB_STEP_SUMMARY')
+    if summary:
+        with open(summary, 'a', encoding='utf-8') as f:
+            f.write(f'- WARNING {msg}\n')
+
+
 for loc in ('ar', 'en'):
     want = [f"shot-{loc}-{e['file'][:-4]}" for e in CAPTIONS[loc]]
     got = [r['step'] for r in rows if r['step'].startswith(f'shot-{loc}-')]
@@ -73,7 +89,8 @@ need('sources: yes' in str(by.get('shot-ar-04-ask', {}).get('result', '')), 'Ask
 a4 = str(by.get('shot-ar-04-ask', {}).get('result', ''))
 m4 = re.search(r'question top (-?\d+) of list (\d+); first source bottom (-?\d+|none); all sources bottom (-?\d+|none); list at end (yes|no)', a4)
 need(bool(m4) and int(m4.group(1)) >= 0 and (int(m4.group(1)) <= 40 or m4.group(5) == 'yes'), f'Ask (ar): the question bubble starts the shot, not cut: {a4[:220]}')
-need(bool(m4) and m4.group(3) != 'none' and int(m4.group(3)) <= int(m4.group(2)), f'Ask (ar): the answer and its first source are in view below it: {a4[:220]}')
+if not (m4 and m4.group(3) != 'none' and int(m4.group(3)) <= int(m4.group(2))):
+    warn(f'Ask (ar): the first source is not in view below the answer (the owner judges the image): {a4[:220]}')
 if m4 and m4.group(4) != 'none':
     print(f"note Ask (ar): the whole sources row {'fits' if int(m4.group(4)) <= int(m4.group(2)) else 'runs past the list by ' + str(int(m4.group(4)) - int(m4.group(2))) + ' px'}")
 need(str(by.get('shot-en-04-quiz', {}).get('result', '')).startswith('quiz in view'), 'Quiz (en): the stored quiz is on screen from question 1')
@@ -82,5 +99,5 @@ need(len(steps_lists) == 2, f'both steps files given ({len(steps_lists)})')
 for ok, msg in page_step_checks(rows, steps_lists, late_ok=os.environ.get('KF_LATE_OK') == '1'):
     need(ok, msg)
 need(len(sizes) == 10 and all(' 1320 x 2868,' in l for l in sizes), f'every PNG is 1320 x 2868 ({len(sizes)} files)')
-print(f'\n{len(fails)} failure(s)')
+print(f'\n{len(fails)} failure(s), {len(warns)} warning(s)')
 sys.exit(1 if fails else 0)

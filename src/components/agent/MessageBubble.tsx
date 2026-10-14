@@ -32,6 +32,15 @@ interface MessageBubbleProps {
  * stays dir="ltr" (register #124): the "[1]" index sits left of the name in
  * both languages, and FileName keeps the name one unit. The pill shows the
  * name without its extension (Step Store-Fix-1); its title keeps the full name.
+ *
+ * Whitespace (Step Store-Fix-2). ReactMarkdown puts a newline text node
+ * between every two blocks; under `whitespace-pre-wrap` each of those drew a
+ * blank line, so an answer's heading and paragraphs sat a whole empty line
+ * apart on top of their margins (ar/04 of run 38618442205). The answer's
+ * bubble now wraps whitespace normally; inside a paragraph a single newline
+ * still breaks the line (`whitespace-pre-line`), as it did. Not on a list
+ * item: a loose item holds its paragraphs between newline nodes too. The
+ * student's own bubble keeps `pre-wrap`: what they typed is shown as typed.
  */
 export function MessageBubble({ role, content, isStreaming, citations, sourceHref, sourcesLabel }: MessageBubbleProps) {
   const isUser = role === 'user';
@@ -40,7 +49,9 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
       <div className={`flex max-w-[85%] flex-col gap-2 md:max-w-[75%] ${isUser ? 'items-end' : 'items-start'}`}>
         <div
           dir="auto"
-          className={`whitespace-pre-wrap rounded-2xl p-4 text-sm ${
+          className={`rounded-2xl p-4 text-sm ${
+            isUser ? 'whitespace-pre-wrap' : ''
+          } ${
             isUser
               ? 'kf-bubble-user bg-primary text-primary-foreground shadow-soft'
               : 'kf-card border border-border bg-surface text-foreground shadow-soft'
@@ -50,7 +61,7 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
               the gold user bubble and the surface assistant bubble. */}
           <ReactMarkdown
             components={{
-              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+              p: ({ children }) => <p className={`mb-2 last:mb-0 ${isUser ? '' : 'whitespace-pre-line'}`}>{children}</p>,
               strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
               ul: ({ children }) => <ul className="mb-2 list-inside list-disc space-y-1">{children}</ul>,
               ol: ({ children }) => <ol className="mb-2 list-inside list-decimal space-y-1">{children}</ol>,

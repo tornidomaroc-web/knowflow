@@ -27,6 +27,7 @@ on:
       - 'docs/design/redesign-built/**'
       - 'docs/store/redesign3-renders/**'
       - 'docs/store/fix-renders/**'
+      - 'docs/store/fix-renders-2/**'
       - '.github/workflows/redesign-built.yml'
   workflow_dispatch:
 
@@ -114,6 +115,29 @@ jobs:
           fi
           echo "ok   the old scrim fails the scrim check"
 
+      # Step Store-Fix-2: the answer bubble without its blank lines (ar and
+      # en, dark and light), Settings scrolled to its end (dark; the web half
+      # of the white-strip fix, bottom_check.py), and the fit of the capture's
+      # ar/04 in the real Ask card, calibrated against capture 38618442205
+      # (fit.json). Reviewed from the repo: docs/store/fix-renders-2/.
+      - name: Render and audit the Store-Fix-2 screens and the ar/04 fit
+        if: ${{ !cancelled() }}
+        env:
+          PUPPETEER_DIR: ${{ runner.temp }}/pp
+        run: |
+          set -eu
+          CHROME="$(command -v google-chrome)" node scripts/redesign-built/render-fix2.mjs --out "$RUNNER_TEMP/fix2"
+          python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
+          python3 scripts/redesign-built/bottom_check.py "$RUNNER_TEMP/fix2"
+          cat "$RUNNER_TEMP/fix2/fit.json"
+          # Not blind: the old bubble (pre-wrap) must fail the gap check.
+          if KF_PLANT_OLD_BUBBLE=1 CHROME="$(command -v google-chrome)" node scripts/redesign-built/render-fix2.mjs --out "$RUNNER_TEMP/fix2-plant" > "$RUNNER_TEMP/fix2-plant.log"; then
+            cat "$RUNNER_TEMP/fix2-plant.log"; echo "the old bubble passed the gap check: the check is blind"; exit 1
+          fi
+          cat "$RUNNER_TEMP/fix2-plant.log"
+          test "$(grep -c 'item: between two blocks of the answer only the 8 px margin' "$RUNNER_TEMP/fix2-plant.log")" -eq 4 || { echo "the old bubble did not fail the gap check on all four answer renders"; exit 1; }
+          echo "ok   the old bubble fails the gap check on all four answer renders"
+
       - name: The committed PNGs match the fresh renders; the side-by-sides
         run: |
           set -eu
@@ -143,6 +167,7 @@ jobs:
           python3 "$RUNNER_TEMP/same.py" "$RUNNER_TEMP/built" docs/design/redesign-built
           python3 "$RUNNER_TEMP/same.py" "$RUNNER_TEMP/redesign3" docs/store/redesign3-renders
           python3 "$RUNNER_TEMP/same.py" "$RUNNER_TEMP/fix" docs/store/fix-renders
+          python3 "$RUNNER_TEMP/same.py" "$RUNNER_TEMP/fix2" docs/store/fix-renders-2
           python3 scripts/redesign-built/compare.py "$RUNNER_TEMP/built" "$RUNNER_TEMP/built/side-by-side"
 
       - name: Server log
@@ -158,5 +183,7 @@ jobs:
             ${{ runner.temp }}/built
             ${{ runner.temp }}/redesign3
             ${{ runner.temp }}/fix
+            ${{ runner.temp }}/fix2
+            ${{ runner.temp }}/fix2-plant
           if-no-files-found: error
           retention-days: 14

@@ -112,6 +112,11 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* The root carries the page colour too (Step Store-Fix-2): the iOS app's web
+   view reads its under-page colour from the root element's background, and
+   paints the home-indicator inset with it at the end of a scrolling page
+   (ios/App/App/MainViewController.swift). Body's own background stays. */
+html { background-color: var(--background); }
 body { background-color: var(--background); color: var(--foreground); }
 
 /* ─────────────────────────────────────────────────────────────────────────────

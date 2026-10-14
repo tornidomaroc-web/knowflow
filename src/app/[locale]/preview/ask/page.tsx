@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { Menu } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { ChatBox } from '@/components/agent/ChatBox'
 import { AgentEmptyState } from '@/components/agent/AgentEmptyState'
@@ -12,6 +13,7 @@ import { PreviewHistory } from './PreviewHistory'
 import { PreviewSubjectChips } from './PreviewSubjectChips'
 import { AskNoAnswerableSubject } from '@/components/agent/SubjectChips'
 import { answerableSubjectIds, initialAskSubject } from '@/lib/material-text'
+import { CAPTURE_CITATIONS, CAPTURE_EN, CAPTURE_QUESTION, CAPTURE_QUESTION_NEW, CAPTURE_SUBJECTS, captureAnswer } from './capture'
 
 /**
  * DESIGN PREVIEW for the Ask screen (#122, extended for #123): the real
@@ -35,6 +37,13 @@ import { answerableSubjectIds, initialAskSubject } from '@/lib/material-text'
  *              file Ask can answer from are offered, computed by the real rule.
  *   noanswer   subjects exist but none can be asked (#129 (c)): the panel
  *              that sends the student to their subjects, never a blank page.
+ *   capture    Step Store-Fix-2: the App Store capture's ar/04 as the phone
+ *              lays it out. The card is KBSelector's on the phone (the history
+ *              button and the subject bar over the conversation), the
+ *              conversation the real ChatBox holding run 38618442205's
+ *              question and answer as markdown (./capture.ts says which part
+ *              is verbatim). `?tail=N` sets the stand-in's length, `?q=new`
+ *              asks plan.json's new question.
  */
 export const metadata: Metadata = {
   title: 'Ask: design preview',
@@ -45,14 +54,14 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }))
 }
 
-type View = 'default' | 'none' | 'zero' | 'history' | 'answer' | 'subjects' | 'noanswer'
+type View = 'default' | 'none' | 'zero' | 'history' | 'answer' | 'subjects' | 'noanswer' | 'capture'
 
 export default async function AskPreview({
   params,
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ view?: string; platform?: string }>
+  searchParams: Promise<{ view?: string; platform?: string; tail?: string; q?: string }>
 }) {
   if (process.env.VERCEL_ENV === 'production') notFound()
   const { locale } = await params
@@ -63,7 +72,7 @@ export default async function AskPreview({
   const sp = await searchParams
   const raw = sp.view
   const platform = resolvePlatform(sp.platform)
-  const view: View = raw === 'none' || raw === 'zero' || raw === 'history' || raw === 'answer' || raw === 'subjects' || raw === 'noanswer' ? raw : 'default'
+  const view: View = raw === 'none' || raw === 'zero' || raw === 'history' || raw === 'answer' || raw === 'subjects' || raw === 'noanswer' || raw === 'capture' ? raw : 'default'
 
   // #129 (c): five subjects and their files, through the real rule.
   const kbs = [
@@ -120,7 +129,7 @@ export default async function AskPreview({
       <div className={sp.platform ? 'hidden' : 'flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs'}>
         <span className="font-semibold text-foreground">ask · preview</span>
         <span className="text-faint">{safeLocale} · {view}</span>
-        {(['default', 'none', 'zero', 'history', 'answer', 'subjects', 'noanswer'] as const).filter((v) => v !== view).map((v) => (
+        {(['default', 'none', 'zero', 'history', 'answer', 'subjects', 'noanswer', 'capture'] as const).filter((v) => v !== view).map((v) => (
           <Link key={v} href={`/${safeLocale}/preview/ask${v === 'default' ? '' : `?view=${v}`}`} className="rounded-full border border-border px-3 py-1 font-semibold text-muted-foreground">
             {v}
           </Link>
@@ -156,6 +165,34 @@ export default async function AskPreview({
         ) : view === 'noanswer' ? (
           <div className="flex h-[28rem] flex-col overflow-hidden rounded-xl border border-border bg-surface">
             <AskNoAnswerableSubject href={`/${safeLocale}/dashboard/knowledge`} labels={{ title: t.dashboard.home.step2Title, cta: t.dashboard.upload.uploadButton }} />
+          </div>
+        ) : view === 'capture' ? (
+          // As /dashboard/agent on the phone: the title, then KBSelector's card
+          // (its history button and subject bar over ChatBox).
+          <div className={`flex flex-col md:h-[calc(100dvh-4rem)] ${platform === 'native' ? 'h-[calc(100dvh-1.25rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]' : 'h-[calc(100dvh-4.5rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]'}`}>
+            {platform === 'native' && <AskTitle text={t.dashboard.nav.agent} />}
+            <div className="kf-card flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-surface">
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <div className="flex items-center gap-2 border-b border-border bg-surface p-3">
+                  <span aria-hidden="true" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground md:hidden">
+                    <Menu className="h-5 w-5" />
+                  </span>
+                  <PreviewSubjectChips bare subjects={ar ? CAPTURE_SUBJECTS : CAPTURE_EN.subjects} initial="s1" />
+                </div>
+                <ChatBox
+                  kbId="00000000-0000-0000-0000-000000000000"
+                  kbName={ar ? CAPTURE_SUBJECTS[0].name : CAPTURE_EN.subjects[0].name}
+                  materials={[]}
+                  initialMessages={ar ? [
+                    { role: 'user', content: sp.q === 'new' ? CAPTURE_QUESTION_NEW : CAPTURE_QUESTION },
+                    { role: 'assistant', content: captureAnswer(Number(sp.tail) || 0), citations: CAPTURE_CITATIONS },
+                  ] : [
+                    { role: 'user', content: CAPTURE_EN.question },
+                    { role: 'assistant', content: CAPTURE_EN.answer, citations: CAPTURE_EN.citations },
+                  ]}
+                />
+              </div>
+            </div>
           </div>
         ) : view === 'history' ? (
           <div className="h-[28rem] overflow-hidden rounded-xl border border-border">
