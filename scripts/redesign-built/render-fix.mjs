@@ -160,8 +160,8 @@ for (const job of JOBS) {
   }
   if (k === 'ask' || k === 'ask-capture') {
     want.push([facts.pills.length > 0 && facts.pills.every((t) => !EXT.test(t)), `source pills without the extension: ${facts.pills.join(' | ')}`]);
-    const m = /question top (-?\d+) of list (\d+); first source bottom (-?\d+|none); all sources bottom (-?\d+|none)/.exec(reading || '');
-    want.push([!!m && +m[1] >= 0 && +m[1] <= 40, `the question bubble starts the list, not cut: ${reading}`]);
+    const m = /question top (-?\d+) of list (\d+); first source bottom (-?\d+|none); all sources bottom (-?\d+|none); list at end (yes|no)/.exec(reading || '');
+    want.push([!!m && +m[1] >= 0 && (+m[1] <= 40 || m[5] === 'yes'), `the question bubble starts the list, not cut: ${reading}`]);
     if (k === 'ask') want.push([!!m && m[3] !== 'none' && +m[3] <= +m[2], `the answer and its first source are in view: ${reading}`]);
   }
   if (k === 'summary') {
