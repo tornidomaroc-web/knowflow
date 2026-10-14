@@ -111,6 +111,17 @@ for key, loc, fname, text, rtl, want in PLANTS:
         tsv = list(csv.DictReader(io.StringIO(tess(dst, lg, psm, 'tsv')), delimiter='\t', quoting=csv.QUOTE_NONE))
         near = [w['text'] for w in tsv if w.get('level') == '5' and (w.get('text') or '').strip() and 1480 <= int(w['top']) <= 1680]
         print(f'     {key} shot at y 1480-1680, -l {lg} --psm {psm}: {near!r}')
+    if rtl:
+        for lg, psm in (('ara+eng', 4), ('ara+eng', 6), ('ara', 6)):
+            tsv = list(csv.DictReader(io.StringIO(tess(dst, lg, psm, 'tsv')), delimiter='\t', quoting=csv.QUOTE_NONE))
+            near = [w['text'] for w in tsv if w.get('level') == '5' and (w.get('text') or '').strip() and 1480 <= int(w['top']) <= 1680]
+            print(f'     {key} shot at y 1480-1680, -l {lg} --psm {psm}: {near!r}')
+        for top in (1400, 1450, 1500):
+            band = os.path.join(out, f'{key}-band-{top}.png')
+            shot.crop((0, top, shot.width, top + 240)).save(band)
+            for lg in ('ara', 'ara+eng'):
+                for psm in (6, 11):
+                    print(f'     {key} band y {top}-{top + 240}, -l {lg} --psm {psm}: {tess(band, lg, psm).strip()!r}')
     r = subprocess.run(scan + [dst], capture_output=True, text=True, encoding='utf-8')
     fl = [l for l in r.stdout.splitlines() if l.startswith('FAIL ')]
     print(f'     planted {key}: ' + (' | '.join(fl) or 'no FAIL line'))
