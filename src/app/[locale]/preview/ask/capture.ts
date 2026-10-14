@@ -15,7 +15,7 @@
  * source where the device measured it: 594 px below the question's top
  * (question top 16, first source bottom 610, list 444). The sources row
  * wrapped to two lines on the device (all sources bottom 662, 52 below the
- * first); the three pills below reproduce that, and the render reports it.
+ * first); the two pills below reproduce that, and the render reports it.
  *
  * The English set (`CAPTURE_EN`) is not from a capture: it is the same shape
  * (a heading, an opening line, two labelled paragraphs and a longer one) on
@@ -51,8 +51,7 @@ export const CAPTURE_TAIL_WORDS = CAPTURE_TAIL.split(' ').length
 
 export const CAPTURE_CITATIONS = [
   { index: 1, document_id: 'd1', chunk_id: 'c1', filename: 'التنفس الخلوي والتخمر.md', similarity: 0.9 },
-  { index: 2, document_id: 'd1', chunk_id: 'c2', filename: 'التنفس الخلوي والتخمر.md', similarity: 0.86 },
-  { index: 3, document_id: 'd2', chunk_id: 'c3', filename: 'الخبر الوراثي ونقله.md', similarity: 0.71 },
+  { index: 2, document_id: 'd2', chunk_id: 'c2', filename: 'الخبر الوراثي ونقله.md', similarity: 0.71 },
 ]
 
 export const CAPTURE_EN = {
