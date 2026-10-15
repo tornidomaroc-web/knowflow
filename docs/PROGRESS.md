@@ -451,6 +451,24 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-15 - The app icon: the owner's approved master replaces every icon, splash and web mark, all derived by one script
+
+**No row is edited** (rows 42, 69 and 81 untouched). No TestFlight or other macOS dispatch; the PR's own `ios-smoke` run is the compile proof.
+
+- **Approved 2026-10-15 by the owner:** an original clay-style gold ring around a cream folded page on a warm dark ground, matching the Redesign-3 clay UI. The master is `assets/brand/AppIcon-1024.png`, 1024x1024 RGB, no alpha, SHA-256 `1cfbd00bc10b3ea4141deabb0b0909abeb57d27d08f6e44f2280124e1fee372c`. The owner's rule: the same icon everywhere the app icon appears.
+- **One script, `scripts/brand/gen-app-icons.py` (Pillow), writes every derived asset from the master;** `--check` fails if any committed asset differs, so no copy is hand-edited. Measured on the master: the ring's outer edge is at 72% of the width.
+- **Replaced (before, after):**
+  - iOS `AppIcon.appiconset/AppIcon-512@2x.png`: the stock Capacitor icon (blue logo on white), now the master byte for byte; `Contents.json` unchanged (one 1024 universal entry).
+  - iOS `Splash.imageset`, three files: the stock white splash with the small blue logo, now the app's dark ground `#14110d` with the mark (1024 px of 2732) centred inside the strip a 19.5:9 phone shows.
+  - Android `mipmap-*/ic_launcher.png` (48 to 192) and `ic_launcher_round.png`: stock, now the master resized, the round one under an anti-aliased circle.
+  - Android adaptive icon: `ic_launcher_foreground.png` (108 to 432) is the master at 80% of the layer with its edge faded to transparent, so the ring spans 58% of the layer and ends at 30.9 dp of the 33 dp safe-zone radius, uncropped under circle and squircle masks; `values/ic_launcher_background.xml` goes from `#FFFFFF` to `#1E1812`, the master's own ground where the fade ends. The unused template leftovers `drawable/ic_launcher_background.xml` (teal grid) and `drawable-v24/ic_launcher_foreground.xml` (Android robot) are deleted.
+  - Android `splash.png`, eleven drawable folders: stock, now the dark ground with the mark at half the short side.
+  - Web: `src/app/icon.tsx` (a gold tile with the letter K, 32 px) and `src/app/apple-icon.tsx` (the chevron-and-diamond mark on gold, 180 px) are deleted; in their place the static `src/app/favicon.ico` (48, 32 and 16, each resampled from the master, readable at 16), `src/app/icon.png` (192) and `src/app/apple-icon.png` (180).
+  - Open Graph card `src/app/[locale]/opengraph-image.tsx`: the chevron-and-diamond mark is replaced by the app icon with its edge faded (`src/app/_brand/app-icon-mark.png`, 512 RGBA, embedded as a PNG data URI); 144 px so the ring's height equals the wordmark's cap height. `src/app/_brand/mark.ts`, the old mark's geometry, is deleted: nothing else used it.
+- **Kept as text:** the `Know<span>Flow</span>` wordmark in the site header, footer, sidebar, top bar, auth pages, the native shell's offline page and the store screenshots. They were never the icon.
+- **Not touched:** the Play listing icon (512, a store upload, not in the repo); `docs/store/STORE_ASSETS.md` still says the icon is designed outside the repo, which stays true of the master.
+- **Local proof:** a contact sheet of every generated asset checked by eye (scratchpad); `gen-app-icons.py --check` ok on all 35 assets; `tsc` and `next lint` clean; `next build` renders the OG card from the PNG.
+
 ### 2026-10-15 - S7d applied live: Arabic App Info, price, availability, content rights, Arabic screenshots; Mac and Vision Pro off; English text approved
 
 **No row is edited** (rows 42, 69 and 81 untouched). No macOS workflow is involved. No build is attached to version 1.0 and nothing is submitted for review; the review details are not touched.

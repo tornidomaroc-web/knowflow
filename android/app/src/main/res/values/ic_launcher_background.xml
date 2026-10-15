@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Written by scripts/brand/gen-app-icons.py: the ground of assets/brand/AppIcon-1024.png where the foreground fades out. -->
+    <color name="ic_launcher_background">#1E1812</color>
 </resources>
