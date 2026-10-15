@@ -451,6 +451,20 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-15 - App Store screenshots approved as final (review PR #277): capture 38646534381, framed by run 38653714840
+
+**No row is edited** (rows 42, 69 and 81 untouched). No macOS workflow was dispatched in this step. The owner reviewed all ten framed screenshots in #277 (head 0d0c8375943807b43c6480d398636241134a7245) and approved them as final for the App Store upload. The PNGs this PR adds are those of that head, byte-identical.
+
+- **What they are.** `docs/store/screenshots/{ar,en}/` holds the raw set: capture 38646534381, on main 186a8c2, the two screenshot accounts, with 1 Ask call on the Arabic set. `docs/store/screenshots-designed/{ar,en}/` holds the framed set: frame run 38653714840, on main 98a9cb0, with no AI call. Ten PNGs at 1320 x 2868 (the 6.9-inch iPhone), five per language: ar 01-subjects, 02-material, 03-summary, 04-ask, 05-settings; en 01-subjects, 02-material, 03-summary, 04-quiz, 05-settings. Sizes are in `docs/store/screenshots/sizes.txt`.
+- **Their checks.** The capture had 0 failures and 0 warnings, checked again in frame mode with only the KF_LATE_OK allowance. The framed set passed check.py, screen_intact.py and ocr_scan.py with 0 failures each.
+- **The OCR scan (#276, 98a9cb0).** The Arabic set is read with `ara+eng`, whole and in 240 px bands, and held to the app's Arabic stems exactly and dot-blind (`scripts/store-shots/arabic-stems.mjs`). The English set is read with `eng`, and every price, plan, "free" and currency rule is unchanged. Proof, ocr-proof run 38652560503:
+  - The old reader's "$4" on ar/04 was the question's «الطاقية؟».
+  - Planted `$4.99` fails in ar/04 and in en/04, and a planted «مجاني» fails in ar/01.
+- **Seen and accepted by the owner in ar/04.** The sources row runs 10 px past the list, so the second pill is cut at its edge. Both pills read «التنفس الخلوي والتخمر» (two passages of one file).
+- **Still open before the final TestFlight build** (not part of the screenshots):
+  - The white strip under the tab bar is proven fixed in the dark theme on the simulator (relay run 38643696807), but the light theme on the device is unproven.
+  - Ask's subject chips are 34 pt tall, under the 44 pt touch target (Store-Fix-2).
+
 ### 2026-10-14 - Store screenshot fixes, round 2 (Step Store-Fix-2): the answer bubble without blank lines, the web view takes the page colour under the home indicator, ar/04's first source a warning, the fit measured in the real Ask card
 
 **No row is edited** (rows 42, 69 and 81 untouched). No macOS workflow was dispatched in this step. Capture 38618442205 (1 Ask call) failed only ar/04's fit: its first source ended at 610 px of a 444 px list; the owner ruled the items below.
