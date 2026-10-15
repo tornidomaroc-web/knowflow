@@ -151,7 +151,9 @@ class Api:
     def need(self, method, path, body=None, ok=(200,)):
         code, js = self.call(method, path, body)
         label = path.split('?', 1)[0]
-        say(f'  {method} {label}: {code}')
+        # A write in dry or offline mode gets a made-up status from call();
+        # say so, or a reader takes the 200 for Apple's answer.
+        say(f'  {method} {label}: {code}' + (f' ({self.transport}, not sent)' if method != 'GET' and self.transport != 'live' else ''))
         if code not in ok:
             for e in (js.get('errors') or [])[:5]:
                 say(f"    error: {e.get('status')} {e.get('code')} {e.get('title')}: {(e.get('detail') or '')[:240]}")
@@ -322,13 +324,14 @@ def settings(api, app):
         free, page = None, f'/v1/apps/{app}/appPricePoints?filter[territory]={BASE_TERRITORY}&fields[appPricePoints]=customerPrice&limit=200'
         for _ in range(10):
             js = api.get(page)
-            free = next((pp['id'] for pp in js.get('data') or [] if float((pp.get('attributes') or {}).get('customerPrice') or 1) == 0), None)
+            free = next((pp for pp in js.get('data') or [] if float((pp.get('attributes') or {}).get('customerPrice') or 1) == 0), None)
             page = (js.get('links') or {}).get('next')
             if free or not page:
                 break
         if not free:
             raise Failed('no price point of 0 in USA')
-        say(f'price: the USA price point of 0 is {free}')
+        say(f"price: the USA price point of 0 is {free['id']}, customerPrice {(free.get('attributes') or {}).get('customerPrice')!r} as Apple returned it")
+        free = free['id']
         api.need('POST', '/v1/appPriceSchedules', {
             'data': {'type': 'appPriceSchedules', 'relationships': {
                 'app': {'data': {'type': 'apps', 'id': app}},
@@ -364,13 +367,23 @@ def settings(api, app):
     a = api.get(f'/v1/apps/{app}?fields[apps]=contentRightsDeclaration')['data']['attributes']
     p = price_state(api, app)
     av = availability_state(api, app)
+    read_back_sha('contentRightsDeclaration', a.get('contentRightsDeclaration'))
+    for r in (p or {}).get('manual') or []:
+        read_back_sha(f"customerPrice {r['territory'] or 'base'}", r['customerPrice'])
     checks = [
         (a.get('contentRightsDeclaration') == RIGHTS, f"content rights {a.get('contentRightsDeclaration')}"),
         (is_free(p), f"price free in USA: {p and p['manual'][:3]}"),
         (bool(av) and all(bool(r['available']) == (k != NO_CHINA) for k, r in av['territories'].items()) and len(av['territories']) >= 100,
          f"availability: {sum(1 for r in (av or {}).get('territories', {}).values() if r['available'])} available, {NO_CHINA} {'not available' if av and not av['territories'].get(NO_CHINA, {}).get('available') else 'AVAILABLE'}"),
+        (bool(av) and av['new'] is True, f"availableInNewTerritories {(av or {}).get('new')!r}"),
     ]
     return verdict(checks)
+
+
+def read_back_sha(label, value):
+    """A value as Apple returned it, as its SHA-256: the log proves the live text without printing it."""
+    s = '' if value is None else str(value)
+    say(f"  read back {label}: {len(s)} chars, utf-8 sha256 {hashlib.sha256(s.encode('utf-8')).hexdigest()}")
 
 
 def verdict(checks):
@@ -571,6 +584,10 @@ def english(api, app, flag_path=EN_FLAG):
     ils, _ = api.all(f"/v1/appInfos/{info['id']}/appInfoLocalizations?limit=50")
     cur = next((l['attributes'] for l in ils if l['attributes'].get('locale') == 'en-US'), {})
     vl = next((l['attributes'] for l in version_locs(api, v['id']) if l['attributes'].get('locale') == 'en-US'), {})
+    for k in ia:
+        read_back_sha(f'app info en-US {k}', cur.get(k))
+    for k in va:
+        read_back_sha(f'version en-US {k}', vl.get(k))
     verdict([(cur.get(k) == ia[k], f'app info en-US {k}: {"equal" if cur.get(k) == ia[k] else "DIFFERENT"}') for k in ia]
             + [(vl.get(k) == va[k], f'version en-US {k}: {"equal" if vl.get(k) == va[k] else "DIFFERENT"}') for k in va])
 
@@ -622,6 +639,9 @@ def arabic_appinfo(api, app):
         return
     say('== read-back')
     got = api.get(f"/v1/appInfoLocalizations/{cur['id']}")['data']['attributes']
+    for k, v in t.items():
+        read_back_sha(f'ar-SA {k}', got.get(k))
+        say(f"  section 4.2 {k}: {len(v)} chars, utf-8 sha256 {hashlib.sha256(v.encode('utf-8')).hexdigest()}")
     verdict([((got.get(k) or '').encode('utf-8') == v.encode('utf-8'),
               f"ar-SA {k}: {'byte for byte equal to' if (got.get(k) or '').encode('utf-8') == v.encode('utf-8') else 'DIFFERENT from'} section 4.2 ({len((got.get(k) or '').encode('utf-8'))} vs {len(v.encode('utf-8'))} bytes)") for k, v in t.items()])
 

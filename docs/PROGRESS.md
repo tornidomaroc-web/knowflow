@@ -451,6 +451,25 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-15 - S7d applied live: Arabic App Info, price, availability, content rights, Arabic screenshots; Mac and Vision Pro off; English text approved
+
+**No row is edited** (rows 42, 69 and 81 untouched). No macOS workflow is involved. No build is attached to version 1.0 and nothing is submitted for review; the review details are not touched.
+
+- **The runs, all from main 964462a (PR #280), `asc-store-setup.yml`, each dry first and then live:**
+  - `read` 38756105783: the state after #280; the price schedule and the availability now read as none instead of failing on a 404.
+  - `arabic-appinfo` dry 38761777776, live 38762919081: one PATCH on the ar-SA App Info localization (name and subtitle only), answered 200; the read-back is byte for byte equal to section 4.2 of `docs/store/ASC_ANSWERS.md` (36 and 43 bytes; SHA-256 7201b62f... and 5d142936... of the file's text, verified on the file independently of the script).
+  - `settings` dry 38767934729, live 38769720893: content rights PATCH 200; price schedule POST 201 (base territory USA, the price point of 0, which Apple reads back as customerPrice `'0.0'`); availability POST 201 (175 territories, 174 available, CHN not, `availableInNewTerritories` true). The full read after it differs from the read before it in those three lines only.
+  - `screenshots` dry 38770375003, live 38770955611: one new `APP_IPHONE_67` set for ar-SA (`1e5a24f4-b0d4-43d1-bb29-929b2c82c35e`), no delete; five screenshots, one upload part each, all COMPLETE within 5.5 s, checksums equal to the files' MD5 (3debae7f, 73ca6122, c6ae05fc, 63f68b2f, 25f7fd8a), in order 01 to 05 (PATCH 204). en-US is skipped as pending. The whole job took 53 s of the 1,200 s token.
+- **Mac (Apple silicon) and Apple Vision Pro availability: OFF.** Not in the API, so the owner unticked both in the App Store Connect web page (Pricing and Availability) on 2026-10-15, saved, and confirmed after a reload. The app has never run on either platform.
+- **English store text approved by the owner on 2026-10-15,** exactly as `docs/store/ASC_ANSWERS_EN.md` stands on main 964462a: `docs/store/ASC_ANSWERS_EN.approved` holds its SHA-256 (LF line ends) `de279cfd64dff6b41096f5ce4a0fdcdbc8b5eaa44e9dec4c0a3e513e37ad86c0`. The file itself is not edited (its status line still reads as a draft: any byte change would break the hash). `check-en --require-approval` passes locally against the file as on main. The `english` mode is not run yet.
+- **`scripts/asc/store_setup.py`, four fixes from the run reviews, nothing else:**
+  - A write in dry or offline mode now logs `(dry, not sent)` after its made-up status; the dry logs above print `PATCH ...: 200` for writes that were never sent.
+  - `settings` prints the chosen price point's `customerPrice` as Apple returned it, not only the script's claim that it is 0.
+  - The `settings` read-back also checks `availableInNewTerritories` is true (it was only printed before).
+  - Every read-back (`settings`, `arabic-appinfo`, `english`) prints the SHA-256 of each text value as Apple returned it, so a live value is provable from the log; `arabic-appinfo` prints the file's hash beside it.
+- **Local proof:** offline mode on `scripts/asc/fixtures-offline.json` for every mode; the three read-backs exercised on the fixtures with the writes faked as live; `check-en --require-approval` exit 0; no em dash in the added text.
+- **Still open before submission:** the `english` mode (dry, then live), then en-US screenshots; a build attached to 1.0; the submission itself.
+
 ### 2026-10-15 - S7d follow-up: no price schedule reads as none; the Arabic App Info name and subtitle by the API; the "name or email" claim proven from the code
 
 **No row is edited** (rows 42, 69 and 81 untouched). No macOS workflow is involved.

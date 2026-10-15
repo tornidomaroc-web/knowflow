@@ -1,0 +1,2 @@
+de279cfd64dff6b41096f5ce4a0fdcdbc8b5eaa44e9dec4c0a3e513e37ad86c0
+SHA-256 of docs/store/ASC_ANSWERS_EN.md with LF line ends, approved by the owner on 2026-10-15 as it stands on main 964462a. The english mode of scripts/asc/store_setup.py refuses to send that file unless this flag holds its current hash; any edit to the file blocks it until it is approved again.
