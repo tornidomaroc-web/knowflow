@@ -1,0 +1,143 @@
+name: asc-store-setup
+
+# Step S7d (docs/store/STORE_PATH.md S7): the App Store Connect settings of
+# version 1.0 through the App Store Connect API, from main, by dispatch only.
+# The logic and every API call live in scripts/asc/store_setup.py (Python
+# standard library only); this file mints the token and runs it.
+#
+#   read         the state, no write.
+#   settings     price Free (USA base, price point 0), every territory but
+#                mainland China (CHN), new territories on, content rights
+#                "does not use third-party content". Idempotent.
+#   screenshots  the ten approved PNGs (docs/store/screenshots-designed/ar and
+#                en, 01 to 05) into the APP_IPHONE_67 (6.9-inch) set of the ar
+#                and en-US version localizations, replacing the set; each one
+#                COMPLETE with Apple's checksum equal to the file's MD5. A
+#                language without a version localization is skipped and named.
+#   english      the en-US localization from docs/store/ASC_ANSWERS_EN.md,
+#                refused unless docs/store/ASC_ANSWERS_EN.approved holds that
+#                file's SHA-256 (checked before the key is even read).
+#
+# dry_run (default true) applies to the three write modes: the reads are sent
+# and every write is printed exactly (method, path, JSON body), none is sent.
+# A write mode with dry_run false ends with a read-back that fails unless the
+# change holds, then the full read.
+#
+# NOT DONE HERE, because the API has no field for it: the availability of the
+# iPhone app on Macs with Apple silicon and on Apple Vision Pro (App Store
+# Connect API 4.5.1; the fields of those names belong to TestFlight groups).
+#
+# NEVER WRITTEN: the review details, a build of the version, a submission,
+# users or testers; store_setup.py refuses those paths before sending.
+#
+# THE KEY. The App Manager team key of asc-review-details.yml, in the
+# environment `reviewer` (main only). A separate environment would hold the
+# key alone, but a .p8 can be downloaded from Apple only once and its file was
+# deleted after it was stored here (2026-10-10), so a new environment would
+# need a new key. This job names only the three key secrets and the app id
+# variable; GitHub passes a step no secret it does not name, so the reviewer
+# account's secrets in the same environment never reach this job.
+#
+# THE LOG IS PUBLIC: statuses, ids, states, counts, file names, checksums and,
+# in a dry run, the write bodies (store text, public once live). The token is
+# masked and read from a file; presigned upload URLs are never printed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'read: the state, no write. settings: price Free, all territories but CHN, content rights. screenshots: the ten approved PNGs into the 6.9-inch sets. english: the en-US localization (only with the approval flag).'
+        type: choice
+        options: [read, settings, screenshots, english]
+        default: read
+      dry_run:
+        description: 'For settings, screenshots and english: true prints every write exactly and sends none; false sends them and reads them back.'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: asc-store-setup
+  cancel-in-progress: false
+
+jobs:
+  store-setup:
+    name: App Store Connect S7d, ${{ inputs.mode }} (App Manager key, Linux)
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    environment: reviewer
+    timeout-minutes: 20
+    env:
+      MODE: ${{ inputs.mode }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      ASC_APP_APPLE_ID: ${{ vars.ASC_APP_APPLE_ID }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: The English text and its approval (english mode, before the key)
+        if: ${{ inputs.mode == 'english' }}
+        run: python3 scripts/asc/store_setup.py check-en --require-approval
+
+      - name: The key is present (names only)
+        env:
+          ASC_REVIEW_KEY_ID: ${{ secrets.ASC_REVIEW_KEY_ID }}
+          ASC_REVIEW_KEY_P8: ${{ secrets.ASC_REVIEW_KEY_P8 }}
+          ASC_REVIEW_ISSUER_ID: ${{ secrets.ASC_REVIEW_ISSUER_ID }}
+        run: |
+          set -eu
+          umask 077
+          missing=0
+          for name in ASC_REVIEW_KEY_ID ASC_REVIEW_KEY_P8 ASC_REVIEW_ISSUER_ID ASC_APP_APPLE_ID; do
+            if [ -n "${!name:-}" ]; then echo "$name: set"; else echo "$name: EMPTY"; missing=1; fi
+          done
+          [ "$missing" -eq 0 ] || { echo "FAIL: a required secret or variable is empty"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/asc"
+          printf '%s\n' "$ASC_REVIEW_KEY_P8" > "$RUNNER_TEMP/asc/key.p8"
+          head -n 1 "$RUNNER_TEMP/asc/key.p8" | grep -qE -- '^-----BEGIN [A-Z ]*KEY-----$' || { echo "FAIL: ASC_REVIEW_KEY_P8 does not look like a PEM key file"; exit 1; }
+          openssl pkey -in "$RUNNER_TEMP/asc/key.p8" -noout 2>/dev/null || { echo "FAIL: ASC_REVIEW_KEY_P8 is not a key openssl can read"; exit 1; }
+          echo "mode: $MODE; dry run: $DRY_RUN; app: $ASC_APP_APPLE_ID"
+
+      # As asc-review-details.yml: ES256 with openssl alone, the DER
+      # signature's two integers laid out as the raw 64 bytes. Twenty minutes,
+      # Apple's maximum, for the uploads; masked before anything prints.
+      - name: Mint a twenty-minute App Store Connect token (masked)
+        env:
+          ASC_REVIEW_KEY_ID: ${{ secrets.ASC_REVIEW_KEY_ID }}
+          ASC_REVIEW_ISSUER_ID: ${{ secrets.ASC_REVIEW_ISSUER_ID }}
+        run: |
+          set -eu
+          umask 077
+          b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now=$(date +%s)
+          header=$(printf '{"alg":"ES256","kid":"%s","typ":"JWT"}' "$ASC_REVIEW_KEY_ID" | b64url)
+          payload=$(printf '{"iss":"%s","iat":%s,"exp":%s,"aud":"appstoreconnect-v1"}' "$ASC_REVIEW_ISSUER_ID" "$now" "$((now + 1200))" | b64url)
+          printf '%s.%s' "$header" "$payload" > "$RUNNER_TEMP/asc/signing-input"
+          openssl dgst -sha256 -sign "$RUNNER_TEMP/asc/key.p8" -binary -out "$RUNNER_TEMP/asc/sig.der" "$RUNNER_TEMP/asc/signing-input"
+          ints=$(openssl asn1parse -inform DER -in "$RUNNER_TEMP/asc/sig.der" | grep -o 'INTEGER *:[0-9A-F]*' | sed 's/.*://')
+          [ "$(printf '%s\n' "$ints" | wc -l | tr -d ' ')" = 2 ] || { echo "FAIL: the signature is not two integers"; exit 1; }
+          raw=$(printf '%s\n' "$ints" | while read -r h; do printf '%064s' "$h" | tr ' ' 0; done)
+          sig=$(printf '%s' "$raw" | xxd -r -p | b64url)
+          token="$(cat "$RUNNER_TEMP/asc/signing-input").$sig"
+          echo "::add-mask::$token"
+          printf 'Authorization: Bearer %s\n' "$token" > "$RUNNER_TEMP/asc/auth-header"
+          rm -f "$RUNNER_TEMP/asc/sig.der" "$RUNNER_TEMP/asc/signing-input" "$RUNNER_TEMP/asc/key.p8"
+          echo "token minted: ${#token} characters, expires in 1200 s"
+
+      - name: Run ${{ inputs.mode }}
+        run: |
+          set -eu
+          live=""
+          if [ "$MODE" != read ] && [ "$DRY_RUN" = false ]; then live=--live; fi
+          python3 -I scripts/asc/store_setup.py "$MODE" --auth "$RUNNER_TEMP/asc/auth-header" $live
+
+      - name: Remove the key and the token
+        if: always()
+        run: |
+          [ -d "$RUNNER_TEMP/asc" ] && find "$RUNNER_TEMP/asc" -type f -exec shred -u {} + 2>/dev/null; rm -rf "$RUNNER_TEMP/asc"; echo "key and token removed"

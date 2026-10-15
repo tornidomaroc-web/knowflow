@@ -148,6 +148,10 @@ leave out words already in the name and subtitle, which Apple indexes anyway.
 
 ### 4.1 English (en-US)
 
+**Superseded on 2026-10-15** by `docs/store/ASC_ANSWERS_EN.md` (agent drafts, name
+"KnowFlow: Study Your Notes", matched to the approved Arabic listing below). The
+text here is kept as it was drafted; it is not sent.
+
 **Name** (8 of 30)
 
 ```
