@@ -21,6 +21,11 @@ MODES
                upload must reach COMPLETE with Apple's checksum equal to the
                file's MD5. A language whose version localization does not
                exist is reported and skipped, never created here.
+  arabic-appinfo
+               the owner-approved Arabic name and subtitle (docs/store/
+               ASC_ANSWERS.md section 4.2, read from the file) into the ar-SA
+               App Info localization, those two fields and nothing else; the
+               read-back compares them byte for byte.
   english      the en-US App Info localization (name, subtitle, privacy URL)
                and version localization (description, keywords, promotional
                text, support URL) from docs/store/ASC_ANSWERS_EN.md, only when
@@ -65,6 +70,8 @@ import urllib.request
 BASE = 'https://api.appstoreconnect.apple.com'
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EN_FILE = os.path.join(ROOT, 'docs', 'store', 'ASC_ANSWERS_EN.md')
+AR_FILE = os.path.join(ROOT, 'docs', 'store', 'ASC_ANSWERS.md')
+AR_APPROVAL = 'Approved by the owner on 2026-10-10'
 EN_FLAG = os.path.join(ROOT, 'docs', 'store', 'ASC_ANSWERS_EN.approved')
 SHOTS = os.path.join(ROOT, 'docs', 'store', 'screenshots-designed')
 WORDING = os.path.join(ROOT, 'scripts', 'lib', 'app-wording.mjs')
@@ -568,9 +575,60 @@ def english(api, app, flag_path=EN_FLAG):
             + [(vl.get(k) == va[k], f'version en-US {k}: {"equal" if vl.get(k) == va[k] else "DIFFERENT"}') for k in va])
 
 
+def ar_text():
+    """The Arabic name and subtitle exactly as section 4.2 of ASC_ANSWERS.md holds them."""
+    src = open(AR_FILE, encoding='utf-8', newline='').read().replace('\r\n', '\n')
+    m = re.search(r'^### 4\.2 Arabic \(ar-SA\)\n(.*?)(?=^##)', src, re.S | re.M)
+    if not m:
+        raise Failed('section 4.2 Arabic (ar-SA) is not in docs/store/ASC_ANSWERS.md')
+    sec = m.group(1)
+    if AR_APPROVAL not in sec:
+        raise Failed(f'section 4.2 does not carry "{AR_APPROVAL}"')
+    out = {}
+    for key, label in (('name', 'Name'), ('subtitle', 'Subtitle')):
+        f = re.search(r'^\*\*' + label + r'\*\* \((\d+) of 30\)\n\n```\n(.*?)\n```', sec, re.S | re.M)
+        if not f:
+            raise Failed(f'the {label} block of section 4.2 is not found')
+        v = f.group(2)
+        if '\n' in v or not v.strip() or len(v) > 30 or len(v) != int(f.group(1)):
+            raise Failed(f'{label}: {len(v)} characters, the file says {f.group(1)} (limit 30)')
+        if '\u2014' in v or '\u2013' in v:
+            raise Failed(f'{label}: an em or en dash')
+        out[key] = v
+        say(f"{key}: {len(v)} of 30, UTF-8 sha256 {hashlib.sha256(v.encode('utf-8')).hexdigest()[:16]}: {v}")
+    return out
+
+
+def arabic_appinfo(api, app):
+    say('== arabic-appinfo')
+    t = ar_text()
+    info = editable_app_info(api, app)
+    if not info:
+        raise Failed('no App Info to write')
+    ils, _ = api.all(f"/v1/appInfos/{info['id']}/appInfoLocalizations?limit=50")
+    cur = next((l for l in ils if l['attributes'].get('locale') == 'ar-SA'), None)
+    if not cur:
+        raise Failed('no ar-SA App Info localization (this mode only edits the one that exists)')
+    ca = cur.get('attributes') or {}
+    same = {k: ca.get(k) == v for k, v in t.items()}
+    for k in t:
+        say(f"  now {k}: {len(ca.get(k) or '')} characters, {'already the approved text' if same[k] else 'differs'}")
+    if all(same.values()):
+        say('nothing to write')
+    else:
+        api.need('PATCH', f"/v1/appInfoLocalizations/{cur['id']}", {'data': {'type': 'appInfoLocalizations', 'id': cur['id'], 'attributes': t}})
+    if api.transport != 'live':
+        say(f'{api.writes} write(s) printed, none sent')
+        return
+    say('== read-back')
+    got = api.get(f"/v1/appInfoLocalizations/{cur['id']}")['data']['attributes']
+    verdict([((got.get(k) or '').encode('utf-8') == v.encode('utf-8'),
+              f"ar-SA {k}: {'byte for byte equal to' if (got.get(k) or '').encode('utf-8') == v.encode('utf-8') else 'DIFFERENT from'} section 4.2 ({len((got.get(k) or '').encode('utf-8'))} vs {len(v.encode('utf-8'))} bytes)") for k, v in t.items()])
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('mode', choices=['read', 'settings', 'screenshots', 'english', 'check-en'])
+    ap.add_argument('mode', choices=['read', 'settings', 'screenshots', 'english', 'arabic-appinfo', 'check-en'])
     ap.add_argument('--app', default=os.environ.get('ASC_APP_APPLE_ID', ''))
     ap.add_argument('--auth', help='file holding "Authorization: Bearer <token>"')
     ap.add_argument('--live', action='store_true', help='send the writes')
@@ -596,7 +654,7 @@ def main():
             if a.mode == 'english':
                 english(api, a.app, a.flag)
             else:
-                {'settings': settings, 'screenshots': screenshots}[a.mode](api, a.app)
+                {'settings': settings, 'screenshots': screenshots, 'arabic-appinfo': arabic_appinfo}[a.mode](api, a.app)
             if transport == 'live':
                 read_all(api, a.app)
         return 0

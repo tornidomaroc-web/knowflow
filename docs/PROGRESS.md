@@ -451,6 +451,23 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-15 - S7d follow-up: no price schedule reads as none; the Arabic App Info name and subtitle by the API; the "name or email" claim proven from the code
+
+**No row is edited** (rows 42, 69 and 81 untouched). No macOS workflow is involved.
+
+- **The first read (run 38665885040) failed on the price.** With no price set, Apple answers `appPriceSchedule` with an id (the app's own) whose base territory and prices are 404. `store_setup.py` now reads that as no schedule, and the same for an availability without territory rows.
+- **The same read found the Arabic App Info unsaved:** the ar-SA name holds 8 characters and the subtitle is empty, not the approved «KnowFlow: ذاكر من ملفاتك» / «اسأل، لخّص، واختبر نفسك». The S7c entry in the web page did not persist on App Information. New mode `arabic-appinfo`:
+  - It reads both strings from section 4.2 of `docs/store/ASC_ANSWERS.md` and requires its approval line.
+  - It PATCHes only `name` and `subtitle` of the ar-SA localization.
+  - It reads them back byte for byte.
+- **"Neither receives your name or your email address"** (English draft; the same sentence is in the approved Arabic listing and in the app's consent sheet, `notSent` in en.ts and ar.ts): proven for the account's name and e-mail, so kept.
+  - The account name (`full_name`, written to `user_metadata` at signup, `src/app/[locale]/signup/page.tsx`) and the e-mail are read by no AI route and no ingestion code.
+  - No Anthropic call passes `metadata` or a user field.
+  - **Upload:** Voyage AI receives only the chunk texts of the file (`services/ingestion/main.py` `_embed_voyage`: `input`, `model`, `input_type`, `output_dimension`; chunks from `_chunk_text`). Anthropic is not called.
+  - **Ask:** Voyage receives the question text (`src/lib/ingestion.ts` `embedQuery`, the `/embed` route). Anthropic receives the system instructions, up to ten earlier turns of that conversation, the retrieved passages each labelled with its file name, and the question (`src/app/api/agent/route.ts`).
+  - **Summary and quiz:** Anthropic receives a language instruction and the file's text (`src/app/api/summarize/route.ts`, `src/app/api/quiz/generate/route.ts`).
+  - Caveat: the student's own content is sent: file text, questions and, in Ask, file names. A name the student typed into those reaches both companies; the sentence is about the account's data.
+
 ### 2026-10-15 - App Store Connect through the API (Step S7d): price, availability, content rights, screenshots, English listing drafted
 
 **No row is edited** (rows 42, 69 and 81 untouched). No macOS workflow is involved. No build is attached to version 1.0 and nothing is submitted for review; the review details written in S7b are not touched.
