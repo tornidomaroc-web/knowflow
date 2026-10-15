@@ -451,6 +451,39 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-15 - App Store Connect through the API (Step S7d): price, availability, content rights, screenshots, English listing drafted
+
+**No row is edited** (rows 42, 69 and 81 untouched). No macOS workflow is involved. No build is attached to version 1.0 and nothing is submitted for review; the review details written in S7b are not touched.
+
+- **The owner's decisions (2026-10-15):** English name "KnowFlow: Study Your Notes"; price tier Free; every storefront except mainland China; Mac (Apple silicon) and Vision Pro availability off; content rights: no third-party content.
+- **`.github/workflows/asc-store-setup.yml`** (dispatch only, main only, ubuntu-24.04, environment `reviewer`) runs `scripts/asc/store_setup.py` (Python standard library only) in four modes:
+  - `read` writes nothing.
+  - `settings`: price Free (the USA base price point of 0), all territories but CHN, new territories on, content rights `DOES_NOT_USE_THIRD_PARTY_CONTENT`; idempotent.
+  - `screenshots`: the ten approved PNGs go into the `APP_IPHONE_67` (6.9-inch) set of the ar and en-US version localizations, replacing that set, in order 01 to 05; each must reach COMPLETE with Apple's checksum equal to the file's MD5.
+  - `english` creates the en-US localization.
+  - `dry_run` (default true) sends the reads and prints every write exactly. A live write mode ends with a read-back that fails unless the change holds.
+  - The script refuses, before sending, any write to the review details, a build, a submission, users or testers.
+- **The key.** It reuses the App Manager team key in `reviewer`. A new environment would need a new key: a .p8 is downloadable once, and its file was deleted after S7b. The job names only the three key secrets and the app id, so the reviewer account's secrets never reach it.
+- **English listing, agent drafts, NOT approved** (`docs/store/ASC_ANSWERS_EN.md`, matching the approved Arabic listing in meaning; section 4.1 of ASC_ANSWERS.md marked superseded):
+
+  | Field | Characters |
+  |---|---|
+  | Name | 26 of 30 |
+  | Subtitle | 29 of 30 |
+  | Keywords | 98 of 100 |
+  | Promotional text | 158 of 170 |
+  | Description | 1,643 of 4,000 |
+
+  The `english` mode refuses unless `docs/store/ASC_ANSWERS_EN.approved` holds the file's SHA-256 (LF line ends), so an edit after approval blocks it again.
+- **Found: Mac (Apple silicon) and Vision Pro availability is not in the App Store Connect API** (OpenAPI spec 4.5.1: the only fields of those names, `iosBuildsAvailableForAppleSiliconMac` and `iosBuildsAvailableForAppleVision`, belong to TestFlight beta groups). Both stay ON by default until they are unticked in the web page (Pricing and Availability). Open for the owner.
+- **Found: en-US screenshots wait for the en-US localization.** The `screenshots` mode skips a language without a version localization and names it; it does not create one.
+- **Local proof:**
+  - actionlint 1.7.7 clean; `bash -n` clean on all five run blocks.
+  - The workflow's ES256 token minting verifies with Node on a throwaway key (1,200 s).
+  - Offline mode on `scripts/asc/fixtures-offline.json`: `read` prints the state; `settings`, `screenshots` and `english` print their exact calls and send none.
+  - `english` refuses with no flag and with a wrong flag, and prints two POSTs with the right one.
+  - The guard refuses review-detail, build and submission writes.
+
 ### 2026-10-15 - App Store screenshots approved as final (review PR #277): capture 38646534381, framed by run 38653714840
 
 **No row is edited** (rows 42, 69 and 81 untouched). No macOS workflow was dispatched in this step. The owner reviewed all ten framed screenshots in #277 (head 0d0c8375943807b43c6480d398636241134a7245) and approved them as final for the App Store upload. The PNGs this PR adds are those of that head, byte-identical.

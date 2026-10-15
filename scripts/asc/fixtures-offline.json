@@ -1,0 +1,12 @@
+{
+  "/v1/apps/6820418649": {"data": {"type": "apps", "id": "6820418649", "attributes": {"name": "KnowFlow: ذاكر من ملفاتك", "bundleId": "com.knowflow.app", "primaryLocale": "ar-SA", "contentRightsDeclaration": null}}},
+  "/v1/apps/6820418649/appInfos": {"data": [{"type": "appInfos", "id": "INFO-1", "attributes": {"state": "PREPARE_FOR_SUBMISSION", "appStoreState": "PREPARE_FOR_SUBMISSION"}}]},
+  "/v1/appInfos/INFO-1/appInfoLocalizations": {"data": [{"type": "appInfoLocalizations", "id": "AIL-AR", "attributes": {"locale": "ar-SA", "name": "KnowFlow: ذاكر من ملفاتك", "subtitle": "اسأل، لخّص، واختبر نفسك", "privacyPolicyUrl": "https://tryknowflow.com/ar/privacy"}}]},
+  "/v1/apps/6820418649/appStoreVersions": {"data": [{"type": "appStoreVersions", "id": "VER-1", "attributes": {"versionString": "1.0", "appVersionState": "PREPARE_FOR_SUBMISSION", "platform": "IOS"}}]},
+  "/v1/appStoreVersions/VER-1/build": {"data": null},
+  "/v1/appStoreVersions/VER-1/appStoreVersionLocalizations": {"data": [{"type": "appStoreVersionLocalizations", "id": "VL-AR", "attributes": {"locale": "ar-SA", "description": "x", "keywords": "x", "promotionalText": "x", "supportUrl": "https://tryknowflow.com/ar/contact", "marketingUrl": null}}]},
+  "/v1/appStoreVersionLocalizations/VL-AR/appScreenshotSets": {"data": [{"type": "appScreenshotSets", "id": "SET-AR-67", "attributes": {"screenshotDisplayType": "APP_IPHONE_67"}}]},
+  "/v1/appScreenshotSets/SET-AR-67/appScreenshots": {"data": [{"type": "appScreenshots", "id": "OLD-1", "attributes": {"fileName": "old-01.png", "sourceFileChecksum": "0", "assetDeliveryState": {"state": "COMPLETE"}}}]},
+  "/v1/apps/6820418649/appPricePoints": {"data": [{"type": "appPricePoints", "id": "PP-USA-1", "attributes": {"customerPrice": "0.99"}}, {"type": "appPricePoints", "id": "PP-USA-0", "attributes": {"customerPrice": "0.0"}}]},
+  "/v1/territories": {"data": [{"type": "territories", "id": "USA"}, {"type": "territories", "id": "CHN"}, {"type": "territories", "id": "MAR"}, {"type": "territories", "id": "FRA"}, {"type": "territories", "id": "SAU"}]}
+}
