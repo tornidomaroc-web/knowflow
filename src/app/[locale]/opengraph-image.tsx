@@ -2,7 +2,6 @@ import { ImageResponse } from 'next/og';
 import { SITE_URL } from '@/lib/site';
 import { locales } from '@/lib/i18n';
 import { BRAND, loadBrandFont } from '../_brand/brand';
-import { markDataUri } from '../_brand/mark';
 
 /**
  * THE LINK PREVIEW. This file exists because `twitter:card` already claimed
@@ -55,46 +54,37 @@ export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
 /**
- * THE MARK ON THIS CARD, AND WHY BOTH ITS NUMBERS AND ITS COLOUR ARE DERIVED.
+ * THE MARK ON THIS CARD IS THE APP ICON, the owner's approved artwork
+ * (assets/brand/AppIcon-1024.png, 2026-10-15), the same mark the home screen,
+ * the tab and the splash show: the owner's rule is one icon everywhere. It
+ * arrives as `src/app/_brand/app-icon-mark.png`, written by
+ * scripts/brand/gen-app-icons.py: the master with its edge faded to
+ * transparent, so the square's own ground never shows as a seam on this one.
+ * It replaces the chevron-and-diamond SVG that used to sit here (the deleted
+ * `_brand/mark.ts`); a PNG data URI is something Satori renders as it is,
+ * with none of the SVG-subset traps that file warned about.
  *
- * THE SIZE IS NOT PICKED. Rubik's `sCapHeight` is 700 of 1000 units per em, so
- * the wordmark's cap height at `fontSize: 148` is 103.60px. The artwork keeps
- * all its ink inside 80 of its 100 units, so a 129px box puts the mark's ink at
- * 103.2px — THE MARK'S INK HEIGHT IS THE WORDMARK'S CAP HEIGHT. The margin is
- * 31 rather than 44 because the artwork already carries 12.9px of its own
- * margin (its 10-unit safe border at this size), and 44 is this card's existing
- * rhythm — the rule's `marginTop`. Change `fontSize: 148` and both numbers are
- * wrong; they are derived from it.
+ * THE SIZE IS DERIVED, NOT PICKED. Rubik's `sCapHeight` is 700 of 1000 units
+ * per em, so the wordmark's cap height at `fontSize: 148` is 103.60px. The
+ * ring's outer edge spans 72% of the artwork, so a 144px box puts the ring at
+ * 103.7px: THE RING'S HEIGHT IS THE WORDMARK'S CAP HEIGHT. The box then
+ * carries 20px of its own margin below the ring, and 44 is this card's
+ * rhythm (the rule's `marginTop`), so the margin here is 44 - 20 = 24. Change
+ * `fontSize: 148` and both numbers are wrong; they are derived from it.
  *
- * THE COLOUR IS A RULE RATHER THAN A CHOICE, AND GOLD WAS ARGUED FOR AND LOST.
- * `markSvg` requires `fill` and refuses a default because there is no correct
- * one: the mark has NO COLOUR OF ITS OWN. What it has is a rule — it wears the
- * FOREGROUND OF WHATEVER GROUND IT SITS ON. On the gold tile that is
- * `--accent-foreground` (`BRAND.onGold`); in the app it will be `currentColor`,
- * which on a dark surface inherits `--foreground`. This card's ground is
- * `--background`, so the mark wears `--foreground` — `BRAND.text`. Gold is an
- * accent this card already spends TWICE, on "Flow" and on the rule, and it
- * would have made this the one surface where that rule breaks. `currentColor`
- * must never reach Satori, which is why the colour is interpolated here instead
- * of living in the artwork.
- *
- * WHAT THE BAND THAT USED TO SIT HERE CLAIMED, AND WHY THE CLAIM IS GONE TOO.
- * A full-width 16px gold band sat at the top of this card, and the comment on
- * it said it was "what still reads as KnowFlow after the wordmark has stopped
- * being legible" at the ~200px width a WhatsApp thumbnail gets. That was
- * measured and it is FALSE: the wordmark is legible at 200 and at 120 without
- * it. The comment is deleted with the band rather than left behind, because a
- * false justification in the source outlives the thing it justified.
- *
- * KNOWN AND ACCEPTED LIMIT, RECORDED RATHER THAN DISCOVERED LATER: below
- * roughly 100px wide the diamond starts to fail where the band would have
- * survived. That is ruled acceptable. At the 200px messaging thumbnail that
- * actually binds this surface the mark holds — 16x17px of ink, the 10-unit gap
- * clearing 100% back to the ground, and two connected components at every
- * threshold tested.
+ * The 200px messaging thumbnail that binds this surface shows the ring at
+ * about 17px: a gold circle on a dark ground, which is what the icon is at
+ * that size on a phone too.
  */
-const MARK_PX = 129;
-const MARK_MARGIN_BOTTOM = 31;
+const MARK_PX = 144;
+const MARK_MARGIN_BOTTOM = 24;
+
+async function loadAppIconMark(): Promise<string> {
+  const { readFile } = await import('node:fs/promises');
+  const { join } = await import('node:path');
+  const png = await readFile(join(process.cwd(), 'src/app/_brand/app-icon-mark.png'));
+  return `data:image/png;base64,${png.toString('base64')}`;
+}
 
 /**
  * NOT OPTIONAL, AND THE BUILD OUTPUT IS HOW YOU CHECK IT. Moving this file under
@@ -115,6 +105,7 @@ export function generateStaticParams() {
 
 export default async function OpenGraphImage() {
   const fontData = await loadBrandFont();
+  const mark = await loadAppIconMark();
 
   // The metadata everywhere else in the app is built from SITE_URL, so the card
   // is too rather than hardcoding the host a second time. On a Vercel preview
@@ -136,9 +127,9 @@ export default async function OpenGraphImage() {
           fontFamily: 'Rubik',
         }}
       >
-        {/* Cream, and derived. See "THE MARK ON THIS CARD" above. */}
+        {/* The app icon, faded at its edge. See "THE MARK ON THIS CARD" above. */}
         <img
-          src={markDataUri(BRAND.text)}
+          src={mark}
           width={MARK_PX}
           height={MARK_PX}
           style={{ marginBottom: MARK_MARGIN_BOTTOM }}
