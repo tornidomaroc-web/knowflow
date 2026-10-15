@@ -17,7 +17,10 @@ MODES
   screenshots  the five approved PNGs of each language
                (docs/store/screenshots-designed/{ar,en}/01..05) into the
                APP_IPHONE_67 set (the 6.9-inch slot: 1320 x 2868) of the ar and
-               en-US version localizations, replacing that set, in order; each
+               en-US version localizations, in order. Idempotent: a set that
+               already holds the five (same file names and MD5 checksums in
+               order, all COMPLETE) is left alone, no write; any other set is
+               emptied and uploaded again, and a missing set is created; each
                upload must reach COMPLETE with Apple's checksum equal to the
                file's MD5. A language whose version localization does not
                exist is reported and skipped, never created here.
@@ -416,11 +419,21 @@ def put_parts(path, ops):
     return len(ops)
 
 
+def held(shots):
+    """What a set holds, as (fileName, sourceFileChecksum, delivery state) in Apple's order."""
+    return [((g.get('attributes') or {}).get('fileName'), (g.get('attributes') or {}).get('sourceFileChecksum'),
+             ((g.get('attributes') or {}).get('assetDeliveryState') or {}).get('state')) for g in shots]
+
+
+def wanted(files):
+    return [(os.path.basename(f), md5(f), 'COMPLETE') for f in files]
+
+
 def screenshots(api, app):
     say('== screenshots')
     v = version_of(api, app)
     locs = version_locs(api, v['id'])
-    pending, done = [], []
+    pending, done, kept = [], [], []
     for prefix, folder in SHOT_TARGETS:
         files = sorted(glob.glob(os.path.join(SHOTS, folder, '0[1-5]-*.png')))
         if len(files) != 5:
@@ -434,8 +447,20 @@ def screenshots(api, app):
         say(f'{locale} ({loc["id"]}): {len(files)} files from docs/store/screenshots-designed/{folder}')
         s = shot_set(api, loc['id'])
         if s:
+            # Compare before any DELETE: the approved five already in place, in
+            # order and COMPLETE, are not deleted for nothing (the ar-SA set,
+            # run 38770955611). A set with any other name, checksum, count or
+            # delivery state is emptied and uploaded again.
             old = shots_in(api, s['id'])
-            say(f'  {DISPLAY} set {s["id"]}: {len(old)} existing screenshot(s), removed first')
+            have = held(old)
+            if have == wanted(files):
+                say(f'{locale}: already the approved five, unchanged')
+                kept.append(locale)
+                done.append((locale, s['id'], files))
+                continue
+            say(f'  {DISPLAY} set {s["id"]}: {len(old)} existing screenshot(s) differ from the files, removed first')
+            for name, sum_, state in have:
+                say(f'    had {name}: {state}, checksum {sum_}')
             for o in old:
                 api.need('DELETE', f"/v1/appScreenshots/{o['id']}", ok=(204,))
             sid = s['id']
@@ -471,18 +496,16 @@ def screenshots(api, app):
         api.need('PATCH', f'/v1/appScreenshotSets/{sid}/relationships/appScreenshots', {'data': [{'type': 'appScreenshots', 'id': i} for i in ids]}, ok=(200, 204))
         done.append((locale, sid, files))
     if api.transport != 'live':
-        say(f'{api.writes} write(s) printed, none sent; pending: {pending or "none"}')
+        say(f'{api.writes} write(s) printed, none sent; unchanged: {kept or "none"}; pending: {pending or "none"}')
         return
     say('== read-back')
     checks = []
-    for locale, sid, files in done:
-        got = shots_in(api, sid)
-        want = [(os.path.basename(f), md5(f)) for f in files]
-        have = [((g.get('attributes') or {}).get('fileName'), (g.get('attributes') or {}).get('sourceFileChecksum')) for g in got]
-        states = [((g.get('attributes') or {}).get('assetDeliveryState') or {}).get('state') for g in got]
-        for (wn, wm), (hn, hm), st in zip(want, have, states):
+    for locale, sid, files in done:  # the kept sets too: the read-back verifies every locale, not only the written ones
+        have, want = held(shots_in(api, sid)), wanted(files)
+        for (wn, wm, _), (hn, hm, st) in zip(want, have):
             say(f'  {locale} {hn}: {st}, checksum {"=" if hm == wm else "!="} file MD5 {wm}')
-        checks.append((have == want and all(s == 'COMPLETE' for s in states), f'{locale}: {len(got)} screenshots in order 01 to 05, all COMPLETE, checksums equal to the files'))
+        checks.append((have == want, f'{locale}: {len(have)} screenshots in order 01 to 05, all COMPLETE, checksums equal to the files'
+                       + (' (unchanged)' if locale in kept else '')))
     for p in pending:
         say(f'pending: {p} (no version localization)')
     verdict(checks)
@@ -564,19 +587,28 @@ def english(api, app, flag_path=EN_FLAG):
     ils, _ = api.all(f"/v1/appInfos/{info['id']}/appInfoLocalizations?limit=50")
     cur = next((l for l in ils if l['attributes'].get('locale') == 'en-US'), None)
     ia = {'name': t['name'], 'subtitle': t['subtitle'], 'privacyPolicyUrl': t['privacyPolicyUrl']}
+    # The ids are said either way: a live run must be traceable to the record
+    # it created or found (run 38795422677 created one and never named it).
     if cur:
         api.need('PATCH', f"/v1/appInfoLocalizations/{cur['id']}", {'data': {'type': 'appInfoLocalizations', 'id': cur['id'], 'attributes': ia}})
+        say(f"  en-US App Info localization found: {cur['id']}")
     else:
-        api.need('POST', '/v1/appInfoLocalizations', {'data': {'type': 'appInfoLocalizations', 'attributes': dict(ia, locale='en-US'),
-                                                             'relationships': {'appInfo': {'data': {'type': 'appInfos', 'id': info['id']}}}}}, ok=(201,))
+        js = api.need('POST', '/v1/appInfoLocalizations', {'data': {'type': 'appInfoLocalizations', 'attributes': dict(ia, locale='en-US'),
+                                                                  'relationships': {'appInfo': {'data': {'type': 'appInfos', 'id': info['id']}}}}}, ok=(201,))
+        say(f"  en-US App Info localization created: {(js.get('data') or {}).get('id')}")
     v = version_of(api, app)
+    # Read again after the App Info write: App Store Connect creates the
+    # version localization of a new locale itself (run 38795422677 found
+    # 62a4db70 right after the POST, where the dry run had found none).
     vl = next((l for l in version_locs(api, v['id']) if l['attributes'].get('locale') == 'en-US'), None)
     va = {'description': t['description'], 'keywords': t['keywords'], 'promotionalText': t['promotionalText'], 'supportUrl': t['supportUrl']}
     if vl:
         api.need('PATCH', f"/v1/appStoreVersionLocalizations/{vl['id']}", {'data': {'type': 'appStoreVersionLocalizations', 'id': vl['id'], 'attributes': va}})
+        say(f"  en-US version localization found: {vl['id']}")
     else:
-        api.need('POST', '/v1/appStoreVersionLocalizations', {'data': {'type': 'appStoreVersionLocalizations', 'attributes': dict(va, locale='en-US'),
-                                                                     'relationships': {'appStoreVersion': {'data': {'type': 'appStoreVersions', 'id': v['id']}}}}}, ok=(201,))
+        js = api.need('POST', '/v1/appStoreVersionLocalizations', {'data': {'type': 'appStoreVersionLocalizations', 'attributes': dict(va, locale='en-US'),
+                                                                          'relationships': {'appStoreVersion': {'data': {'type': 'appStoreVersions', 'id': v['id']}}}}}, ok=(201,))
+        say(f"  en-US version localization created: {(js.get('data') or {}).get('id')}")
     if api.transport != 'live':
         say(f'{api.writes} write(s) printed, none sent')
         return
