@@ -61,6 +61,10 @@ const OLD_BUBBLE = '.flex.justify-start > div > .kf-card { white-space: pre-wrap
 // Capture 38618442205, ar/04 (the step reading).
 const DEVICE = { questionTop: 16, list: 444, firstSource: 610, allSources: 662 };
 const DEVICE_SPAN = DEVICE.firstSource - DEVICE.questionTop;
+// The device's list was measured with 34 pt subject chips. Since #284 the chips
+// are 44 pt, so the subject bar is 8 px taller and the list 8 px shorter than
+// the capture's, by design; the stand-in must reproduce the device less that.
+const CHIP_BAR_GROWTH = 8;
 const RE = /question top (-?\d+) of list (\d+); first source bottom (-?\d+|none); all sources bottom (-?\d+|none); list at end (yes|no)/;
 
 const browser = await puppeteer.launch({ executablePath: process.env.CHROME || 'google-chrome', args: ['--no-sandbox', '--hide-scrollbars'] });
@@ -163,20 +167,15 @@ for (const job of JOBS) {
     ...a.cost.filters.map((f) => `filter on ${f}`),
     ...(words.length ? [`wording ${JSON.stringify(words)}`] : []),
   ];
-  // KNOWN, NOT HIDDEN: Ask's subject chips are 34 pt tall in the live app
-  // (the device's ar/04 shows the same), under the 44 pt target. Reported to
-  // the owner as an open item in this step, not fixed here: a taller bar
-  // shortens the Ask list and moves the ar/04 fit this step measures. Kept in
-  // audit.json under `known`, printed on every run, never counted as a pass.
-  const chip = (f) => answer && /^target \d+ x 34 < 44 x 44 button\.whitespace-nowrap "/.test(f);
-  const known = bad.filter(chip);
-  bad.splice(0, bad.length, ...bad.filter((f) => !chip(f)));
+  // Ask's subject chips were 34 pt tall here until #284 (the device's ar/04
+  // shows that height), carried as a known open item. They are 44 pt now, so
+  // the 44 x 44 target check above covers them like every other control: a
+  // chip under 44 pt is a finding again, not a known.
   failures += bad.length;
   // `bottom`: the pixel rows bottom_check.py reads (settings-end only).
-  results.push({ file: job.file, url: o.url, findings: bad, known, proved: want.map(([ok, m]) => ({ ok, m })), reading, ...extra, ...(answer ? {} : { bottom: { rows: INSET.bottom * 3, page: extra.page } }) });
+  results.push({ file: job.file, url: o.url, findings: bad, proved: want.map(([ok, m]) => ({ ok, m })), reading, ...extra, ...(answer ? {} : { bottom: { rows: INSET.bottom * 3, page: extra.page } }) });
   console.log(`${bad.length ? 'FAIL' : 'ok  '} ${job.file}: ${want.map(([, m]) => m).join('; ')}`);
   for (const b of bad) console.log(`       ${b}`);
-  for (const k of known) console.log(`       known (open item, subject chips): ${k}`);
   await tab.close();
 }
 
@@ -217,9 +216,9 @@ if (!PLANT) {
       fit[name] = { reading: r.reading, ...(r.m || {}), gap: r.m && r.m.firstSource !== null ? r.m.firstSource - r.m.list : null, sourcesRows: r.m && r.m.allSources !== null && r.m.firstSource !== null ? r.m.allSources - r.m.firstSource : null };
     }
     const okCal = Math.abs(calib.span - DEVICE_SPAN) <= 12;
-    const okList = fit.old.list === DEVICE.list;
+    const okList = fit.old.list === DEVICE.list - CHIP_BAR_GROWTH;
     console.log(`${okCal ? 'ok  ' : 'FAIL'} the old bubble reproduces the device: span ${calib.span} px vs ${DEVICE_SPAN} at tail ${calib.n} of ${words} words`);
-    console.log(`${okList ? 'ok  ' : 'FAIL'} the list is the device's height: ${fit.old.list} vs ${DEVICE.list}`);
+    console.log(`${okList ? 'ok  ' : 'FAIL'} the list is the device's height less the taller subject bar: ${fit.old.list} vs ${DEVICE.list} - ${CHIP_BAR_GROWTH}`);
     console.log(`note the sources row: ${fit.old.sourcesRows} px from the first pill's bottom to the row's (device ${DEVICE.allSources - DEVICE.firstSource})`);
     console.log(`fit: old bubble gap ${fit.old.gap} px; new bubble gap ${fit.new.gap} px; new bubble and new question gap ${fit['new-question'].gap} px (positive: the first source is that far below the list)`);
     failures += (okCal ? 0 : 1) + (okList ? 0 : 1);
