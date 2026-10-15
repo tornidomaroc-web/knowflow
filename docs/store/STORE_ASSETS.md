@@ -18,10 +18,11 @@ then and correct this file in place.
 Apple uses ONE artwork for both: the 1024×1024 icon in the Xcode asset
 catalog is what App Store Connect lists, and iOS derives every on-device
 size from it. Google Play uses two: the adaptive icon inside the APK/AAB,
-and a separate 512×512 listing icon uploaded in the Console. The owner's
-internal mark (`src/app/_brand/mark.ts`, register #99) is a different
-thing again: it is the web home-screen tile and the share card, and it is
-not what the stores receive.
+and a separate 512×512 listing icon uploaded in the Console. Since #282
+(2026-10-15) there is one artwork everywhere: the owner's approved master
+`assets/brand/AppIcon-1024.png`, from which `scripts/brand/gen-app-icons.py`
+writes the iOS and Android icons, the splash screens, the web favicon and
+tile and the share-card mark (`src/app/_brand/mark.ts` is gone).
 
 ### 1.1 iOS / App Store — one file
 
