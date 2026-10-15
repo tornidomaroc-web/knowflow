@@ -62,6 +62,16 @@ jobs:
           tesseract --version | head -n 1
           tesseract --list-langs
           python3 scripts/store-shots/ocr_proof.py docs/store/screenshots-designed "$RUNNER_TEMP/proof"
+          # A missing model fails the scan, never a silent English-only read
+          # (store-shots run 38655549707): the Arabic set with eng alone installed.
+          mkdir -p "$RUNNER_TEMP/eng-only"
+          cp /usr/share/tesseract-ocr/5/tessdata/eng.traineddata /usr/share/tesseract-ocr/5/tessdata/osd.traineddata "$RUNNER_TEMP/eng-only/"
+          if TESSDATA_PREFIX="$RUNNER_TEMP/eng-only" python3 scripts/store-shots/ocr_scan.py docs/store/screenshots-designed/ar/04-ask.png > "$RUNNER_TEMP/eng-only.log"; then
+            cat "$RUNNER_TEMP/eng-only.log"; echo "the scan passed without the Arabic model"; exit 1
+          fi
+          cat "$RUNNER_TEMP/eng-only.log"
+          grep -q "^FAIL the reader has its models: needs \['ara', 'eng'\]" "$RUNNER_TEMP/eng-only.log"
+          echo "ok   without the Arabic model the scan refuses to read the Arabic set"
 
       - name: Keep the plants and the line crops
         if: always()
