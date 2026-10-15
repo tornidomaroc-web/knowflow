@@ -161,10 +161,12 @@ class Api:
             raise Failed(f"GET {path.split('?', 1)[0]} answered {code}")
         return js
 
-    def all(self, path):
+    def all(self, path, allow404=False):
         out, included, nxt, pages = [], [], path, 0
         while nxt and pages < 30:
-            js = self.get(nxt)
+            js = self.get(nxt, allow404=allow404 and pages == 0)
+            if js is None:
+                return None, None
             out += js.get('data') or []
             included += js.get('included') or []
             nxt = (js.get('links') or {}).get('next')
@@ -208,8 +210,15 @@ def price_state(api, app):
     sid = ((sched or {}).get('data') or {}).get('id')
     if not sid:
         return None
-    base = api.get(f'/v1/appPriceSchedules/{sid}/baseTerritory')
-    prices, inc = api.all(f'/v1/appPriceSchedules/{sid}/manualPrices?include=appPricePoint,territory&fields[appPricePoints]=customerPrice&limit=200')
+    # With no price set, Apple still answers the relationship with an id (the
+    # app's own) whose base territory and prices are 404 (read run
+    # 38665885040): that is "no schedule".
+    base = api.get(f'/v1/appPriceSchedules/{sid}/baseTerritory', allow404=True)
+    if not base or not base.get('data'):
+        return None
+    prices, inc = api.all(f'/v1/appPriceSchedules/{sid}/manualPrices?include=appPricePoint,territory&fields[appPricePoints]=customerPrice&limit=200', allow404=True)
+    if prices is None:
+        return None
     points = {i['id']: (i.get('attributes') or {}).get('customerPrice') for i in inc if i.get('type') == 'appPricePoints'}
     rows = []
     for p in prices:
@@ -234,7 +243,9 @@ def availability_state(api, app):
     if not aid:
         return None
     attrs = ((av or {}).get('data') or {}).get('attributes') or {}
-    tas, inc = api.all(f'/v2/appAvailabilities/{aid}/territoryAvailabilities?include=territory&fields[territoryAvailabilities]=available,territory&limit=200')
+    tas, inc = api.all(f'/v2/appAvailabilities/{aid}/territoryAvailabilities?include=territory&fields[territoryAvailabilities]=available,territory&limit=200', allow404=True)
+    if tas is None:
+        return None
     rows = {}
     for t in tas:
         terr = (((t.get('relationships') or {}).get('territory') or {}).get('data') or {}).get('id')
