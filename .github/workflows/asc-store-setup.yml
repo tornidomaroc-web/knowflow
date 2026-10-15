@@ -14,11 +14,14 @@ name: asc-store-setup
 #                and en-US version localizations, replacing the set; each one
 #                COMPLETE with Apple's checksum equal to the file's MD5. A
 #                language without a version localization is skipped and named.
+#   arabic-appinfo  the owner-approved Arabic name and subtitle (read from
+#                docs/store/ASC_ANSWERS.md section 4.2) into the ar-SA App Info
+#                localization, those two fields only; read back byte for byte.
 #   english      the en-US localization from docs/store/ASC_ANSWERS_EN.md,
 #                refused unless docs/store/ASC_ANSWERS_EN.approved holds that
 #                file's SHA-256 (checked before the key is even read).
 #
-# dry_run (default true) applies to the three write modes: the reads are sent
+# dry_run (default true) applies to the four write modes: the reads are sent
 # and every write is printed exactly (method, path, JSON body), none is sent.
 # A write mode with dry_run false ends with a read-back that fails unless the
 # change holds, then the full read.
@@ -46,12 +49,12 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'read: the state, no write. settings: price Free, all territories but CHN, content rights. screenshots: the ten approved PNGs into the 6.9-inch sets. english: the en-US localization (only with the approval flag).'
+        description: 'read: the state, no write. settings: price Free, all territories but CHN, content rights. screenshots: the ten approved PNGs into the 6.9-inch sets. arabic-appinfo: the approved Arabic name and subtitle. english: the en-US localization (only with the approval flag).'
         type: choice
-        options: [read, settings, screenshots, english]
+        options: [read, arabic-appinfo, settings, screenshots, english]
         default: read
       dry_run:
-        description: 'For settings, screenshots and english: true prints every write exactly and sends none; false sends them and reads them back.'
+        description: 'For the write modes: true prints every write exactly and sends none; false sends them and reads them back.'
         type: boolean
         default: true
 
