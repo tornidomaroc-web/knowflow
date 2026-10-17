@@ -34,6 +34,15 @@ MODES
                text, support URL) from docs/store/ASC_ANSWERS_EN.md, only when
                docs/store/ASC_ANSWERS_EN.approved holds that file's SHA-256.
   check-en     the English text's limits, dashes and wording, offline.
+  builds       prints, writes nothing: every build of version 1.0 (number,
+               processingState, expired, usesNonExemptEncryption, minOsVersion,
+               buildAudienceType, uploadedDate, its preReleaseVersion and its
+               buildBetaDetail states), one line per build, and the build
+               version 1.0 has attached. GET only, by construction: the mode
+               marks the Api read-only, so call() refuses any other method
+               before the network, in every transport, and --live is refused.
+               buildAudienceType INTERNAL_ONLY is a build exported with
+               testFlightInternalTestingOnly, which version 1.0 cannot take.
 
 NOT IN THE API. The availability of the iPhone app on Macs with Apple silicon
 and on Apple Vision Pro: App Store Connect API 4.5.1 has no field for it (the
@@ -109,8 +118,11 @@ class Api:
         self.fixtures = json.load(open(fixtures, encoding='utf-8')) if fixtures else {}
         self.writes = 0
         self.fake = 0
+        self.read_only = False
 
     def call(self, method, path, body=None):
+        if method != 'GET' and self.read_only:
+            raise Failed(f'REFUSED: {method} {path} in a read-only mode')
         if method != 'GET' and FORBIDDEN.search(path):
             raise Failed(f'REFUSED: {method} {path} is never written by this script')
         if method != 'GET' and self.transport != 'live':
@@ -309,6 +321,39 @@ def read_all(api, app):
         say(f"availability {av['id']}: {len(on)} available, {len(off)} not ({', '.join(off[:12]) or 'none'}); {NO_CHINA} {'available' if rows.get(NO_CHINA, {}).get('available') else 'not available'}; new territories {av['new']}")
     say('Mac (Apple silicon) and Apple Vision Pro availability: not in the App Store Connect API (4.5.1); read and set in the App Store Connect web page, Pricing and Availability')
     return {'app': a, 'version': v, 'price': p, 'availability': av}
+
+
+# ---------------------------------------------------------------- builds
+
+BUILD_FIELDS = 'version,processingState,expired,usesNonExemptEncryption,minOsVersion,buildAudienceType,uploadedDate,preReleaseVersion,buildBetaDetail'
+
+
+def builds(api, app):
+    if not api.read_only:
+        raise Failed('the builds mode runs only on a read-only Api')
+    say('== builds')
+    v = version_of(api, app)
+    b = api.get(f"/v1/appStoreVersions/{v['id']}/build", allow404=True)
+    say(f"version {VERSION}: id {v['id']}, state {v['attributes'].get('appVersionState')}, build attached: {'yes, ' + b['data']['id'] if b and b.get('data') else 'none'}")
+    rows, inc = api.all(f'/v1/builds?filter[app]={app}&filter[preReleaseVersion.version]={VERSION}&filter[preReleaseVersion.platform]=IOS'
+                        f'&sort=-uploadedDate&fields[builds]={BUILD_FIELDS}&include=preReleaseVersion,buildBetaDetail'
+                        '&fields[preReleaseVersions]=version,platform&fields[buildBetaDetails]=internalBuildState,externalBuildState&limit=50')
+    by = {(i.get('type'), i.get('id')): i.get('attributes') or {} for i in inc or []}
+
+    def rel(row, name):
+        d = ((row.get('relationships') or {}).get(name) or {}).get('data') or {}
+        return by.get((d.get('type'), d.get('id'))) if d else None
+
+    say(f'builds of version {VERSION}: {len(rows)}')
+    for row in rows:
+        a = row.get('attributes') or {}
+        pre, beta = rel(row, 'preReleaseVersion'), rel(row, 'buildBetaDetail')
+        say(f"  build {a.get('version')} ({row.get('id')}): processingState {a.get('processingState')}, expired {a.get('expired')}, "
+            f"usesNonExemptEncryption {a.get('usesNonExemptEncryption')}, minOsVersion {a.get('minOsVersion')}, "
+            f"buildAudienceType {a.get('buildAudienceType')}, uploadedDate {a.get('uploadedDate')}, "
+            f"preReleaseVersion {(pre or {}).get('version')} {(pre or {}).get('platform')}, "
+            f"beta internal {(beta or {}).get('internalBuildState')} external {(beta or {}).get('externalBuildState')}")
+    return rows
 
 
 # ---------------------------------------------------------------- settings
@@ -680,7 +725,7 @@ def arabic_appinfo(api, app):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('mode', choices=['read', 'settings', 'screenshots', 'english', 'arabic-appinfo', 'check-en'])
+    ap.add_argument('mode', choices=['read', 'builds', 'settings', 'screenshots', 'english', 'arabic-appinfo', 'check-en'])
     ap.add_argument('--app', default=os.environ.get('ASC_APP_APPLE_ID', ''))
     ap.add_argument('--auth', help='file holding "Authorization: Bearer <token>"')
     ap.add_argument('--live', action='store_true', help='send the writes')
@@ -698,10 +743,15 @@ def main():
         transport = 'offline' if a.offline else ('live' if a.live else 'dry')
         if a.offline and a.live:
             raise Failed('--offline and --live together')
+        if a.mode == 'builds' and a.live:
+            raise Failed('the builds mode is read-only; --live is refused')
         api = Api(transport, a.auth, a.offline)
+        api.read_only = a.mode in ('read', 'builds')
         say(f'mode {a.mode}, transport {transport}' + ('' if transport == 'live' else ' (no write is sent)'))
         if a.mode == 'read':
             read_all(api, a.app)
+        elif a.mode == 'builds':
+            builds(api, a.app)
         else:
             if a.mode == 'english':
                 english(api, a.app, a.flag)

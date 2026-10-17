@@ -1,7 +1,9 @@
 name: ios-testflight
 
-# Archives, signs and uploads the iOS shell to TestFlight, internal testing
-# only (docs/store/STORE_PATH.md T4). Copied from Scan & Action's measured
+# Archives, signs and uploads the iOS shell to TestFlight; since 2026-10-17
+# each build is App Store eligible (ios/ExportOptions.plist no longer sets
+# testFlightInternalTestingOnly), and attaching one to a version or submitting
+# it needs the owner's word (docs/store/STORE_PATH.md T4). Copied from Scan & Action's measured
 # pipeline (§8.4) and reduced to what this app needs: the shell loads the hosted
 # site, so there is no web bundle to build and no npm anywhere in this file.
 #

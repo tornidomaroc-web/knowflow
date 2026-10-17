@@ -6,6 +6,11 @@ name: asc-store-setup
 # standard library only); this file mints the token and runs it.
 #
 #   read         the state, no write.
+#   builds       every build of version 1.0 (processingState, expired,
+#                encryption, minOsVersion, buildAudienceType, uploadedDate,
+#                preReleaseVersion, beta states), one line each, and the
+#                build attached to 1.0. GET only: store_setup.py refuses any
+#                other method in this mode, and it never gets --live.
 #   settings     price Free (USA base, price point 0), every territory but
 #                mainland China (CHN), new territories on, content rights
 #                "does not use third-party content". Idempotent.
@@ -49,9 +54,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'read: the state, no write. settings: price Free, all territories but CHN, content rights. screenshots: the ten approved PNGs into the 6.9-inch sets. arabic-appinfo: the approved Arabic name and subtitle. english: the en-US localization (only with the approval flag).'
+        description: 'read: the state, no write. builds: the builds of 1.0 and the attached one, no write. settings: price Free, all territories but CHN, content rights. screenshots: the ten approved PNGs into the 6.9-inch sets. arabic-appinfo: the approved Arabic name and subtitle. english: the en-US localization (only with the approval flag).'
         type: choice
-        options: [read, arabic-appinfo, settings, screenshots, english]
+        options: [read, builds, arabic-appinfo, settings, screenshots, english]
         default: read
       dry_run:
         description: 'For the write modes: true prints every write exactly and sends none; false sends them and reads them back.'
@@ -137,7 +142,7 @@ jobs:
         run: |
           set -eu
           live=""
-          if [ "$MODE" != read ] && [ "$DRY_RUN" = false ]; then live=--live; fi
+          if [ "$MODE" != read ] && [ "$MODE" != builds ] && [ "$DRY_RUN" = false ]; then live=--live; fi
           python3 -I scripts/asc/store_setup.py "$MODE" --auth "$RUNNER_TEMP/asc/auth-header" $live
 
       - name: Remove the key and the token
