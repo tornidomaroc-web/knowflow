@@ -9,10 +9,10 @@
 	     and uploads it to App Store Connect itself, authenticated by the same
 	     API key as the archive step. No altool, no Transporter, no certificate
 	     in secrets.
-	     testFlightInternalTestingOnly: the build "cannot be distributed via
-	     external TestFlight or the App Store", so nothing this file exports can
-	     reach App Review before the submission build, which is a later change
-	     that removes this key.
+	     App Store eligible: testFlightInternalTestingOnly was removed on
+	     2026-10-17, so every build exported from here can be attached to an App
+	     Store version (builds 1 to 6 carried it and never can). Attaching a
+	     build to a version, and submitting it, each needs the owner's word.
 	     manageAppVersionAndBuildNumber: Xcode bumps a stale CFBundleVersion in
 	     the staged copy at upload, the safety net behind the run number and the
 	     pre-archive check of the highest build App Store Connect already holds. -->
@@ -27,8 +27,6 @@
 	<key>uploadSymbols</key>
 	<true/>
 	<key>manageAppVersionAndBuildNumber</key>
-	<true/>
-	<key>testFlightInternalTestingOnly</key>
 	<true/>
 </dict>
 </plist>
