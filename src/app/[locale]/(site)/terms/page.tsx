@@ -10,10 +10,10 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
     <div className="py-24" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="max-w-3xl mx-auto px-6 text-muted-foreground text-start">
         <h1 className="text-5xl font-bold mb-4 text-foreground">Terms of Service</h1>
-        <p className="text-sm uppercase tracking-wide font-medium text-primary mb-12">Last updated: September 2026</p>
+        <p className="text-sm uppercase tracking-wide font-medium text-primary mb-12">Last updated: October 2026</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Acceptance of Terms</h2>
-        <p className="mb-6">By accessing or using KnowFlow, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our platform.</p>
+        <p className="mb-6">By accessing or using KnowFlow, you agree to be bound by these Terms of Service. They are an agreement between you and Abdelfettah Amellah, who operates KnowFlow; the contact address at the end of this page reaches the person responsible for it. If you do not agree to these terms, please do not use our platform.</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Use of Service</h2>
         <p className="mb-6">You agree to use KnowFlow only for lawful purposes. You must not misuse the platform, attempt to reverse engineer our proprietary algorithms, or disrupt the service for other users.</p>

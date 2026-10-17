@@ -21,6 +21,10 @@ export function SubjectChips({
   selectedId: string;
   onPick: (id: string) => void;
 }) {
+  // 44 pt tall (min-h-11): the iOS tap target. The chips were 34 px (20 px
+  // line, 6 px padding each side, 1 px borders) and stayed so only while the
+  // store shot ar/04 needed them (Store-Shots-1); the screenshots are uploaded,
+  // so the target wins. Height, not font: the text stays text-sm, centred.
   return (
     <div className="flex gap-2 overflow-x-auto">
       {subjects.map((kb) => (
@@ -30,7 +34,7 @@ export function SubjectChips({
           onClick={() => onPick(kb.id)}
           aria-pressed={selectedId === kb.id}
           className={cn(
-            'whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
+            'inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
             selectedId === kb.id
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border text-muted-foreground hover:border-primary hover:text-foreground',

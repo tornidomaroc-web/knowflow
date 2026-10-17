@@ -12,7 +12,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
         <h1 className="text-5xl font-bold mb-4 text-foreground">Privacy Policy</h1>
         <p className="text-sm uppercase tracking-wide font-medium text-primary mb-12">Last updated: October 2026</p>
 
-        <p className="mb-6">This Privacy Policy applies to KnowFlow, the study service at tryknowflow.com. KnowFlow is operated by an independent developer, and the contact address given below reaches the person responsible for it.</p>
+        <p className="mb-6">This Privacy Policy applies to KnowFlow, the study service at tryknowflow.com. KnowFlow is operated by Abdelfettah Amellah, and the contact address given below reaches the person responsible for it.</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Information We Collect</h2>
         <p className="mb-6">We collect information you provide directly to us when you create an account, upload materials, or contact us. This includes your name, your email address, and the content of the files you upload to your subjects.</p>
