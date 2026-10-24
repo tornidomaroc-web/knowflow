@@ -285,6 +285,9 @@ private final class Smoke {
             "probe": probe,
         ]
         if let nav = nav { line["nav"] = nav }
+        // DIAG (branch diag/ipad-zoom only): the native geometry at every line,
+        // for the Guideline 4.0 iPad compatibility-mode measurement.
+        line["native"] = nativeReading()
         // The whole line is scrubbed: a probe's `text` on the Settings screen
         // carries the account's e-mail, which must not reach the artifact.
         if let data = try? JSONSerialization.data(withJSONObject: line), let raw = String(data: data, encoding: .utf8) {
@@ -293,6 +296,40 @@ private final class Smoke {
             lines += 1
             NSLog("[KFSmoke] %@", s)
         }
+    }
+
+    /// Screen, window, web view and scroll view geometry, in the app's own
+    /// points: [x, y, w, h] for rects, [top, left, bottom, right] for insets.
+    private func nativeReading() -> [String: Any] {
+        guard let c = controller, let web = c.bridge?.webView else { return ["error": "no webview"] }
+        func r(_ x: CGRect) -> [Double] { [Double(x.origin.x), Double(x.origin.y), Double(x.size.width), Double(x.size.height)] }
+        func e(_ i: UIEdgeInsets) -> [Double] { [Double(i.top), Double(i.left), Double(i.bottom), Double(i.right)] }
+        let sv = web.scrollView
+        var out: [String: Any] = [
+            "idiom": UIDevice.current.userInterfaceIdiom.rawValue,
+            "traitIdiom": c.traitCollection.userInterfaceIdiom.rawValue,
+            "model": UIDevice.current.model,
+            "screen": r(UIScreen.main.bounds),
+            "screenNative": r(UIScreen.main.nativeBounds),
+            "screenScale": Double(UIScreen.main.scale),
+            "webFrame": r(web.frame),
+            "webInWindow": r(web.convert(web.bounds, to: nil)),
+            "contentSize": [Double(sv.contentSize.width), Double(sv.contentSize.height)],
+            "contentOffset": [Double(sv.contentOffset.x), Double(sv.contentOffset.y)],
+            "contentInset": e(sv.contentInset),
+            "adjustedInset": e(sv.adjustedContentInset),
+            "zoomScale": Double(sv.zoomScale),
+            "zoomRange": [Double(sv.minimumZoomScale), Double(sv.maximumZoomScale)],
+            "viewSafe": e(c.view.safeAreaInsets),
+            "webSafe": e(web.safeAreaInsets),
+        ]
+        if let win = c.view.window {
+            out["window"] = r(win.bounds)
+            out["windowFrame"] = r(win.frame)
+            out["windowSafe"] = e(win.safeAreaInsets)
+            if let scene = win.windowScene { out["sceneScreen"] = r(scene.screen.bounds) }
+        }
+        return out
     }
 
     private func write(_ name: String, _ text: String, append: Bool) {
