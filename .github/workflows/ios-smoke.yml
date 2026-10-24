@@ -1,34 +1,90 @@
 name: ios-smoke
 
-# DIAGNOSTIC — branch diag/ipad-zoom ONLY; never merged. This file replaces the
-# smoke job on the branch so it can be dispatched with --ref (a workflow must
-# exist on main to be dispatchable at all).
+# Builds the iOS shell for the Simulator and RUNS it against the live site
+# (docs/store/STORE_PATH.md step b). No signing, no App Store Connect key, no
+# environment, no secret of any kind: a fork can run this and reach nothing.
 #
-# Purpose (owner, 2026-10-24, Guideline 4.0 rejection of 1.0 build 7): prove or
-# disprove that tapping a 14 px field zooms the web view and that the zoom
-# survives client-side navigation, on an iPad Air 11-inch (M3) simulator
-# running the iPhone-only app in compatibility mode, plus an iPhone baseline.
+# WHAT IT PROVES, each from a reading inside the running app, not from a
+# unit test. MainViewController.swift (simulator builds only, when the launch
+# environment sets KF_SMOKE=1) evaluates a probe in the web view after the
+# first page settles and after each step this workflow passes it, and appends
+# one JSON line per step to tmp/smoke.jsonl in the app's data container:
+#   1. the marker reaches the server: the first page is a /native/ twin (no
+#      Google button), and the user agent in the page carries KnowFlowApp/1;
+#   2. the Capacitor bridge is present in a document served from
+#      tryknowflow.com (window.Capacitor.isNativePlatform() true, platform
+#      "ios"), the one reading that decides the architecture (§8.3 of the
+#      store path: if it ever turns false, the fallback is the bundled build);
+#   3. client-side navigation between two rewritten pages keeps the document
+#      (a window property set before the click survives it) and lands on the
+#      signup twin; a direct load of the dashboard bounces to the login twin;
+#   4. with the site unreachable (its name pointed at 127.0.0.1 in /etc/hosts
+#      for one launch), the bundled offline page is what the app shows;
+#   5. an off-site link (the GitHub link in the privacy page's footer) leaves
+#      the web view where it was and takes the app out of the foreground,
+#      which is Capacitor opening the system browser;
+#   6. the study reminder's plugin (STORE_PATH.md S3(a)): the bridge lists
+#      LocalNotifications, nothing asks for the notification permission at
+#      launch (the app stays active and the status reads "prompt"), the
+#      system prompt appears only when the permission is requested (the app
+#      goes inactive under it); with notifications allowed, a daily reminder
+#      at 19:00 is pending, saving 07:30 replaces it, and cancelling leaves
+#      none;
+#   7. the app's privacy manifest (ITMS-91053): an unsigned Release build for
+#      a device carries PrivacyInfo.xcprivacy, and every required-reason API
+#      that any binary in it reaches is declared
+#      (.github/scripts/ios-privacy-check.py prints the audit table).
+# A screenshot is taken at every new line of smoke.jsonl, and the app's log
+# is kept, so the record is pictures and text, not a green tick alone.
 #
-# Signed out only: no environment, no secret, no account, no sign-in, no AI
-# call. The taps are real touches through idb (idb_companion + fb-idb), never
-# JavaScript focus(). Every line of smoke.jsonl carries the page measurement
-# (when the step is one) and the native geometry (MainViewController.swift).
+# DRIFT. `cap sync` regenerates the parts of ios/ and android/ it owns from
+# capacitor.config.ts and the installed plugins. The committed tree must be
+# what the config generates, or a later archive would build something other
+# than the commit (Scan & Action's lesson, STORE_PATH.md §8.5): after the
+# sync, `git status` must be clean under ios/ and android/.
+#
+# COST. Standard GitHub-hosted runners are "free and unlimited on public
+# repositories" (docs.github.com, read 2026-10-07). macos-26 is a standard
+# label; -large and -xlarge are larger runners and bill even here, so this
+# file must never name one. If the repository ever goes private, macOS is
+# $0.062 per minute.
+#
+# RUNNER. macos-26: Apple requires uploads "built with Xcode 26 or later"
+# since 2026-04-28, and the simulator here is the same image the signing job
+# will use later. macos-latest also resolves there today; a label that moves
+# is not a pin.
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ios/**'
+      - 'android/**'
+      - 'native/**'
+      - 'capacitor.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios-smoke.yml'
   workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'smoke: the seven proofs. background-request: the seven proofs, then the measurement of a request in flight while the app is in the background'
+        type: choice
+        options: [smoke, background-request]
+        default: smoke
 
 permissions:
   contents: read
 
 concurrency:
-  group: ios-ipad-zoom-${{ github.ref }}
+  group: ios-smoke-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  zoom:
-    name: iOS — focus-zoom measurement, iPhone baseline and iPad compatibility mode (signed out)
+  smoke:
+    name: iOS — simulator build and smoke run against the live site (no signing, no secrets)
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 45
     steps:
       - name: Check out the repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -42,198 +98,495 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Sync the native projects
-        run: npx cap sync
+      # The committed native projects must be what the config generates.
+      - name: Sync the native projects and fail on drift
+        run: |
+          set -eu
+          npx cap sync
+          git status --porcelain -- ios android capacitor.config.ts native > "$RUNNER_TEMP/drift.txt" || true
+          if [ -s "$RUNNER_TEMP/drift.txt" ]; then
+            echo "FAIL: cap sync changed committed files; commit what it generates:"
+            cat "$RUNNER_TEMP/drift.txt"
+            git --no-pager diff -- ios android | head -n 120
+            exit 1
+          fi
+          echo "no drift: the committed ios/ and android/ are what capacitor.config.ts generates"
 
       - name: Xcode in use
         run: |
           sudo xcode-select -p
           xcodebuild -version
 
+      # Swift packages: the Capacitor runtime and the app's plugin package.
+      # Package.resolved is committed once it exists (it is printed and kept
+      # as an artifact here so the first run can produce it); when it is
+      # committed the resolution must match it or fail.
       - name: Resolve Swift packages
         run: |
           set -eu -o pipefail
-          xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj -scheme App \
-            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" -onlyUsePackageVersionsFromResolvedFile 2>&1 \
-            | tee "$RUNNER_TEMP/resolve.log" | { grep -E '^(warning|error|\*\*)|: (error|warning):' || true; }
+          resolved=ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          # macOS ships bash 3.2, where an empty array expands as unbound under set -u.
+          flags=()
+          if [ -f "$resolved" ]; then flags=(-onlyUsePackageVersionsFromResolvedFile); cp "$resolved" "$RUNNER_TEMP/Package.resolved.committed"; fi
+          xcodebuild \
+            -resolvePackageDependencies \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
+            ${flags[@]+"${flags[@]}"} 2>&1 | tee "$RUNNER_TEMP/resolve.log" | { grep -E '^(warning|error|\*\*|Resolved|Fetching|Cloning|Creating)|: (error|warning):' || true; }
+          test -f "$resolved" || { echo "no Package.resolved was written"; tail -n 40 "$RUNNER_TEMP/resolve.log"; exit 1; }
+          if [ -f "$RUNNER_TEMP/Package.resolved.committed" ]; then
+            cmp "$RUNNER_TEMP/Package.resolved.committed" "$resolved" || { echo "FAIL: the resolution rewrote the committed Package.resolved; commit the file printed below"; cat "$resolved"; exit 1; }
+          fi
+          echo "===== Package.resolved ====="; cat "$resolved"; echo "===== end ====="
+          echo "checkouts:"; ls -1 "$RUNNER_TEMP/spm/checkouts"
+
+      - name: Keep Package.resolved
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: package-resolved-${{ github.sha }}
+          path: ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Build for the iOS Simulator (unsigned)
         run: |
           set -eu -o pipefail
-          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/dd" \
-            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" -disableAutomaticPackageResolution \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            build 2>&1 | tee "$RUNNER_TEMP/build.log" | { grep -E '^(error|\*\*|Build)|: error:' || true; }
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
+            -disableAutomaticPackageResolution \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee "$RUNNER_TEMP/build.log" | { grep -E '^(warning|error|\*\*|Build)|: (error|warning):' || true; }
           app=$(find "$RUNNER_TEMP/dd/Build/Products" -maxdepth 2 -name 'App.app' -type d | head -n 1)
           test -n "$app" || { echo "no App.app was built"; tail -n 60 "$RUNNER_TEMP/build.log"; exit 1; }
           echo "APP_PATH=$app" >> "$GITHUB_ENV"
-          echo "UIDeviceFamily of the built app (1 = iPhone only):"
-          /usr/libexec/PlistBuddy -c 'Print :UIDeviceFamily' "$app/Info.plist"
+          echo "built: $app"
+          # ITMS-90683's lesson: no purpose string for a permission the app does
+          # not use, and none is used in this step.
+          if /usr/libexec/PlistBuddy -c 'Print' "$app/Info.plist" | grep -q 'UsageDescription'; then echo "FAIL: a purpose string is in Info.plist but no permission is used"; exit 1; fi
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$app/Info.plist"
 
-      # The tap tool. If it cannot be installed the job stops here (owner's rule:
-      # report and stop, no re-run).
-      - name: Install idb (idb_companion + fb-idb)
+      # Proof 7. What Apple scans is a device binary, so the check reads an
+      # unsigned Release build for a device, not the simulator build above.
+      - name: Build for a device (unsigned Release) and check the privacy manifest
+        run: |
+          set -eu -o pipefail
+          test -f "$APP_PATH/PrivacyInfo.xcprivacy" || { echo "FAIL: the simulator build carries no PrivacyInfo.xcprivacy"; exit 1; }
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/dd-device" \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
+            -disableAutomaticPackageResolution \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee "$RUNNER_TEMP/build-device.log" | { grep -E '^(warning|error|\*\*|Build)|: (error|warning):' || true; }
+          device_app=$(find "$RUNNER_TEMP/dd-device/Build/Products" -maxdepth 2 -name 'App.app' -type d | head -n 1)
+          test -n "$device_app" || { echo "no device App.app was built"; tail -n 60 "$RUNNER_TEMP/build-device.log"; exit 1; }
+          python3 .github/scripts/ios-privacy-check.py "$device_app" | tee "$RUNNER_TEMP/privacy-audit.txt"
+
+      - name: Boot a simulator
         run: |
           set -eu
-          brew tap facebook/fb
-          brew install idb-companion uv
-          uv tool install --python 3.11 fb-idb
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          idb_companion --version || true
-          "$HOME/.local/bin/idb" --help | head -n 5
+          udid=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; c=[(r,x["udid"],x["name"]) for r,v in d.items() if "iOS" in r for x in v if x["name"].startswith("iPhone")]; c.sort(); print(c[-1][1])')
+          test -n "$udid"
+          echo "simulator: $(xcrun simctl list devices available | grep "$udid")"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b | tail -n 2
+          echo "UDID=$udid" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/shots"
 
-      - name: Measure on the iPhone baseline and on the iPad Air 11-inch (M3)
+      # The script the app runs, one line of JavaScript per step. `l` is the
+      # locale the page is on; the server chose it from the simulator's
+      # Accept-Language on the first request.
+      - name: Smoke run against the live site (proofs 1, 2, 3 and 5)
         run: |
-          set -u
-          OUT="$RUNNER_TEMP/out"
-          mkdir -p "$OUT"
-          # The steps: every m-* step returns the page measurement as its result.
-          python3 - "$RUNNER_TEMP/steps.json" <<'PY'
-          import json, sys
-          MEASURE = r"""(function(){var d=document.documentElement,v=window.visualViewport,p=document.createElement('div');p.style.cssText='position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';document.body.appendChild(p);var cs=getComputedStyle(p),safe=[cs.paddingTop,cs.paddingRight,cs.paddingBottom,cs.paddingLeft].map(parseFloat);p.remove();var W=d.clientWidth,o=[],all=document.body.getElementsByTagName('*');for(var i=0;i<all.length&&o.length<12;i++){var el=all[i],r=el.getBoundingClientRect();if(r.width>0&&(r.right>W+0.5||r.left<-0.5)){o.push(el.tagName.toLowerCase()+(el.id?'#'+el.id:'')+(typeof el.className==='string'&&el.className.trim()?'.'+el.className.trim().split(/\s+/).slice(0,3).join('.'):'')+' w='+Math.round(r.width)+' l='+Math.round(r.left)+' r='+Math.round(r.right))}}var a=document.activeElement,f=Array.prototype.slice.call(document.querySelectorAll('input,textarea,select')).map(function(x){return (x.type||x.tagName.toLowerCase())+':'+getComputedStyle(x).fontSize});return JSON.stringify({path:location.pathname+location.search,iw:innerWidth,ih:innerHeight,vv:v?{w:v.width,h:v.height,s:v.scale,ol:v.offsetLeft,ot:v.offsetTop,pl:v.pageLeft,pt:v.pageTop}:null,sw:d.scrollWidth,cw:W,sh:d.scrollHeight,ch:d.clientHeight,sx:scrollX,sy:scrollY,dpr:devicePixelRatio,safe:safe,dir:d.dir,theme:d.getAttribute('data-theme'),active:a?(a.tagName+(a.type?':'+a.type:'')):null,fields:f,over:o,nav:window.__kfNav||0})})()"""
-          NAV = "(function(){window.__kfNav=1;var a=Array.prototype.slice.call(document.querySelectorAll('a')).filter(function(a){return /\\/signup$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no signup link'}a.click();return 'clicked '+a.getAttribute('href')})()"
-          def load(q): return "(function(){location.assign('/ar/login?d=%s');return 'assigned'})()" % q
-          steps = [
-            {"name": "ar-login", "until": r"/ar/login\?d=1$", "wait": 3000, "js": load(1)},
-            {"name": "m-before-email", "wait": 300, "js": MEASURE},
-            {"name": "m-after-email-tap", "wait": 300, "js": MEASURE},
-            {"name": "nav-signup-1", "until": r"/ar/signup$", "wait": 2500, "js": NAV},
-            {"name": "m-after-email-nav", "wait": 300, "js": MEASURE},
-            {"name": "ar-login-fresh", "until": r"/ar/login\?d=2$", "wait": 3000, "js": load(2)},
-            {"name": "m-before-password", "wait": 300, "js": MEASURE},
-            {"name": "m-after-password-tap", "wait": 300, "js": MEASURE},
-            {"name": "nav-signup-2", "until": r"/ar/signup$", "wait": 2500, "js": NAV},
-            {"name": "m-after-password-nav", "wait": 300, "js": MEASURE},
+          set -eu
+          cat > "$RUNNER_TEMP/steps.json" <<'JSON'
+          [
+            {"name":"signup-link","until":"/(en|ar)/signup$","wait":5000,"js":"(function(){window.__kfNav=1;var a=Array.prototype.slice.call(document.querySelectorAll('a')).filter(function(a){return /\\/signup$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no signup link'}a.click();return 'clicked '+a.getAttribute('href')})()"},
+            {"name":"dashboard-direct","until":"/(en|ar)/login$","wait":3000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard');return 'assigned /'+l+'/dashboard'})()"},
+            {"name":"wording-baseline","wait":500,"js":"(function(){return location.pathname})()"},
+            {"name":"wording-plant","wait":500,"js":"(function(){var p=document.createElement('p');p.id='kf-plant';p.textContent='Upgrade to our Pro plan · انتقل إلى باقتك واشتراكك';document.body.appendChild(p);return 'planted'})()"},
+            {"name":"wording-unplant","wait":500,"js":"(function(){var p=document.getElementById('kf-plant');if(p){p.remove()}return p?'removed':'none'})()"},
+            {"name":"live-signup","until":"/en/signup$","wait":4000,"js":"(function(){location.assign('/en/signup');return 'assigned /en/signup'})()"},
+            {"name":"live-terms","until":"/en/terms$","wait":4000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
+            {"name":"live-refund","until":"/en/refund$","wait":4000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
+            {"name":"live-about","until":"/en/about$","wait":4000,"js":"(function(){location.assign('/en/about');return 'assigned /en/about'})()"},
+            {"name":"live-contact","until":"/en/contact$","wait":4000,"js":"(function(){location.assign('/en/contact');return 'assigned /en/contact'})()"},
+            {"name":"privacy","until":"/(en|ar)/privacy$","wait":3000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/privacy');return 'assigned /'+l+'/privacy'})()"},
+            {"name":"external-link","wait":5000,"js":"(function(){var a=document.querySelector('a[href^=\"https://github.com\"]');if(!a){return 'no external link'}a.click();return 'clicked '+a.href})()"}
           ]
-          json.dump(steps, open(sys.argv[1], "w"))
-          PY
+          JSON
           steps=$(base64 < "$RUNNER_TEMP/steps.json" | tr -d '\n')
+          xcrun simctl install "$UDID" "$APP_PATH"
+          # The container exists once the app is installed; asking before the
+          # launch (it takes a while to answer) lets the loop below start with
+          # the app and catch every step's line while its page is on screen.
+          data=$(xcrun simctl get_app_container "$UDID" com.knowflow.app data)
+          echo "data container: $data"
+          xcrun simctl spawn "$UDID" log stream --style compact --predicate 'process == "App"' > "$RUNNER_TEMP/app-online.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/log.pid"
+          # Backgrounded: `simctl launch` returns only once the app is up, which
+          # takes about half a minute here, by which time every step has run.
+          SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$steps" &
+          # On this simulator FileManager.temporaryDirectory is tmp/<bundle id>/,
+          # on older ones tmp/ itself: find the files wherever they land.
+          sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
+          seen=0
+          # 600 s: Step Wording-1 added eight readings (the planted proof and the
+          # live signed-out pages), about 18 s each with the acknowledgement;
+          # at 300 s the loop ended mid-run on 2026-10-12 (run 38264230960).
+          for i in $(seq 1 600); do
+            f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
+            if [ "$n" -gt "$seen" ]; then
+              seen=$n
+              name=$(tail -n 1 "$f" | python3 -c 'import json,sys; print(json.loads(sys.stdin.readline())["step"])')
+              xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/online-$seen-$name.png" >/dev/null 2>&1 || true
+              echo "step $seen ($name): $(tail -n 1 "$f" | cut -c1-400)"
+              # The app waits for this file before its next step (MainViewController.afterAck).
+              touch "$(dirname "$f")/ack-$seen"
+            fi
+            [ -n "$(sf smoke.done)" ] && break
+            sleep 1
+          done
+          f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$RUNNER_TEMP/smoke-online.jsonl"
+          xcrun simctl terminate "$UDID" com.knowflow.app || true
+          kill "$(cat "$RUNNER_TEMP/log.pid")" 2>/dev/null || true
+          b=$(sf smoke.boot); echo "boot file: $([ -n "$b" ] && cat "$b" || echo '(none: capacitorDidLoad never ran in MainViewController)')"
+          [ -n "$b" ] && cp "$b" "$RUNNER_TEMP/smoke.boot"
+          test -n "$(sf smoke.done)" || { echo "FAIL: the smoke run did not finish; lines seen: $seen"; [ -n "$f" ] && cat "$f"; find "$data/tmp" -maxdepth 3 | head -n 30; grep -iE 'KFSmoke|Unknown class|crash|fatal' "$RUNNER_TEMP/app-online.log" | tail -n 30 || true; exit 1; }
 
-          rt=$(xcrun simctl list runtimes -j | python3 -c 'import json,sys; r=[x for x in json.load(sys.stdin)["runtimes"] if x.get("platform")=="iOS" and x.get("isAvailable")]; r.sort(key=lambda x:[int(p) for p in x["version"].split(".")]); print(r[-1]["identifier"])')
-          dt_ipad=$(xcrun simctl list devicetypes -j | python3 -c 'import json,sys; d=[x["identifier"] for x in json.load(sys.stdin)["devicetypes"] if x["name"]=="iPad Air 11-inch (M3)"]; print(d[0] if d else "")')
-          dt_iphone=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; c=sorted((x["name"],x["deviceTypeIdentifier"]) for r,v in d.items() if "iOS" in r for x in v if x["name"].startswith("iPhone")); print(c[-1][1])')
-          echo "runtime: $rt"; echo "iPhone type: $dt_iphone"; echo "iPad type: ${dt_ipad:-MISSING}"
-          echo "$rt $dt_iphone $dt_ipad" > "$OUT/devices.txt"
-
-          tapfield() {
-            dev=$1; kind=$2
-            idb ui describe-all --json > "$OUT/$dev-ax-$kind.json" 2> "$OUT/$dev-ax-$kind.err" || echo "describe-all failed: $(head -c 400 "$OUT/$dev-ax-$kind.err")"
-            pt=$(python3 - "$OUT/$dev-ax-$kind.json" "$kind" <<'PY'
-          import json, sys
-          raw = open(sys.argv[1]).read().strip()
-          try:
-              els = json.loads(raw)
-          except Exception:
-              els = [json.loads(l) for l in raw.splitlines() if l.strip().startswith("{")]
-          if isinstance(els, dict): els = [els]
-          want = ("SecureTextField",) if sys.argv[2] == "password" else ("TextField",)
-          for e in els:
-              t = e.get("type") or ""
-              role = e.get("role") or ""
-              if t in want or role == "AX" + want[0]:
-                  f = e.get("frame") or {}
-                  if f.get("width", 0) > 0:
-                      print("%.1f %.1f %s" % (f["x"] + f["width"] / 2, f["y"] + f["height"] / 2, json.dumps({"type": t, "label": e.get("AXLabel"), "frame": f}, ensure_ascii=False)))
-                      break
-          PY
-          )
-            if [ -z "$pt" ]; then echo "TAP FAILED ($dev $kind): no field in the accessibility tree"; echo "$dev $kind none" >> "$OUT/taps.txt"; return; fi
-            x=$(echo "$pt" | cut -d' ' -f1); y=$(echo "$pt" | cut -d' ' -f2)
-            if idb ui tap "$x" "$y" 2> "$OUT/$dev-tap-$kind.err"; then echo "tapped $dev $kind at $pt"; echo "$dev $kind $pt" >> "$OUT/taps.txt"
-            else echo "TAP FAILED ($dev $kind): $(head -c 400 "$OUT/$dev-tap-$kind.err")"; echo "$dev $kind failed" >> "$OUT/taps.txt"; fi
-            sleep 3
-          }
-
-          run_device() {
-            dev=$1; dtype=$2
-            [ -n "$dtype" ] || { echo "SKIP $dev: device type not on this image"; return; }
-            UDID=$(xcrun simctl create "kf-$dev" "$dtype" "$rt") || { echo "SKIP $dev: create failed"; return; }
-            xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b | tail -n 1
-            xcrun simctl ui "$UDID" appearance dark || true
-            if ! xcrun simctl install "$UDID" "$APP_PATH" 2> "$OUT/$dev-install.err"; then echo "INSTALL FAILED on $dev: $(cat "$OUT/$dev-install.err")"; xcrun simctl shutdown "$UDID"; return; fi
-            idb_companion --udid "$UDID" --grpc-port 10882 > "$OUT/$dev-companion.log" 2>&1 &
-            cpid=$!
-            for i in $(seq 1 30); do nc -z localhost 10882 2>/dev/null && break; sleep 1; done
-            idb connect localhost 10882 || echo "idb connect failed on $dev"
-            idb list-targets > "$OUT/$dev-targets.txt" 2>&1 || true
+      # Proof 6, two launches on the login page of the live site; the steps
+      # call the plugin through the bridge (Capacitor.nativePromise), so this
+      # needs no change on the site. Launch A is a fresh install: nothing may
+      # ask at launch, and a request must raise the system prompt (the app
+      # goes inactive under it; the screenshot shows it). Launch B starts with
+      # provisional authorization (KF_SMOKE_NOTIFY, MainViewController.swift),
+      # which iOS grants with no prompt, and schedules, replaces and cancels
+      # the reminder exactly as the Settings card does.
+      - name: Smoke run of the reminder plugin (proof 6)
+        run: |
+          set -eu
+          run_launch() {
+            label=$1; steps_file=$2; extra_env=$3
+            steps=$(base64 < "$steps_file" | tr -d '\n')
             data=$(xcrun simctl get_app_container "$UDID" com.knowflow.app data)
             sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
-            SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$steps" &
+            find "$data/tmp" -maxdepth 3 \( -name 'smoke.*' -o -name 'ack-*' \) -delete 2>/dev/null || true
+            if [ -n "$extra_env" ]; then
+              SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_NOTIFY="$extra_env" SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$steps" &
+            else
+              SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$steps" &
+            fi
             seen=0
-            for i in $(seq 1 600); do
+            for i in $(seq 1 200); do
               f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
               if [ "$n" -gt "$seen" ]; then
                 seen=$n
                 name=$(tail -n 1 "$f" | python3 -c 'import json,sys; print(json.loads(sys.stdin.readline())["step"])')
-                xcrun simctl io "$UDID" screenshot "$OUT/$dev-$(printf %02d "$seen")-$name.png" >/dev/null 2>&1 || true
-                echo "$dev line $seen ($name)"
-                case "$name" in
-                  m-before-email) tapfield "$dev" email ;;
-                  m-before-password) tapfield "$dev" password ;;
-                esac
+                xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$label-$seen-$name.png" >/dev/null 2>&1 || true
+                echo "$label step $seen ($name): $(tail -n 1 "$f" | python3 -c 'import json,sys; r=json.loads(sys.stdin.readline()); print(r.get("result"), "appState", r.get("appState"))')"
                 touch "$(dirname "$f")/ack-$seen"
               fi
               [ -n "$(sf smoke.done)" ] && break
               sleep 1
             done
-            f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$OUT/$dev.jsonl"
-            [ -n "$(sf smoke.done)" ] || echo "WARN $dev: the run did not finish; lines seen $seen"
+            f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$RUNNER_TEMP/smoke-$label.jsonl"
             xcrun simctl terminate "$UDID" com.knowflow.app || true
-            idb disconnect localhost 10882 || true
-            kill "$cpid" 2>/dev/null || true
-            xcrun simctl shutdown "$UDID" || true
+            test -n "$(sf smoke.done)" || { echo "FAIL: the $label run did not finish; lines seen: $seen"; exit 1; }
           }
+          cat > "$RUNNER_TEMP/notify-a.json" <<'JSON'
+          [
+            {"name":"notify-launch","wait":2500,"js":"(function(){var C=window.Capacitor;window.__kfN='pending';if(!C||!C.nativePromise){return 'no bridge'}var av=C.isPluginAvailable('LocalNotifications');C.nativePromise('LocalNotifications','checkPermissions',{}).then(function(r){window.__kfN=r.display},function(e){window.__kfN='error '+e.message});return 'available='+av})()"},
+            {"name":"notify-status","wait":500,"js":"(function(){return String(window.__kfN)})()"},
+            {"name":"notify-request","wait":4000,"js":"(function(){window.Capacitor.nativePromise('LocalNotifications','requestPermissions',{});return 'requested'})()"},
+            {"name":"notify-request-held","wait":3000,"js":"(function(){return 'still under the prompt?'})()"}
+          ]
+          JSON
+          cat > "$RUNNER_TEMP/notify-b.json" <<'JSON'
+          [
+            {"name":"notify-b-check","wait":1500,"js":"(function(){window.__kfN='pending';window.Capacitor.nativePromise('LocalNotifications','checkPermissions',{}).then(function(r){window.__kfN=r.display},function(e){window.__kfN='error '+e.message});return 'asked'})()"},
+            {"name":"notify-b-status","wait":300,"js":"(function(){return String(window.__kfN)})()"},
+            {"name":"notify-b-1900","wait":3000,"js":"(function(){var N=function(m,o){return window.Capacitor.nativePromise('LocalNotifications',m,o||{})};window.__kfP='pending';N('schedule',{notifications:[{id:7001,title:'Time to study',body:'Open KnowFlow and review one material today.',schedule:{on:{hour:19,minute:0},allowWhileIdle:true},extra:{kind:'study-reminder',hour:19,minute:0,locale:'en'}}]}).then(function(){return N('getPending')}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});return 'scheduled 19:00'})()"},
+            {"name":"notify-b-pending-1900","wait":300,"js":"(function(){return String(window.__kfP)})()"},
+            {"name":"notify-b-0730","wait":3000,"js":"(function(){var N=function(m,o){return window.Capacitor.nativePromise('LocalNotifications',m,o||{})};window.__kfP='pending';N('schedule',{notifications:[{id:7001,title:'Time to study',body:'Open KnowFlow and review one material today.',schedule:{on:{hour:7,minute:30},allowWhileIdle:true},extra:{kind:'study-reminder',hour:7,minute:30,locale:'en'}}]}).then(function(){return N('getPending')}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});return 'scheduled 07:30'})()"},
+            {"name":"notify-b-pending-0730","wait":300,"js":"(function(){return String(window.__kfP)})()"},
+            {"name":"notify-b-cancel","wait":3000,"js":"(function(){var N=function(m,o){return window.Capacitor.nativePromise('LocalNotifications',m,o||{})};window.__kfP='pending';N('cancel',{notifications:[{id:7001}]}).then(function(){return N('getPending')}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id}}))},function(e){window.__kfP='error '+e.message});return 'cancelled'})()"},
+            {"name":"notify-b-pending-none","wait":300,"js":"(function(){return String(window.__kfP)})()"}
+          ]
+          JSON
+          run_launch notify-a "$RUNNER_TEMP/notify-a.json" ""
+          run_launch notify-b "$RUNNER_TEMP/notify-b.json" provisional
 
-          run_device iphone "$dt_iphone"
-          run_device ipad "$dt_ipad"
-          ls -1 "$OUT"
-
-      - name: The measurement table
-        if: always()
+      # The site unreachable for one launch: its name resolves to 127.0.0.1
+      # for the whole runner (the simulator uses the host's resolver), the app
+      # is started, and the bundled offline page must be what it shows.
+      - name: Smoke run with the site unreachable (proof 4)
         run: |
-          OUT="$RUNNER_TEMP/out"; mkdir -p "$OUT"
-          python3 - "$OUT" <<'PY' | tee "$OUT/summary.md" >> "$GITHUB_STEP_SUMMARY"
-          import json, os, sys
-          out = sys.argv[1]
-          for dev in ("iphone", "ipad"):
-              p = os.path.join(out, dev + ".jsonl")
-              print(f"\n## {dev}\n")
-              if not os.path.exists(p):
-                  print("no readings"); continue
-              rows = [json.loads(l) for l in open(p) if l.strip()]
-              n0 = rows[0].get("native", {})
-              print("first reading (native): " + json.dumps({k: n0.get(k) for k in ("idiom", "traitIdiom", "model", "screen", "screenNative", "screenScale", "sceneScreen", "window", "windowFrame", "webFrame", "webInWindow", "windowSafe", "viewSafe")}))
-              print("\n| step | path | iw×ih | vv w×h | vv scale | vv offL,offT | scrollW/clientW | dpr | safe t,r,b,l | active | native zoom | offset | contentSize | adjInset | overflow |")
-              print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
-              for r in rows:
-                  nat = r.get("native", {})
-                  m = {}
-                  if r["step"].startswith("m-"):
-                      try: m = json.loads(r.get("result", "{}"))
-                      except Exception: m = {"raw": r.get("result", "")[:80]}
-                  vv = m.get("vv") or {}
-                  print("| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |".format(
-                      r["step"], m.get("path", (r.get("probe") or {}).get("href", "")), f"{m.get('iw')}×{m.get('ih')}" if m else "",
-                      f"{vv.get('w')}×{vv.get('h')}" if vv else "", vv.get("s", ""), f"{vv.get('ol')},{vv.get('ot')}" if vv else "",
-                      f"{m.get('sw')}/{m.get('cw')}" if m else "", m.get("dpr", ""), m.get("safe", ""), m.get("active", ""),
-                      nat.get("zoomScale"), nat.get("contentOffset"), nat.get("contentSize"), nat.get("adjustedInset"),
-                      "; ".join(m.get("over") or []) if m else ""))
-              fields = None
-              for r in rows:
-                  if r["step"] == "m-before-email":
-                      try: fields = json.loads(r["result"]).get("fields")
-                      except Exception: pass
-              print(f"\nfield font sizes on /ar/login: {fields}")
-          taps = os.path.join(out, "taps.txt")
-          print("\n## taps\n\n" + (open(taps).read() if os.path.exists(taps) else "none recorded"))
+          set -eu
+          sudo cp /etc/hosts "$RUNNER_TEMP/hosts.bak"
+          echo '127.0.0.1 tryknowflow.com' | sudo tee -a /etc/hosts >/dev/null
+          sudo dscacheutil -flushcache || true
+          sudo killall -HUP mDNSResponder || true
+          curl -sS -o /dev/null -w 'tryknowflow.com from the runner now: %{http_code} %{exitcode}\n' --max-time 5 https://tryknowflow.com/ || echo "(unreachable, as intended)"
+          xcrun simctl spawn "$UDID" log stream --style compact --predicate 'process == "App"' > "$RUNNER_TEMP/app-offline.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/log2.pid"
+          data=$(xcrun simctl get_app_container "$UDID" com.knowflow.app data)
+          sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
+          find "$data/tmp" -maxdepth 3 \( -name smoke.jsonl -o -name smoke.done -o -name smoke.boot \) -delete 2>/dev/null || true
+          SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$(printf '[]' | base64)" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$(printf '[]' | base64)"
+          for i in $(seq 1 120); do
+            f=$(sf smoke.jsonl); if [ -n "$f" ] && [ -s "$f" ]; then touch "$(dirname "$f")/ack-1"; fi
+            [ -n "$(sf smoke.done)" ] && break
+            sleep 2
+          done
+          xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/offline-launch.png" >/dev/null 2>&1 || true
+          f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$RUNNER_TEMP/smoke-offline.jsonl"
+          echo "offline launch: $([ -n "$f" ] && cut -c1-500 "$f")"
+          xcrun simctl terminate "$UDID" com.knowflow.app || true
+          kill "$(cat "$RUNNER_TEMP/log2.pid")" 2>/dev/null || true
+          sudo cp "$RUNNER_TEMP/hosts.bak" /etc/hosts
+          sudo dscacheutil -flushcache || true
+          sudo killall -HUP mDNSResponder || true
+          test -n "$(sf smoke.done)" || { echo "FAIL: the offline run did not settle"; find "$data/tmp" -maxdepth 3 | head -n 30; exit 1; }
+
+      - name: Assert the five proofs from the readings
+        run: |
+          python3 - "$RUNNER_TEMP/smoke-online.jsonl" "$RUNNER_TEMP/smoke-offline.jsonl" "$RUNNER_TEMP/smoke-notify-a.jsonl" "$RUNNER_TEMP/smoke-notify-b.jsonl" "$RUNNER_TEMP/steps.json" <<'PY'
+          import json, re, sys
+          online = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
+          ROWS, STEPS = online, sys.argv[5]
+          offline = [json.loads(l) for l in open(sys.argv[2]) if l.strip()]
+          na = {r["step"]: r for r in (json.loads(l) for l in open(sys.argv[3]) if l.strip())}
+          nb = {r["step"]: r for r in (json.loads(l) for l in open(sys.argv[4]) if l.strip())}
+          by = {r["step"]: r for r in online}
+          fails = []
+          def need(cond, msg):
+              print(("ok   " if cond else "FAIL ") + msg)
+              if not cond: fails.append(msg)
+          L = by.get("launch", {}).get("probe", {})
+          need(re.match(r"^https://tryknowflow\.com/(en|ar)/login$", L.get("href", "") or ""), f"1. the first page is the login page: {L.get('href')}")
+          need(L.get("google") == 0, f"1. no Google button in the first page (twin, not the web page): google={L.get('google')}")
+          need(L.get("marker") is True, f"1. the page's user agent carries KnowFlowApp/1: {L.get('marker')}")
+          need(L.get("bridge") is True and L.get("platform") == "ios", f"2. the Capacitor bridge is present in a page from tryknowflow.com: bridge={L.get('bridge')} platform={L.get('platform')}")
+          S = by.get("signup-link", {}).get("probe", {})
+          need(str(by.get("signup-link", {}).get("result", "")).startswith("clicked"), f"3. the signup link was found and clicked: {by.get('signup-link', {}).get('result')}")
+          need(re.search(r"/(en|ar)/signup$", S.get("href", "") or ""), f"3. client-side navigation landed on signup: {S.get('href')}")
+          need(S.get("nav") == 1, f"3. the document survived the navigation (window.__kfNav kept): nav={S.get('nav')}")
+          need(S.get("google") == 0, f"3. the signup page in the app is the twin (no Google button): google={S.get('google')}")
+          D = by.get("dashboard-direct", {}).get("probe", {})
+          need(re.search(r"/(en|ar)/login$", D.get("href", "") or ""), f"3. a direct load of the dashboard without a session bounces to login: {D.get('href')}")
+          need(D.get("google") == 0 and D.get("bridge") is True, f"3. ...and that page is the twin with the bridge: google={D.get('google')} bridge={D.get('bridge')}")
+          # Step Wording-1, PLANTED PROOF: the probe's word rule (the same bytes as
+          # scripts/lib/app-wording.mjs) runs in WKWebView on a live page. A
+          # planted English and Arabic sentence must be caught; removed, the
+          # reading must be the baseline again. This holds whatever the live
+          # site says, so it gates the pull request before the copy deploys.
+          WB = (by.get("wording-baseline", {}).get("probe", {}).get("purchase") or {}).get("words")
+          WP = (by.get("wording-plant", {}).get("probe", {}).get("purchase") or {}).get("words")
+          WU = (by.get("wording-unplant", {}).get("probe", {}).get("purchase") or {}).get("words")
+          need(isinstance(WB, list), f"7. the probe reports its word list in the app: {WB}")
+          need(isinstance(WP, list) and {"plan", "upgrade", "pro", "\u0628\u0627\u0642\u0629", "\u0627\u0634\u062a\u0631\u0627\u0643"} <= set(WP), f"7. a planted plan, upgrade, Pro, باقتك and اشتراكك sentence is caught in the web view: {WP}")
+          need(WU == WB, f"7. ...and with it removed the reading is the baseline again: {WU} vs {WB}")
+          # The live signed-out pages the app reaches, read with the new rule.
+          # REPORTED here, not failed: this run reads the deployed site, which
+          # carries the old copy until the pull request merges; the signed-in
+          # run on main fails on any hit after the deploy.
+          for page in ("launch", "signup-link", "live-signup", "live-terms", "live-refund", "live-about", "live-contact", "privacy"):
+              w = (by.get(page, {}).get("probe", {}).get("purchase") or {}).get("words")
+              print(f"info live {page}: {by.get(page, {}).get('probe', {}).get('href')} words={w}")
+          P = by.get("privacy", {}).get("probe", {})
+          need(re.search(r"/(en|ar)/privacy$", P.get("href", "") or ""), f"1. the privacy page loads in the app: {P.get('href')}")
+          need(P.get("pricing") == 0, f"1. the privacy page in the app has no Pricing link (twin chrome): pricing={P.get('pricing')}")
+          E = by.get("external-link", {})
+          need(str(E.get("result", "")).startswith("clicked https://github.com"), f"5. the GitHub link was found and clicked: {E.get('result')}")
+          need(re.search(r"/(en|ar)/privacy$", E.get("probe", {}).get("href", "") or ""), f"5. the web view stayed on the privacy page: {E.get('probe', {}).get('href')}")
+          need(E.get("appState") in (1, 2), f"5. the app left the foreground (the system browser took the link): appState={E.get('appState')} (0=active,1=inactive,2=background)")
+          O = (offline[0] if offline else {}).get("probe", {})
+          need("offline.html" in (O.get("href", "") or ""), f"4. with the site unreachable the app shows the bundled offline page: {O.get('href')}")
+          need("No internet connection" in (O.get("text", "") or ""), f"4. ...and its text is the offline copy: {O.get('text', '')[:80]}")
+          R = lambda d, k: str(d.get(k, {}).get("result", ""))
+          need(R(na, "notify-launch") == "available=true", f"6. the bridge lists the LocalNotifications plugin: {R(na, 'notify-launch')}")
+          need(R(na, "notify-status") == "prompt", f"6. nothing asked at launch: the permission still reads prompt: {R(na, 'notify-status')}")
+          need(na.get("notify-status", {}).get("appState") == 0, f"6. ...and the app is active, no system prompt over it: appState={na.get('notify-status', {}).get('appState')}")
+          need(1 in (na.get("notify-request", {}).get("appState"), na.get("notify-request-held", {}).get("appState")), f"6. a request raises the system prompt (the app goes inactive under it, read at 4 s and 7 s): appState={na.get('notify-request', {}).get('appState')}, {na.get('notify-request-held', {}).get('appState')}")
+          need(R(nb, "notify-b-status") == "granted", f"6. with provisional authorization the permission reads granted: {R(nb, 'notify-b-status')}")
+          def pend(name):
+              try: return [(n.get("id"), (n.get("on") or {}).get("hour"), (n.get("on") or {}).get("minute")) for n in json.loads(R(nb, name))]
+              except Exception: return R(nb, name)
+          need(pend("notify-b-pending-1900") == [(7001, 19, 0)], f"6. one daily reminder pending at 19:00: {pend('notify-b-pending-1900')}")
+          need(pend("notify-b-pending-0730") == [(7001, 7, 30)], f"6. saving 07:30 replaces it, still one: {pend('notify-b-pending-0730')}")
+          need(pend("notify-b-pending-none") == [], f"6. cancelling leaves none pending: {pend('notify-b-pending-none')}")
+          # Every page step (a step naming `until`) left the page it started on
+          # and reached its own before its reading, or fails here: never read
+          # as the page before it (run 38426358277, ar-terms on /ar/privacy).
+          sys.path.insert(0, "scripts/ios")
+          from page_steps import page_step_checks
+          for ok, msg in page_step_checks(ROWS, [json.load(open(STEPS))]):
+              need(ok, msg)
+          print(f"\n{len(fails)} failure(s)")
+          sys.exit(1 if fails else 0)
           PY
 
-      - name: Keep the renders and readings
+      # THE BACKGROUND-REQUEST MEASUREMENT (PROGRESS.md 2026-10-09). Dispatch
+      # only. What iOS does to an upload that is still waiting for its answer
+      # when the student leaves the app: the live login page (no account)
+      # sends the same request the drop zone sends (XMLHttpRequest, POST, a
+      # FormData with a 4,000,000-byte file) to a deliberately slow endpoint on
+      # this runner (.github/scripts/slow-endpoint.py, behind a throwaway
+      # Cloudflare quick tunnel, so it is HTTPS like the real one), which holds
+      # its answer as the ingestion service does for a 4 MB text (about 80 s).
+      # The app is sent to the background (the Settings app is opened) the
+      # moment the request is out: 1 is away 30 s and answered at 60 s, after
+      # the return; 2 is away 120 s and answered at 60 s, while suspended; 3
+      # is away 45 s and answered at 20 s, while suspended. Nothing touches
+      # production, nothing is stored, nothing costs.
+      - name: Background-request measurement (dispatch only)
+        if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.scenario == 'background-request' }}
+        run: |
+          set -eu
+          S="$RUNNER_TEMP/slow-endpoint.log"; : > "$S"
+          T="$RUNNER_TEMP/req-timeline.txt"; : > "$T"
+          now() { python3 -c 'import time; print(int(time.time()*1000))'; }
+          python3 .github/scripts/slow-endpoint.py "$S" 8787 &
+          echo $! > "$RUNNER_TEMP/slow.pid"
+          curl -sSL -o "$RUNNER_TEMP/cf.tgz" https://github.com/cloudflare/cloudflared/releases/download/2026.9.1/cloudflared-darwin-arm64.tgz
+          tar -xzf "$RUNNER_TEMP/cf.tgz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/cloudflared" tunnel --no-autoupdate --url http://127.0.0.1:8787 > "$RUNNER_TEMP/cloudflared.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/cf.pid"
+          url=""
+          for i in $(seq 1 60); do url=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$RUNNER_TEMP/cloudflared.log" | head -n 1 || true); [ -n "$url" ] && break; sleep 1; done
+          test -n "$url" || { echo "no tunnel"; tail -n 30 "$RUNNER_TEMP/cloudflared.log"; exit 1; }
+          for i in $(seq 1 30); do code=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS "$url/slow" || true); [ "$code" = "204" ] && break; sleep 2; done
+          echo "tunnel up: OPTIONS answered $code"
+          cat > "$RUNNER_TEMP/req-steps.json" <<'JSON'
+          [
+          {"name":"listen","wait":300,"js":"(function(){if(window.__kfVis){return 'already'}window.__kfVis=1;var L=function(id,e){try{var k='kfReq'+id;var a=JSON.parse(localStorage.getItem(k)||'[]');a.push([Date.now(),e]);localStorage.setItem(k,JSON.stringify(a))}catch(x){}};document.addEventListener('visibilitychange',function(){[1,2,3].forEach(function(i){L(i,'vis:'+document.visibilityState)})});window.addEventListener('pagehide',function(){[1,2,3].forEach(function(i){L(i,'pagehide')})});return 'listening'})()"},
+          {"name":"req-1-start","wait":1500,"js":"(function(){var L=function(id,e){try{var k='kfReq'+id;var a=JSON.parse(localStorage.getItem(k)||'[]');a.push([Date.now(),e]);localStorage.setItem(k,JSON.stringify(a))}catch(x){}};var x=new XMLHttpRequest();x.open('POST','__SLOW__/slow?id=1&delay=60');var last=-1;x.upload.onprogress=function(e){var q=Math.floor(e.loaded/e.total*4);if(q!==last){last=q;L(1,'up:'+e.loaded)}};x.upload.onload=function(){L(1,'up:done')};x.upload.onerror=function(){L(1,'up:error')};x.onload=function(){L(1,'xhr:load:'+x.status+':'+(x.responseText||'').slice(0,60))};x.onerror=function(){L(1,'xhr:error')};x.onabort=function(){L(1,'xhr:abort')};x.ontimeout=function(){L(1,'xhr:timeout')};var fd=new FormData();fd.append('file',new File([new Uint8Array(4000000).fill(32)],'kf-bg-request-1.txt',{type:'text/plain'}));L(1,'xhr:send');x.send(fd);return 'sent 1'})()"},
+          {"name":"req-1-return","wait":2000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq1')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-1-observe-1","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq1')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-1-observe-2","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq1')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-1-observe-3","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq1')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-1-observe-4","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq1')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-1-observe-5","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq1')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-1-report","wait":300,"js":"(function(){var a=localStorage.getItem('kfReq1')||'[]';localStorage.removeItem('kfReq1');return a})()"},
+          {"name":"req-2-start","wait":1500,"js":"(function(){var L=function(id,e){try{var k='kfReq'+id;var a=JSON.parse(localStorage.getItem(k)||'[]');a.push([Date.now(),e]);localStorage.setItem(k,JSON.stringify(a))}catch(x){}};var x=new XMLHttpRequest();x.open('POST','__SLOW__/slow?id=2&delay=60');var last=-1;x.upload.onprogress=function(e){var q=Math.floor(e.loaded/e.total*4);if(q!==last){last=q;L(2,'up:'+e.loaded)}};x.upload.onload=function(){L(2,'up:done')};x.upload.onerror=function(){L(2,'up:error')};x.onload=function(){L(2,'xhr:load:'+x.status+':'+(x.responseText||'').slice(0,60))};x.onerror=function(){L(2,'xhr:error')};x.onabort=function(){L(2,'xhr:abort')};x.ontimeout=function(){L(2,'xhr:timeout')};var fd=new FormData();fd.append('file',new File([new Uint8Array(4000000).fill(32)],'kf-bg-request-2.txt',{type:'text/plain'}));L(2,'xhr:send');x.send(fd);return 'sent 2'})()"},
+          {"name":"req-2-return","wait":2000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq2')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-2-observe-1","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq2')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-2-observe-2","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq2')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-2-observe-3","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq2')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-2-observe-4","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq2')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-2-observe-5","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq2')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-2-report","wait":300,"js":"(function(){var a=localStorage.getItem('kfReq2')||'[]';localStorage.removeItem('kfReq2');return a})()"},
+          {"name":"req-3-start","wait":1500,"js":"(function(){var L=function(id,e){try{var k='kfReq'+id;var a=JSON.parse(localStorage.getItem(k)||'[]');a.push([Date.now(),e]);localStorage.setItem(k,JSON.stringify(a))}catch(x){}};var x=new XMLHttpRequest();x.open('POST','__SLOW__/slow?id=3&delay=20');var last=-1;x.upload.onprogress=function(e){var q=Math.floor(e.loaded/e.total*4);if(q!==last){last=q;L(3,'up:'+e.loaded)}};x.upload.onload=function(){L(3,'up:done')};x.upload.onerror=function(){L(3,'up:error')};x.onload=function(){L(3,'xhr:load:'+x.status+':'+(x.responseText||'').slice(0,60))};x.onerror=function(){L(3,'xhr:error')};x.onabort=function(){L(3,'xhr:abort')};x.ontimeout=function(){L(3,'xhr:timeout')};var fd=new FormData();fd.append('file',new File([new Uint8Array(4000000).fill(32)],'kf-bg-request-3.txt',{type:'text/plain'}));L(3,'xhr:send');x.send(fd);return 'sent 3'})()"},
+          {"name":"req-3-return","wait":2000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq3')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-3-observe-1","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq3')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-3-observe-2","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq3')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-3-observe-3","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq3')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-3-observe-4","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq3')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-3-observe-5","wait":20000,"js":"(function(){var a=JSON.parse(localStorage.getItem('kfReq3')||'[]');return JSON.stringify(a.slice(-2).map(function(e){return e[1]}))})()"},
+          {"name":"req-3-report","wait":300,"js":"(function(){var a=localStorage.getItem('kfReq3')||'[]';localStorage.removeItem('kfReq3');return a})()"}
+          ]
+          JSON
+          sed -i '' "s#__SLOW__#$url#g" "$RUNNER_TEMP/req-steps.json"
+          rsteps=$(base64 < "$RUNNER_TEMP/req-steps.json" | tr -d '\n')
+          data=$(xcrun simctl get_app_container "$UDID" com.knowflow.app data)
+          sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
+          find "$data/tmp" -maxdepth 3 \( -name 'smoke.*' -o -name 'ack-*' \) -delete 2>/dev/null || true
+          shot() { xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$1.png" >/dev/null 2>&1 || true; }
+          away() {
+            tag=$1; secs=$2
+            xcrun simctl launch "$UDID" com.apple.Preferences >/dev/null
+            echo "$(now) $tag background" >> "$T"
+            sleep 2; shot "$tag-away"
+            sleep $((secs - 2))
+            xcrun simctl launch "$UDID" com.knowflow.app >/dev/null
+            echo "$(now) $tag foreground" >> "$T"
+            sleep 1; shot "$tag-back"
+          }
+          SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$rsteps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$rsteps" &
+          seen=0
+          for i in $(seq 1 3000); do
+            f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
+            if [ "$n" -gt "$seen" ]; then
+              seen=$n
+              name=$(tail -n 1 "$f" | python3 -c 'import json,sys; print(json.loads(sys.stdin.readline())["step"])')
+              echo "$(now) line $seen $name" >> "$T"
+              case "$name" in
+                req-1-start) away req-1 30 ;;
+                req-2-start) away req-2 120 ;;
+                req-3-start) away req-3 45 ;;
+                *) shot "req-$seen-$name" ;;
+              esac
+              echo "step $seen ($name): $(tail -n 1 "$f" | python3 -c 'import json,sys; r=json.loads(sys.stdin.readline()); print(str(r.get("result"))[:200], "| appState", r.get("appState"))')"
+              touch "$(dirname "$f")/ack-$seen"
+            fi
+            [ -n "$(sf smoke.done)" ] && break
+            sleep 0.25
+          done
+          f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$RUNNER_TEMP/smoke-req.jsonl"
+          xcrun simctl terminate "$UDID" com.knowflow.app || true
+          kill "$(cat "$RUNNER_TEMP/cf.pid")" "$(cat "$RUNNER_TEMP/slow.pid")" 2>/dev/null || true
+          test -n "$(sf smoke.done)" || { echo "FAIL: the measurement did not finish; lines seen: $seen"; exit 1; }
+          python3 - "$RUNNER_TEMP/smoke-req.jsonl" "$T" "$S" <<'PY'
+          import json, sys
+          by = {r["step"]: r for r in (json.loads(l) for l in open(sys.argv[1]) if l.strip())}
+          tl = [l.split(" ", 1) for l in open(sys.argv[2]).read().splitlines() if l.strip()]
+          sv = [l.split(" ", 1) for l in open(sys.argv[3]).read().splitlines() if l.strip()]
+          for rid, away_s, delay in ((1, 30, 60), (2, 120, 60), (3, 45, 20)):
+              ev = json.loads(by.get(f"req-{rid}-report", {}).get("result") or "[]")
+              send = next((t for t, e in ev if e == "xhr:send"), None)
+              print(f"\n===== request {rid}: away {away_s} s, answer held {delay} s")
+              if not send:
+                  print("  never sent"); continue
+              rel = lambda t: f"{(int(t) - send) / 1000:8.1f} s"
+              rows = [(t, "page: " + e) for t, e in ev]
+              rows += [(int(t), "app: " + w.split(" ", 1)[1]) for t, w in tl if w.startswith(f"req-{rid} ")]
+              rows += [(int(t), "server: " + w) for t, w in sv if f" {rid} " in f" {w} "]
+              for t, what in sorted(rows):
+                  print(f"  {rel(t)}  {what}")
+              end = next((e for t, e in ev if e.startswith(("xhr:load", "xhr:error", "xhr:abort", "xhr:timeout"))), None)
+              print("  OUTCOME:", end or "no end in the page")
+          PY
+
+      - name: Shut the simulator down
+        if: always()
+        run: xcrun simctl shutdown "$UDID" 2>/dev/null || true
+
+      - name: Keep the screenshots, readings and logs
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: ipad-zoom-diag-${{ github.run_id }}
-          path: ${{ runner.temp }}/out
+          name: ios-smoke-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/shots
+            ${{ runner.temp }}/smoke-online.jsonl
+            ${{ runner.temp }}/smoke-offline.jsonl
+            ${{ runner.temp }}/smoke-notify-a.jsonl
+            ${{ runner.temp }}/smoke-notify-b.jsonl
+            ${{ runner.temp }}/privacy-audit.txt
+            ${{ runner.temp }}/smoke-req.jsonl
+            ${{ runner.temp }}/req-timeline.txt
+            ${{ runner.temp }}/slow-endpoint.log
+            ${{ runner.temp }}/build-device.log
+            ${{ runner.temp }}/smoke.boot
+            ${{ runner.temp }}/app-online.log
+            ${{ runner.temp }}/app-offline.log
+            ${{ runner.temp }}/build.log
+            ${{ runner.temp }}/resolve.log
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 14

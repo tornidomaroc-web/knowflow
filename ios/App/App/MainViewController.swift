@@ -3,6 +3,9 @@ import UIKit
 #if targetEnvironment(simulator)
 import UserNotifications
 #endif
+#if DEBUG && targetEnvironment(simulator)
+import WebKit
+#endif
 
 /// The bridge view controller, subclassed for two reasons: the page colour
 /// under the web view (below, every build) and the simulator smoke test
@@ -71,8 +74,96 @@ class MainViewController: CAPBridgeViewController {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { smoke.start() }
         }
         #endif
+        #if DEBUG && targetEnvironment(simulator)
+        // DIAG, branch diag/ipad-zoom only (never merged): the focus-zoom
+        // measurement read by ios/diag/KFZoomUITests over accessibility.
+        if ProcessInfo.processInfo.environment["KF_DIAG"] == "1" {
+            MainViewController.zoomDiag = ZoomDiag(controller: self)
+        }
+        #endif
+    }
+    #if DEBUG && targetEnvironment(simulator)
+    private static var zoomDiag: ZoomDiag?
+    #endif
+}
+
+#if DEBUG && targetEnvironment(simulator)
+/// Every 0.5 s: the page measurement (evaluated in the web view) plus the
+/// native geometry, published as the accessibility label of a 1-pt, clear,
+/// non-interactive view (identifier `kf-diag`) on the window, where the UI
+/// test reads it. On the first settled page it sends the web view to /ar/login.
+/// Rects are [x, y, w, h], insets [top, left, bottom, right], in app points.
+private final class ZoomDiag {
+    private weak var controller: CAPBridgeViewController?
+    private let marker = UIView(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
+    private var seq = 0
+    private var sentArabic = false
+    private var timer: Timer?
+
+    private static let measure = """
+    (function(){var d=document.documentElement,v=window.visualViewport,safe=null;if(document.readyState==='complete'&&document.body){var p=document.createElement('div');p.style.cssText='position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';document.body.appendChild(p);var cs=getComputedStyle(p);safe=[cs.paddingTop,cs.paddingRight,cs.paddingBottom,cs.paddingLeft].map(parseFloat);p.remove()}var W=d.clientWidth,o=[],all=document.body?document.body.getElementsByTagName('*'):[];for(var i=0;i<all.length&&o.length<8;i++){var el=all[i],r=el.getBoundingClientRect();if(r.width>0&&(r.right>W+0.5||r.left<-0.5)){o.push(el.tagName.toLowerCase()+(typeof el.className==='string'&&el.className.trim()?'.'+el.className.trim().split(/\\s+/).slice(0,2).join('.'):'')+' w='+Math.round(r.width)+' l='+Math.round(r.left)+' r='+Math.round(r.right))}}var a=document.activeElement,f=Array.prototype.slice.call(document.querySelectorAll('input,textarea,select')).map(function(x){return (x.type||x.tagName.toLowerCase())+':'+getComputedStyle(x).fontSize});return JSON.stringify({href:location.href,path:location.pathname,ready:document.readyState,iw:innerWidth,ih:innerHeight,vv:v?{w:v.width,h:v.height,s:v.scale,ol:v.offsetLeft,ot:v.offsetTop}:null,sw:d.scrollWidth,cw:W,sh:d.scrollHeight,ch:d.clientHeight,sx:scrollX,sy:scrollY,dpr:devicePixelRatio,safe:safe,dir:d.dir,theme:d.getAttribute('data-theme'),active:a?(a.tagName+(a.type?':'+a.type:'')):null,fields:f,over:o})})()
+    """
+
+    init(controller: CAPBridgeViewController) {
+        self.controller = controller
+        marker.isUserInteractionEnabled = false
+        marker.backgroundColor = .clear
+        marker.isAccessibilityElement = true
+        marker.accessibilityIdentifier = "kf-diag"
+        marker.accessibilityTraits = .staticText
+        marker.accessibilityLabel = "{\"seq\":0}"
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in self?.tick() }
+    }
+
+    private func tick() {
+        guard let c = controller, let web = c.bridge?.webView else { return }
+        if marker.superview == nil, let win = c.view.window { win.addSubview(marker) }
+        marker.superview?.bringSubviewToFront(marker)
+        web.evaluateJavaScript(ZoomDiag.measure) { [weak self] value, error in
+            guard let self = self else { return }
+            var page: Any = error.map { "error: \($0.localizedDescription)" } ?? "undefined"
+            if let s = value as? String, let d = s.data(using: .utf8), let o = try? JSONSerialization.jsonObject(with: d) { page = o }
+            if !self.sentArabic, let p = page as? [String: Any], (p["href"] as? String ?? "").hasPrefix("https://tryknowflow.com"), (p["ready"] as? String) == "complete" {
+                self.sentArabic = true
+                if (p["path"] as? String) != "/ar/login" { web.evaluateJavaScript("location.assign('/ar/login')", completionHandler: nil) }
+            }
+            self.seq += 1
+            let line: [String: Any] = ["seq": self.seq, "page": page, "native": ZoomDiag.native(c, web)]
+            if let d = try? JSONSerialization.data(withJSONObject: line), let s = String(data: d, encoding: .utf8) {
+                self.marker.accessibilityLabel = s
+            }
+        }
+    }
+
+    private static func native(_ c: UIViewController, _ web: WKWebView) -> [String: Any] {
+        func r(_ x: CGRect) -> [Double] { [Double(x.origin.x), Double(x.origin.y), Double(x.size.width), Double(x.size.height)] }
+        func e(_ i: UIEdgeInsets) -> [Double] { [Double(i.top), Double(i.left), Double(i.bottom), Double(i.right)] }
+        let sv = web.scrollView
+        var out: [String: Any] = [
+            "idiom": UIDevice.current.userInterfaceIdiom.rawValue,
+            "model": UIDevice.current.model,
+            "screen": r(UIScreen.main.bounds),
+            "screenNative": r(UIScreen.main.nativeBounds),
+            "screenScale": Double(UIScreen.main.scale),
+            "webFrame": r(web.frame),
+            "webInWindow": r(web.convert(web.bounds, to: nil)),
+            "zoomScale": Double(sv.zoomScale),
+            "zoomRange": [Double(sv.minimumZoomScale), Double(sv.maximumZoomScale)],
+            "contentSize": [Double(sv.contentSize.width), Double(sv.contentSize.height)],
+            "contentOffset": [Double(sv.contentOffset.x), Double(sv.contentOffset.y)],
+            "contentInset": e(sv.contentInset),
+            "adjustedInset": e(sv.adjustedContentInset),
+            "viewSafe": e(c.view.safeAreaInsets),
+        ]
+        if let win = c.view.window {
+            out["window"] = r(win.bounds)
+            out["windowFrame"] = r(win.frame)
+            out["windowSafe"] = e(win.safeAreaInsets)
+        }
+        return out
     }
 }
+#endif
 
 #if targetEnvironment(simulator)
 private final class Smoke {
@@ -285,9 +376,6 @@ private final class Smoke {
             "probe": probe,
         ]
         if let nav = nav { line["nav"] = nav }
-        // DIAG (branch diag/ipad-zoom only): the native geometry at every line,
-        // for the Guideline 4.0 iPad compatibility-mode measurement.
-        line["native"] = nativeReading()
         // The whole line is scrubbed: a probe's `text` on the Settings screen
         // carries the account's e-mail, which must not reach the artifact.
         if let data = try? JSONSerialization.data(withJSONObject: line), let raw = String(data: data, encoding: .utf8) {
@@ -296,40 +384,6 @@ private final class Smoke {
             lines += 1
             NSLog("[KFSmoke] %@", s)
         }
-    }
-
-    /// Screen, window, web view and scroll view geometry, in the app's own
-    /// points: [x, y, w, h] for rects, [top, left, bottom, right] for insets.
-    private func nativeReading() -> [String: Any] {
-        guard let c = controller, let web = c.bridge?.webView else { return ["error": "no webview"] }
-        func r(_ x: CGRect) -> [Double] { [Double(x.origin.x), Double(x.origin.y), Double(x.size.width), Double(x.size.height)] }
-        func e(_ i: UIEdgeInsets) -> [Double] { [Double(i.top), Double(i.left), Double(i.bottom), Double(i.right)] }
-        let sv = web.scrollView
-        var out: [String: Any] = [
-            "idiom": UIDevice.current.userInterfaceIdiom.rawValue,
-            "traitIdiom": c.traitCollection.userInterfaceIdiom.rawValue,
-            "model": UIDevice.current.model,
-            "screen": r(UIScreen.main.bounds),
-            "screenNative": r(UIScreen.main.nativeBounds),
-            "screenScale": Double(UIScreen.main.scale),
-            "webFrame": r(web.frame),
-            "webInWindow": r(web.convert(web.bounds, to: nil)),
-            "contentSize": [Double(sv.contentSize.width), Double(sv.contentSize.height)],
-            "contentOffset": [Double(sv.contentOffset.x), Double(sv.contentOffset.y)],
-            "contentInset": e(sv.contentInset),
-            "adjustedInset": e(sv.adjustedContentInset),
-            "zoomScale": Double(sv.zoomScale),
-            "zoomRange": [Double(sv.minimumZoomScale), Double(sv.maximumZoomScale)],
-            "viewSafe": e(c.view.safeAreaInsets),
-            "webSafe": e(web.safeAreaInsets),
-        ]
-        if let win = c.view.window {
-            out["window"] = r(win.bounds)
-            out["windowFrame"] = r(win.frame)
-            out["windowSafe"] = e(win.safeAreaInsets)
-            if let scene = win.windowScene { out["sceneScreen"] = r(scene.screen.bounds) }
-        }
-        return out
     }
 
     private func write(_ name: String, _ text: String, append: Bool) {
