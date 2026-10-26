@@ -41,10 +41,17 @@ import { cn } from '@/lib/utils';
  * `type="button"` in the tab order right after its input, and it is 44px wide
  * across the input's full height, so it meets the mobile tap floor this
  * codebase already uses for buttons.
+ *
+ * 16 px below `md` (Guideline 4.0, 1.0 build 7): iOS zooms the web view in
+ * when a field under 16 px takes focus, and the zoom outlives the keyboard and
+ * the next client-side navigation, clipping both edges of the page (measured
+ * on branch diag/ipad-zoom, run 40258021621: x1.143 = 16/14). `leading-5`
+ * keeps the 20 px line, so the field's height does not change; desktop keeps
+ * 14 px.
  */
 
 const FIELD =
-  'w-full rounded-xl border border-control-border bg-input px-4 py-3 text-sm text-foreground ' +
+  'w-full rounded-xl border border-control-border bg-input px-4 py-3 text-base leading-5 md:text-sm text-foreground ' +
   'placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring';
 
 type FieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & { label: string };

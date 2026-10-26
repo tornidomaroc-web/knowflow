@@ -1,0 +1,185 @@
+name: field-zoom
+
+# Guideline 4.0 (1.0 build 7 rejected on an iPad Air 11-inch (M3)): iOS zooms
+# the web view in when a text field under 16 px takes focus, and the zoom
+# outlives the keyboard and the next client-side navigation, clipping both
+# edges of the page (branch diag/ipad-zoom, run 40258021621: x1.143 = 16/14).
+#
+# gate    this commit: every text-entry tag in src/ carries 16 px at phone
+#         width (scripts/field-zoom/static-fields.mjs), and every text-entry
+#         control rendered signed out computes 16 px or more at 375 x 667 (the
+#         iPad's compatibility size) and 440 x 956, Arabic and English
+#         (scripts/field-zoom/fields.mjs). A field under 16 px fails the run.
+#         Reported, never failing: tappable controls under 44 x 44, placeholders
+#         wider than their field. Not blind: 14 px planted on every field must
+#         fail it. Renders login, signup and forgot-password (48 PNGs, empty
+#         and filled).
+# before  only when a PR changes scripts/field-zoom/: the same renders and
+#         readings of the PR's base, for the before/after review. Never fails
+#         on what it finds.
+#
+# NO SECRET, as redesign-built.yml: the Supabase values are placeholders
+# pointing at a closed local port; the pages are rendered signed out on the
+# runner, and nothing is deployed and no production data is read.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/field-zoom/**'
+      - '.github/workflows/field-zoom.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: field-zoom-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+  NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-not-a-key
+  NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+
+jobs:
+  gate:
+    name: Text fields are 16 px at phone width (signed out, no secrets)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Every text-entry tag in src/ (source)
+        run: node scripts/field-zoom/static-fields.mjs
+
+      - name: Install the app's locked dependencies
+        run: |
+          node --version
+          google-chrome --version
+          npm ci --no-audit --no-fund
+
+      - name: Build
+        run: npx next build
+
+      - name: Serve and wait until the login page answers
+        run: |
+          set -eu
+          nohup npx next start -p 3000 > "$RUNNER_TEMP/next.log" 2>&1 &
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000/en/login" || true)
+            if [ "$code" = "200" ]; then echo "up after $i tries"; exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/next.log"; exit 1
+
+      - name: puppeteer-core, pinned, outside the app
+        run: npm install --prefix "$RUNNER_TEMP/pp" --no-audit --no-fund --ignore-scripts puppeteer-core@23.11.1
+
+      - name: Every rendered text-entry control (375 x 667 and 440 x 956)
+        env:
+          PUPPETEER_DIR: ${{ runner.temp }}/pp
+        run: CHROME="$(command -v google-chrome)" node scripts/field-zoom/fields.mjs --out "$RUNNER_TEMP/field-zoom" --render --label after
+
+      - name: Not blind (14 px planted on every field must fail)
+        if: ${{ !cancelled() }}
+        env:
+          PUPPETEER_DIR: ${{ runner.temp }}/pp
+        run: |
+          if KF_PLANT_SMALL=1 CHROME="$(command -v google-chrome)" node scripts/field-zoom/fields.mjs --out "$RUNNER_TEMP/field-zoom-plant" --label plant > "$RUNNER_TEMP/plant.log" 2>&1; then
+            tail -n 5 "$RUNNER_TEMP/plant.log"; echo "14 px fields passed the gate: the gate is blind"; exit 1
+          fi
+          tail -n 1 "$RUNNER_TEMP/plant.log"
+          echo "ok   14 px planted on every field fails the gate"
+
+      - name: Server log
+        if: always()
+        run: tail -n 40 "$RUNNER_TEMP/next.log" || true
+
+      - name: Keep the renders and readings
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: field-zoom-after
+          path: ${{ runner.temp }}/field-zoom
+          if-no-files-found: error
+          retention-days: 30
+
+  before:
+    name: The PR's base, for the before/after review (reports only)
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Only when this PR changes the gate
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if git diff --name-only "$BASE_SHA...HEAD" | grep -q '^scripts/field-zoom/'; then
+            echo "run=yes" >> "$GITHUB_OUTPUT"; echo "the gate changed: rendering the base $BASE_SHA"
+          else
+            echo "run=no" >> "$GITHUB_OUTPUT"; echo "the gate did not change: nothing to do"
+          fi
+
+      - name: The base in its own folder
+        if: steps.scope.outputs.run == 'yes'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -eu
+          git worktree add "$RUNNER_TEMP/base" "$BASE_SHA"
+          cd "$RUNNER_TEMP/base"
+          npm ci --no-audit --no-fund
+          npx next build
+
+      - name: The base's text-entry tags (source, reported)
+        if: steps.scope.outputs.run == 'yes'
+        run: KF_ROOT="$RUNNER_TEMP/base" node scripts/field-zoom/static-fields.mjs || echo "the base fails the source check (expected while its fields are under 16 px)"
+
+      - name: Serve the base and wait until the login page answers
+        if: steps.scope.outputs.run == 'yes'
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP/base"
+          nohup npx next start -p 3000 > "$RUNNER_TEMP/next.log" 2>&1 &
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000/en/login" || true)
+            if [ "$code" = "200" ]; then echo "up after $i tries"; exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/next.log"; exit 1
+
+      - name: puppeteer-core, pinned, outside the app
+        if: steps.scope.outputs.run == 'yes'
+        run: npm install --prefix "$RUNNER_TEMP/pp" --no-audit --no-fund --ignore-scripts puppeteer-core@23.11.1
+
+      - name: The base's rendered fields and renders (reported)
+        if: steps.scope.outputs.run == 'yes'
+        env:
+          PUPPETEER_DIR: ${{ runner.temp }}/pp
+        run: |
+          if CHROME="$(command -v google-chrome)" node scripts/field-zoom/fields.mjs --out "$RUNNER_TEMP/field-zoom" --render --label before; then
+            echo "the base passes the gate"
+          else
+            echo "the base fails the gate (expected while its fields are under 16 px)"
+          fi
+
+      - name: Keep the renders and readings
+        if: steps.scope.outputs.run == 'yes'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: field-zoom-before
+          path: ${{ runner.temp }}/field-zoom
+          if-no-files-found: error
+          retention-days: 30

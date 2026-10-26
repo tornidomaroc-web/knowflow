@@ -277,7 +277,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t.dashboard.agent.askPlaceholder}
-            className="max-h-40 min-h-[2.75rem] flex-1 resize-none bg-transparent px-2 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+            className="max-h-40 min-h-[2.75rem] flex-1 resize-none bg-transparent px-2 py-2.5 text-base leading-5 md:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
             rows={2}
           />
           <button

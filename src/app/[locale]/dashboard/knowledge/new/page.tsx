@@ -10,8 +10,10 @@ import { purchaseLinksAllowed } from '@/lib/platform';
 import { usePlatform } from '@/components/platform/PlatformProvider';
 import { KB_LANGUAGES, type KbLanguage } from '@/types';
 
+// 16 px below md, 20 px line kept: iOS zooms into a field under 16 px on
+// focus and the zoom stays (Guideline 4.0; see AuthField.tsx).
 const fieldClass =
-  'w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring';
+  'w-full rounded-xl border border-border bg-input px-4 py-3 text-base leading-5 md:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring';
 
 // Type guard against the shared KB_LANGUAGES source of truth, so the runtime
 // narrowing and the compile-time KbLanguage domain are literally the same list
