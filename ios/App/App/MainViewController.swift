@@ -93,12 +93,19 @@ class MainViewController: CAPBridgeViewController {
 /// non-interactive view (identifier `kf-diag`) on the window, where the UI
 /// test reads it. On the first settled page it sends the web view to /ar/login.
 /// Rects are [x, y, w, h], insets [top, left, bottom, right], in app points.
+/// Independent of any UI test, the same readings land in the app's tmp folder
+/// (read by the workflow through simctl get_app_container): kfdiag-native.json
+/// once, the native geometry at launch (screen, window, web view frame, before
+/// any page), and kfdiag.jsonl, every reading whose content changed.
 private final class ZoomDiag {
     private weak var controller: CAPBridgeViewController?
     private let marker = UIView(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
     private var seq = 0
     private var sentArabic = false
     private var timer: Timer?
+    private var wroteNative = false
+    private var lastBody = ""
+    private let dir = FileManager.default.temporaryDirectory
 
     private static let measure = """
     (function(){var d=document.documentElement,v=window.visualViewport,safe=null;if(document.readyState==='complete'&&document.body){var p=document.createElement('div');p.style.cssText='position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';document.body.appendChild(p);var cs=getComputedStyle(p);safe=[cs.paddingTop,cs.paddingRight,cs.paddingBottom,cs.paddingLeft].map(parseFloat);p.remove()}var W=d.clientWidth,o=[],all=document.body?document.body.getElementsByTagName('*'):[];for(var i=0;i<all.length&&o.length<8;i++){var el=all[i],r=el.getBoundingClientRect();if(r.width>0&&(r.right>W+0.5||r.left<-0.5)){o.push(el.tagName.toLowerCase()+(typeof el.className==='string'&&el.className.trim()?'.'+el.className.trim().split(/\\s+/).slice(0,2).join('.'):'')+' w='+Math.round(r.width)+' l='+Math.round(r.left)+' r='+Math.round(r.right))}}var a=document.activeElement,f=Array.prototype.slice.call(document.querySelectorAll('input,textarea,select')).map(function(x){return (x.type||x.tagName.toLowerCase())+':'+getComputedStyle(x).fontSize});return JSON.stringify({href:location.href,path:location.pathname,ready:document.readyState,iw:innerWidth,ih:innerHeight,vv:v?{w:v.width,h:v.height,s:v.scale,ol:v.offsetLeft,ot:v.offsetTop}:null,sw:d.scrollWidth,cw:W,sh:d.scrollHeight,ch:d.clientHeight,sx:scrollX,sy:scrollY,dpr:devicePixelRatio,safe:safe,dir:d.dir,theme:d.getAttribute('data-theme'),active:a?(a.tagName+(a.type?':'+a.type:'')):null,fields:f,over:o})})()
@@ -119,6 +126,14 @@ private final class ZoomDiag {
         guard let c = controller, let web = c.bridge?.webView else { return }
         if marker.superview == nil, let win = c.view.window { win.addSubview(marker) }
         marker.superview?.bringSubviewToFront(marker)
+        if !wroteNative, c.view.window != nil {
+            wroteNative = true
+            let first: [String: Any] = ["at": "launch", "native": ZoomDiag.native(c, web)]
+            if let d = try? JSONSerialization.data(withJSONObject: first, options: [.sortedKeys]) {
+                try? d.write(to: dir.appendingPathComponent("kfdiag-native.json"))
+                NSLog("[KFDiag] native at launch: %@", String(data: d, encoding: .utf8) ?? "")
+            }
+        }
         web.evaluateJavaScript(ZoomDiag.measure) { [weak self] value, error in
             guard let self = self else { return }
             var page: Any = error.map { "error: \($0.localizedDescription)" } ?? "undefined"
@@ -132,6 +147,25 @@ private final class ZoomDiag {
             if let d = try? JSONSerialization.data(withJSONObject: line), let s = String(data: d, encoding: .utf8) {
                 self.marker.accessibilityLabel = s
             }
+            self.append(page: page, native: line["native"] ?? [String: Any]())
+        }
+    }
+
+    /// One line in tmp/kfdiag.jsonl whenever the page or native reading changed.
+    private func append(page: Any, native: Any) {
+        let body: [String: Any] = ["page": page, "native": native]
+        guard let b = try? JSONSerialization.data(withJSONObject: body, options: [.sortedKeys]),
+              let bs = String(data: b, encoding: .utf8), bs != lastBody else { return }
+        lastBody = bs
+        let stamped: [String: Any] = ["seq": seq, "t": Date().timeIntervalSince1970, "page": page, "native": native]
+        guard let d = try? JSONSerialization.data(withJSONObject: stamped, options: [.sortedKeys]) else { return }
+        let url = dir.appendingPathComponent("kfdiag.jsonl")
+        if let h = try? FileHandle(forWritingTo: url) {
+            h.seekToEndOfFile()
+            h.write(d + Data([10]))
+            try? h.close()
+        } else {
+            try? (d + Data([10])).write(to: url)
         }
     }
 

@@ -5,12 +5,24 @@ name: diag-ipad-zoom
 # Guideline 4.0 (1.0 build 7 rejected on an iPad Air 11-inch (M3)): does a REAL
 # tap on a 14 px field zoom the web view, and does the zoom survive a
 # client-side navigation? iPad Air 11-inch (M3) running the iPhone-only app in
-# compatibility mode, plus a 6.9-inch iPhone baseline, in one run.
+# compatibility mode first, then a 6.9-inch iPhone baseline, in one run.
 #
 # Signed out only: no environment, no secret, no account, no sign-in, nothing
 # typed, no AI call. Taps are XCUITest touches through the accessibility tree
 # (ios/diag/KFZoomUITests), never JavaScript focus(). Readings come from the
 # app's DEBUG+simulator hook (MainViewController.swift, ZoomDiag).
+#
+# Third design (run 40143915184 failed: XCUIApplication.launch() timed out on
+# the iPhone, and `bash -e` then skipped the iPad):
+# - one simulator booted at a time (boot, bootstatus -b, test, shut down);
+# - the app is ad-hoc signed (CODE_SIGN_IDENTITY=-);
+# - the app is opened by `simctl launch` with SIMCTL_CHILD_KF_DIAG=1, as
+#   ios-smoke opens it; the UI test only attaches (activate()), one fresh
+#   launch per half (email, then password);
+# - with or without the UI test, each launch leaves simctl screenshots and the
+#   hook's own files (kfdiag-native.json: screen, window and web view frame at
+#   launch; kfdiag.jsonl: every changed reading);
+# - `set +e` in the device loop: each device and half is recorded on its own.
 #
 # Trigger: a push to this branch (a workflow that is not on main cannot be
 # dispatched). The branch is pushed once.
@@ -28,15 +40,15 @@ concurrency:
 
 jobs:
   zoom:
-    name: iOS — XCUITest focus-zoom measurement, iPhone 6.9-inch and iPad Air 11-inch (M3) compat (signed out)
+    name: iOS — focus-zoom measurement, iPad Air 11-inch (M3) compat then iPhone 6.9-inch (signed out)
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 75
     steps:
       - name: Check out the repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      # FAIL FAST 1: both simulators exist on this image; they boot while the rest builds.
-      - name: Create and boot the two simulators
+      # FAIL FAST 1: both device types exist on this image. Created, not booted.
+      - name: Create the two simulators (not booted)
         run: |
           set -eu
           mkdir -p "$RUNNER_TEMP/out"
@@ -49,11 +61,10 @@ jobs:
           echo "runtime=$rt"; echo "iphone type=${iphone:-MISSING}"; echo "ipad type=${ipad:-MISSING}"
           test -n "$ipad" || { echo "FAIL FAST: iPad Air 11-inch (M3) is not a device type on this image"; exit 1; }
           test -n "$iphone" || { echo "FAIL FAST: no 6.9-inch iPhone device type on this image"; exit 1; }
-          U_IPHONE=$(xcrun simctl create kf-iphone "$iphone" "$rt")
           U_IPAD=$(xcrun simctl create kf-ipad "$ipad" "$rt")
+          U_IPHONE=$(xcrun simctl create kf-iphone "$iphone" "$rt")
           echo "U_IPHONE=$U_IPHONE" >> "$GITHUB_ENV"; echo "U_IPAD=$U_IPAD" >> "$GITHUB_ENV"
-          printf 'runtime %s\niphone %s %s\nipad %s %s\n' "$rt" "$iphone" "$U_IPHONE" "$ipad" "$U_IPAD" | tee "$RUNNER_TEMP/out/devices.txt"
-          for u in "$U_IPHONE" "$U_IPAD"; do xcrun simctl boot "$u"; done
+          printf 'runtime %s\nipad %s %s\niphone %s %s\n' "$rt" "$ipad" "$U_IPAD" "$iphone" "$U_IPHONE" | tee "$RUNNER_TEMP/out/devices.txt"
 
       - name: Set up Node
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -90,41 +101,77 @@ jobs:
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
             2>&1 | tee "$RUNNER_TEMP/out/build-tests.log" | { grep -E '^(error|\*\*)|: error:' || true; }
           ls "$RUNNER_TEMP/dd/Build/Products" | tee -a "$RUNNER_TEMP/out/products.txt"
-          xcodebuild -showdestinations -project ios/App/App.xcodeproj -scheme KFZoom 2>/dev/null | grep -E 'kf-(iphone|ipad)|Ineligible' | tee "$RUNNER_TEMP/out/destinations.txt" || true
 
-      - name: Build the app for the iOS Simulator (DEBUG, unsigned, as ios-smoke builds it)
+      - name: Build the app for the iOS Simulator (DEBUG, ad-hoc signed)
         run: |
           set -eu -o pipefail
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/dd-app" \
             -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" -disableAutomaticPackageResolution \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
             build 2>&1 | tee "$RUNNER_TEMP/out/build-app.log" | { grep -E '^(error|\*\*)|: error:' || true; }
           app=$(find "$RUNNER_TEMP/dd-app/Build/Products" -maxdepth 2 -name 'App.app' -type d | head -n 1)
           test -n "$app" || { echo "no App.app"; exit 1; }
           echo "APP_PATH=$app" >> "$GITHUB_ENV"
           echo "UIDeviceFamily (1 = iPhone only): $(/usr/libexec/PlistBuddy -c 'Print :UIDeviceFamily' "$app/Info.plist" | tr -d '\n ')" | tee "$RUNNER_TEMP/out/device-family.txt"
+          codesign -dv "$app" 2>&1 | grep -E 'Identifier|Signature|Authority|flags' | tee "$RUNNER_TEMP/out/codesign.txt"
 
-      - name: Install the app on both simulators
+      # One simulator at a time, iPad first. Per device: boot, wait until fully
+      # booted, install; then two halves (email, password), each a fresh
+      # `simctl launch`, the fallback screenshot and hook files, the UI test
+      # (attach only), the after screenshot; then shut down. `set +e`: a failure
+      # is recorded and the next half and device still run.
+      - name: Measure on the iPad, then on the iPhone
         run: |
-          set -eu
-          for u in "$U_IPHONE" "$U_IPAD"; do
-            xcrun simctl bootstatus "$u" -b | tail -n 1
-            xcrun simctl ui "$u" appearance dark
-            xcrun simctl install "$u" "$APP_PATH"
-            echo "installed on $u"
-          done
-
-      - name: Run the UI test on the iPhone, then on the iPad
-        run: |
+          set +e
           set -u
-          for dev in iphone ipad; do
-            [ "$dev" = iphone ] && u=$U_IPHONE || u=$U_IPAD
-            TEST_RUNNER_KF_DEV=$dev xcodebuild test-without-building -project ios/App/App.xcodeproj -scheme KFZoom \
-              -destination "id=$u" -derivedDataPath "$RUNNER_TEMP/dd" -resultBundlePath "$RUNNER_TEMP/$dev.xcresult" \
-              > "$RUNNER_TEMP/out/$dev-test.log" 2>&1
-            echo "$dev: xcodebuild exit $?"
-            grep -E 'KFTAP|Test Case|error|failed' "$RUNNER_TEMP/out/$dev-test.log" | cut -c1-300 | head -n 40
+          OUT="$RUNNER_TEMP/out"
+          BID=com.knowflow.app
+          shot() { xcrun simctl io "$1" screenshot "$OUT/$2.png" >/dev/null 2>&1 && echo "  shot $2.png" || echo "  shot $2.png FAILED"; }
+          # A command with a wall-clock limit (macOS has no `timeout`).
+          limit() { perl -e '$t=shift; $p=fork; if(!$p){exec @ARGV} $SIG{ALRM}=sub{kill "TERM",$p; sleep 5; kill "KILL",$p; print STDERR "LIMIT: killed after ${t}s\n"; exit 124}; alarm $t; waitpid $p,0; exit($?>>8)' "$@"; }
+          for dev in ipad iphone; do
+            [ "$dev" = ipad ] && u=$U_IPAD || u=$U_IPHONE
+            echo "=== $dev ($u)"
+            xcrun simctl boot "$u"; echo "boot exit $?"
+            limit 600 xcrun simctl bootstatus "$u" -b > "$OUT/$dev-bootstatus.log" 2>&1; echo "bootstatus exit $?: $(tail -n 1 "$OUT/$dev-bootstatus.log")"
+            xcrun simctl ui "$u" appearance dark
+            xcrun simctl install "$u" "$APP_PATH"; echo "install exit $?"
+            data=$(xcrun simctl get_app_container "$u" "$BID" data); echo "data container: $data"
+            xcrun simctl spawn "$u" log stream --style compact --predicate 'process == "App"' > "$OUT/$dev-app.log" 2>&1 &
+            logpid=$!
+            for half in email password; do
+              [ "$half" = email ] && t=test1Email || t=test2Password
+              echo "--- $dev $half"
+              find "$data/tmp" -name 'kfdiag*' -delete 2>/dev/null
+              limit 180 env SIMCTL_CHILD_KF_DIAG=1 xcrun simctl launch "$u" "$BID" > "$OUT/$dev-$half-launch.log" 2>&1
+              echo "simctl launch exit $?: $(head -c 200 "$OUT/$dev-$half-launch.log")"
+              # Fixed wait for the login page (the hook sends the web view to
+              # /ar/login): at most 90 s, read from the hook's own file.
+              reached=no
+              for i in $(seq 1 90); do
+                j=$(find "$data/tmp" -maxdepth 3 -name kfdiag.jsonl 2>/dev/null | head -n 1)
+                if [ -n "$j" ] && grep -qE '"path":"(\\/|/)ar(\\/|/)login".*"ready":"complete"' "$j"; then reached="yes after ${i}s"; break; fi
+                sleep 1
+              done
+              sleep 4
+              echo "login page: $reached"
+              shot "$u" "$dev-$half-00-launch-baseline"
+              n=$(find "$data/tmp" -maxdepth 3 -name kfdiag-native.json 2>/dev/null | head -n 1)
+              [ -n "$n" ] && { cp "$n" "$OUT/$dev-$half-native-launch.json"; echo "  native at launch: $(cut -c1-600 "$n")"; } || echo "  NO kfdiag-native.json (the hook did not run)"
+              limit 900 env TEST_RUNNER_KF_DEV=$dev xcodebuild test-without-building -project ios/App/App.xcodeproj -scheme KFZoom \
+                -destination "id=$u" -derivedDataPath "$RUNNER_TEMP/dd" -resultBundlePath "$RUNNER_TEMP/$dev-$half.xcresult" \
+                -only-testing:KFZoomUITests/KFZoomUITests/$t > "$OUT/$dev-$half-test.log" 2>&1
+              echo "$dev $half: xcodebuild exit $?"
+              grep -E 'KFTAP|Test Case|error:|failed|LIMIT' "$OUT/$dev-$half-test.log" | cut -c1-300 | head -n 40
+              shot "$u" "$dev-$half-99-after-test"
+              j=$(find "$data/tmp" -maxdepth 3 -name kfdiag.jsonl 2>/dev/null | head -n 1)
+              [ -n "$j" ] && { cp "$j" "$OUT/$dev-$half-hook.jsonl"; echo "  hook readings: $(wc -l < "$j" | tr -d ' ')"; } || echo "  NO kfdiag.jsonl"
+              xcrun simctl terminate "$u" "$BID"
+            done
+            kill "$logpid" 2>/dev/null
+            grep -h 'KFDiag' "$OUT/$dev-app.log" | cut -c1-400 | head -n 4
+            xcrun simctl shutdown "$u"; echo "shutdown exit $?"
           done
           exit 0
 
@@ -133,11 +180,12 @@ jobs:
         run: |
           set -u
           OUT="$RUNNER_TEMP/out"
-          for dev in iphone ipad; do
-            [ -d "$RUNNER_TEMP/$dev.xcresult" ] || { echo "no result bundle for $dev"; continue; }
-            mkdir -p "$RUNNER_TEMP/att-$dev"
-            xcrun xcresulttool export attachments --path "$RUNNER_TEMP/$dev.xcresult" --output-path "$RUNNER_TEMP/att-$dev" || echo "export failed for $dev"
-            python3 - "$RUNNER_TEMP/att-$dev" "$OUT" <<'PY'
+          for dev in ipad iphone; do for half in email password; do
+            r="$RUNNER_TEMP/$dev-$half.xcresult"
+            [ -d "$r" ] || { echo "no result bundle for $dev $half"; continue; }
+            mkdir -p "$RUNNER_TEMP/att-$dev-$half"
+            xcrun xcresulttool export attachments --path "$r" --output-path "$RUNNER_TEMP/att-$dev-$half" || echo "export failed for $dev $half"
+            python3 - "$RUNNER_TEMP/att-$dev-$half" "$OUT" <<'PY'
           import json, os, shutil, sys
           src, out = sys.argv[1], sys.argv[2]
           man = os.path.join(src, "manifest.json")
@@ -152,7 +200,7 @@ jobs:
                   shutil.copy(os.path.join(src, a["exportedFileName"]), dst)
                   print("exported", os.path.basename(dst))
           PY
-          done
+          done; done
 
       - name: The measurement table
         if: always()
@@ -162,21 +210,41 @@ jobs:
           import json, os, sys
           out = sys.argv[1]
           allrows = {}
-          for dev in ("iphone", "ipad"):
-              p = os.path.join(out, dev + "-test.log")
-              rows = []
-              if os.path.exists(p):
-                  for l in open(p, errors="replace"):
-                      if "KFDIAG|" in l:
-                          try: rows.append(json.loads(l.split("KFDIAG|", 1)[1]))
-                          except Exception: pass
-              allrows[dev] = rows
+          for dev in ("ipad", "iphone"):
               print(f"\n## {dev}\n")
+              for half in ("email", "password"):
+                  nf = os.path.join(out, f"{dev}-{half}-native-launch.json")
+                  if os.path.exists(nf):
+                      n = json.load(open(nf)).get("native", {})
+                      print("**{} launch, hook (no XCUITest)**: idiom={} model={} screen={} screenNative={} scale={} window={} windowFrame={} webFrame={} webInWindow={} zoomScale={}\n".format(
+                          half, n.get("idiom"), n.get("model"), n.get("screen"), n.get("screenNative"), n.get("screenScale"), n.get("window"), n.get("windowFrame"), n.get("webFrame"), n.get("webInWindow"), n.get("zoomScale")))
+                  else:
+                      print(f"**{half} launch**: no hook native reading\n")
+                  hf = os.path.join(out, f"{dev}-{half}-hook.jsonl")
+                  if os.path.exists(hf):
+                      hr = []
+                      for l in open(hf, errors="replace"):
+                          try: hr.append(json.loads(l))
+                          except Exception: pass
+                      allrows[f"{dev}-{half}-hook"] = hr
+                      print(f"hook readings ({half}): {len(hr)}; path / vv scale / native zoom / active over time: " + ", ".join(
+                          "{}:{}/{}/{}".format(r.get("seq"), (r.get("page") or {}).get("path") if isinstance(r.get("page"), dict) else "-",
+                                               ((r.get("page") or {}).get("vv") or {}).get("s") if isinstance(r.get("page"), dict) else "-",
+                                               (r.get("native") or {}).get("zoomScale"),
+                                               (r.get("page") or {}).get("active") if isinstance(r.get("page"), dict) else "-") for r in hr[-25:]) + "\n")
+              rows = []
+              for half in ("email", "password"):
+                  p = os.path.join(out, f"{dev}-{half}-test.log")
+                  if os.path.exists(p):
+                      for l in open(p, errors="replace"):
+                          if "KFDIAG|" in l:
+                              try: rows.append(json.loads(l.split("KFDIAG|", 1)[1]))
+                              except Exception: pass
+              allrows[dev] = rows
               if not rows:
-                  print("no readings"); continue
-              f = rows[0]; n = f.get("native", {}); ru = f.get("runner", {})
-              print("**first reading** — app sees: idiom={} model={} screen={} window={} windowFrame={} webInWindow={} windowSafe={} | runner (real device) sees: idiom={} screen={} screenshotPx={} appWindowOnScreen={} webViewOnScreen={}\n".format(
-                  n.get("idiom"), n.get("model"), n.get("screen"), n.get("window"), n.get("windowFrame"), n.get("webInWindow"), n.get("windowSafe"),
+                  print("XCUITest: no readings"); continue
+              f = rows[0]; ru = f.get("runner", {})
+              print("**runner (real device) sees**: idiom={} screen={} screenshotPx={} appWindowOnScreen={} webViewOnScreen={}\n".format(
                   ru.get("idiom"), ru.get("screen"), ru.get("screenshotPx"), ru.get("appWindowOnScreen"), ru.get("webViewOnScreen")))
               print("| step | path | vv scale | native zoom | active | kbd | iw×ih | vv w×h | vv offL,offT | scrollW/clientW | dpr | safe t,r,b,l | contentOffset | contentSize | overflow | note |")
               print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")

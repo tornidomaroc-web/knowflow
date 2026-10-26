@@ -5,8 +5,8 @@ import XCTest
 /// client-side navigation? Signed out only: nothing is typed, nothing is sent.
 ///
 /// The target is standalone (no target application): the app is installed by
-/// `simctl install` and driven by bundle id, so an iPhone-only app can be
-/// driven on an iPad simulator, where iOS runs it in compatibility mode.
+/// `simctl install`, opened by `simctl launch` and attached to by bundle id,
+/// so an iPhone-only app can be driven on an iPad simulator, where iOS runs it in compatibility mode.
 /// The readings come from the app's DEBUG+simulator hook (MainViewController,
 /// `ZoomDiag`): a JSON accessibility label on the element `kf-diag`.
 final class KFZoomUITests: XCTestCase {
@@ -18,23 +18,24 @@ final class KFZoomUITests: XCTestCase {
         continueAfterFailure = true
     }
 
-    func testFocusZoom() {
-        app.launchEnvironment["KF_DIAG"] = "1"
-        app.launch()
-        waitPath("/ar/login", timeout: 60)
-        record("01-baseline-login")
+    // The app is opened by the workflow (`simctl launch`, SIMCTL_CHILD_KF_DIAG=1),
+    // one fresh launch per half; the test only attaches. It never calls
+    // launch() or terminate(): run 40143915184 timed out in launch().
 
+    func test1Email() {
+        app.activate()
+        waitPath("/ar/login", timeout: 90)
+        record("01-baseline-login")
         tap(app.webViews.textFields.firstMatch, "email")
         record("02-tap-email")
         record("03-dismiss-keyboard", note: dismissKeyboard())
         record("04-nav-signup", note: tapSignup())
+    }
 
-        app.terminate()
-        lastSeq = 0
-        app.launch()
-        waitPath("/ar/login", timeout: 60)
+    func test2Password() {
+        app.activate()
+        waitPath("/ar/login", timeout: 90)
         record("05-baseline-login-fresh")
-
         tap(app.webViews.secureTextFields.firstMatch, "password")
         record("06-tap-password")
         record("07-dismiss-keyboard", note: dismissKeyboard())
