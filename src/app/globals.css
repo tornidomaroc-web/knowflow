@@ -698,3 +698,22 @@ body { background-color: var(--background); color: var(--foreground); }
 [data-theme="light"] .kf-clay .kf-plan-pill.text-accent { color: var(--accent-hover); }
 /* No streak yet: an empty gold ring, raised like the gold controls. */
 .kf-clay .kf-streak-ring { box-shadow: 0 6px 10px -6px var(--clay-drop); }
+
+/* Guideline 4.0 ("controls that are difficult to use due to size") and the
+   HIG's 44 x 44 pt: a text link or small button gets a tap area of at least
+   44 x 44 without changing its box, its text or the layout. The area is an
+   empty ::after centred on the control; a tap on a pseudo-element lands on
+   its element. Only on a control that sits on ONE line: an inline link that
+   wraps inside a sentence would get an area spanning its lines, so those are
+   left as they are (scripts/field-zoom/fields.mjs checks both, and that no two
+   areas overlap). */
+.kf-hit { position: relative; }
+.kf-hit::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}

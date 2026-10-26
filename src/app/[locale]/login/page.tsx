@@ -77,7 +77,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
           <div className="rise mb-8 flex flex-col items-center text-center">
             <ChatPages size={88} className="mb-3" />
             <h1 className="text-4xl font-bold tracking-tight">
-              <Link href={`/${locale}`} className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <Link href={`/${locale}`} className="kf-hit rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
               </Link>
             </h1>
@@ -91,7 +91,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
             <div className="rounded-xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm text-foreground">
               {notice.text}
               {notice.link && (
-                <Link href={notice.link.href} className="mt-1 block w-fit font-medium text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <Link href={notice.link.href} className="kf-hit mt-1 block w-fit font-medium text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   {notice.link.label}
                 </Link>
               )}
@@ -148,13 +148,13 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
           </button>
 
           <div className="text-center">
-            <Link href={`/${locale}/forgot-password`} className="text-sm text-muted-foreground transition-colors hover:text-primary">
+            <Link href={`/${locale}/forgot-password`} className="kf-hit text-sm text-muted-foreground transition-colors hover:text-primary">
               {t.auth.forgotLink}
             </Link>
           </div>
           <GoogleAccountHint text={t.auth.googleAccountHint} forgotLabel={t.auth.forgotLink} forgotHref={`/${locale}/forgot-password`} />
           <div className="mt-6 text-center">
-            <Link href={`/${locale}/signup`} className="text-sm text-muted-foreground transition-colors hover:text-primary">
+            <Link href={`/${locale}/signup`} className="kf-hit text-sm text-muted-foreground transition-colors hover:text-primary">
               {t.auth.noAccount}
             </Link>
           </div>

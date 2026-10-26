@@ -63,7 +63,7 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ locale
           {/* #105: it links to the landing. These pages had no other way back. */}
           <div className="mb-10 text-center">
             <h1 className="text-4xl font-bold tracking-tight">
-              <Link href={`/${locale}`} className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <Link href={`/${locale}`} className="kf-hit rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
               </Link>
             </h1>
@@ -92,14 +92,14 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ locale
               <button type="submit" disabled={loading || hasSession === null} className={cn(buttonVariants({ variant: 'primary' }), 'mt-2 w-full')}>
                 {loading ? t.auth.resetSaving : t.auth.resetSubmit}
               </button>
-              <button type="button" onClick={handleCancel} className="w-full text-center text-sm text-muted-foreground transition-colors hover:text-primary">
+              <button type="button" onClick={handleCancel} className="kf-hit w-full text-center text-sm text-muted-foreground transition-colors hover:text-primary">
                 {t.auth.resetCancel}
               </button>
             </>
           )}
 
           <div className="mt-6 text-center">
-            <Link href={`/${locale}/forgot-password`} className="text-sm text-muted-foreground transition-colors hover:text-primary">
+            <Link href={`/${locale}/forgot-password`} className="kf-hit text-sm text-muted-foreground transition-colors hover:text-primary">
               {t.auth.forgotLink}
             </Link>
           </div>
