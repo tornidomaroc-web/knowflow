@@ -97,6 +97,11 @@ function measure({ gatedSelectors, grid }) {
     fields.push(f);
   }
 
+  // Every scrolled element back to its start (an inner element may be the one
+  // that scrolls, so the window alone is not enough).
+  const unscroll = () => {
+    for (const e of [document.scrollingElement, ...document.querySelectorAll('*')]) if (e && (e.scrollTop || e.scrollLeft)) { e.scrollTop = 0; e.scrollLeft = 0; }
+  };
   // The tap areas. A point belongs to a control when the topmost element there
   // is the control, inside it, or (a radio or checkbox) the label around it.
   const gated = new Set(gatedSelectors.flatMap((s) => [...document.querySelectorAll(s)]));
@@ -105,7 +110,7 @@ function measure({ gatedSelectors, grid }) {
   const nodes = [...document.querySelectorAll(sel)];
   // Page coordinates: each control's box before anything scrolls, so the
   // offset holds whichever element does the scrolling.
-  scrollTo(0, 0);
+  unscroll();
   const home = nodes.map((n) => n.getBoundingClientRect());
   nodes.forEach((el, idx) => {
     const cs = getComputedStyle(el);
@@ -148,6 +153,7 @@ function measure({ gatedSelectors, grid }) {
     targets.push({
       el: name(el),
       inline,
+      disabled: !!el.disabled,
       lines: el.getClientRects().length,
       gated: gated.has(el),
       w: Math.round(all.width), h: Math.round(all.height),
@@ -168,7 +174,7 @@ function measure({ gatedSelectors, grid }) {
     if (na.contains(nb) || nb.contains(na)) continue;
     if (a.grid.x0 <= b.grid.x1 && b.grid.x0 <= a.grid.x1 && a.grid.y0 <= b.grid.y1 && b.grid.y0 <= a.grid.y1) overlaps.push(`${a.el} / ${b.el}`);
   }
-  scrollTo(0, 0);
+  unscroll();
   const sw = document.documentElement.scrollWidth;
   const cw = document.documentElement.clientWidth;
   return { path: location.pathname, fields, targets, overlaps, overflowX: sw > cw ? `${sw}/${cw}` : null };
@@ -243,7 +249,7 @@ for (const size of SIZES) for (const locale of ['ar', 'en']) for (const path of 
   const landedOn = m.path !== `/${locale}/${path.split('?')[0]}`;
   console.log(`${bad.length || misses.length ? 'FAIL' : 'ok  '} ${tag} (HTTP ${status}${landedOn ? `, landed on ${m.path}` : ''}): ${m.fields.length} field(s)${m.fields.length ? ': ' + m.fields.map((f) => `${f.el} ${f.px}px${f.shown ? '' : ' (hidden)'}`).join('; ') : ''}; ${must.length} gated tap area(s), ${misses.length} under ${MIN}x${MIN}`);
   for (const f of m.fields) if (f.placeholder && !f.placeholder.fits) report.push(`placeholder wider than its field: ${tag} ${f.el} needs ${f.placeholder.need}px, has ${f.placeholder.room}px`);
-  for (const t of m.targets) if (!must.includes(t) && (t.hw < MIN || t.hh < MIN)) report.push(`under 44x44: ${tag} ${t.el} tap area ${t.hw}x${t.hh} (box ${t.w}x${t.h})${t.reach ? '' : `, its centre lands on ${t.coveredBy}`}${t.inline ? `, inline link in text on ${t.lines} line(s), WCAG 2.5.8 exempt` : ''}`);
+  for (const t of m.targets) if (!must.includes(t) && (t.hw < MIN || t.hh < MIN)) report.push(`under 44x44: ${tag} ${t.el} tap area ${t.hw}x${t.hh} (box ${t.w}x${t.h})${t.disabled ? ', disabled (no pointer events until enabled)' : t.reach ? '' : `, its centre lands on ${t.coveredBy}`}${t.inline ? `, inline link in text on ${t.lines} line(s), WCAG 2.5.8 exempt` : ''}`);
   if (m.overflowX) report.push(`page wider than the screen: ${tag} scrollWidth/clientWidth ${m.overflowX}`);
 }
 
