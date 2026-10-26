@@ -194,7 +194,9 @@ export function StudyReminderCard({
           explicit locale (formatReminderClock: "7:00 م" / "7:00 pm"), and the
           real input lies over it, transparent and the same size, so a tap
           still opens the system picker and the value, the label and the
-          data attribute the signed-in run sets are unchanged.
+          data attribute the signed-in run sets are unchanged. Invisible as it
+          is, the input is 16 px below md: iOS decides its focus zoom by the
+          field's own font size (Guideline 4.0; see AuthField.tsx).
         */}
         <span className="kf-reminder-clock relative inline-flex h-11 min-w-[6.5rem] items-center justify-center rounded-xl border border-control-border bg-raised px-3 text-sm tabular-nums text-foreground">
           <span aria-hidden="true" data-kf-reminder-clock="">{formatReminderClock(time, locale === 'ar' ? 'ar' : 'en')}</span>
@@ -207,7 +209,7 @@ export function StudyReminderCard({
             disabled={busy}
             data-kf-reminder="time"
             onChange={(e) => void changeTime(e.target.value)}
-            className="absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-xl opacity-0"
+            className="absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-xl text-base opacity-0 md:text-sm"
           />
         </span>
       </div>
