@@ -12,7 +12,8 @@ name: field-zoom
 #         (scripts/field-zoom/fields.mjs). A field under 16 px fails the run.
 #         Reported, never failing: tappable controls under 44 x 44, placeholders
 #         wider than their field. Not blind: 14 px planted on every field must
-#         fail it. Renders login, signup and forgot-password (24 PNGs).
+#         fail it. Renders login, signup and forgot-password (48 PNGs, empty
+#         and filled).
 # before  only when a PR changes scripts/field-zoom/: the same renders and
 #         readings of the PR's base, for the before/after review. Never fails
 #         on what it finds.

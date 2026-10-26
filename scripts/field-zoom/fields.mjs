@@ -21,7 +21,8 @@
  * workflow requires that run to fail.
  *
  * --render also screenshots login, signup and forgot-password at both sizes,
- * Arabic and English, dark and light (24 PNGs, full page) into --out.
+ * Arabic and English, dark and light, empty and with sample text typed in
+ * (48 PNGs, full page) into --out.
  *
  * Usage: node scripts/field-zoom/fields.mjs --out DIR [--render] [--label after]
  * Env: BASE (default http://127.0.0.1:3000), CHROME, PUPPETEER_DIR.
@@ -135,8 +136,18 @@ if (RENDER) for (const size of SIZES) for (const locale of ['ar', 'en']) for (co
   const { tab } = await open(path, locale, size, theme);
   const file = `${label}-${size.key}-${locale}-${theme}-${path}.png`;
   await tab.screenshot({ path: join(out, file), fullPage: true });
+  // The same page with every field holding text, so the text's size shows.
+  // Sample values typed on the runner's own build; nothing is submitted.
+  const sample = { email: 'student@example.com', password: 'example-pass', text: locale === 'ar' ? 'سارة أحمد' : 'Sara Ahmed' };
+  for (const el of await tab.$$('input[type=email], input[type=password], input[type=text]')) {
+    const type = await el.evaluate((e) => e.type);
+    await el.type(sample[type] ?? sample.text);
+  }
+  await tab.evaluate(() => document.activeElement?.blur());
+  const filled = file.replace(/\.png$/, '-filled.png');
+  await tab.screenshot({ path: join(out, filled), fullPage: true });
   await tab.close();
-  console.log(`shot ${file}`);
+  console.log(`shot ${file}, ${filled}`);
 }
 await browser.close();
 
