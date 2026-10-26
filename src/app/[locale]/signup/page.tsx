@@ -120,7 +120,7 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
           <div className="rise mb-8 flex flex-col items-center text-center">
             <SparkBook size={88} className="mb-3" />
             <h1 className="text-4xl font-bold tracking-tight">
-              <Link href={`/${locale}`} className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <Link href={`/${locale}`} className="kf-hit rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
               </Link>
             </h1>
@@ -213,7 +213,7 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
           </button>
 
           <div className="mt-6 text-center">
-            <Link href={`/${locale}/login`} className="text-sm text-muted-foreground transition-colors hover:text-primary">
+            <Link href={`/${locale}/login`} className="kf-hit text-sm text-muted-foreground transition-colors hover:text-primary">
               {t.auth.hasAccount}
             </Link>
             {/* #105: moved here from under the password fields, unreworded, as ruled. It is a note for a returning student, beside the sign-in line. It is still shown to everyone, so it still reveals nothing about any address. */}

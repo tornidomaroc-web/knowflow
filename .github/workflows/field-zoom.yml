@@ -10,10 +10,15 @@ name: field-zoom
 #         control rendered signed out computes 16 px or more at 375 x 667 (the
 #         iPad's compatibility size) and 440 x 956, Arabic and English
 #         (scripts/field-zoom/fields.mjs). A field under 16 px fails the run.
-#         Reported, never failing: tappable controls under 44 x 44, placeholders
+#         Tap areas, measured by hit-testing (4.0 names "controls that are
+#         difficult to use due to size"): every control on the auth pages
+#         except links inside a sentence, and the reminder's time control,
+#         must have 44 x 44 or more, and no two on an auth page may overlap.
+#         Reported, never failing: other controls under 44 x 44, placeholders
 #         wider than their field. Not blind: 14 px planted on every field must
-#         fail it. Renders login, signup and forgot-password (48 PNGs, empty
-#         and filled).
+#         fail it, and so must the tap areas removed. Renders login, signup
+#         and forgot-password (72 PNGs: empty, filled, and the tap areas
+#         outlined).
 # before  only when a PR changes scripts/field-zoom/: the same renders and
 #         readings of the PR's base, for the before/after review. Never fails
 #         on what it finds.
@@ -95,6 +100,17 @@ jobs:
           fi
           tail -n 1 "$RUNNER_TEMP/plant.log"
           echo "ok   14 px planted on every field fails the gate"
+
+      - name: Not blind (the tap areas removed must fail)
+        if: ${{ !cancelled() }}
+        env:
+          PUPPETEER_DIR: ${{ runner.temp }}/pp
+        run: |
+          if KF_PLANT_HIT=1 CHROME="$(command -v google-chrome)" node scripts/field-zoom/fields.mjs --out "$RUNNER_TEMP/field-zoom-plant-hit" --label plant-hit > "$RUNNER_TEMP/plant-hit.log" 2>&1; then
+            tail -n 5 "$RUNNER_TEMP/plant-hit.log"; echo "the tap areas removed passed the gate: the gate is blind"; exit 1
+          fi
+          grep -m1 '^TAP AREAS' "$RUNNER_TEMP/plant-hit.log"
+          echo "ok   the tap areas removed fail the gate"
 
       - name: Server log
         if: always()
