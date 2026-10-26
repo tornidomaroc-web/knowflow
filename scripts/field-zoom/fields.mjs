@@ -213,6 +213,8 @@ async function open(path, locale, size, theme) {
   const q = new URLSearchParams({ platform: 'native', theme, ...Object.fromEntries(new URLSearchParams(extra || '')) }).toString();
   const res = await tab.goto(`${BASE}/${locale}/${p}?${q}`, { waitUntil: 'networkidle0', timeout: 90000 });
   await tab.evaluate(() => document.fonts.ready);
+  // A sheet sliding in or a section rising is measured where it comes to rest.
+  await tab.evaluate(() => Promise.race([Promise.all(document.getAnimations().map((x) => x.finished.catch(() => null))), new Promise((r) => setTimeout(r, 3000))]));
   if (PLANT) await tab.addStyleTag({ content: 'input, textarea, select { font-size: 14px !important; }' });
   if (PLANT_HIT) await tab.addStyleTag({ content: '.kf-hit::after { display: none !important; } #kf-reminder-time { inset: 0 !important; }' });
   return { tab, status: res ? res.status() : 0 };
