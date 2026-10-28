@@ -247,6 +247,11 @@ jobs:
       # tokens here, replaced inside the app from the launch environment. Every
       # later step is a navigation or a scroll, each followed by the probe and a
       # screenshot. `l` is the locale the page is on.
+      # The pre-clear steps: App Review twice left the reviewer account with the
+      # AI permission given (run 40266099159; read in the database 2026-10-28),
+      # and then the quiz opened no sheet. If Settings reads "on" before the
+      # quiz, the run withdraws it there first, with the card's own button, so
+      # the sheet below still opens. It never gives the permission.
       - name: Signed-in run against the live site
         if: ${{ inputs.scenario == 'screens' }}
         env:
@@ -262,6 +267,9 @@ jobs:
             {"name":"login","until":"/(en|ar)/dashboard$","timeout":60000,"wait":3000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);var f=e.form;if(!f){return 'no form'}setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted'})()"},
             {"name":"home","wait":3000,"js":"(function(){window.scrollTo(0,0);return location.pathname})()"},
             {"name":"home-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
+            {"name":"pre-clear-settings","until":"/dashboard/settings$","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings link'}a.click();return 'clicked Settings'})()"},
+            {"name":"pre-clear","wait":5000,"js":"(function(){var c=document.querySelector('[data-kf-consent-state]');if(!c){return 'pre-clear: no consent card'}var s=c.getAttribute('data-kf-consent-state');if(s==='off'){return 'pre-clear: already off'}if(s!=='on'){return 'pre-clear: unknown state '+s}var b=document.querySelector('[data-kf-consent=withdraw]');if(!b){return 'pre-clear: was on, no withdraw button'}b.click();return 'pre-clear: was on, clicked withdraw'})()"},
+            {"name":"pre-clear-off","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-consent-state]');return c?c.getAttribute('data-kf-consent-state'):'no consent card'})()"},
             {"name":"subjects","until":"/dashboard/knowledge$","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/knowledge\"]');if(!a){return 'no Subjects link'}a.click();return 'clicked Subjects'})()"},
             {"name":"subject","until":"/dashboard/knowledge/[0-9a-f-]{36}$","wait":10000,"js":"(function(){var a=Array.prototype.slice.call(document.querySelectorAll('a[href*=\"/dashboard/knowledge/\"]')).filter(function(a){return !/\\/new$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no subject link'}a.click();return 'clicked a subject'})()"},
             {"name":"summary","wait":2000,"js":"(function(){var h=Array.prototype.slice.call(document.querySelectorAll('h1,h2,h3,h4,p,span,div')).filter(function(x){return x.children.length===0&&/^(SUMMARY|Summary|الملخص|ملخص)$/.test((x.innerText||'').trim())})[0];if(!h){return 'no summary heading'}h.scrollIntoView({block:'start'});return 'scrolled to summary'})()"},
@@ -372,6 +380,14 @@ jobs:
           need(re.search(r"/dashboard/knowledge/[0-9a-f-]{36}$", url(S)), f"a subject opened: {S.get('href')}")
           need("photosynthesis" in (S.get("text", "") or "").lower(), f"...and it lists the seeded material: {S.get('text', '')[:120]}")
           need(by.get("summary", {}).get("result") == "scrolled to summary", f"the summary is on the subject page: {by.get('summary', {}).get('result')}")
+          # The pre-clear: which case it met, and, only when it found the
+          # permission given, that withdrawing it read "off" before the quiz.
+          PC = str(by.get("pre-clear", {}).get("result", ""))
+          PO = by.get("pre-clear-off", {}).get("result")
+          if PC.startswith("pre-clear: was on"):
+              need(PO == "off", f"pre-clear: the permission was given at the start and was withdrawn in Settings before the quiz: {PC} -> {PO}")
+          else:
+              print(f"info {PC or 'pre-clear: no reading'} (Settings read: {PO})")
           need(by.get("quiz-open", {}).get("result") == "clicked quiz", f"the quiz button is on the subject page: {by.get('quiz-open', {}).get('result')}")
           # Apple 5.1.2(i): the first quiz asks first, naming both companies.
           need(by.get("consent", {}).get("result") == "accepted: Anthropic, Voyage AI", f"the AI permission sheet opened before the quiz, named both companies and was accepted: {by.get('consent', {}).get('result')}")
