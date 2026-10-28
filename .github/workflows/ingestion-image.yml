@@ -10,8 +10,8 @@ name: ingestion-image
 # not even pause for them. The failure this closes is specific: main.py imports
 # `acreate_client`/`AsyncClient`/`AsyncClientOptions` from `supabase` at MODULE
 # SCOPE, and `tiktoken.get_encoding("cl100k_base")` also runs at module scope, so
-# a bad resolve or an unreachable encoder file is a BOOT-time crash. All four
-# endpoints -- /health, /embed, /convert, /ingest -- live in one uvicorn process,
+# a bad resolve or an unreachable encoder file is a BOOT-time crash. All three
+# endpoints -- /health, /embed, /ingest -- live in one uvicorn process,
 # so a boot crash takes the Ask path down with the upload path.
 #
 # WHAT IT DELIBERATELY DOES NOT PROVE. It does not prove the Railway environment

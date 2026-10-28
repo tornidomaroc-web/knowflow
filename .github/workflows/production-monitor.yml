@@ -210,7 +210,7 @@ jobs:
           # a real defect that must be seen; the message carries the distinction
           # so whoever reads it does not over-react.
           jq -e '.supabase_configured == true' /tmp/health.json > /dev/null || {
-            echo '::error::supabase_configured is false. Per section 8.2 this is NOT a rollback trigger -- the process booted and /convert and /embed do not touch Supabase. Fix the Railway environment and restart. Do not roll back.'; exit 1; }
+            echo '::error::supabase_configured is false. Per section 8.2 this is NOT a rollback trigger -- the process booted and /embed does not touch Supabase. Fix the Railway environment and restart. Do not roll back.'; exit 1; }
 
           echo "HEALTH OK"
 
@@ -290,3 +290,44 @@ jobs:
           fi
 
           echo "CONVERT CONTRACT OK ($code, as derived from main.py)"
+
+      # ------------------------------------------------------------------
+      # PROBE 3 -- unauthenticated POST /embed. TRIGGER 4's guard after PR C.
+      #
+      # Once /convert is gone, probe 2 reads 404 whatever the token check does,
+      # so it no longer proves the service refuses a caller without the token.
+      # This probe does, on a route every version has. The body is a valid
+      # EmbedRequest on purpose: FastAPI validates the body BEFORE the bearer
+      # check runs (the same trap as probe 2's file part), so an empty body
+      # would read 422 and prove nothing. With a valid body and no token the
+      # handler refuses at _check_auth, before Voyage is called: 401, or 503
+      # when INGESTION_TOKEN is unset on Railway, which is the 2026-07-23
+      # outage's sibling and is red here too.
+      # ------------------------------------------------------------------
+      - name: Probe unauthenticated POST /embed
+        env:
+          BASE: ${{ secrets.INGESTION_SERVICE_URL }}
+        run: |
+          set -u
+          code=000
+          for attempt in 1 2 3; do
+            code=$(curl -sS -m 20 -o /tmp/embed.json -w '%{http_code}' \
+                     -X POST -H 'Content-Type: application/json' \
+                     --data '{"text":"probe"}' "$BASE/embed" || echo 000)
+            [ "$code" != "000" ] && break
+            echo "attempt $attempt: transport failure -- retrying in 10s"
+            sleep 10
+          done
+          echo "HTTP $code"
+          echo "body: $(cat /tmp/embed.json 2>/dev/null || echo '<none>')"
+
+          case "$code" in
+            2*)
+              echo "::error::UNAUTHENTICATED POST /embed RETURNED $code. The ingestion service is PUBLICLY OPEN and is spending Voyage on any caller. This is TRIGGER 4 (section 8.1) and register #45's exact failure. Roll back first, diagnose after."
+              exit 1 ;;
+            401)
+              echo "EMBED AUTH GATE OK (401 without a token)" ;;
+            *)
+              echo "::error::expected HTTP 401 from an unauthenticated POST /embed but the live service returned $code. 503 means INGESTION_TOKEN is unset on Railway, so every upload and every Ask embed is failing. Do not relax this assertion."
+              exit 1 ;;
+          esac
