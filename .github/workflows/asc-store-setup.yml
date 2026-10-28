@@ -18,10 +18,14 @@ name: asc-store-setup
 #   screenshots  the approved PNGs (docs/store/screenshots-designed/ar and
 #                en, 01 to 05) into the APP_IPHONE_67 (6.9-inch) set of the ar,
 #                en-US and en-GB version localizations (en-GB takes the English
-#                five; fr-FR none, so the store shows ar-SA's), replacing a set
-#                that differs; each one
-#                COMPLETE with Apple's checksum equal to the file's MD5. A
-#                language without a version localization is skipped and named.
+#                five; fr-FR none, so the store shows ar-SA's). A set that
+#                differs RESUMES: approved images already there are kept
+#                (COMPLETE) or waited for (still processing); only the others
+#                are deleted, in that set; the missing ones are uploaded; all
+#                pending ones are waited for together (15 minutes), then the set
+#                is put in order. Each one COMPLETE with Apple's checksum equal
+#                to the file's MD5. A language without a version localization
+#                is skipped and named.
 #   english      the en-US localization from docs/store/ASC_ANSWERS_EN.md,
 #                refused unless docs/store/ASC_ANSWERS_EN.approved holds that
 #                file's SHA-256 (checked before the key is even read).
@@ -140,7 +144,11 @@ jobs:
 
       # As asc-review-details.yml: ES256 with openssl alone, the DER
       # signature's two integers laid out as the raw 64 bytes. Twenty minutes,
-      # Apple's maximum, for the uploads; masked before anything prints.
+      # Apple's maximum, for the uploads; masked before anything prints. The
+      # key file stays (mode 600, in RUNNER_TEMP) for the run step, which
+      # re-signs the token the same way when it has under five minutes left
+      # (a screenshot wait can outlast one token: run 40780425121); the last
+      # step shreds it whatever happens.
       - name: Mint a twenty-minute App Store Connect token (masked)
         env:
           ASC_REVIEW_KEY_ID: ${{ secrets.ASC_REVIEW_KEY_ID }}
@@ -161,15 +169,18 @@ jobs:
           token="$(cat "$RUNNER_TEMP/asc/signing-input").$sig"
           echo "::add-mask::$token"
           printf 'Authorization: Bearer %s\n' "$token" > "$RUNNER_TEMP/asc/auth-header"
-          rm -f "$RUNNER_TEMP/asc/sig.der" "$RUNNER_TEMP/asc/signing-input" "$RUNNER_TEMP/asc/key.p8"
+          rm -f "$RUNNER_TEMP/asc/sig.der" "$RUNNER_TEMP/asc/signing-input"
           echo "token minted: ${#token} characters, expires in 1200 s"
 
       - name: Run ${{ inputs.mode }}
+        env:
+          ASC_REVIEW_KEY_ID: ${{ secrets.ASC_REVIEW_KEY_ID }}
+          ASC_REVIEW_ISSUER_ID: ${{ secrets.ASC_REVIEW_ISSUER_ID }}
         run: |
           set -eu
           live=""
           if [ "$MODE" != read ] && [ "$MODE" != builds ] && [ "$DRY_RUN" = false ]; then live=--live; fi
-          python3 -I scripts/asc/store_setup.py "$MODE" --version "$VERSION" --auth "$RUNNER_TEMP/asc/auth-header" $live
+          python3 -I scripts/asc/store_setup.py "$MODE" --version "$VERSION" --auth "$RUNNER_TEMP/asc/auth-header" --key-file "$RUNNER_TEMP/asc/key.p8" $live
 
       - name: Remove the key and the token
         if: always()

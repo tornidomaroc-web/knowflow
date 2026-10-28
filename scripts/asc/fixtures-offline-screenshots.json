@@ -1,0 +1,274 @@
+{
+ "_note": "The 1.0.1 state after live run 40780425121 (2026-10-28): ar-SA and en-US hold the approved five; en-GB holds 01 and 02 COMPLETE and 03 still UPLOAD_COMPLETE; 04 and 05 were never created. fr-FR has no set. Fake ids.",
+ "/v1/apps/6820418649/appStoreVersions": {
+  "data": [
+   {
+    "type": "appStoreVersions",
+    "id": "VER-10",
+    "attributes": {
+     "versionString": "1.0",
+     "appVersionState": "READY_FOR_DISTRIBUTION",
+     "platform": "IOS"
+    }
+   },
+   {
+    "type": "appStoreVersions",
+    "id": "VER-101",
+    "attributes": {
+     "versionString": "1.0.1",
+     "appVersionState": "PREPARE_FOR_SUBMISSION",
+     "platform": "IOS"
+    }
+   }
+  ]
+ },
+ "/v1/appStoreVersions/VER-101/appStoreVersionLocalizations": {
+  "data": [
+   {
+    "type": "appStoreVersionLocalizations",
+    "id": "VL-ar-SA",
+    "attributes": {
+     "locale": "ar-SA"
+    }
+   },
+   {
+    "type": "appStoreVersionLocalizations",
+    "id": "VL-en-US",
+    "attributes": {
+     "locale": "en-US"
+    }
+   },
+   {
+    "type": "appStoreVersionLocalizations",
+    "id": "VL-en-GB",
+    "attributes": {
+     "locale": "en-GB"
+    }
+   },
+   {
+    "type": "appStoreVersionLocalizations",
+    "id": "VL-fr-FR",
+    "attributes": {
+     "locale": "fr-FR"
+    }
+   }
+  ]
+ },
+ "/v1/appStoreVersionLocalizations/VL-ar-SA/appScreenshotSets": {
+  "data": [
+   {
+    "type": "appScreenshotSets",
+    "id": "SET-AR",
+    "attributes": {
+     "screenshotDisplayType": "APP_IPHONE_67"
+    }
+   }
+  ]
+ },
+ "/v1/appStoreVersionLocalizations/VL-en-US/appScreenshotSets": {
+  "data": [
+   {
+    "type": "appScreenshotSets",
+    "id": "SET-US",
+    "attributes": {
+     "screenshotDisplayType": "APP_IPHONE_67"
+    }
+   }
+  ]
+ },
+ "/v1/appStoreVersionLocalizations/VL-en-GB/appScreenshotSets": {
+  "data": [
+   {
+    "type": "appScreenshotSets",
+    "id": "SET-GB",
+    "attributes": {
+     "screenshotDisplayType": "APP_IPHONE_67"
+    }
+   }
+  ]
+ },
+ "/v1/appStoreVersionLocalizations/VL-fr-FR/appScreenshotSets": {
+  "data": []
+ },
+ "/v1/appScreenshotSets/SET-AR/appScreenshots": {
+  "data": [
+   {
+    "type": "appScreenshots",
+    "id": "AR-1",
+    "attributes": {
+     "fileName": "01-subjects.png",
+     "fileSize": 1209737,
+     "sourceFileChecksum": "3debae7f4dd36c7cfcfb5c54bea444ed",
+     "assetDeliveryState": {
+      "state": "COMPLETE",
+      "errors": []
+     }
+    }
+   },
+   {
+    "type": "appScreenshots",
+    "id": "AR-2",
+    "attributes": {
+     "fileName": "02-material.png",
+     "fileSize": 1102175,
+     "sourceFileChecksum": "73ca6122663e1a5eeb42b71b4466f484",
+     "assetDeliveryState": {
+      "state": "COMPLETE",
+      "errors": []
+     }
+    }
+   },
+   {
+    "type": "appScreenshots",
+    "id": "AR-3",
+    "attributes": {
+     "fileName": "03-summary.png",
+     "fileSize": 1189485,
+     "sourceFileChecksum": "c6ae05fc6839dd5def026fa0e2de7b79",
+     "assetDeliveryState": {
+      "state": "COMPLETE",
+      "errors": []
+     }
+    }
+   },
+   {
+    "type": "appScreenshots",
+    "id": "AR-4",
+    "attributes": {
+     "fileName": "04-ask.png",
+     "fileSize": 1019296,
+     "sourceFileChecksum": "63f68b2fa47d487ec06e2b95e3b9b1be",
+     "assetDeliveryState": {
+      "state": "COMPLETE",
+      "errors": []
+     }
+    }
+   },
+   {
+    "type": "appScreenshots",
+    "id": "AR-5",
+    "attributes": {
+     "fileName": "05-settings.png",
+     "fileSize": 1135296,
+     "sourceFileChecksum": "25f7fd8abb050991eaf2ed6dbb85e6c2",
+     "assetDeliveryState": {
+      "state": "COMPLETE",
+      "errors": []
+     }
+    }
+   }
+  ]
+ },
+ "/v1/appScreenshotSets/SET-US/appScreenshots": {
+  "data": [
+   {
+    "type": "appScreenshots",
+    "id": "US-1",
+    "attributes": {
+     "fileName": "01-subjects.png",
+     "fileSize": 1163224,
+     "sourceFileChecksum": "bfe90dc18d7ae7c928ef05cd0e9dbeee",
+     "assetDeliveryState": {
+      "state": "COMPLETE",
+      "errors": []
+     }
+    }
+   },
+   {
+    "type": "appScreenshots",
+    "id": "US-2",
+    "attributes": {
+     "fileName": "02-material.png",
+     "fileSize": 1164246,
+     "sourceFileChecksum": "7e3cfc714c8c89cf9d3c776b4be8132d",
+     "assetDeliveryState": {
+      "state": "COMPLETE",
+      "errors": []
+     }
+    }
+   },
+   {
+    "type": "appScreenshots",
+    "id": "US-3",
+    "attributes": {
+     "fileName": "03-summary.png",
+     "fileSize": 1206706,
+     "sourceFileChecksum": "55ed7bb5cdefbc7e594df25a7c48701c",
+     "assetDeliveryState": {
+      "state": "COMPLETE",
+      "errors": []
+     }
+    }
+   },
+   {
+    "type": "appScreenshots",
+    "id": "US-4",
+    "attributes": {
+     "fileName": "04-quiz.png",
+     "fileSize": 976533,
+     "sourceFileChecksum": "826500734172b2653ae8826b4955d59c",
+     "assetDeliveryState": {
+      "state": "COMPLETE",
+      "errors": []
+     }
+    }
+   },
+   {
+    "type": "appScreenshots",
+    "id": "US-5",
+    "attributes": {
+     "fileName": "05-settings.png",
+     "fileSize": 1157634,
+     "sourceFileChecksum": "8f2343294c7b640e840cb8be278eaae5",
+     "assetDeliveryState": {
+      "state": "COMPLETE",
+      "errors": []
+     }
+    }
+   }
+  ]
+ },
+ "/v1/appScreenshotSets/SET-GB/appScreenshots": {
+  "data": [
+   {
+    "type": "appScreenshots",
+    "id": "GB-1",
+    "attributes": {
+     "fileName": "01-subjects.png",
+     "fileSize": 1163224,
+     "sourceFileChecksum": "bfe90dc18d7ae7c928ef05cd0e9dbeee",
+     "assetDeliveryState": {
+      "state": "COMPLETE",
+      "errors": []
+     }
+    }
+   },
+   {
+    "type": "appScreenshots",
+    "id": "GB-2",
+    "attributes": {
+     "fileName": "02-material.png",
+     "fileSize": 1164246,
+     "sourceFileChecksum": "7e3cfc714c8c89cf9d3c776b4be8132d",
+     "assetDeliveryState": {
+      "state": "COMPLETE",
+      "errors": []
+     }
+    }
+   },
+   {
+    "type": "appScreenshots",
+    "id": "GB-3",
+    "attributes": {
+     "fileName": "03-summary.png",
+     "fileSize": 1206706,
+     "sourceFileChecksum": "55ed7bb5cdefbc7e594df25a7c48701c",
+     "assetDeliveryState": {
+      "state": "UPLOAD_COMPLETE",
+      "errors": []
+     }
+    }
+   }
+  ]
+ }
+}
