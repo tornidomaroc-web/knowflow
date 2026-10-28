@@ -210,19 +210,26 @@ Terms of use: https://tryknowflow.com/en/terms
 **Approved by the owner on 2026-10-10 as written below, including the name
 "KnowFlow: ذاكر من ملفاتك".** Any later change goes through a copy batch.
 
+**Version 1.0.1: subtitle and keywords replaced, approved by the owner on
+2026-10-28.** The new subtitle (the one below without its shadda, 22 of 30)
+and the new keywords (100 of 100) are in `docs/store/ASC_ANSWERS_AR.md`,
+which the `arabic` mode of `asc-store-setup.yml` writes under its approval
+flag. The Subtitle and Keywords blocks below are the 1.0 text, kept as it was
+approved; the name, the promotional text and the description stay current.
+
 **Name** (24 of 30)
 
 ```
 KnowFlow: ذاكر من ملفاتك
 ```
 
-**Subtitle** (23 of 30)
+**Subtitle** (23 of 30), version 1.0; replaced in 1.0.1
 
 ```
 اسأل، لخّص، واختبر نفسك
 ```
 
-**Keywords** (87 of 100)
+**Keywords** (87 of 100), version 1.0; replaced in 1.0.1
 
 ```
 مذاكرة,اختبار,ملخص,امتحان,مراجعة,محاضرة,طالب,واجبات,دروس,تعلم,جامعة,ثانوية,بكالوريا,PDF

@@ -33,7 +33,9 @@ name: ios-smoke
 #   7. the app's privacy manifest (ITMS-91053): an unsigned Release build for
 #      a device carries PrivacyInfo.xcprivacy, and every required-reason API
 #      that any binary in it reaches is declared
-#      (.github/scripts/ios-privacy-check.py prints the audit table).
+#      (.github/scripts/ios-privacy-check.py prints the audit table);
+#   8. the same device build declares English and Arabic (en.lproj and
+#      ar.lproj, CFBundleLocalizations) and carries MARKETING_VERSION.
 # A screenshot is taken at every new line of smoke.jsonl, and the app's log
 # is kept, so the record is pictures and text, not a green tick alone.
 #
@@ -197,6 +199,29 @@ jobs:
           device_app=$(find "$RUNNER_TEMP/dd-device/Build/Products" -maxdepth 2 -name 'App.app' -type d | head -n 1)
           test -n "$device_app" || { echo "no device App.app was built"; tail -n 60 "$RUNNER_TEMP/build-device.log"; exit 1; }
           python3 .github/scripts/ios-privacy-check.py "$device_app" | tee "$RUNNER_TEMP/privacy-audit.txt"
+          echo "DEVICE_APP=$device_app" >> "$GITHUB_ENV"
+
+      # ASO-1.0.1. The App Store lists the languages the binary declares: its
+      # .lproj folders, with CFBundleLocalizations agreeing. Read from the same
+      # Release device build as proof 7, so it is what an archive would carry.
+      # What this cannot prove is the store page itself; that is read after
+      # the build is live.
+      - name: The device build declares Arabic and English
+        run: |
+          set -eu
+          plist="$DEVICE_APP/Info.plist"
+          echo "lproj folders: $(cd "$DEVICE_APP" && ls -d *.lproj | tr '\n' ' ')"
+          for l in en ar; do
+            test -f "$DEVICE_APP/$l.lproj/InfoPlist.strings" || { echo "FAIL: no $l.lproj/InfoPlist.strings in the device build"; exit 1; }
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleLocalizations' "$plist" | grep -qx "[[:space:]]*$l" || { echo "FAIL: CFBundleLocalizations does not name $l"; exit 1; }
+          done
+          echo "CFBundleLocalizations: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleLocalizations' "$plist" | tr -s ' \n' ' ')"
+          echo "CFBundleDevelopmentRegion: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleDevelopmentRegion' "$plist")"
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")
+          want=$(grep -m1 -o 'MARKETING_VERSION = [0-9.]*' ios/App/App.xcodeproj/project.pbxproj | sed 's/.* = //')
+          echo "CFBundleShortVersionString: $version (MARKETING_VERSION $want)"
+          test "$version" = "$want" || { echo "FAIL: the built version is not MARKETING_VERSION"; exit 1; }
+          echo "LANGUAGES OK: en and ar declared"
 
       - name: Boot a simulator
         run: |

@@ -1,32 +1,49 @@
 name: asc-store-setup
 
 # Step S7d (docs/store/STORE_PATH.md S7): the App Store Connect settings of
-# version 1.0 through the App Store Connect API, from main, by dispatch only.
+# version 1.0, and since ASO-1.0.1 the listing of version 1.0.1, through the
+# App Store Connect API, from main, by dispatch only.
 # The logic and every API call live in scripts/asc/store_setup.py (Python
 # standard library only); this file mints the token and runs it.
 #
 #   read         the state, no write.
-#   builds       every build of version 1.0 (processingState, expired,
+#   builds       every build of the version (processingState, expired,
 #                encryption, minOsVersion, buildAudienceType, uploadedDate,
 #                preReleaseVersion, beta states), one line each, and the
-#                build attached to 1.0. GET only: store_setup.py refuses any
+#                build attached to it. GET only: store_setup.py refuses any
 #                other method in this mode, and it never gets --live.
 #   settings     price Free (USA base, price point 0), every territory but
 #                mainland China (CHN), new territories on, content rights
 #                "does not use third-party content". Idempotent.
-#   screenshots  the ten approved PNGs (docs/store/screenshots-designed/ar and
-#                en, 01 to 05) into the APP_IPHONE_67 (6.9-inch) set of the ar
-#                and en-US version localizations, replacing the set; each one
+#   screenshots  the approved PNGs (docs/store/screenshots-designed/ar and
+#                en, 01 to 05) into the APP_IPHONE_67 (6.9-inch) set of the ar,
+#                en-US and en-GB version localizations (en-GB takes the English
+#                five; fr-FR none, so the store shows ar-SA's), replacing a set
+#                that differs; each one
 #                COMPLETE with Apple's checksum equal to the file's MD5. A
 #                language without a version localization is skipped and named.
-#   arabic-appinfo  the owner-approved Arabic name and subtitle (read from
-#                docs/store/ASC_ANSWERS.md section 4.2) into the ar-SA App Info
-#                localization, those two fields only; read back byte for byte.
 #   english      the en-US localization from docs/store/ASC_ANSWERS_EN.md,
 #                refused unless docs/store/ASC_ANSWERS_EN.approved holds that
 #                file's SHA-256 (checked before the key is even read).
+#   arabic       the ar-SA subtitle (App Info) and keywords (version
+#                localization) from docs/store/ASC_ANSWERS_AR.md, those two
+#                fields only; the ar-SA localizations must already exist.
+#   en-gb, fr-fr the en-GB or fr-FR App Info and version localizations from
+#                docs/store/ASC_ANSWERS_GB.md or _FR.md, created when missing.
+#                The three locale modes are refused unless the file's .approved
+#                flag holds its SHA-256 (checked before the key is read), the
+#                version is editable (1.0.1 in Prepare for Submission) and an
+#                App Info that is not live exists; they write only the fields
+#                that differ and read every one back byte for byte.
 #
-# dry_run (default true) applies to the four write modes: the reads are sent
+# `version` names the App Store version every mode reads and writes (1.0.1
+# by default; 1.0 is live and accepts no edit). Nothing here creates a
+# version: that is the "+" next to iOS App in App Store Connect's web page.
+# The arabic-appinfo mode of 1.0 (the Arabic name and subtitle from
+# ASC_ANSWERS.md section 4.2) is gone: its subtitle is the 1.0 text, and a run
+# against 1.0.1 would have put it back over the approved one.
+#
+# dry_run (default true) applies to the seven write modes: the reads are sent
 # and every write is printed exactly (method, path, JSON body), none is sent.
 # A write mode with dry_run false ends with a read-back that fails unless the
 # change holds, then the full read.
@@ -54,10 +71,14 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'read: the state, no write. builds: the builds of 1.0 and the attached one, no write. settings: price Free, all territories but CHN, content rights. screenshots: the ten approved PNGs into the 6.9-inch sets. arabic-appinfo: the approved Arabic name and subtitle. english: the en-US localization (only with the approval flag).'
+        description: 'read: the state, no write. builds: the builds of the version and the attached one, no write. settings: price Free, all territories but CHN, content rights. screenshots: the approved PNGs into the 6.9-inch sets (ar, en-US, en-GB). english: the en-US localization. arabic: the ar-SA subtitle and keywords. en-gb, fr-fr: those localizations. The last four only with their approval flag.'
         type: choice
-        options: [read, builds, arabic-appinfo, settings, screenshots, english]
+        options: [read, builds, settings, screenshots, english, arabic, en-gb, fr-fr]
         default: read
+      version:
+        description: 'The App Store version to read or write, as App Store Connect shows it (1.0 is live and accepts no edit).'
+        type: string
+        default: '1.0.1'
       dry_run:
         description: 'For the write modes: true prints every write exactly and sends none; false sends them and reads them back.'
         type: boolean
@@ -80,6 +101,7 @@ jobs:
     env:
       MODE: ${{ inputs.mode }}
       DRY_RUN: ${{ inputs.dry_run }}
+      VERSION: ${{ inputs.version }}
       ASC_APP_APPLE_ID: ${{ vars.ASC_APP_APPLE_ID }}
       PYTHONIOENCODING: utf-8
     steps:
@@ -92,6 +114,10 @@ jobs:
       - name: The English text and its approval (english mode, before the key)
         if: ${{ inputs.mode == 'english' }}
         run: python3 scripts/asc/store_setup.py check-en --require-approval
+
+      - name: The ar-SA, en-GB and fr-FR texts and their approval (locale modes, before the key)
+        if: ${{ inputs.mode == 'arabic' || inputs.mode == 'en-gb' || inputs.mode == 'fr-fr' }}
+        run: python3 scripts/asc/store_setup.py check-locales --require-approval
 
       - name: The key is present (names only)
         env:
@@ -110,7 +136,7 @@ jobs:
           printf '%s\n' "$ASC_REVIEW_KEY_P8" > "$RUNNER_TEMP/asc/key.p8"
           head -n 1 "$RUNNER_TEMP/asc/key.p8" | grep -qE -- '^-----BEGIN [A-Z ]*KEY-----$' || { echo "FAIL: ASC_REVIEW_KEY_P8 does not look like a PEM key file"; exit 1; }
           openssl pkey -in "$RUNNER_TEMP/asc/key.p8" -noout 2>/dev/null || { echo "FAIL: ASC_REVIEW_KEY_P8 is not a key openssl can read"; exit 1; }
-          echo "mode: $MODE; dry run: $DRY_RUN; app: $ASC_APP_APPLE_ID"
+          echo "mode: $MODE; version: $VERSION; dry run: $DRY_RUN; app: $ASC_APP_APPLE_ID"
 
       # As asc-review-details.yml: ES256 with openssl alone, the DER
       # signature's two integers laid out as the raw 64 bytes. Twenty minutes,
@@ -143,7 +169,7 @@ jobs:
           set -eu
           live=""
           if [ "$MODE" != read ] && [ "$MODE" != builds ] && [ "$DRY_RUN" = false ]; then live=--live; fi
-          python3 -I scripts/asc/store_setup.py "$MODE" --auth "$RUNNER_TEMP/asc/auth-header" $live
+          python3 -I scripts/asc/store_setup.py "$MODE" --version "$VERSION" --auth "$RUNNER_TEMP/asc/auth-header" $live
 
       - name: Remove the key and the token
         if: always()

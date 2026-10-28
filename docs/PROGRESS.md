@@ -451,6 +451,23 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-28 - ASO-1.0.1: the owner-approved store texts for 1.0.1 land in the repo (ar-SA subtitle and keywords, new en-GB and fr-FR listings), asc-store-setup gains the modes that write them, and the app declares Arabic
+
+**No row is edited** (rows 42, 69 and 81 untouched). Nothing is written to App Store Connect by this PR; every write waits for a dispatch after merge, dry run first.
+
+- **Approval, 2026-10-28:** the owner approved the 1.0.1 texts in chat (fields at 19:50, the French description at 19:52) as ASO_1.0.1_APPROVED.md, sha256 c6db0d75a536bbdb598c7bdcb30542f3ce9f2f8b3aec8598db01bebd2d720757. They are used byte for byte (an offline proof compared every field with that file).
+- **ar-SA:** new subtitle (22 of 30, the 1.0 subtitle without its shadda) and new keywords (100 of 100) in docs/store/ASC_ANSWERS_AR.md; name, promotional text and description unchanged (ASC_ANSWERS.md section 4.2, which now records the change and keeps the 1.0 text).
+- **en-GB and fr-FR:** new docs/store/ASC_ANSWERS_GB.md and ASC_ANSWERS_FR.md. The en-GB promotional text and description are the approved en-US ones, and check-locales fails if they drift apart. fr-FR uses the English URLs; the site has no French pages.
+- **Approval flags:** ASC_ANSWERS_AR.approved, _GB.approved and _FR.approved hold each file's SHA-256, as ASC_ANSWERS_EN.approved does for en-US.
+- **Tool:** scripts/asc/store_setup.py gains the arabic, en-gb and fr-fr modes, check-locales (French wording added for store text only; the app's own kfWording is unchanged) and --version. The workflow passes its new version input, default 1.0.1.
+  - The modes refuse before any write unless the flag matches, the version is editable and an App Info that is not live exists.
+  - They write only the fields that differ and read every field back byte for byte.
+  - arabic-appinfo is removed: its subtitle is the 1.0 text and would have overwritten the new one.
+  - The screenshots mode adds en-GB (the English five); fr-FR has none.
+  - Never written, as before: review details, builds, submissions, users, testers. The tool does not create the version.
+- **App:** ios/App/App gains en.lproj and ar.lproj (InfoPlist.strings, display name KnowFlow), CFBundleLocalizations [en, ar] and knownRegions ar, so the store's Languages line can list Arabic. MARKETING_VERSION is now 1.0.1; the build number stays the ios-testflight run number (the next run is 8). ios-smoke checks both folders and the version in the Release device build.
+- **Dispatch on merge:** ios/ is a relay path, so the Production deploy of the merge dispatches one ios-signed-in screens run. That run is expected and legitimate.
+
 ### 2026-10-28 - iOS 1.0 approved: the Guideline 4.0 iPad rejection of build 7, the two server-side fixes and their proof, build 7 resubmitted unchanged; the AI consent found on the reviewer account withdrawn
 
 **No row is edited** (rows 42, 69 and 81 untouched). This PR changes docs/PROGRESS.md only and dispatches nothing: the deployment relay in ios-signed-in.yml dispatches the signed-in run only when the deployed diff touches a path that run reads, and docs/ is not one of them.
