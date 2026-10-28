@@ -18,14 +18,25 @@ MODES
                unless all three hold.
   screenshots  the five approved PNGs of each language
                (docs/store/screenshots-designed/{ar,en}/01..05) into the
-               APP_IPHONE_67 set (the 6.9-inch slot: 1320 x 2868) of the ar and
-               en-US version localizations, in order. Idempotent: a set that
-               already holds the five (same file names and MD5 checksums in
-               order, all COMPLETE) is left alone, no write; any other set is
-               emptied and uploaded again, and a missing set is created; each
-               upload must reach COMPLETE with Apple's checksum equal to the
-               file's MD5. A language whose version localization does not
+               APP_IPHONE_67 set (the 6.9-inch slot: 1320 x 2868) of the ar,
+               en-US and en-GB version localizations, in order. Idempotent: a
+               set that already holds the five (same file names and MD5
+               checksums in order, all COMPLETE) is left alone, no write.
+               Any other set RESUMES (run 40780425121 stopped half way):
+               each approved image already there is kept when COMPLETE and
+               waited for when Apple is still processing it; only what is not
+               an approved image, has another checksum, is a second copy, is
+               FAILED or never finished uploading is deleted, in that set
+               alone; the missing images are uploaded; then every pending
+               image is waited for together (SHOT_WAIT, one budget), and the
+               set is put in the order 01 to 05. A missing set is created.
+               Each image must reach COMPLETE with Apple's checksum equal to
+               the file's MD5. A language whose version localization does not
                exist is reported and skipped, never created here.
+
+--key-file lets a run re-sign its token (openssl, as the workflow does) when
+it has less than five minutes left, so a long screenshot wait never calls
+Apple with an expired one.
   english      the en-US App Info localization (name, subtitle, privacy URL)
                and version localization (description, keywords, promotional
                text, support URL) from docs/store/ASC_ANSWERS_EN.md, only when
@@ -86,6 +97,7 @@ dry or offline mode the write bodies. Never printed: the token (it is read
 from a file), the presigned upload URLs and their headers.
 """
 import argparse
+import base64
 import glob
 import hashlib
 import json
@@ -165,19 +177,99 @@ def say(msg):
     print(msg, flush=True)
 
 
+# The clock and the pause, as module names so the offline proofs can run a
+# fifteen-minute wait in no time.
+NOW = time.time
+SLEEP = time.sleep
+TOKEN_LIFETIME = 1200  # seconds: Apple's maximum, as the workflow mints it
+TOKEN_REFRESH = 300    # re-sign when the token has less than this left
+
+
+def b64url(raw):
+    return base64.urlsafe_b64encode(raw).rstrip(b'=').decode('ascii')
+
+
+def der_to_raw(der):
+    """An ECDSA signature in DER (a SEQUENCE of two INTEGERs) as the 64 raw bytes of JWS ES256."""
+    if len(der) < 8 or der[0] != 0x30:
+        raise Failed('the signature is not a DER sequence')
+    i = 2 if der[1] < 0x80 else 2 + (der[1] & 0x7f)
+    out = b''
+    for _ in range(2):
+        if der[i] != 0x02:
+            raise Failed('the signature is not two integers')
+        n = der[i + 1]
+        v = der[i + 2:i + 2 + n].lstrip(b'\x00')
+        i += 2 + n
+        if len(v) > 32:
+            raise Failed('a signature integer is longer than 32 bytes')
+        out += v.rjust(32, b'\x00')
+    return out
+
+
+def token_exp(token):
+    """The exp claim of a JWT, read without printing anything of it; None when unreadable."""
+    try:
+        part = token.split('.')[1]
+        return int(json.loads(base64.urlsafe_b64decode(part + '=' * (-len(part) % 4)))['exp'])
+    except (IndexError, ValueError, KeyError, TypeError):
+        return None
+
+
+class Signer:
+    """Mints App Store Connect tokens as the workflow does (ES256 by openssl, the
+    DER signature laid out as raw r||s), so a run longer than one token's twenty
+    minutes, a screenshot wait for instance, never calls Apple with an expired
+    one. The key file stays where the workflow wrote it; nothing here prints a
+    token."""
+
+    def __init__(self, key_file, key_id, issuer):
+        if not (key_file and key_id and issuer):
+            raise Failed('re-signing needs the key file, the key id and the issuer id')
+        self.key_file, self.key_id, self.issuer = key_file, key_id, issuer
+
+    def mint(self, now):
+        head = b64url(json.dumps({'alg': 'ES256', 'kid': self.key_id, 'typ': 'JWT'}, separators=(',', ':')).encode())
+        body = b64url(json.dumps({'iss': self.issuer, 'iat': int(now), 'exp': int(now) + TOKEN_LIFETIME, 'aud': 'appstoreconnect-v1'}, separators=(',', ':')).encode())
+        signing = f'{head}.{body}'
+        r = subprocess.run(['openssl', 'dgst', '-sha256', '-sign', self.key_file, '-binary'], input=signing.encode(), capture_output=True)
+        if r.returncode != 0 or not r.stdout:
+            raise Failed('openssl could not sign a new token')
+        return f'{signing}.{b64url(der_to_raw(r.stdout))}'
+
+
 class Api:
-    def __init__(self, transport, auth_file=None, fixtures=None):
+    def __init__(self, transport, auth_file=None, fixtures=None, signer=None):
         self.transport = transport
         self.header = None
+        self.exp = None
+        self.signer = signer
+        self.warned = False
         if transport != 'offline':
             line = open(auth_file, encoding='utf-8').read().strip()
             if not line.startswith('Authorization: Bearer '):
                 raise Failed('the auth header file is not "Authorization: Bearer <token>"')
             self.header = line.split(': ', 1)[1]
+            self.exp = token_exp(self.header.split(' ', 1)[-1])
         self.fixtures = json.load(open(fixtures, encoding='utf-8')) if fixtures else {}
         self.writes = 0
         self.fake = 0
         self.read_only = False
+
+    def fresh(self):
+        """Re-sign before a request when the token has less than TOKEN_REFRESH seconds left."""
+        if self.exp is None or self.exp - NOW() >= TOKEN_REFRESH:
+            return
+        if not self.signer:
+            if not self.warned:
+                say(f'::warning::the token expires in {int(self.exp - NOW())} s and no key was given to re-sign it')
+                self.warned = True
+            return
+        token = self.signer.mint(NOW())
+        if os.environ.get('GITHUB_ACTIONS') == 'true':
+            say(f'::add-mask::{token}')  # the runner hides the value from every later line; the command itself is not shown
+        self.header, self.exp = f'Bearer {token}', token_exp(token)
+        say(f'  token re-signed: expires in {int(self.exp - NOW())} s')
 
     def call(self, method, path, body=None):
         if method != 'GET' and self.read_only:
@@ -200,6 +292,7 @@ class Api:
         url = path if path.startswith('http') else BASE + path
         if not url.startswith(BASE + '/'):
             raise Failed('refusing a URL outside the App Store Connect API')
+        self.fresh()
         data = None if body is None else json.dumps(body, ensure_ascii=False).encode('utf-8')
         req = urllib.request.Request(url, data=data, method=method, headers={'Authorization': self.header, 'Content-Type': 'application/json'})
         for attempt in range(3):
@@ -538,11 +631,84 @@ def wanted(files):
     return [(os.path.basename(f), md5(f), 'COMPLETE') for f in files]
 
 
+SHOT_WAIT = 900  # seconds: one budget for every image still processing, all locales together
+SHOT_POLL = 10
+SHOT_FIELDS = 'fields[appScreenshots]=fileName,fileSize,sourceFileChecksum,assetDeliveryState'
+
+
+def shot_state(g):
+    """(fileName, sourceFileChecksum, delivery state, error codes) of one screenshot record."""
+    a = g.get('attributes') or {}
+    st = a.get('assetDeliveryState') or {}
+    return a.get('fileName'), a.get('sourceFileChecksum'), st.get('state'), [e.get('code') for e in st.get('errors') or []]
+
+
+def plan_set(old, files):
+    """What to do with a set's screenshots, against the approved files.
+
+    keep    an approved file (same name, same MD5) that Apple finished: COMPLETE;
+    wait    an approved file Apple is still processing (UPLOAD_COMPLETE, no
+            error): deleting it would throw away an upload that is on its way
+            (run 40780425121 stopped on one);
+    delete  anything else: another name or checksum, a second copy, FAILED or an
+            error, or a reservation whose upload never finished;
+    upload  every approved file that is neither kept nor waited for.
+    Returns (keep, wait, delete, upload): the first three as (record, reason),
+    upload as file paths, all in the approved order where that applies.
+    """
+    want = {os.path.basename(f): md5(f) for f in files}
+    claimed, keep, wait, delete = set(), [], [], []
+    for g in old:
+        name, sum_, state, errs = shot_state(g)
+        if name not in want:
+            delete.append((g, 'not one of the approved files'))
+        elif sum_ != want[name]:
+            delete.append((g, f'checksum {sum_} is not the file\'s {want[name]}'))
+        elif name in claimed:
+            delete.append((g, 'a second copy'))
+        elif errs or state == 'FAILED':
+            delete.append((g, f'{state} {errs}'))
+        elif state == 'COMPLETE':
+            keep.append((g, 'COMPLETE'))
+            claimed.add(name)
+        elif state == 'UPLOAD_COMPLETE':
+            wait.append((g, 'UPLOAD_COMPLETE, Apple is still processing it'))
+            claimed.add(name)
+        else:
+            delete.append((g, f'delivery state {state}: its upload never finished'))
+    upload = [f for f in files if os.path.basename(f) not in claimed]
+    return keep, wait, delete, upload
+
+
+def wait_processed(api, pending):
+    """Polls every pending screenshot (id -> label) until all are COMPLETE: fails at once on
+    FAILED or an error, and after SHOT_WAIT seconds names the ones still processing."""
+    left = dict(pending)
+    if not left:
+        return
+    deadline = NOW() + SHOT_WAIT
+    say(f'== waiting for {len(left)} screenshot(s) to finish processing, up to {SHOT_WAIT} s together: {", ".join(left.values())}')
+    while True:
+        for sid, label in list(left.items()):
+            name, sum_, state, errs = shot_state(api.get(f'/v1/appScreenshots/{sid}?{SHOT_FIELDS}')['data'])
+            if errs or state == 'FAILED':
+                raise Failed(f'{label}: delivery state {state} {errs}')
+            if state == 'COMPLETE':
+                say(f'  {label}: COMPLETE')
+                del left[sid]
+        if not left:
+            return
+        if NOW() >= deadline:
+            raise Failed(f'still processing after {SHOT_WAIT} s, not FAILED: {", ".join(left.values())}. '
+                         'A later run keeps them, waits again and uploads nothing twice.')
+        SLEEP(SHOT_POLL)
+
+
 def screenshots(api, app):
     say('== screenshots')
     v = version_of(api, app)
     locs = version_locs(api, v['id'])
-    pending, done, kept = [], [], []
+    pending, done, kept, waiting, orders = [], [], [], {}, []
     for prefix, folder in SHOT_TARGETS:
         files = sorted(glob.glob(os.path.join(SHOTS, folder, '0[1-5]-*.png')))
         if len(files) != 5:
@@ -555,58 +721,66 @@ def screenshots(api, app):
         locale = loc['attributes']['locale']
         say(f'{locale} ({loc["id"]}): {len(files)} files from docs/store/screenshots-designed/{folder}')
         s = shot_set(api, loc['id'])
+        old = shots_in(api, s['id']) if s else []
+        if s and held(old) == wanted(files):
+            # The approved five, in order and COMPLETE: no write at all (the
+            # ar-SA set, run 38770955611; ar-SA and en-US on 1.0.1).
+            say(f'{locale}: already the approved five, unchanged')
+            kept.append(locale)
+            done.append((locale, s['id'], files))
+            continue
+        keep, wait, delete, upload = plan_set(old, files)
+        for g, why in keep:
+            say(f'  keep    {shot_state(g)[0]}: {why}, checksum {shot_state(g)[1]}')
+        for g, why in wait:
+            say(f'  wait    {shot_state(g)[0]}: {why}')
+        for g, why in delete:
+            say(f'  delete  {shot_state(g)[0]}: {why}')
+        for f in upload:
+            say(f'  upload  {os.path.basename(f)}: {os.path.getsize(f)} bytes, MD5 {md5(f)}')
         if s:
-            # Compare before any DELETE: the approved five already in place, in
-            # order and COMPLETE, are not deleted for nothing (the ar-SA set,
-            # run 38770955611). A set with any other name, checksum, count or
-            # delivery state is emptied and uploaded again.
-            old = shots_in(api, s['id'])
-            have = held(old)
-            if have == wanted(files):
-                say(f'{locale}: already the approved five, unchanged')
-                kept.append(locale)
-                done.append((locale, s['id'], files))
-                continue
-            say(f'  {DISPLAY} set {s["id"]}: {len(old)} existing screenshot(s) differ from the files, removed first')
-            for name, sum_, state in have:
-                say(f'    had {name}: {state}, checksum {sum_}')
-            for o in old:
-                api.need('DELETE', f"/v1/appScreenshots/{o['id']}", ok=(204,))
             sid = s['id']
         else:
             js = api.need('POST', '/v1/appScreenshotSets', {'data': {'type': 'appScreenshotSets', 'attributes': {'screenshotDisplayType': DISPLAY},
                                                                     'relationships': {'appStoreVersionLocalization': {'data': {'type': 'appStoreVersionLocalizations', 'id': loc['id']}}}}}, ok=(201,))
             sid = js['data']['id']
-        ids = []
-        for f in files:
+        # Deletes are of this locale's set only, and only what plan_set named.
+        for g, _ in delete:
+            api.need('DELETE', f"/v1/appScreenshots/{g['id']}", ok=(204,))
+        ids = {shot_state(g)[0]: g['id'] for g, _ in keep + wait}
+        for g, _ in wait:
+            waiting[g['id']] = f'{locale} {shot_state(g)[0]}'
+        for f in upload:
             name, size, sum_ = os.path.basename(f), os.path.getsize(f), md5(f)
             js = api.need('POST', '/v1/appScreenshots', {'data': {'type': 'appScreenshots', 'attributes': {'fileName': name, 'fileSize': size},
                                                                  'relationships': {'appScreenshotSet': {'data': {'type': 'appScreenshotSets', 'id': sid}}}}}, ok=(201,))
             shot = js['data']['id']
-            ids.append(shot)
+            ids[name] = shot
             ops = (js['data'].get('attributes') or {}).get('uploadOperations') or []
             if api.transport == 'live':
                 say(f'  {name}: {size} bytes in {put_parts(f, ops)} part(s)')
             else:
                 say(f'  WOULD PUT {name}: {size} bytes to the reserved upload operations (presigned, not printed)')
             api.need('PATCH', f'/v1/appScreenshots/{shot}', {'data': {'type': 'appScreenshots', 'id': shot, 'attributes': {'uploaded': True, 'sourceFileChecksum': sum_}}})
-            if api.transport == 'live':
-                state = None
-                for _ in range(60):
-                    a = api.get(f'/v1/appScreenshots/{shot}?fields[appScreenshots]=assetDeliveryState,sourceFileChecksum')['data']['attributes']
-                    state = (a.get('assetDeliveryState') or {}).get('state')
-                    if state in ('COMPLETE', 'FAILED'):
-                        break
-                    time.sleep(5)
-                if state != 'COMPLETE':
-                    errs = [e.get('code') for e in ((a.get('assetDeliveryState') or {}).get('errors') or [])]
-                    raise Failed(f'{name}: delivery state {state} {errs}')
-                say(f'  {name}: COMPLETE')
-        api.need('PATCH', f'/v1/appScreenshotSets/{sid}/relationships/appScreenshots', {'data': [{'type': 'appScreenshots', 'id': i} for i in ids]}, ok=(200, 204))
+            waiting[shot] = f'{locale} {name}'
+        order = [ids[os.path.basename(f)] for f in files]
+        now_order = [g['id'] for g in old if g['id'] in set(order)]
+        if upload or delete or now_order != order:
+            say(f'  reorder {os.path.basename(files[0])} to {os.path.basename(files[-1])} once every image is COMPLETE')
+            orders.append((sid, order))
+        else:
+            say('  order already 01 to 05')
         done.append((locale, sid, files))
     if api.transport != 'live':
+        if waiting:
+            say(f'WOULD wait up to {SHOT_WAIT} s together for: {", ".join(waiting.values())}')
+        for sid, order in orders:
+            api.need('PATCH', f'/v1/appScreenshotSets/{sid}/relationships/appScreenshots', {'data': [{'type': 'appScreenshots', 'id': i} for i in order]}, ok=(200, 204))
         say(f'{api.writes} write(s) printed, none sent; unchanged: {kept or "none"}; pending: {pending or "none"}')
         return
+    wait_processed(api, waiting)
+    for sid, order in orders:
+        api.need('PATCH', f'/v1/appScreenshotSets/{sid}/relationships/appScreenshots', {'data': [{'type': 'appScreenshots', 'id': i} for i in order]}, ok=(200, 204))
     say('== read-back')
     checks = []
     for locale, sid, files in done:  # the kept sets too: the read-back verifies every locale, not only the written ones
@@ -875,6 +1049,7 @@ def main():
     ap.add_argument('mode', choices=['read', 'builds', 'settings', 'screenshots', 'english', *LOCALE_MODES, 'check-en', 'check-locales'])
     ap.add_argument('--app', default=os.environ.get('ASC_APP_APPLE_ID', ''))
     ap.add_argument('--auth', help='file holding "Authorization: Bearer <token>"')
+    ap.add_argument('--key-file', help='the .p8 key, to re-sign the token before it expires; the key id and the issuer id come from ASC_REVIEW_KEY_ID and ASC_REVIEW_ISSUER_ID')
     ap.add_argument('--live', action='store_true', help='send the writes')
     ap.add_argument('--offline', help='fixtures file: no network at all')
     ap.add_argument('--version', default='1.0', help='the App Store version to read or write (the workflow passes its input)')
@@ -900,7 +1075,8 @@ def main():
             raise Failed('--offline and --live together')
         if a.mode == 'builds' and a.live:
             raise Failed('the builds mode is read-only; --live is refused')
-        api = Api(transport, a.auth, a.offline)
+        signer = Signer(a.key_file, os.environ.get('ASC_REVIEW_KEY_ID'), os.environ.get('ASC_REVIEW_ISSUER_ID')) if a.key_file else None
+        api = Api(transport, a.auth, a.offline, signer)
         api.read_only = a.mode in ('read', 'builds')
         say(f'mode {a.mode}, version {VERSION}, transport {transport}' + ('' if transport == 'live' else ' (no write is sent)'))
         if a.mode == 'read':
