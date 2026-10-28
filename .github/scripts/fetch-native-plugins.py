@@ -12,18 +12,24 @@ the tarball from registry.npmjs.org, refuses it unless its sha512 is the
 lockfile's, and unpacks it with no lifecycle script, no install step and no
 other package. A path in Package.swift that the lockfile does not pin, a
 tarball from another host, an entry that is a link or escapes its folder, or
-a version that is not the lockfile's: each one stops the job.
+a version that is not the lockfile's: each one stops the job. A download the
+network cuts off (a reset, a timeout, a short body, an HTTP 5xx or 429) is
+tried again, four attempts in all with 5, 15 and 30 s between them; any other
+HTTP error, and every sha512 mismatch, stops the job at once.
 
 Usage: python3 .github/scripts/fetch-native-plugins.py   (from the repository root)
 """
 import base64
 import hashlib
+import http.client
 import io
 import json
 import os
 import re
 import sys
 import tarfile
+import time
+import urllib.error
 import urllib.request
 
 ROOT = os.getcwd()
@@ -34,6 +40,34 @@ LOCK = os.path.join(ROOT, 'package-lock.json')
 def fail(msg):
     print('FAIL: ' + msg)
     sys.exit(1)
+
+
+# Run 40709211384: one request hung 1.5 min, then "Connection reset by peer".
+ATTEMPTS = 4
+BACKOFF = (5, 15, 30)  # seconds before attempts 2, 3 and 4
+
+
+def download(name, url, opener=urllib.request.urlopen, sleep=time.sleep):
+    """The tarball's bytes, tried again only when the network failed it.
+
+    socket.timeout is TimeoutError (Python 3.10 on). HTTPError is a URLError,
+    so it is caught first: only 429 and 5xx are tried again. The caller checks
+    whatever comes back against the lockfile's sha512, every attempt alike.
+    """
+    for attempt in range(1, ATTEMPTS + 1):
+        try:
+            with opener(url, timeout=60) as r:
+                return r.read()
+        except urllib.error.HTTPError as e:
+            if not (e.code == 429 or 500 <= e.code < 600):
+                fail(f'{name}: HTTP {e.code} from the registry')
+            why = f'HTTPError {e.code}'
+        except (urllib.error.URLError, ConnectionResetError, TimeoutError, http.client.IncompleteRead) as e:
+            why = type(e).__name__
+        print(f'attempt {attempt} of {ATTEMPTS}: {name}: {why}')
+        if attempt == ATTEMPTS:
+            fail(f'{name}: the download failed {ATTEMPTS} times')
+        sleep(BACKOFF[attempt - 1])
 
 
 swift = open(PACKAGE_SWIFT, encoding='utf-8').read()
@@ -54,8 +88,7 @@ for name in names:
         fail(f'{name}: resolved URL is not the npm registry: {url}')
     if not integrity.startswith('sha512-'):
         fail(f'{name}: no sha512 integrity in the lockfile')
-    with urllib.request.urlopen(url, timeout=60) as r:
-        blob = r.read()
+    blob = download(name, url)
     got = 'sha512-' + base64.b64encode(hashlib.sha512(blob).digest()).decode()
     if got != integrity:
         fail(f'{name}: tarball sha512 differs from package-lock.json')
