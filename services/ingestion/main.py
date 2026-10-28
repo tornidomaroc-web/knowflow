@@ -1,3 +1,4 @@
+import hmac
 import os
 import re
 import shutil
@@ -14,7 +15,12 @@ from supabase import acreate_client, AsyncClient, AsyncClientOptions
 
 app = FastAPI()
 
-INGESTION_TOKEN = os.environ.get("INGESTION_TOKEN")
+INGESTION_TOKEN = (os.environ.get("INGESTION_TOKEN") or "").strip()
+# Rotation without downtime. While a new token is being rolled out, Railway holds
+# the new value here and the old one in INGESTION_TOKEN, so Vercel is accepted
+# with either while its own variable is switched and redeployed. Unset (or blank)
+# outside a rotation, and then it matches nothing.
+INGESTION_TOKEN_NEXT = (os.environ.get("INGESTION_TOKEN_NEXT") or "").strip()
 VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY")
 VOYAGE_MODEL = os.environ.get("VOYAGE_MODEL", "voyage-3-large")
 VOYAGE_URL = "https://api.voyageai.com/v1/embeddings"
@@ -42,6 +48,26 @@ CHUNK_INSERT_BATCH = 50
 # documented stub. Normalized so trailing space / casing can't cause a silent miss.
 EMBEDDING_PROVIDER = os.environ.get("EMBEDDING_PROVIDER", "voyage").strip().lower()
 
+# /embed's only caller is embedQuery (src/lib/ingestion.ts:37), with the Ask
+# question as typed: src/app/api/agent/route.ts:166 passes `message` on with no
+# length check, and the Ask box (src/components/agent/ChatBox.tsx:275) has no
+# maxLength. Document chunks never come through /embed; /ingest embeds them
+# itself, 512 tokens each. 32,000 characters is far beyond any question (the
+# agent budgets 1,200 tokens for a whole conversation's history,
+# route.ts:91), and for ordinary text it stays inside voyage-3-large's
+# 32,000-token context, so a question under the cap reaches Voyage whole
+# (Voyage truncates silently past its context). Over it, the request is
+# refused before Voyage is called, so a holder of the token cannot buy
+# embeddings by the megabyte.
+MAX_EMBED_CHARS = 32_000
+
+# /ingest's only caller, src/app/api/ingest/route.ts, refuses a file over
+# MAX_UPLOAD_BYTES (4 MiB, src/lib/upload-limits.ts:38) at route.ts:84 before
+# forwarding it, and Vercel itself takes no request body over 4.5 MB. Twice
+# 4 MiB therefore never refuses a real upload, and bounds what one request can
+# spend on conversion and embedding.
+MAX_INGEST_BYTES = 8 * 1024 * 1024
+
 CHUNK_TOKENS = 512
 CHUNK_OVERLAP = 64
 
@@ -51,11 +77,28 @@ ENCODER = tiktoken.get_encoding("cl100k_base")
 
 
 def _check_auth(authorization: str | None) -> None:
+    """Accept INGESTION_TOKEN, or INGESTION_TOKEN_NEXT while a rotation is on.
+
+    Every configured token is compared, with hmac.compare_digest and as bytes,
+    and only then is the answer known, so the timing tells a caller neither
+    which token matched nor how much of one it got right (compare_digest can
+    still show that the lengths differ; the tokens are random, so a length is
+    not worth hiding). As bytes so a non-ASCII bearer is a 401, not the
+    TypeError compare_digest raises for non-ASCII str. A blank
+    or unset INGESTION_TOKEN_NEXT is not in the list, so it can never match, and
+    an empty bearer can never match the non-empty INGESTION_TOKEN. Nothing here
+    is logged.
+    """
     if not INGESTION_TOKEN:
         raise HTTPException(status_code=503, detail="Service not configured")
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
-    if authorization.removeprefix("Bearer ").strip() != INGESTION_TOKEN:
+    presented = authorization.removeprefix("Bearer ").strip().encode("utf-8")
+    accepted = [t for t in (INGESTION_TOKEN, INGESTION_TOKEN_NEXT) if t]
+    matched = False
+    for token in accepted:
+        matched |= hmac.compare_digest(presented, token.encode("utf-8"))
+    if not matched:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
@@ -291,6 +334,17 @@ async def health():
     }
 
 
+def _upload_size(file: UploadFile) -> int:
+    """The upload's size in bytes. The multipart parser has already spooled it."""
+    if file.size is not None:
+        return file.size
+    pos = file.file.tell()
+    file.file.seek(0, os.SEEK_END)
+    size = file.file.tell()
+    file.file.seek(pos)
+    return size
+
+
 def _convert_to_markdown(file: UploadFile) -> str:
     fd, tmp_path = tempfile.mkstemp(suffix=f"_{_safe_basename(file.filename)}")
     os.close(fd)
@@ -308,54 +362,6 @@ def _convert_to_markdown(file: UploadFile) -> str:
                 pass
 
 
-@app.post("/convert")
-async def convert(
-    file: UploadFile = File(...),
-    authorization: str | None = Header(default=None),
-):
-    """DEPRECATED compatibility shim. Byte-identical contract to the pre-(b1) handler.
-
-    Exists ONLY to make the two-merge deploy sequence zero-window. At THIS PR's
-    merge the live Next still calls `/convert`; at the NEXT PR's merge the new
-    Next calls `/ingest` while this image is already live. Serving both for the
-    span of one PR is what removes the skew window in both directions. The third
-    PR of the sequence deletes this handler, once nothing calls it.
-
-    It deliberately does NOT share /ingest's improvements, and each omission is
-    load-bearing:
-      * NO chunk/embedding length guard. The old contract truncates via `zip`
-        and the old caller tolerates a chunk with no `embedding` key. Adding the
-        guard would turn a silent short-return into a 500 -- a better behaviour,
-        and a DIFFERENT contract. This shim's only job is to be identical.
-      * NO `Form(...)` parameters. The old caller posts `file` alone
-        (src/app/api/ingest/route.ts on main appends nothing else), so any extra
-        required Form field makes multipart validation 422 every production
-        upload.
-      * NO Supabase client and NO persistence of any kind. The old caller does
-        its own chunk inserts and its own status writes; a write here would
-        double-write every chunk of every upload for the life of the shim.
-    """
-    _check_auth(authorization)
-
-    try:
-        markdown_text = _convert_to_markdown(file)
-        chunks = _chunk_text(markdown_text)
-        if chunks:
-            embeddings = await _embed([c["content"] for c in chunks], input_type="document")
-            for c, emb in zip(chunks, embeddings):
-                c["embedding"] = emb
-
-        return {
-            "markdown": markdown_text,
-            "filename": file.filename,
-            "chunks": chunks,
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
 @app.post("/ingest")
 async def ingest(
     file: UploadFile = File(...),
@@ -366,26 +372,30 @@ async def ingest(
 ):
     """Convert -> chunk -> embed -> PERSIST, and own the terminal document status.
 
-    (b1) Replaces `/convert`, which returned every chunk's 1024-float embedding
+    (b1) Replaced `/convert`, which returned every chunk's 1024-float embedding
     plus the full markdown inline for the caller to insert. Two things are fixed
     by moving the writes here: that 9-13x return blob no longer crosses the
     network or gets materialized in the caller's memory, and the document can no
     longer be stranded at `processing` by a caller that dies after we succeed —
-    because the `ready` transition happens here, before the ack is sent.
+    because the `ready` transition happens here, before the ack is sent. The
+    `/convert` compatibility shim that served the switch-over is deleted (PR C of
+    the b1 sequence): nothing calls it, and a caller that still did would get a
+    loud 404.
 
-    RENAMED rather than changed in place on purpose. The request and response
-    shapes are both incompatible with the old contract, so a version-skewed
-    caller gets a loud 404 instead of silently persisting a null markdown_content
-    over a document this service already finished correctly.
-
-    Two credentials, two different jobs. `Authorization` is INGESTION_TOKEN and
-    proves the caller is our own backend. `X-Supabase-Token` is the END USER's
+    Two credentials, two different jobs. `Authorization` is INGESTION_TOKEN (or
+    INGESTION_TOKEN_NEXT during a rotation, see _check_auth) and proves the
+    caller is our own backend. `X-Supabase-Token` is the END USER's
     Supabase access token and is the only thing that authorizes a database write
     — it is used as a bearer on the anon key, so RLS decides what may be touched.
     """
     _check_auth(authorization)
     if not x_supabase_token:
         raise HTTPException(status_code=401, detail="Missing X-Supabase-Token")
+    # Before any Supabase call, like the 401s above: the row is still
+    # `processing`, and the caller's failure guard writes the error, as it does
+    # for an auth refusal (src/app/api/ingest/route.ts:319).
+    if _upload_size(file) > MAX_INGEST_BYTES:
+        raise HTTPException(status_code=413, detail="File too large")
 
     # Built before the expensive work so a bad/expired user token fails fast, and
     # so the failure writer below is always available once conversion starts.
@@ -431,5 +441,12 @@ async def embed_endpoint(
 ):
     """Embed a single string. Used by the agent to embed user queries."""
     _check_auth(authorization)
+    # After the token check, so an unauthenticated caller learns nothing about
+    # the cap; before Voyage, so an over-long text costs nothing.
+    if len(payload.text) > MAX_EMBED_CHARS:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Text longer than {MAX_EMBED_CHARS} characters",
+        )
     [vector] = await _embed([payload.text], input_type=payload.input_type)
     return {"embedding": vector, "model": VOYAGE_MODEL, "dim": EMBED_DIM}
