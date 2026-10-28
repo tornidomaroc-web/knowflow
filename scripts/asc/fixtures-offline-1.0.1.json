@@ -1,0 +1,111 @@
+{
+ "/v1/apps/6820418649": {
+  "data": {
+   "type": "apps",
+   "id": "6820418649",
+   "attributes": {
+    "name": "KnowFlow: ذاكر من ملفاتك",
+    "bundleId": "com.knowflow.app",
+    "primaryLocale": "ar-SA",
+    "contentRightsDeclaration": "DOES_NOT_USE_THIRD_PARTY_CONTENT"
+   }
+  }
+ },
+ "/v1/apps/6820418649/appInfos": {
+  "data": [
+   {
+    "type": "appInfos",
+    "id": "INFO-LIVE",
+    "attributes": {
+     "state": "READY_FOR_DISTRIBUTION",
+     "appStoreState": "READY_FOR_SALE"
+    }
+   },
+   {
+    "type": "appInfos",
+    "id": "INFO-NEXT",
+    "attributes": {
+     "state": "PREPARE_FOR_SUBMISSION",
+     "appStoreState": "PREPARE_FOR_SUBMISSION"
+    }
+   }
+  ]
+ },
+ "/v1/appInfos/INFO-NEXT/appInfoLocalizations": {
+  "data": [
+   {
+    "type": "appInfoLocalizations",
+    "id": "AIL-AR",
+    "attributes": {
+     "locale": "ar-SA",
+     "name": "KnowFlow: ذاكر من ملفاتك",
+     "subtitle": "اسأل، لخّص، واختبر نفسك",
+     "privacyPolicyUrl": "https://tryknowflow.com/ar/privacy"
+    }
+   },
+   {
+    "type": "appInfoLocalizations",
+    "id": "AIL-EN",
+    "attributes": {
+     "locale": "en-US",
+     "name": "KnowFlow: Study Your Notes",
+     "subtitle": "Ask, summarize, test yourself",
+     "privacyPolicyUrl": "https://tryknowflow.com/en/privacy"
+    }
+   }
+  ]
+ },
+ "/v1/apps/6820418649/appStoreVersions": {
+  "data": [
+   {
+    "type": "appStoreVersions",
+    "id": "VER-10",
+    "attributes": {
+     "versionString": "1.0",
+     "appVersionState": "READY_FOR_DISTRIBUTION",
+     "platform": "IOS"
+    }
+   },
+   {
+    "type": "appStoreVersions",
+    "id": "VER-101",
+    "attributes": {
+     "versionString": "1.0.1",
+     "appVersionState": "PREPARE_FOR_SUBMISSION",
+     "platform": "IOS"
+    }
+   }
+  ]
+ },
+ "/v1/appStoreVersions/VER-101/build": {
+  "data": null
+ },
+ "/v1/appStoreVersions/VER-101/appStoreVersionLocalizations": {
+  "data": [
+   {
+    "type": "appStoreVersionLocalizations",
+    "id": "VL-AR",
+    "attributes": {
+     "locale": "ar-SA",
+     "description": "(1.0 text)",
+     "keywords": "مذاكرة,اختبار,ملخص,امتحان,مراجعة,محاضرة,طالب,واجبات,دروس,تعلم,جامعة,ثانوية,بكالوريا,PDF",
+     "promotionalText": "(1.0 text)",
+     "supportUrl": "https://tryknowflow.com/ar/contact",
+     "marketingUrl": null
+    }
+   },
+   {
+    "type": "appStoreVersionLocalizations",
+    "id": "VL-EN",
+    "attributes": {
+     "locale": "en-US",
+     "description": "(1.0 text)",
+     "keywords": "(1.0 text)",
+     "promotionalText": "(1.0 text)",
+     "supportUrl": "https://tryknowflow.com/en/contact",
+     "marketingUrl": null
+    }
+   }
+  ]
+ }
+}

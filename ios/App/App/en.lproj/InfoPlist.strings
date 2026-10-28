@@ -1,0 +1,7 @@
+/*
+  The app is localized in English and Arabic: this file and its twin in ar.lproj
+  are what make the bundle declare both, which is what the App Store's
+  "Languages" line reads (ASO-1.0.1). The name under the icon stays KnowFlow
+  in both languages, as Info.plist sets it.
+*/
+"CFBundleDisplayName" = "KnowFlow";

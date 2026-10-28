@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Step S7d: the App Store Connect settings of version 1.0 through the ASC API
-(.github/workflows/asc-store-setup.yml runs this; docs/store/ASC_ANSWERS.md and
-ASC_ANSWERS_EN.md hold the answers). Python standard library only.
+Step S7d: the App Store Connect settings of version 1.0, and since ASO-1.0.1
+the listing of version 1.0.1, through the ASC API
+(.github/workflows/asc-store-setup.yml runs this; docs/store/ASC_ANSWERS.md,
+ASC_ANSWERS_EN.md and ASC_ANSWERS_{AR,GB,FR}.md hold the answers). Python
+standard library only.
 
 MODES
   read         prints the state, writes nothing: the app (primary locale,
@@ -24,16 +26,33 @@ MODES
                upload must reach COMPLETE with Apple's checksum equal to the
                file's MD5. A language whose version localization does not
                exist is reported and skipped, never created here.
-  arabic-appinfo
-               the owner-approved Arabic name and subtitle (docs/store/
-               ASC_ANSWERS.md section 4.2, read from the file) into the ar-SA
-               App Info localization, those two fields and nothing else; the
-               read-back compares them byte for byte.
   english      the en-US App Info localization (name, subtitle, privacy URL)
                and version localization (description, keywords, promotional
                text, support URL) from docs/store/ASC_ANSWERS_EN.md, only when
                docs/store/ASC_ANSWERS_EN.approved holds that file's SHA-256.
+  arabic       version 1.0.1: the ar-SA subtitle (App Info) and keywords
+               (version localization) from docs/store/ASC_ANSWERS_AR.md, those
+               two fields only, and only when ASC_ANSWERS_AR.approved holds
+               that file's SHA-256. The ar-SA localizations must exist.
+  en-gb, fr-fr version 1.0.1: the en-GB or fr-FR App Info localization (name,
+               subtitle, privacy URL) and version localization (description,
+               keywords, promotional text, support URL) from
+               docs/store/ASC_ANSWERS_GB.md or _FR.md, created when missing,
+               only when the file's .approved flag holds its SHA-256.
+               The three locale modes refuse before any write unless the
+               version is in an editable state and an App Info that is not
+               live exists (both appear when version 1.0.1 is created in App
+               Store Connect); they write only the fields that differ and read
+               every written field back byte for byte.
   check-en     the English text's limits, dashes and wording, offline.
+  check-locales
+               the same rules for the ar-SA, en-GB and fr-FR files (French
+               wording too), the en-GB promotional text and description equal
+               to en-US, and the three approval flags; offline.
+
+--version (default 1.0) names the App Store version every mode reads and
+writes; the workflow passes its `version` input. The tool never creates a
+version: that is the "+" in App Store Connect's web page.
   builds       prints, writes nothing: every build of version 1.0 (number,
                processingState, expired, usesNonExemptEncryption, minOsVersion,
                buildAudienceType, uploadedDate, its preReleaseVersion and its
@@ -82,19 +101,59 @@ import urllib.request
 BASE = 'https://api.appstoreconnect.apple.com'
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EN_FILE = os.path.join(ROOT, 'docs', 'store', 'ASC_ANSWERS_EN.md')
-AR_FILE = os.path.join(ROOT, 'docs', 'store', 'ASC_ANSWERS.md')
-AR_APPROVAL = 'Approved by the owner on 2026-10-10'
 EN_FLAG = os.path.join(ROOT, 'docs', 'store', 'ASC_ANSWERS_EN.approved')
 SHOTS = os.path.join(ROOT, 'docs', 'store', 'screenshots-designed')
 WORDING = os.path.join(ROOT, 'scripts', 'lib', 'app-wording.mjs')
-VERSION = '1.0'
+VERSION = '1.0'  # --version replaces it
 DISPLAY = 'APP_IPHONE_67'
 NO_CHINA = 'CHN'
 BASE_TERRITORY = 'USA'
 RIGHTS = 'DOES_NOT_USE_THIRD_PARTY_CONTENT'
-# Version-localization locale -> folder of approved PNGs.
-SHOT_TARGETS = [('ar', 'ar'), ('en-US', 'en')]
+# Version-localization locale -> folder of approved PNGs. en-GB takes the
+# English five; fr-FR has none of its own (the app has no French screens), so
+# the store shows the primary language's (ar-SA).
+SHOT_TARGETS = [('ar', 'ar'), ('en-US', 'en'), ('en-GB', 'en')]
 EN_FIELDS = {'name': 30, 'subtitle': 30, 'keywords': 100, 'promotionalText': 170, 'description': 4000, 'supportUrl': 255, 'privacyPolicyUrl': 255}
+APP_INFO_FIELDS = ('name', 'subtitle', 'privacyPolicyUrl')
+VERSION_FIELDS = ('description', 'keywords', 'promotionalText', 'supportUrl')
+
+
+def _store(name):
+    return os.path.join(ROOT, 'docs', 'store', name)
+
+
+# The version-1.0.1 locale modes: file, marker tag, the fields the mode
+# writes, and whether it may create the localization. ar-SA writes two fields
+# and creates nothing: its name, promotional text and description are the
+# approved 1.0 text (ASC_ANSWERS.md section 4.2), which App Store Connect
+# copies into a new version.
+LOCALE_MODES = {
+    'arabic': {'locale': 'ar-SA', 'file': _store('ASC_ANSWERS_AR.md'), 'flag': _store('ASC_ANSWERS_AR.approved'), 'tag': 'asc-ar',
+               'app_info': ('subtitle',), 'version': ('keywords',), 'create': False},
+    'en-gb': {'locale': 'en-GB', 'file': _store('ASC_ANSWERS_GB.md'), 'flag': _store('ASC_ANSWERS_GB.approved'), 'tag': 'asc-en-gb',
+              'app_info': APP_INFO_FIELDS, 'version': VERSION_FIELDS, 'create': True},
+    'fr-fr': {'locale': 'fr-FR', 'file': _store('ASC_ANSWERS_FR.md'), 'flag': _store('ASC_ANSWERS_FR.approved'), 'tag': 'asc-fr',
+              'app_info': APP_INFO_FIELDS, 'version': VERSION_FIELDS, 'create': True},
+}
+# A version whose metadata App Store Connect accepts edits to.
+EDITABLE = ('PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED', 'METADATA_REJECTED', 'INVALID_BINARY')
+# The wording rule's French half, for the store text only: the app has no
+# French interface, so kfWording (which the app's own probe runs) stays as it
+# is. Case-insensitive, on word boundaries (Python's \b is Unicode-aware).
+FR_WORDING = [
+    ('gratuit', r'\bgratuit(?:e|s|es|ement)?\b'),
+    ('abonnement', r'\babonn(?:e|é|ée|és|ées|er|ement|ements)\b'),
+    ('prix', r'\bprix\b'),
+    ('tarif', r'\btarif(?:s|aire|aires)?\b'),
+    ('payant', r'\bpayant(?:e|s|es)?\b'),
+    ('forfait', r'\bforfaits?\b'),
+    ('offre', r'\boffres?\b'),
+    ('essai', r'\bessais?\b'),
+    ('achat', r'\bachats?\b|\bachet(?:er|é|ée)\b'),
+    ('mise à niveau', r'\b(?:mise|mett\w*|met|pass\w*) à niveau\b'),
+    ('par mois', r'\bpar mois\b|\bmensuel(?:le|s|les)?\b'),
+    ('euro', r'€|\beuros?\b'),
+]
 FORBIDDEN = re.compile(r'appStoreReviewDetail|/build\b|/builds|reviewSubmission|appStoreVersionSubmission|betaTester|betaGroup|/users|userInvitation|/relationships/build')
 
 
@@ -202,6 +261,9 @@ class Api:
 
 def version_of(api, app):
     vs, _ = api.all(f'/v1/apps/{app}/appStoreVersions?filter[platform]=IOS&filter[versionString]={VERSION}&fields[appStoreVersions]=versionString,appVersionState,platform&limit=5')
+    # The filter is Apple's; the check is ours, so an ignored filter (or an
+    # offline fixture) can never hand a write mode version 1.0 for 1.0.1.
+    vs = [v for v in vs if (v.get('attributes') or {}).get('versionString') == VERSION]
     if len(vs) != 1:
         raise Failed(f'expected exactly one iOS version {VERSION}, found {len(vs)}')
     return vs[0]
@@ -212,10 +274,12 @@ def version_locs(api, vid):
     return locs
 
 
+LIVE_INFO = ('READY_FOR_DISTRIBUTION', 'READY_FOR_SALE', 'REPLACED_WITH_NEW_INFO')
+
+
 def editable_app_info(api, app):
     infos, _ = api.all(f'/v1/apps/{app}/appInfos?limit=10')
-    live = ('READY_FOR_DISTRIBUTION', 'READY_FOR_SALE', 'REPLACED_WITH_NEW_INFO')
-    edit = [i for i in infos if (i.get('attributes') or {}).get('state') not in live and (i.get('attributes') or {}).get('appStoreState') not in live]
+    edit = [i for i in infos if (i.get('attributes') or {}).get('state') not in LIVE_INFO and (i.get('attributes') or {}).get('appStoreState') not in LIVE_INFO]
     return (edit or infos or [None])[0]
 
 
@@ -485,7 +549,7 @@ def screenshots(api, app):
             raise Failed(f'{folder}: expected the five approved PNGs, found {len(files)}')
         loc = next((l for l in locs if (l['attributes'].get('locale') or '') == prefix or (prefix == 'ar' and (l['attributes'].get('locale') or '').startswith('ar'))), None)
         if not loc:
-            say(f'{prefix}: no version localization yet; SKIPPED (the english mode creates en-US once its text is approved)')
+            say(f'{prefix}: no version localization yet; SKIPPED (the english, en-gb and fr-fr modes create theirs)')
             pending.append(prefix)
             continue
         locale = loc['attributes']['locale']
@@ -558,15 +622,20 @@ def screenshots(api, app):
 
 # ---------------------------------------------------------------- english
 
-def en_text():
-    src = open(EN_FILE, encoding='utf-8', newline='').read().replace('\r\n', '\n')
+def marked(path, tag, keys):
+    """The fields between `<!-- tag:key:begin -->` and `<!-- tag:key:end -->`, each in one code block."""
+    src = open(path, encoding='utf-8', newline='').read().replace('\r\n', '\n')
     out = {}
-    for k in EN_FIELDS:
-        m = re.search(r'<!-- asc-en:' + k + r':begin -->\s*```\n(.*?)\n```\s*<!-- asc-en:' + k + r':end -->', src, re.S)
+    for k in keys:
+        m = re.search(r'<!-- ' + re.escape(tag) + ':' + k + r':begin -->\s*```\n(.*?)\n```\s*<!-- ' + re.escape(tag) + ':' + k + r':end -->', src, re.S)
         if not m:
-            raise Failed(f'{k}: its markers are not in {os.path.relpath(EN_FILE, ROOT)}')
+            raise Failed(f'{k}: its markers are not in {os.path.relpath(path, ROOT)}')
         out[k] = m.group(1)
     return out
+
+
+def en_text():
+    return marked(EN_FILE, 'asc-en', EN_FIELDS)
 
 
 def wording(text):
@@ -603,15 +672,15 @@ def check_en():
     return t
 
 
-def en_digest():
-    """SHA-256 of the English file with LF line ends, as git stores it."""
-    return hashlib.sha256(open(EN_FILE, 'rb').read().replace(b'\r\n', b'\n')).hexdigest()
+def en_digest(path=EN_FILE):
+    """SHA-256 of a store text file with LF line ends, as git stores it."""
+    return hashlib.sha256(open(path, 'rb').read().replace(b'\r\n', b'\n')).hexdigest()
 
 
-def approved(flag_path=EN_FLAG):
-    digest = en_digest()
+def approved(flag_path=EN_FLAG, path=EN_FILE):
+    digest = en_digest(path)
     if not os.path.exists(flag_path):
-        say(f'REFUSED: {os.path.relpath(flag_path, ROOT)} does not exist; the English text is a draft (sha256 {digest})')
+        say(f'REFUSED: {os.path.relpath(flag_path, ROOT)} does not exist; {os.path.relpath(path, ROOT)} is a draft (sha256 {digest})')
         return False
     flag = open(flag_path, encoding='utf-8').read().split()
     if digest not in flag:
@@ -669,74 +738,160 @@ def english(api, app, flag_path=EN_FLAG):
             + [(vl.get(k) == va[k], f'version en-US {k}: {"equal" if vl.get(k) == va[k] else "DIFFERENT"}') for k in va])
 
 
-def ar_text():
-    """The Arabic name and subtitle exactly as section 4.2 of ASC_ANSWERS.md holds them."""
-    src = open(AR_FILE, encoding='utf-8', newline='').read().replace('\r\n', '\n')
-    m = re.search(r'^### 4\.2 Arabic \(ar-SA\)\n(.*?)(?=^##)', src, re.S | re.M)
-    if not m:
-        raise Failed('section 4.2 Arabic (ar-SA) is not in docs/store/ASC_ANSWERS.md')
-    sec = m.group(1)
-    if AR_APPROVAL not in sec:
-        raise Failed(f'section 4.2 does not carry "{AR_APPROVAL}"')
-    out = {}
-    for key, label in (('name', 'Name'), ('subtitle', 'Subtitle')):
-        f = re.search(r'^\*\*' + label + r'\*\* \((\d+) of 30\)\n\n```\n(.*?)\n```', sec, re.S | re.M)
-        if not f:
-            raise Failed(f'the {label} block of section 4.2 is not found')
-        v = f.group(2)
-        if '\n' in v or not v.strip() or len(v) > 30 or len(v) != int(f.group(1)):
-            raise Failed(f'{label}: {len(v)} characters, the file says {f.group(1)} (limit 30)')
-        if '\u2014' in v or '\u2013' in v:
-            raise Failed(f'{label}: an em or en dash')
-        out[key] = v
-        say(f"{key}: {len(v)} of 30, UTF-8 sha256 {hashlib.sha256(v.encode('utf-8')).hexdigest()[:16]}: {v}")
-    return out
+def fr_wording(text):
+    return [name for name, rx in FR_WORDING if re.search(rx, text, re.I)]
 
 
-def arabic_appinfo(api, app):
-    say('== arabic-appinfo')
-    t = ar_text()
-    info = editable_app_info(api, app)
-    if not info:
-        raise Failed('no App Info to write')
+def locale_text(mode):
+    m = LOCALE_MODES[mode]
+    return marked(m['file'], m['tag'], m['app_info'] + m['version'])
+
+
+def check_locale(mode):
+    """One locale file against the rules; raises on any failure, returns its fields."""
+    m = LOCALE_MODES[mode]
+    say(f"-- {m['locale']} ({os.path.relpath(m['file'], ROOT)})")
+    t = locale_text(mode)
+    bad = 0
+    for k, v in t.items():
+        lim = EN_FIELDS[k]
+        probs = []
+        if not v.strip():
+            probs.append('empty')
+        if v != v.strip() or '\n' in v and k not in ('description', 'promotionalText'):
+            probs.append('stray white space or a line break')
+        if len(v) > lim:
+            probs.append(f'over the limit by {len(v) - lim}')
+        if '—' in v or '–' in v:
+            probs.append('an em or en dash')
+        if k.endswith('Url'):
+            if not v.startswith('https://tryknowflow.com/en/'):
+                probs.append('not an /en page of tryknowflow.com')
+        else:
+            w = wording(v) + (fr_wording(v) if m['locale'].startswith('fr') else [])
+            if w:
+                probs.append(f'wording {w}')
+        if k == 'keywords' and (', ' in v or ',,' in v or v.endswith(',')):
+            probs.append('a space after a comma, or an empty keyword')
+        say(('ok   ' if not probs else 'FAIL ') + f'{k}: {len(v)} of {lim}' + (f' ({"; ".join(probs)})' if probs else ''))
+        bad += 1 if probs else 0
+    if mode == 'en-gb':
+        en = en_text()
+        for k in ('promotionalText', 'description'):
+            same = t[k].encode('utf-8') == en[k].encode('utf-8')
+            say(('ok   ' if same else 'FAIL ') + f'{k}: {"byte for byte the approved en-US text" if same else "DIFFERENT from the approved en-US text"}')
+            bad += 0 if same else 1
+    if bad:
+        raise Failed(f"{bad} {m['locale']} check(s) fail the rules")
+    return t
+
+
+def check_locales(flags=None):
+    say('== check-locales')
+    ok = True
+    for mode, m in LOCALE_MODES.items():
+        check_locale(mode)
+        ok = approved((flags or {}).get(mode) or m['flag'], m['file']) and ok
+    return ok
+
+
+def editable_app_info_only(api, app):
+    """The one App Info that is not live (it exists while a new version is in preparation), or a refusal."""
+    infos, _ = api.all(f'/v1/apps/{app}/appInfos?limit=10')
+    edit = [i for i in infos if (i.get('attributes') or {}).get('state') not in LIVE_INFO and (i.get('attributes') or {}).get('appStoreState') not in LIVE_INFO]
+    if len(edit) != 1:
+        raise Failed(f'{len(edit)} App Info record(s) that are not live, of {len(infos)}; a new version must be in preparation (create {VERSION} in App Store Connect)')
+    return edit[0]
+
+
+def write_fields(api, label, rtype, cur, want, create_path, create_body):
+    """PATCH the fields of `want` that differ from `cur`, or POST a new record; returns the record id or None (dry create)."""
+    if cur:
+        ca = cur.get('attributes') or {}
+        diff = {}
+        for k, v in want.items():
+            same = (ca.get(k) or '').encode('utf-8') == v.encode('utf-8')
+            say(f"  {label} {k}: now {len(ca.get(k) or '')} chars, {'already the approved text' if same else 'differs, written'}")
+            if not same:
+                diff[k] = v
+        say(f"  {label} found: {cur['id']}")
+        if diff:
+            api.need('PATCH', f"{create_path}/{cur['id']}", {'data': {'type': rtype, 'id': cur['id'], 'attributes': diff}})
+        return cur['id']
+    if create_body is None:
+        raise Failed(f'no {label} (this mode only edits the one that exists)')
+    js = api.need('POST', create_path, create_body, ok=(201,))
+    rid = (js.get('data') or {}).get('id')
+    say(f'  {label} created: {rid}')
+    return rid
+
+
+def locale_write(api, app, mode, flag=None):
+    m = LOCALE_MODES[mode]
+    loc = m['locale']
+    say('== check')
+    t = check_locale(mode)
+    say(f'== {mode}')
+    if not approved(flag or m['flag'], m['file']):
+        raise Failed(f'the {loc} text is not approved')
+    v = version_of(api, app)
+    state = v['attributes'].get('appVersionState')
+    say(f"version {VERSION}: id {v['id']}, state {state}")
+    if state not in EDITABLE:
+        raise Failed(f'version {VERSION} is {state}, which App Store Connect does not let anyone edit; nothing written')
+    info = editable_app_info_only(api, app)
+    say(f"app info {info['id']}: state {(info.get('attributes') or {}).get('state')}")
+    ia = {k: t[k] for k in m['app_info']}
+    va = {k: t[k] for k in m['version']}
     ils, _ = api.all(f"/v1/appInfos/{info['id']}/appInfoLocalizations?limit=50")
-    cur = next((l for l in ils if l['attributes'].get('locale') == 'ar-SA'), None)
-    if not cur:
-        raise Failed('no ar-SA App Info localization (this mode only edits the one that exists)')
-    ca = cur.get('attributes') or {}
-    same = {k: ca.get(k) == v for k, v in t.items()}
-    for k in t:
-        say(f"  now {k}: {len(ca.get(k) or '')} characters, {'already the approved text' if same[k] else 'differs'}")
-    if all(same.values()):
-        say('nothing to write')
-    else:
-        api.need('PATCH', f"/v1/appInfoLocalizations/{cur['id']}", {'data': {'type': 'appInfoLocalizations', 'id': cur['id'], 'attributes': t}})
+    cur = next((l for l in ils if l['attributes'].get('locale') == loc), None)
+    write_fields(api, f'{loc} App Info localization', 'appInfoLocalizations', cur, ia, '/v1/appInfoLocalizations',
+                 {'data': {'type': 'appInfoLocalizations', 'attributes': dict(ia, locale=loc),
+                           'relationships': {'appInfo': {'data': {'type': 'appInfos', 'id': info['id']}}}}} if m['create'] else None)
+    # Read again after the App Info write: App Store Connect creates the
+    # version localization of a new locale itself (run 38795422677).
+    vl = next((l for l in version_locs(api, v['id']) if l['attributes'].get('locale') == loc), None)
+    write_fields(api, f'{loc} version localization', 'appStoreVersionLocalizations', vl, va, '/v1/appStoreVersionLocalizations',
+                 {'data': {'type': 'appStoreVersionLocalizations', 'attributes': dict(va, locale=loc),
+                           'relationships': {'appStoreVersion': {'data': {'type': 'appStoreVersions', 'id': v['id']}}}}} if m['create'] else None)
     if api.transport != 'live':
         say(f'{api.writes} write(s) printed, none sent')
         return
     say('== read-back')
-    got = api.get(f"/v1/appInfoLocalizations/{cur['id']}")['data']['attributes']
-    for k, v in t.items():
-        read_back_sha(f'ar-SA {k}', got.get(k))
-        say(f"  section 4.2 {k}: {len(v)} chars, utf-8 sha256 {hashlib.sha256(v.encode('utf-8')).hexdigest()}")
-    verdict([((got.get(k) or '').encode('utf-8') == v.encode('utf-8'),
-              f"ar-SA {k}: {'byte for byte equal to' if (got.get(k) or '').encode('utf-8') == v.encode('utf-8') else 'DIFFERENT from'} section 4.2 ({len((got.get(k) or '').encode('utf-8'))} vs {len(v.encode('utf-8'))} bytes)") for k, v in t.items()])
+    ils, _ = api.all(f"/v1/appInfos/{info['id']}/appInfoLocalizations?limit=50")
+    got_i = next((l['attributes'] for l in ils if l['attributes'].get('locale') == loc), {})
+    got_v = next((l['attributes'] for l in version_locs(api, v['id']) if l['attributes'].get('locale') == loc), {})
+    checks = []
+    for where, got, want in (('app info', got_i, ia), ('version', got_v, va)):
+        for k, val in want.items():
+            read_back_sha(f'{where} {loc} {k}', got.get(k))
+            eq = (got.get(k) or '').encode('utf-8') == val.encode('utf-8')
+            checks.append((eq, f"{where} {loc} {k}: {'byte for byte equal to' if eq else 'DIFFERENT from'} {os.path.basename(m['file'])}"))
+    verdict(checks)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('mode', choices=['read', 'builds', 'settings', 'screenshots', 'english', 'arabic-appinfo', 'check-en'])
+    ap.add_argument('mode', choices=['read', 'builds', 'settings', 'screenshots', 'english', *LOCALE_MODES, 'check-en', 'check-locales'])
     ap.add_argument('--app', default=os.environ.get('ASC_APP_APPLE_ID', ''))
     ap.add_argument('--auth', help='file holding "Authorization: Bearer <token>"')
     ap.add_argument('--live', action='store_true', help='send the writes')
     ap.add_argument('--offline', help='fixtures file: no network at all')
-    ap.add_argument('--require-approval', action='store_true', help='check-en: fail unless the approval flag matches')
-    ap.add_argument('--flag', default=EN_FLAG, help='the approval flag (local proofs only; the workflow never passes it)')
+    ap.add_argument('--version', default='1.0', help='the App Store version to read or write (the workflow passes its input)')
+    ap.add_argument('--require-approval', action='store_true', help='check-en, check-locales: fail unless the approval flags match')
+    ap.add_argument('--flag', help='the approval flag of an english or locale mode (local proofs only; the workflow never passes it)')
     a = ap.parse_args()
+    global VERSION
     try:
+        if not re.fullmatch(r'\d+\.\d+(?:\.\d+)?', a.version):
+            raise Failed(f'--version {a.version!r} is not a version string such as 1.0.1')
+        VERSION = a.version
         if a.mode == 'check-en':
             check_en()
-            ok = approved(a.flag)
+            ok = approved(a.flag or EN_FLAG)
+            return 1 if (a.require_approval and not ok) else 0
+        if a.mode == 'check-locales':
+            ok = check_locales()
             return 1 if (a.require_approval and not ok) else 0
         if not re.fullmatch(r'\d+', a.app or ''):
             raise Failed('the app id (ASC_APP_APPLE_ID) is missing')
@@ -747,16 +902,18 @@ def main():
             raise Failed('the builds mode is read-only; --live is refused')
         api = Api(transport, a.auth, a.offline)
         api.read_only = a.mode in ('read', 'builds')
-        say(f'mode {a.mode}, transport {transport}' + ('' if transport == 'live' else ' (no write is sent)'))
+        say(f'mode {a.mode}, version {VERSION}, transport {transport}' + ('' if transport == 'live' else ' (no write is sent)'))
         if a.mode == 'read':
             read_all(api, a.app)
         elif a.mode == 'builds':
             builds(api, a.app)
         else:
             if a.mode == 'english':
-                english(api, a.app, a.flag)
+                english(api, a.app, a.flag or EN_FLAG)
+            elif a.mode in LOCALE_MODES:
+                locale_write(api, a.app, a.mode, a.flag)
             else:
-                {'settings': settings, 'screenshots': screenshots, 'arabic-appinfo': arabic_appinfo}[a.mode](api, a.app)
+                {'settings': settings, 'screenshots': screenshots}[a.mode](api, a.app)
             if transport == 'live':
                 read_all(api, a.app)
         return 0

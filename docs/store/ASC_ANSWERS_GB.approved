@@ -1,0 +1,2 @@
+d1aab509be9329b4711caf76316bd359b6b8332238f132406355248f0955007e
+SHA-256 of docs/store/ASC_ANSWERS_GB.md with LF line ends. The owner approved its store text on 2026-10-28 (ASO_1.0.1_APPROVED.md, sha256 c6db0d75a536bbdb598c7bdcb30542f3ce9f2f8b3aec8598db01bebd2d720757, the texts used byte for byte). The locale mode of scripts/asc/store_setup.py that writes this file refuses unless this flag holds its current hash; any edit to the file blocks it until it is approved again.
