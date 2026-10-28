@@ -451,6 +451,19 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-10-28 - iOS 1.0 approved: the Guideline 4.0 iPad rejection of build 7, the two server-side fixes and their proof, build 7 resubmitted unchanged; the AI consent found on the reviewer account withdrawn
+
+**No row is edited** (rows 42, 69 and 81 untouched). This PR changes docs/PROGRESS.md only and dispatches nothing: the deployment relay in ios-signed-in.yml dispatches the signed-in run only when the deployed diff touches a path that run reads, and docs/ is not one of them.
+
+- **Rejection, 2026-10-23:** iOS 1.0 build 7 rejected under Guideline 4.0 Design: in iPad compatibility mode the page was zoomed and clipped.
+- **Cause, proven by diag run 40258021621 (branch diag/ipad-zoom, never merged):** a real tap on a 14 px text field made iOS zoom the web view to 16/14 on focus, and the zoom persisted after the keyboard was dismissed and after navigation, clipping the edges in iPad compatibility mode.
+- **Fix 1, #286 (3b89ffc):** every text-entry control is 16 px below md; no maximumScale, so pinch-zoom stays. The field-zoom.yml gate keeps it so with a source check and a rendered check.
+- **Fix 2, #287 (9ea11c4):** .kf-hit gives the standalone auth links, the logo link and the reminder time control a tap area of at least 44 x 44; the field-zoom gate is extended to measure it. Inline links under 44 are left by design (WCAG 2.5.8 inline exemption).
+- **Proof after the fixes:** diag run 40270829751: scale 1 after every tap, keyboard dismiss and navigation, on the iPad Air 11-inch (M3) in compatibility mode and on the iPhone 17 Pro Max. Known gap: on the iPad, the tap on the email field never focused it under XCUITest, so that tap proves nothing. Signed-in run 40291319489: 0 failures of 48, AI consent withdrawn.
+- **Resubmission, 2026-10-26 about 09:38Z:** reply sent to Apple; build 7 resubmitted unchanged, because the fixes are server-side and the app loads the live site.
+- **Approval, 2026-10-28:** App Store Connect shows iOS 1.0 "Ready for Distribution" (approved; release automatic).
+- **Reviewer account, 2026-10-28:** found with AI consent ON, granted 2026-10-26 09:44:37Z, after our last run; last sign-in 2026-10-28 10:51Z; 2 queries and 0 uploads since 2026-10-26. Most likely Apple's reviewer (inference, not proven). Withdrawn about 14:00Z by one targeted SQL update in the Supabase SQL editor that removed only the ai_consent key from that one account; verified by a separate read: 1 account, key absent.
+
 ### 2026-10-17 - Build 6 uploaded internal-only and not attachable; the export guard removed; a read-only builds mode
 
 **No row is edited** (rows 42, 69 and 81 untouched). This PR dispatches nothing: no TestFlight run, no App Store Connect run. Changing ios/ExportOptions.plist triggers ios-smoke on the pull request, which builds for the simulator, never exports and never reads ios/ExportOptions.plist, so it proves the project still builds and the shell still runs, not what an export with these options produces; the first export without the key is build 7.
