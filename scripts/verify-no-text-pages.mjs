@@ -13,9 +13,9 @@
  *      ready chip, study kit, no new line); some pages (ready chip, study kit,
  *      the count line, the fix line); no text (no-text chip and line, the fix
  *      line, no study kit).
- *   3. The draft copy obeys the owner's rules: Western digits, no em dash, no
- *      price, plan, upgrade or "free" wording, and no Latin inside the Arabic
- *      except the product names Google Drive and Google Docs.
+ *   3. The approved copy (app_v4, 2026-11-03; the English is held verbatim
+ *      here) obeys the owner's rules: Western digits, no em dash, no price,
+ *      plan, upgrade or "free" wording, and no Latin inside the Arabic except the product names Google Lens and Google Docs, each one unit.
  *   4. The wiring, from the source: the route forwards the two counts as
  *      numbers or null; the upload box reads them through pagesWithoutText,
  *      keeps a warning on screen, and offers a 44 px button to pick the next
@@ -101,17 +101,22 @@ await attempt('MaterialCard renders', async () => {
   }
 });
 
-console.log('3. The draft copy');
+console.log('3. The approved copy (docs/copy/ARABIC_STRINGS_app_v4.md, owner 2026-11-03)');
 await attempt('copy loads', async () => {
   const { ar } = await load('src/lib/i18n/locales/ar.ts');
   const { en } = await load('src/lib/i18n/locales/en.ts');
-  const drafts = [
+  // The English is approved too, and no batch file asserts English, so it is
+  // held here verbatim; the Arabic is held by verify-arabic-copy.mjs.
+  const NB = ' ';
+  check('en someNoTextLine is the approved text', en.dashboard.subjectDetail.someNoTextLine === 'Pages with no text: {n} of {total}.', en.dashboard.subjectDetail.someNoTextLine);
+  check('en noTextFix is the approved text', en.dashboard.subjectDetail.noTextFix === `To get the text with your phone: photograph the page and copy its text with Google${NB}Lens, then paste it into a Google${NB}Docs document, save it as Word, and upload that file.`, JSON.stringify(en.dashboard.subjectDetail.noTextFix));
+  const texts = [
     ['ar someNoTextLine', ar.dashboard.subjectDetail.someNoTextLine],
     ['ar noTextFix', ar.dashboard.subjectDetail.noTextFix],
     ['en someNoTextLine', en.dashboard.subjectDetail.someNoTextLine],
     ['en noTextFix', en.dashboard.subjectDetail.noTextFix],
   ];
-  for (const [k, v] of drafts) {
+  for (const [k, v] of texts) {
     check(`${k} exists`, typeof v === 'string' && v.length > 0);
     if (typeof v !== 'string') continue;
     check(`${k}: no em or en dash`, !/[—–]/.test(v), v);
@@ -120,14 +125,14 @@ await attempt('copy loads', async () => {
   }
   check('both lines keep their placeholders', ['{n}', '{total}'].every((p) => ar.dashboard.subjectDetail.someNoTextLine.includes(p) && en.dashboard.subjectDetail.someNoTextLine.includes(p)));
   for (const k of ['someNoTextLine', 'noTextFix']) {
-    const latin = ar.dashboard.subjectDetail[k].replace(/Google (Drive|Docs)|{[a-z]+}/g, '').match(/[A-Za-z]+/g);
-    check(`ar ${k}: no Latin except Google Drive and Google Docs`, latin === null, JSON.stringify(latin));
+    const latin = ar.dashboard.subjectDetail[k].replace(/Google (Lens|Docs)|{[a-z]+}/g, '').match(/[A-Za-z]+/g);
+    check(`ar ${k}: no Latin except Google Lens and Google Docs`, latin === null, JSON.stringify(latin));
   }
-  // The CI render at 440 pt broke "Google | Drive" across two lines; a
-  // product name is one unit, joined by a no-break space, in both languages.
+  // A product name is one unit, joined by a no-break space, in both languages
+  // (the 440 pt CI render once broke "Google | Drive" across two lines).
   for (const [loc, d] of [['ar', ar], ['en', en]]) {
     const v = d.dashboard.subjectDetail.noTextFix;
-    check(`${loc} noTextFix: Google\\u00a0Drive and Google\\u00a0Docs never break`, v.includes('Google Drive') && v.includes('Google Docs') && !/Google /.test(v), JSON.stringify(v));
+    check(`${loc} noTextFix: Google\\u00a0Lens and Google\\u00a0Docs never break`, v.includes(`Google${NB}Lens`) && v.includes(`Google${NB}Docs`) && !/Google /.test(v), JSON.stringify(v));
   }
 });
 
