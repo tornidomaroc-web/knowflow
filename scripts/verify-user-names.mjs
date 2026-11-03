@@ -108,6 +108,20 @@ for (const name of NAMES) {
   }
 }
 
+console.log('\nmaterial topics');
+{
+  // A topic (a summary's first sentence) sits inside quotes and may be long:
+  // it stays a plain isolate that can wrap, as before. A one-piece box there
+  // left the opening quote alone at a line's end (redesign-built, en-*-ask).
+  const lead = 'The chapter explains elasticity of demand and its factors. More follows.';
+  const chat = renderToStaticMarkup(h(ChatBox, { kbId: 's', kbName: 'Microeconomics', materials: [{ filename: 'a.pdf', lead }] }));
+  const topic = 'The chapter explains elasticity of demand and its factors';
+  const m = chat.match(new RegExp(`<bdi([^>]*)>${esc(topic)}</bdi>`));
+  check('a material topic is a plain <bdi> (no inline block, can wrap)', !!m && !/inline-block|data-username/.test(m[1]), m ? m[0] : 'topic not found');
+  check('the subject in the same suggestions is still UserName inline',
+    /<bdi dir="auto" class="inline-block max-w-full" data-username="">Microeconomics<\/bdi>/.test(chat));
+}
+
 console.log('\nsource');
 const home = read('src/components/dashboard/StudentHome.tsx');
 check('StudentHome: subject progress name through UserName', /<UserName as="p"[^>]*>\{s\.name\}<\/UserName>/.test(home));

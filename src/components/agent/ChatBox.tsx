@@ -78,11 +78,19 @@ function decodeCitations(header: string | null): Citation[] | undefined {
  * register #121) become <bdi> elements. A character isolate is resolved line by
  * line, so a Latin title that wrapped put the Arabic marks around it (« », ؟)
  * on the wrong side; an element isolate keeps them in place.
+ *
+ * The SUBJECT name is also kept in one piece (UserName inline, 2026-11-03 phone
+ * test: a Latin name split across two lines left the full stop against
+ * ".CHECK 2026-08-10"). A material TOPIC is not: it can be a summary's first
+ * sentence, and it sits inside quotes, which a one-piece box would leave
+ * alone at a line's end.
  */
-function isolated(q: string) {
-  return q.split(/(\u2068[^\u2069]*\u2069)/).map((part, i) =>
-    part.startsWith('\u2068') ? <UserName key={i} inline>{part.slice(1, -1)}</UserName> : part,
-  );
+function isolated(q: string, subject: string) {
+  return q.split(/(\u2068[^\u2069]*\u2069)/).map((part, i) => {
+    if (!part.startsWith('\u2068')) return part;
+    const text = part.slice(1, -1);
+    return text === subject ? <UserName key={i} inline>{text}</UserName> : <bdi key={i}>{text}</bdi>;
+  });
 }
 
 export function ChatBox({ kbId, kbName, materials = [], initialConversationId, initialMessages, onConversationCreated }: ChatBoxProps) {
@@ -259,7 +267,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
                     <span className={`kf-chip inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tint}`}>
                       <Icon className="h-4 w-4" />
                     </span>
-                    <span className="min-w-0 flex-1">{isolated(q)}</span>
+                    <span className="min-w-0 flex-1">{isolated(q, kbName)}</span>
                   </button>
                 );
               })}
