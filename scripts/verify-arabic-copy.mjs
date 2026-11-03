@@ -17,7 +17,8 @@
  *     dashboard.newKb.errorLimitApp, dashboard.settings.subtitleApp; 418 after
  *     Step Redesign-2 added upload.uploadButton, typesLabel, sizeLine,
  *     dropHereTouch and agent.sources; 424 after Step Redesign-3 added the
- *     six of dashboard.subjectDetail.fileTypes).
+ *     six of dashboard.subjectDetail.fileTypes; 426 after Option C added
+ *     dashboard.subjectDetail.someNoTextLine and noTextFix).
  *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
  *     ruling that removed it. Its rows stay in the batch files, which are the
  *     owner's approved record and are never edited; they are read and checked
@@ -153,7 +154,7 @@ console.error(`${approved.size} keys asserted, ${superseded} earlier rows supers
   const onlyEn = [...E.keys()].filter((k) => !A.has(k)).sort();
   check(onlyAr.join() === [...pluralOnly].sort().join(), `keys only in ar.ts: ${onlyAr.join(', ') || '(none)'}; expected the four plural forms`);
   check(onlyEn.length === 0, `keys missing from ar.ts: ${onlyEn.join(', ')}`);
-  check(A.size === 424, `ar.ts has ${A.size} leaves, expected 424`);
+  check(A.size === 426, `ar.ts has ${A.size} leaves, expected 426`);
 }
 
 // 3. Placeholders on every key.

@@ -28,6 +28,14 @@ interface IngestionAck {
   document_id?: string;
   chunk_count?: number;
   status?: string;
+  // Option C: a PDF's pages and how many have no text; null for any other file.
+  pages_total?: number | null;
+  pages_no_text?: number | null;
+}
+
+/** A page count from the ack: a whole number of 0 or more, or null. */
+function pageCount(v: unknown): number | null {
+  return typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : null;
 }
 
 // B5a: upload allowlist — only the formats MarkItDown handles well. Maps each
@@ -396,7 +404,15 @@ export async function POST(request: Request) {
     // bad-ack 500. Fails open; never throws.
     await recordStudyEvent(supabase, 'material_uploaded');
 
-    return NextResponse.json({ success: true, document_id: docRecord.id, chunk_count: ack.chunk_count });
+    // The page counts pass through as numbers or null. A service from before
+    // they existed sends neither, and the upload result is then what it was.
+    return NextResponse.json({
+      success: true,
+      document_id: docRecord.id,
+      chunk_count: ack.chunk_count,
+      pages_total: pageCount(ack.pages_total),
+      pages_no_text: pageCount(ack.pages_no_text),
+    });
   } catch (error) {
     console.error('Ingest API error:', error);
     return NextResponse.json(

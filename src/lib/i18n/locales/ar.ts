@@ -295,6 +295,9 @@ export const ar: Translation = {
       statusError: "لم ينجح",
       statusNoText: "بلا نص",
       noTextLine: "لا نص في هذا الملف. ارفع نسخة فيها نص.",
+      // Option C, approved by the owner 2026-11-03 (docs/copy/ARABIC_STRINGS_app_v4.md).
+      someNoTextLine: "صفحات بلا نص: {n} من {total}.",
+      noTextFix: "لاستخراج النص بهاتفك: صوّر الصفحة وانسخ نصها بأداة Google\u00a0Lens، ثم الصقه في مستند Google\u00a0Docs واحفظه بصيغة وورد، وارفع ذلك الملف.",
       checklist: "عدة المذاكرة",
       summaryDone: "الملخص جاهز",
       summaryTodo: "بلا ملخص بعد",

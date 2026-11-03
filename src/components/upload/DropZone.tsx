@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { CheckCircle2, FileText, Upload } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FileText, Upload } from 'lucide-react';
 import { buttonVariants } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { usePlatform } from '@/components/platform/PlatformProvider';
@@ -15,6 +15,7 @@ import { isOverUploadLimit, parseUploadReply } from '@/lib/upload-limits';
 import { fileExtension, isAllowedFileType } from '@/types';
 import { expectedProcessingSeconds, processingFraction, processingStage } from '@/lib/upload-progress';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
+import { pagesWithoutText } from '@/lib/material-text';
 
 interface DropZoneProps {
   kbId: string;
@@ -22,9 +23,10 @@ interface DropZoneProps {
   /**
    * PREVIEW ONLY (`/[locale]/preview/upload`): start in the `ready` state with
    * this file shown, so the queued-file row can be looked at without an
-   * upload. Nothing is sent; the real flow never passes it.
+   * upload. Nothing is sent; the real flow never passes it. `noText` and
+   * `pagesNoText` (Option C) start it on that result, as an upload would.
    */
-  previewFile?: { name: string; size: number };
+  previewFile?: { name: string; size: number; noText?: boolean; pagesNoText?: { n: number; total: number } | null };
 }
 
 type UploadState = 'idle' | 'uploading' | 'processing' | 'ready' | 'error';
@@ -56,8 +58,10 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
   const [state, setState] = useState<UploadState>(previewFile ? 'ready' : 'idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // #128: the file arrived and the service found no text in it.
-  const [noText, setNoText] = useState(false);
-  const [file, setFile] = useState<{ name: string; size: number } | null>(previewFile ?? null);
+  const [noText, setNoText] = useState(previewFile?.noText ?? false);
+  // Option C: the file arrived and SOME of its pages have no text.
+  const [pagesNoText, setPagesNoText] = useState<{ n: number; total: number } | null>(previewFile?.pagesNoText ?? null);
+  const [file, setFile] = useState<{ name: string; size: number } | null>(previewFile ? { name: previewFile.name, size: previewFile.size } : null);
   const [sent, setSent] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(0);
@@ -106,6 +110,8 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
     }
 
     setFile({ name: picked.name, size: picked.size });
+    setNoText(false);
+    setPagesNoText(null);
     setSent(0);
     setErrorMsg(null);
     setState('uploading');
@@ -141,7 +147,13 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
       return;
     }
 
-    setNoText(data.chunk_count === 0);
+    const empty = data.chunk_count === 0;
+    const some = pagesWithoutText({
+      status: 'ready', embedding_status: 'ready', chunk_count: data.chunk_count,
+      pages_total: data.pages_total, pages_no_text: data.pages_no_text,
+    });
+    setNoText(empty);
+    setPagesNoText(some);
     setState('ready');
     if (onSuccess) {
       onSuccess({
@@ -152,12 +164,18 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
         markdown_content: null, chunk_count: data.chunk_count, embedding_status: 'ready', created_at: new Date().toISOString(),
         // Phase 3: a just-uploaded document has no summary yet.
         summary: null, summary_generated_at: null, summary_model: null, summary_is_partial: false,
+        // Option C: from the ack, so the new card shows its pages with no text
+        // at once, as it will on reload.
+        pages_total: data.pages_total ?? null, pages_no_text: data.pages_no_text ?? null,
       });
     } else {
       router.refresh(); // Refresh page data on completion
     }
 
-    setTimeout(() => setState('idle'), 3000);
+    // A file with pages that have no text keeps its result on screen, with the
+    // way to fix it and a button to pick the next file: a 3-second message is
+    // gone before the fix line is read. Every other result clears as before.
+    if (!empty && !some) setTimeout(() => setState('idle'), 3000);
   };
 
   const onDrop = (e: React.DragEvent) => {
@@ -166,6 +184,7 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
   };
 
   const busy = state === 'uploading' || state === 'processing';
+  const warn = state === 'ready' && (noText || pagesNoText !== null);
   const elapsedMs = startedAt ? now - startedAt : 0;
   const stage = file ? processingStage(elapsedMs, file.size) : 'reading';
   const fraction = state === 'uploading' && file
@@ -218,14 +237,20 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
         <div className="w-full max-w-md text-start" role="status" aria-live="polite">
           <div className="flex items-center gap-3">
             <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-primary">
-              {state === 'ready' && !noText ? <CheckCircle2 className="pop-in h-5 w-5 text-success" /> : <FileText className={noText && state === 'ready' ? 'h-5 w-5 text-danger' : 'h-5 w-5'} />}
+              {state === 'ready' && pagesNoText && !noText
+                ? <AlertTriangle className="h-5 w-5 text-warning" />
+                : state === 'ready' && !noText ? <CheckCircle2 className="pop-in h-5 w-5 text-success" /> : <FileText className={noText && state === 'ready' ? 'h-5 w-5 text-danger' : 'h-5 w-5'} />}
             </span>
             <div className="min-w-0 flex-1">
               <FileName name={file.name} className="text-sm font-medium text-foreground" />
-              <p className={noText && state === 'ready' ? 'text-xs text-danger' : 'text-xs text-muted-foreground'}>
+              <p className={noText && state === 'ready' ? 'text-xs text-danger' : pagesNoText && state === 'ready' ? 'text-xs text-foreground' : 'text-xs text-muted-foreground'}>
                 {state === 'uploading' && `${u.uploading} ${Math.round(fraction * 100)}%`}
                 {state === 'processing' && (stage === 'reading' ? u.reading : stage === 'preparing' ? u.preparing : u.stillWorking)}
-                {state === 'ready' && (noText ? t.dashboard.subjectDetail.noTextLine : u.ready)}
+                {state === 'ready' && (noText
+                  ? t.dashboard.subjectDetail.noTextLine
+                  : pagesNoText
+                    ? t.dashboard.subjectDetail.someNoTextLine.replace('{n}', String(pagesNoText.n)).replace('{total}', String(pagesNoText.total))
+                    : u.ready)}
               </p>
             </div>
             <span className="shrink-0 text-xs tabular-nums text-faint">
@@ -241,6 +266,21 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
               style={{ width: `${Math.round(fraction * 100)}%` }}
             />
           </div>
+
+          {warn && (
+            <>
+              <p className="mt-2 text-xs text-muted-foreground" data-kf-text-fix="">{t.dashboard.subjectDetail.noTextFix}</p>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                data-kf-upload="again"
+                className={cn(buttonVariants({ variant: 'secondary' }), 'mt-3 min-h-11 w-full')}
+              >
+                <Upload className="h-4 w-4" />
+                {u.uploadButton}
+              </button>
+            </>
+          )}
 
           {state === 'processing' && (
             <p className="mt-2 text-xs text-muted-foreground">

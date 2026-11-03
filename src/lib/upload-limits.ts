@@ -50,6 +50,9 @@ export interface UploadReply {
   success?: boolean;
   document_id?: string;
   chunk_count?: number;
+  /** A PDF's pages and how many have no text; null for any other file. */
+  pages_total?: number | null;
+  pages_no_text?: number | null;
   error?: string;
 }
 

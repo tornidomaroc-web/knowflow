@@ -14,7 +14,7 @@ import type { Document } from '@/types'
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n'
 import { withSupportEmail } from '@/lib/site'
 import { subjectStats, emptyStats } from '@/lib/subject-stats'
-import { hasNoText } from '@/lib/material-text'
+import { hasNoText, pagesWithoutText } from '@/lib/material-text'
 
 interface KB {
   id: string
@@ -83,6 +83,8 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
     statusError: sd.statusError,
     statusNoText: sd.statusNoText,
     noTextLine: sd.noTextLine,
+    someNoTextLine: sd.someNoTextLine,
+    noTextFix: sd.noTextFix,
     checklist: sd.checklist,
     summaryDone: sd.summaryDone,
     summaryTodo: sd.summaryTodo,
@@ -136,6 +138,7 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
                   hasSummary={Boolean(doc.summary_generated_at)}
                   hasQuiz={quizzedIds.has(doc.id)}
                   noText={hasNoText(doc)}
+                  pagesNoText={pagesWithoutText(doc)}
                   anchorId={`material-${doc.id}`}
                   labels={cardLabels}
                 >

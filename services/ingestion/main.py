@@ -3,13 +3,18 @@ import os
 import re
 import shutil
 import tempfile
-from typing import Literal
+import unicodedata
+from typing import Literal, NamedTuple
 
 import httpx
 import tiktoken
 from fastapi import FastAPI, UploadFile, File, Form, Header, HTTPException, Body
 from fastapi.responses import JSONResponse
 from markitdown import MarkItDown
+from pdfminer.converter import PDFPageAggregator
+from pdfminer.layout import LTChar, LTContainer
+from pdfminer.pdfinterp import PDFPageInterpreter, PDFResourceManager
+from pdfminer.pdfpage import PDFPage
 from pydantic import BaseModel
 from supabase import acreate_client, AsyncClient, AsyncClientOptions
 
@@ -71,6 +76,23 @@ MAX_INGEST_BYTES = 8 * 1024 * 1024
 CHUNK_TOKENS = 512
 CHUNK_OVERLAP = 64
 
+# A page "has text" when it holds at least this many LETTERS (Unicode category
+# L*: Latin, Arabic, any script; digits, punctuation, spaces and diacritics do
+# not count). The furniture a scanned or photographed page still carries as
+# real text sits under it: "Page 12" has 4 letters, "Page 12 of 40" 6,
+# "Slide 7 of 30" 7, "صفحة 3 من 20" 5, "الصفحة 12 من 40" 8, "- 12 -" 0. The
+# shortest real content seen on a slide sits at or over it ("Conclusion" 10,
+# "Introduction" 12), and a page with a sentence has dozens. The table is held
+# against _letters in tests/test_no_text_pages.py. A page under it counts as a
+# page with no text. It errs towards "has text": a scanned page with a running
+# header of 10 letters or more is not caught.
+MIN_PAGE_LETTERS = 10
+
+# pdfminer writes a glyph it cannot map to Unicode as "(cid:123)". That is not
+# text a student can read or Ask can use, and its "cid" must not count as 3
+# letters.
+_UNMAPPED_GLYPH = re.compile(r"\(cid:\d+\)")
+
 # tiktoken's cl100k_base is a reasonable proxy for chunk sizing across languages
 # even though the embedding model uses its own tokenizer.
 ENCODER = tiktoken.get_encoding("cl100k_base")
@@ -130,6 +152,66 @@ def _strip_nul(text: str) -> str:
     are all valid in Postgres text.
     """
     return text.replace("\x00", "")
+
+
+def _letters(text: str) -> int:
+    """How many letters `text` holds, in any script (see MIN_PAGE_LETTERS)."""
+    return sum(1 for ch in _UNMAPPED_GLYPH.sub("", text) if unicodedata.category(ch).startswith("L"))
+
+
+class PageCounts(NamedTuple):
+    total: int
+    no_text: int
+
+
+def _pdf_page_counts(path: str) -> PageCounts | None:
+    """Per page of a PDF, whether it has text: (pages, pages with no text).
+
+    Reads the characters pdfminer places on each page, with no layout analysis
+    (laparams=None), the cheap part of what MarkItDown already does with the
+    same library. Text inside a form XObject (an LTFigure) counts, and so does
+    an invisible OCR layer, as it should: Ask can use it.
+
+    Never raises: a PDF pdfminer cannot walk (encrypted, broken) returns None,
+    and the upload goes on as before, measured as a whole.
+    """
+    def letters_in(obj) -> int:
+        if isinstance(obj, LTChar):
+            return _letters(obj.get_text())
+        if isinstance(obj, LTContainer):
+            return sum(letters_in(child) for child in obj)
+        return 0
+
+    try:
+        rsrc = PDFResourceManager()
+        device = PDFPageAggregator(rsrc, laparams=None)
+        interpreter = PDFPageInterpreter(rsrc, device)
+        total = no_text = 0
+        with open(path, "rb") as fp:
+            for page in PDFPage.get_pages(fp):
+                interpreter.process_page(page)
+                total += 1
+                if letters_in(device.get_result()) < MIN_PAGE_LETTERS:
+                    no_text += 1
+        return PageCounts(total, no_text)
+    except Exception as e:  # noqa: BLE001 - a measure, never a reason to fail an upload
+        print(f"page count failed: {type(e).__name__}", flush=True)
+        return None
+
+
+def _has_no_text(markdown_text: str, pages: PageCounts | None) -> bool:
+    """True when the file holds nothing a student could study from.
+
+    A PDF: every page is a page with no text, even if their page numbers
+    together add up to more than MIN_PAGE_LETTERS. Any other file, or a PDF
+    that could not be counted: the whole text holds fewer letters than one
+    page needs. Such a file gets no chunks, so it ends `ready` with
+    `chunk_count` 0, which the app already reads as "no text"
+    (src/lib/material-text.ts, hasNoText) on every page and in Ask.
+    """
+    if pages is not None and pages.total > 0:
+        return pages.no_text == pages.total
+    return _letters(markdown_text) < MIN_PAGE_LETTERS
 
 
 def _chunk_text(text: str, chunk_tokens: int = CHUNK_TOKENS, overlap: int = CHUNK_OVERLAP) -> list[dict]:
@@ -360,7 +442,14 @@ def _upload_size(file: UploadFile) -> int:
     return size
 
 
-def _convert_to_markdown(file: UploadFile) -> str:
+def _convert_to_markdown(file: UploadFile) -> tuple[str, PageCounts | None]:
+    """The file's text, and for a PDF its page counts (None for any other file).
+
+    Only a PDF has pages this service can read one by one. A .pptx has slides
+    (MarkItDown marks each), but they are not counted here; a .docx has no
+    fixed pages (Word lays them out when it opens the file); .xlsx, .txt and
+    .md have none. Those are measured as a whole by _has_no_text.
+    """
     fd, tmp_path = tempfile.mkstemp(suffix=f"_{_safe_basename(file.filename)}")
     os.close(fd)
     try:
@@ -368,13 +457,39 @@ def _convert_to_markdown(file: UploadFile) -> str:
             shutil.copyfileobj(file.file, buffer)
         md = MarkItDown()
         result = md.convert(tmp_path)
-        return result.text_content or ""
+        pages = _pdf_page_counts(tmp_path) if _is_pdf(tmp_path) else None
+        return result.text_content or "", pages
     finally:
         if os.path.exists(tmp_path):
             try:
                 os.remove(tmp_path)
             except OSError:
                 pass
+
+
+def _is_pdf(path: str) -> bool:
+    """By content, not by name: a PDF carries %PDF- in its first 1 KB."""
+    with open(path, "rb") as fp:
+        return b"%PDF-" in fp.read(1024)
+
+
+async def _record_pages(sb: AsyncClient, document_id: str, pages: PageCounts) -> None:
+    """Best-effort write of a PDF's page counts. Never raises.
+
+    Its own update, after the ready write, so an upload never depends on it.
+    The two columns (pages_total, pages_no_text) exist only once the owner has
+    added them; until then PostgREST refuses the unknown columns, this logs one
+    line, and the upload is unchanged.
+    """
+    try:
+        await (
+            sb.table("documents")
+            .update({"pages_total": pages.total, "pages_no_text": pages.no_text})
+            .eq("id", document_id)
+            .execute()
+        )
+    except Exception as e:  # noqa: BLE001 - diagnostics only
+        print(f"_record_pages failed for {document_id}: {type(e).__name__}", flush=True)
 
 
 @app.post("/ingest")
@@ -418,8 +533,11 @@ async def ingest(
     await _load_owned_document(sb, document_id, kb_id)
 
     try:
-        markdown_text = _strip_nul(_convert_to_markdown(file))
-        chunks = _chunk_text(markdown_text)
+        markdown_text, pages = _convert_to_markdown(file)
+        markdown_text = _strip_nul(markdown_text)
+        # A file whose pages hold nothing but page numbers has no text: no
+        # chunks, nothing sent to Voyage, chunk_count 0.
+        chunks = [] if _has_no_text(markdown_text, pages) else _chunk_text(markdown_text)
         if chunks:
             embeddings = await _embed([c["content"] for c in chunks], input_type="document")
             if len(embeddings) != len(chunks):
@@ -437,10 +555,18 @@ async def ingest(
 
     # Small ack by design: no embeddings, no markdown. The caller already knows
     # the filename and does not need the content back — it is in the database.
+    # After the ready write and outside the try, so it cannot turn a stored
+    # document into an error.
+    if pages is not None:
+        await _record_pages(sb, document_id, pages)
+
     return {
         "document_id": document_id,
         "chunk_count": len(chunks),
         "status": "ready",
+        # A PDF's pages and how many have no text; null for any other file.
+        "pages_total": pages.total if pages is not None else None,
+        "pages_no_text": pages.no_text if pages is not None else None,
     }
 
 

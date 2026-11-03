@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-10-13 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **424 Arabic strings.**
+Generated 2026-11-03 by `scripts/export-arabic-strings.mjs` from
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **426 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -320,6 +320,8 @@ file is not read by the app.
 | `dashboard.subjectDetail.statusError` | لم ينجح | Failed |
 | `dashboard.subjectDetail.statusNoText` | بلا نص | No text |
 | `dashboard.subjectDetail.noTextLine` | لا نص في هذا الملف. ارفع نسخة فيها نص. | This file has no text. Upload a version with text. |
+| `dashboard.subjectDetail.someNoTextLine` | صفحات بلا نص: {n} من {total}. | Pages with no text: {n} of {total}. |
+| `dashboard.subjectDetail.noTextFix` | لاستخراج النص بهاتفك: صوّر الصفحة وانسخ نصها بأداة Google Lens، ثم الصقه في مستند Google Docs واحفظه بصيغة وورد، وارفع ذلك الملف. | To get the text with your phone: photograph the page and copy its text with Google Lens, then paste it into a Google Docs document, save it as Word, and upload that file. |
 | `dashboard.subjectDetail.checklist` | عدة المذاكرة | Study kit |
 | `dashboard.subjectDetail.summaryDone` | الملخص جاهز | Summary ready |
 | `dashboard.subjectDetail.summaryTodo` | بلا ملخص بعد | No summary yet |

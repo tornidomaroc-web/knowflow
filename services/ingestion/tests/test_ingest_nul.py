@@ -92,7 +92,9 @@ def _pdf_with_nul_glyph() -> bytes:
     pdfminer turns that mapping into "\\x00", which is how a real PDF puts a
     NUL into MarkItDown's output (reproduced with markitdown 0.1.5 and
     pdfminer.six 20260107). 'A' maps to A, 'x' has no mapping (kept as x),
-    'D' maps to U+0644 (Arabic lam).
+    'D' maps to U+0644 (Arabic lam). The trailing x's give the page the 10
+    letters a page needs to count as text (main.MIN_PAGE_LETTERS); without
+    them the page holds 4 and, since the no-text-pages change, gets no chunks.
     """
     cmap = (
         b"/CIDInit /ProcSet findresource begin 12 dict begin begincmap\n"
@@ -101,7 +103,7 @@ def _pdf_with_nul_glyph() -> bytes:
         b"3 beginbfchar\n<41> <0041>\n<42> <0000>\n<44> <0644>\nendbfchar\n"
         b"endcmap CMapName currentdict /CMap defineresource pop end end\n"
     )
-    content = b"BT /F1 24 Tf 72 700 Td (AxBxD) Tj ET\n"
+    content = b"BT /F1 24 Tf 72 700 Td (AxBxDxxxxxxxx) Tj ET\n"
     objs = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
         b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",

@@ -50,3 +50,32 @@ export function initialAskSubject(kbIds: string[], answerable: Set<string>, want
   if (wanted && answerable.has(wanted) && kbIds.includes(wanted)) return wanted;
   return kbIds.find((id) => answerable.has(id)) ?? '';
 }
+
+/**
+ * OPTION C (2026-11-03, no OCR): A PDF WITH SOME PAGES THAT HAVE NO TEXT.
+ *
+ * The ingestion service counts, per PDF page, whether it holds text (at least
+ * 10 letters; a page with only a page number has none) and returns
+ * `pages_total` and `pages_no_text` in its ack; it also stores them on the
+ * document once those columns exist. A PDF whose every page has no text gets
+ * no chunks, so `hasNoText` already covers it.
+ */
+export interface PageCountFields {
+  pages_total?: number | null;
+  pages_no_text?: number | null;
+}
+
+/**
+ * The pages of a ready file that have no text, when SOME of its pages do:
+ * `{ n, total }`, else null. Null for a file with no text at all (that is
+ * `hasNoText`), for a file that is not ready, for any file that is not a PDF,
+ * and for every file stored before the count existed (both fields null or
+ * missing): those keep showing exactly as before.
+ */
+export function pagesWithoutText(d: MaterialTextFields & PageCountFields): { n: number; total: number } | null {
+  const n = d.pages_no_text;
+  const total = d.pages_total;
+  if (d.status !== 'ready' || hasNoText(d)) return null;
+  if (typeof n !== 'number' || typeof total !== 'number') return null;
+  return n > 0 && n < total ? { n, total } : null;
+}

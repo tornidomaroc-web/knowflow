@@ -169,6 +169,20 @@ jobs:
           PY
           grep -q "IMPORT OK" /tmp/import.log
 
+      # The service's own tests (services/ingestion/tests: the NUL strip of #295,
+      # the page count), run INSIDE the built image, so they test the exact
+      # packages Railway installs, not a runner's. The image does not ship the
+      # tests or pytest (the Dockerfile copies main.py only, and stays so), so
+      # the folder is mounted read-only and pytest is installed in this
+      # throwaway container. No pipe: docker run's exit code fails the step.
+      - name: Run the ingestion tests inside the image
+        run: |
+          docker run --rm \
+            -v "$PWD/services/ingestion/tests:/app/tests:ro" \
+            -e PYTHONDONTWRITEBYTECODE=1 \
+            knowflow-ingestion:ci \
+            sh -c 'pip install --no-cache-dir -q pytest==9.2.0 && python -m pytest tests -q -p no:cacheprovider'
+
       # Stronger than an import: actually run the image's own CMD and prove uvicorn
       # binds and serves. This catches ASGI/lifespan startup failures that a bare
       # import does not.

@@ -268,6 +268,11 @@ jobs:
       - name: Verify the upload route removes U+0000 from the stored file name, and nothing else
         run: node --experimental-strip-types scripts/verify-upload-filename-nul.mjs
 
+      # Option C (no OCR): a PDF with some pages without text says how many and
+      # how to get the text; one with none keeps its no-text state, plus that line.
+      - name: Verify the material card and the upload result report pages with no text
+        run: node --experimental-strip-types scripts/verify-no-text-pages.mjs
+
       # #130: the REAL auth callback, with only the Supabase route client stubbed.
       # A refused reset link lands on /login?notice=recovery_expired, which the
       # login page renders with a link to forgot-password; every other link,

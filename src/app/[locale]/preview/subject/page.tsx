@@ -83,6 +83,8 @@ export default async function SubjectPreview({
     statusError: sd.statusError,
     statusNoText: sd.statusNoText,
     noTextLine: sd.noTextLine,
+    someNoTextLine: sd.someNoTextLine,
+    noTextFix: sd.noTextFix,
     checklist: sd.checklist,
     summaryDone: sd.summaryDone,
     summaryTodo: sd.summaryTodo,
