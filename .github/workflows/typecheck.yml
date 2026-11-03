@@ -259,6 +259,15 @@ jobs:
       - name: Verify a file name with a chapter number reads in order, on every site that shows one (register #124)
         run: node --experimental-strip-types scripts/verify-filename-display.mjs
 
+      # 2026-11-03 phone test: a subject name is shown in its own direction (a
+      # Latin name truncates at its own end) and stays one piece in a sentence.
+      - name: Verify a subject name reads in its own direction wherever it is shown (UserName)
+        run: node --experimental-strip-types scripts/verify-user-names.mjs
+
+      # #295 follow-up: /api/ingest never stores a file name holding U+0000 (22P05).
+      - name: Verify the upload route removes U+0000 from the stored file name, and nothing else
+        run: node --experimental-strip-types scripts/verify-upload-filename-nul.mjs
+
       # #130: the REAL auth callback, with only the Supabase route client stubbed.
       # A refused reset link lands on /login?notice=recovery_expired, which the
       # login page renders with a link to forgot-password; every other link,

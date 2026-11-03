@@ -3,6 +3,7 @@ import { BookOpen, FileText, ListChecks, Loader2, MessageCircle } from 'lucide-r
 import { buttonVariants } from '@/components/ui';
 import { SparkBook } from '@/components/illustrations';
 import type { SubjectStats } from '@/lib/subject-stats';
+import { UserName } from '@/components/ui/UserName';
 
 export interface SubjectHeaderLabels {
   materials: string;
@@ -41,7 +42,7 @@ export function SubjectHeader({
         <div className="flex min-w-0 items-center gap-4">
           <SparkBook size={72} className="hidden shrink-0 sm:block" />
           <div className="min-w-0">
-          <h1 className="kf-title text-2xl font-bold text-foreground md:text-3xl">{name}</h1>
+          <UserName as="h1" className="kf-title text-2xl font-bold text-foreground md:text-3xl">{name}</UserName>
           {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
           </div>
         </div>

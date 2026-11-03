@@ -183,7 +183,9 @@ export async function POST(request: Request) {
       .insert({
         id: documentId,
         kb_id: kbId,
-        filename: file.name,
+        // Postgres text cannot hold U+0000 (22P05), and a client can send one in the
+        // name; it is removed here and nothing else is changed (#295 follow-up).
+        filename: file.name.replaceAll('\u0000', ''),
         file_type: ext, // B5a: validated, normalized extension (was raw split/'unknown')
         status: 'processing',
         embedding_status: 'processing',

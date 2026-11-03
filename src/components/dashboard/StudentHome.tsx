@@ -4,6 +4,7 @@ import type { Locale } from '@/lib/i18n';
 import { Ring } from '@/components/ui/Ring';
 import { ChatPages, EmptyShelf, Flame, SparkBook } from '@/components/illustrations';
 import { RecentActivity, type ActivityItem, type RecentActivityLabels } from './RecentActivity';
+import { UserName } from '@/components/ui/UserName';
 
 interface StudentHomeStat {
   label: string;
@@ -228,7 +229,7 @@ export function StudentHome({
                 {/* #121: the subject and the date are each a <bdi>. */}
                 <p className="mt-0.5 text-sm text-muted-foreground">
                   {labels.continueBody.split('{subject}')[0]}
-                  <bdi className="font-medium text-foreground">{continueCard.subject}</bdi>
+                  <UserName inline className="font-medium text-foreground">{continueCard.subject}</UserName>
                   {labels.continueBody.split('{subject}')[1]}{' '}
                   <bdi className="whitespace-nowrap text-faint">· {continueCard.date}</bdi>
                 </p>
@@ -362,7 +363,7 @@ export function StudentHome({
                       <span className="text-[11px] font-bold text-foreground">{none ? '-' : `${Math.round(pct * 100)}%`}</span>
                     </Ring>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-foreground">{s.name}</p>
+                      <UserName as="p" className="truncate text-sm font-semibold text-foreground">{s.name}</UserName>
                       <p className="text-xs text-faint">
                         {none ? '-' : <>{s.summarised}/{s.materials} {labels.materialsWord}</>}
                       </p>

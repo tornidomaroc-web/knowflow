@@ -5,6 +5,7 @@ import { formatDate } from '@/lib/format-date';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
+import { UserName } from '@/components/ui/UserName';
 
 interface Conversation {
   id: string;
@@ -47,9 +48,9 @@ export function ConversationSidebar({ activeId, onSelect, onNew, conversations }
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
-            <p className="truncate text-sm font-medium">
+            <UserName as="p" className="truncate text-sm font-medium">
               {conv.knowledge_bases?.name ?? t.dashboard.home.unknownKb}
-            </p>
+            </UserName>
             <p className="mt-1 text-[11px] text-muted-foreground">
               {formatDate(conv.created_at, safeLocale)}
             </p>

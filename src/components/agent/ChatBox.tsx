@@ -9,6 +9,7 @@ import { askSuggestions, type MaterialForSuggestion } from '@/lib/ask-suggestion
 import { ChatPages } from '@/components/illustrations';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 import { BookOpen, ListChecks, Send, Sparkles } from 'lucide-react';
+import { UserName } from '@/components/ui/UserName';
 
 interface Message {
   id: string;
@@ -80,7 +81,7 @@ function decodeCitations(header: string | null): Citation[] | undefined {
  */
 function isolated(q: string) {
   return q.split(/(\u2068[^\u2069]*\u2069)/).map((part, i) =>
-    part.startsWith('\u2068') ? <bdi key={i}>{part.slice(1, -1)}</bdi> : part,
+    part.startsWith('\u2068') ? <UserName key={i} inline>{part.slice(1, -1)}</UserName> : part,
   );
 }
 
@@ -211,7 +212,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
         </span>
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">{t.dashboard.agent.chatWith}</p>
-          <h2 className="truncate text-sm font-semibold text-foreground">{kbName}</h2>
+          <UserName as="h2" className="truncate text-sm font-semibold text-foreground">{kbName}</UserName>
         </div>
       </div>
 
