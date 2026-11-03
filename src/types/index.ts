@@ -84,6 +84,12 @@ export interface Document {
   summary_generated_at: string | null;
   summary_model: string | null;
   summary_is_partial: boolean;
+  // Option C (no-text pages): a PDF's page count and how many pages have no
+  // text, from the ingestion service. Optional: null for any file that is not a
+  // PDF and for files stored before the count, and absent until the columns
+  // are added to `documents` (the subject page reads `select('*')`).
+  pages_total?: number | null;
+  pages_no_text?: number | null;
 }
 
 /**

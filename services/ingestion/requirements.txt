@@ -5,3 +5,8 @@ python-multipart==0.0.9
 httpx==0.27.2
 tiktoken==0.7.0
 supabase==2.29.0
+# Pinned 2026-11-03: the page count (main.py, _pdf_page_counts) and the NUL
+# fix (#295) were measured against this version, the one every build since
+# 2026-01-07 resolves (newest on PyPI; ingestion-image run 41668024468 installed
+# it). pdfplumber 0.11.10, which markitdown[all] pulls in, pins the same.
+pdfminer.six==20260107

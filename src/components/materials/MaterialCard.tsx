@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { CheckCircle2, Circle, FileText } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Circle, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FileName } from '@/components/ui/FileName';
 import { formatDate } from '@/lib/format-date';
@@ -11,6 +11,10 @@ export interface MaterialCardLabels {
   statusError: string;
   statusNoText: string;
   noTextLine: string;
+  /** Option C: "{n} of {total}" pages of a PDF have no text. */
+  someNoTextLine: string;
+  /** Option C: how to get the text out of photographed or scanned pages. */
+  noTextFix: string;
   checklist: string;
   summaryDone: string;
   summaryTodo: string;
@@ -34,6 +38,12 @@ export interface MaterialCardLabels {
  * file in which no text was found does not say "ready". Its chip says it has
  * no text, one line says what to do, and there is no study kit to promise.
  * It only applies to a ready file; processing and failed files are unchanged.
+ *
+ * `pagesNoText` (Option C, `pagesWithoutText` in src/lib/material-text.ts):
+ * a ready PDF in which SOME pages have no text keeps its ready chip and its
+ * study kit (the other pages are studied), and says how many pages have no
+ * text. Both that line and the no-text line are followed by one line on how
+ * to get the text out of photographed or scanned pages.
  */
 export function MaterialCard({
   filename,
@@ -44,6 +54,7 @@ export function MaterialCard({
   hasSummary,
   hasQuiz,
   noText = false,
+  pagesNoText = null,
   anchorId,
   labels,
   children,
@@ -56,6 +67,7 @@ export function MaterialCard({
   hasSummary: boolean;
   hasQuiz: boolean;
   noText?: boolean;
+  pagesNoText?: { n: number; total: number } | null;
   /** Step Redesign-2: the id an Ask source link scrolls to (`material-<document id>`). */
   anchorId?: string;
   labels: MaterialCardLabels;
@@ -106,7 +118,24 @@ export function MaterialCard({
         <span className={cn('shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium', chip.cls)}>{chip.text}</span>
       </div>
 
-      {empty && <p className="mt-3 text-sm text-danger">{labels.noTextLine}</p>}
+      {empty && (
+        <>
+          <p className="mt-3 text-sm text-danger">{labels.noTextLine}</p>
+          <p className="mt-1 text-xs text-muted-foreground" data-kf-text-fix="">{labels.noTextFix}</p>
+        </>
+      )}
+
+      {status === 'ready' && !empty && pagesNoText && (
+        <div className="mt-3" data-kf-some-no-text="">
+          <p className="flex items-start gap-1.5 text-sm text-foreground">
+            <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+            <span>
+              {labels.someNoTextLine.replace('{n}', String(pagesNoText.n)).replace('{total}', String(pagesNoText.total))}
+            </span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground" data-kf-text-fix="">{labels.noTextFix}</p>
+        </div>
+      )}
 
       {status === 'ready' && !empty && (
         <div className="kf-well mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl bg-raised px-3 py-2 text-xs">

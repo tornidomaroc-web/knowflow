@@ -192,7 +192,9 @@ if (has('src/lib/ask-suggestions.ts')) {
   const agent = read('src/app/[locale]/dashboard/agent/page.tsx');
   check(/chunk_count, embedding_status/.test(agent) && /filter\(\(m\) => !hasNoText\(m\)\)/.test(agent), '#128: Ask still builds suggestions from files with no text');
   const drop = read('src/components/upload/DropZone.tsx');
-  check(/setNoText\(data\.chunk_count === 0\)/.test(drop) && /noText \? t\.dashboard\.subjectDetail\.noTextLine : u\.ready/.test(drop) && /embedding_status: 'ready'/.test(drop), '#128: the upload box still says ready for a file with no text');
+  // Option C (no-text pages) named the test `empty` and put the some-pages
+  // line between the two; the rule held here is the same.
+  check(/const empty = data\.chunk_count === 0;/.test(drop) && /setNoText\(empty\)/.test(drop) && /\(noText\s*\?\s*t\.dashboard\.subjectDetail\.noTextLine\s*:[\s\S]{0,300}?:\s*u\.ready\)/.test(drop) && /embedding_status: 'ready'/.test(drop), '#128: the upload box still says ready for a file with no text');
   }
 }
 
