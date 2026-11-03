@@ -8,6 +8,7 @@ import type { SubjectStats } from '@/lib/subject-stats';
 import { summarisedPercent } from '@/lib/subject-stats';
 import { formatDate } from '@/lib/format-date';
 import type { Locale } from '@/lib/i18n';
+import { UserName } from '@/components/ui/UserName';
 
 export interface SubjectItem {
   id: string;
@@ -105,7 +106,7 @@ function SubjectCard({ subject: s, locale, labels, index }: { subject: SubjectIt
     <article className={`kf-card liftable rise rise-${Math.min(index + 1, 5)} flex flex-col rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-primary`}>
       <div className="flex items-start justify-between gap-3">
         <Link href={s.href} className="flex min-h-[2.75rem] min-w-0 flex-col justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <h2 className="truncate text-lg font-semibold text-foreground">{s.name}</h2>
+          <UserName as="h2" className="truncate text-lg font-semibold text-foreground">{s.name}</UserName>
           {s.description ? <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{s.description}</p> : null}
         </Link>
         <Badge variant="neutral" className="shrink-0 uppercase">{s.language}</Badge>

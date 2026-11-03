@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { Locale } from '@/lib/i18n';
 import { formatDate } from '@/lib/format-date';
 import { Badge } from '@/components/ui';
+import { UserName } from '@/components/ui/UserName';
 
 export interface ActivityItem {
   id: string;
@@ -42,9 +43,9 @@ export function RecentActivity({ items, labels, locale }: { items: ActivityItem[
         {visible.map((conv) => (
           <div key={conv.id} className="flex items-center justify-between gap-4 p-4">
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">
+              <UserName as="p" className="truncate text-sm font-medium text-foreground">
                 {conv.knowledge_bases?.name || labels.unknownKb}
-              </p>
+              </UserName>
               <p className="mt-1 text-xs text-faint" dir="auto">
                 <bdi>{labels.platformWeb}</bdi> · <bdi>{formatDate(conv.created_at, locale)}</bdi>
               </p>

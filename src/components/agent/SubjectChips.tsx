@@ -5,6 +5,7 @@ import { Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
 import { EmptyAsk } from '@/components/illustrations';
+import { UserName } from '@/components/ui/UserName';
 
 /**
  * Ask's subject bar (register #129 (c)): only the subjects Ask can answer
@@ -40,7 +41,7 @@ export function SubjectChips({
               : 'border-border text-muted-foreground hover:border-primary hover:text-foreground',
           )}
         >
-          {kb.name}
+          <UserName>{kb.name}</UserName>
         </button>
       ))}
     </div>
