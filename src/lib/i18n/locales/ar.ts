@@ -297,7 +297,7 @@ export const ar: Translation = {
       noTextLine: "لا نص في هذا الملف. ارفع نسخة فيها نص.",
       // Option C, agent drafts awaiting the owner (docs/copy-drafts/no_text_pages.md).
       someNoTextLine: "صفحات بلا نص: {n} من {total}.",
-      noTextFix: "لاستخراج النص بهاتفك: صوّر الصفحات أو امسحها ضوئيًا، وافتحها في Google Drive أو Google Docs، ثم احفظها بصيغة وورد وارفع ذلك الملف.",
+      noTextFix: "لاستخراج النص بهاتفك: صوّر الصفحات أو امسحها ضوئيًا، وافتحها في Google Drive أو Google Docs، ثم احفظها بصيغة وورد وارفع ذلك الملف.",
       checklist: "عدة المذاكرة",
       summaryDone: "الملخص جاهز",
       summaryTodo: "بلا ملخص بعد",

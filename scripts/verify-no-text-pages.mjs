@@ -120,8 +120,14 @@ await attempt('copy loads', async () => {
   }
   check('both lines keep their placeholders', ['{n}', '{total}'].every((p) => ar.dashboard.subjectDetail.someNoTextLine.includes(p) && en.dashboard.subjectDetail.someNoTextLine.includes(p)));
   for (const k of ['someNoTextLine', 'noTextFix']) {
-    const latin = ar.dashboard.subjectDetail[k].replace(/Google (Drive|Docs)|{[a-z]+}/g, '').match(/[A-Za-z]+/g);
+    const latin = ar.dashboard.subjectDetail[k].replace(/Google (Drive|Docs)|{[a-z]+}/g, '').match(/[A-Za-z]+/g);
     check(`ar ${k}: no Latin except Google Drive and Google Docs`, latin === null, JSON.stringify(latin));
+  }
+  // The CI render at 440 pt broke "Google | Drive" across two lines; a
+  // product name is one unit, joined by a no-break space, in both languages.
+  for (const [loc, d] of [['ar', ar], ['en', en]]) {
+    const v = d.dashboard.subjectDetail.noTextFix;
+    check(`${loc} noTextFix: Google\\u00a0Drive and Google\\u00a0Docs never break`, v.includes('Google Drive') && v.includes('Google Docs') && !/Google /.test(v), JSON.stringify(v));
   }
 });
 

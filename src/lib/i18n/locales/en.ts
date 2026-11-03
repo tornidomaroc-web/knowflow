@@ -314,7 +314,7 @@ export const en = {
       noTextLine: "This file has no text. Upload a version with text.",
       // Option C, agent drafts awaiting the owner (docs/copy-drafts/no_text_pages.md).
       someNoTextLine: "Pages with no text: {n} of {total}.",
-      noTextFix: "To get the text with your phone: photograph or scan the pages, open them in Google Drive or Google Docs, then save as Word and upload that file.",
+      noTextFix: "To get the text with your phone: photograph or scan the pages, open them in Google Drive or Google Docs, then save as Word and upload that file.",
       checklist: "Study kit",
       summaryDone: "Summary ready",
       summaryTodo: "No summary yet",

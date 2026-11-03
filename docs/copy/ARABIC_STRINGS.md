@@ -321,7 +321,7 @@ file is not read by the app.
 | `dashboard.subjectDetail.statusNoText` | بلا نص | No text |
 | `dashboard.subjectDetail.noTextLine` | لا نص في هذا الملف. ارفع نسخة فيها نص. | This file has no text. Upload a version with text. |
 | `dashboard.subjectDetail.someNoTextLine` | صفحات بلا نص: {n} من {total}. | Pages with no text: {n} of {total}. |
-| `dashboard.subjectDetail.noTextFix` | لاستخراج النص بهاتفك: صوّر الصفحات أو امسحها ضوئيًا، وافتحها في Google Drive أو Google Docs، ثم احفظها بصيغة وورد وارفع ذلك الملف. | To get the text with your phone: photograph or scan the pages, open them in Google Drive or Google Docs, then save as Word and upload that file. |
+| `dashboard.subjectDetail.noTextFix` | لاستخراج النص بهاتفك: صوّر الصفحات أو امسحها ضوئيًا، وافتحها في Google Drive أو Google Docs، ثم احفظها بصيغة وورد وارفع ذلك الملف. | To get the text with your phone: photograph or scan the pages, open them in Google Drive or Google Docs, then save as Word and upload that file. |
 | `dashboard.subjectDetail.checklist` | عدة المذاكرة | Study kit |
 | `dashboard.subjectDetail.summaryDone` | الملخص جاهز | Summary ready |
 | `dashboard.subjectDetail.summaryTodo` | بلا ملخص بعد | No summary yet |

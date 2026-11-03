@@ -26,6 +26,8 @@ Notes for the decision:
   and up ("12 صفحة"), so the brief's form is wrong for most real files. With a
   colon the number ends the sentence and no agreement is needed, for any N and M.
 - **Latin inside Arabic.** Only the product names Google Drive and Google Docs.
+  Each is joined by a no-break space (`Google Drive`) in both languages:
+  the first CI render at 440 pt broke "Google" and "Drive" across two lines.
   "Word" is written وورد, as the approved file-type label already is
   (`fileTypes.docx`).
 - **No em dash, no price, plan, upgrade or "free" wording**, Western digits:
