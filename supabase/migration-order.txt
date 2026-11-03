@@ -96,3 +96,9 @@
 # here). `apply`: the image ships the roles, so every statement executes, and
 # scripts/verify-public-grants.mjs asserts the result.
 20261007_public_grants_dead_writes_and_anon.sql  apply
+
+# 20261103 is the schema half of PR #297 (Option C, no OCR): documents gets
+# pages_total and pages_no_text, nullable integers with two named checks.
+# `apply`: plain DDL on public.documents, re-runnable (if not exists, drop
+# constraint if exists before add).
+20261103_documents_page_counts.sql  apply
