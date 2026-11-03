@@ -143,6 +143,8 @@ export type Database = {
           id: string
           kb_id: string
           markdown_content: string | null
+          pages_no_text: number | null
+          pages_total: number | null
           status: string | null
           storage_path: string | null
           summary: string | null
@@ -160,6 +162,8 @@ export type Database = {
           id?: string
           kb_id: string
           markdown_content?: string | null
+          pages_no_text?: number | null
+          pages_total?: number | null
           status?: string | null
           storage_path?: string | null
           summary?: string | null
@@ -177,6 +181,8 @@ export type Database = {
           id?: string
           kb_id?: string
           markdown_content?: string | null
+          pages_no_text?: number | null
+          pages_total?: number | null
           status?: string | null
           storage_path?: string | null
           summary?: string | null

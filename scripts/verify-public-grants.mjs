@@ -385,6 +385,32 @@ check('anon SELECT on waitlist is 200 with [] (no SELECT policy; nothing readabl
 const kb = await allowed('A INSERTs a knowledge_bases row (dashboard/knowledge/new)', () => asA.from('knowledge_bases').insert({ user_id: A, name: 'Subject' }).select('id').single(), (d) => !!d?.id);
 const doc = await allowed('A INSERTs a documents row (/api/ingest)', () => asA.from('documents').insert({ kb_id: kb.id, filename: 'notes.txt' }).select('id').single(), (d) => !!d?.id);
 await allowed('A UPDATEs the documents row (/api/ingest, /api/summarize, rename, the ingestion service)', () => asA.from('documents').update({ status: 'ready', embedding_status: 'ready' }).eq('id', doc.id).select('id'), (d) => d.length === 1);
+
+// 20261103 (Option C, PR #297): documents.pages_total / pages_no_text.
+{
+  const MIG = 'supabase/migrations/20261103_documents_page_counts.sql';
+  let rerun = null;
+  try { psqlAs('postgres', readFileSync(resolvePath(ROOT, MIG), 'utf8')); } catch (e) { rerun = String(e.stderr || e.message).split('\n')[0]; }
+  const cons = admin(`select string_agg(conname || '=' || pg_get_constraintdef(oid), ' ; ' order by conname) from pg_constraint where conrelid = 'public.documents'::regclass and conname like 'documents_pages_%';`).trim();
+  check(`${MIG} runs a second time without error, and the two checks exist once each`,
+    rerun === null && cons === 'documents_pages_no_text_check=CHECK (((pages_no_text >= 0) AND (pages_no_text <= pages_total))) ; documents_pages_total_check=CHECK ((pages_total >= 0))',
+    rerun ?? cons, true);
+  // The ingestion service's write (_record_pages), as the uploading student.
+  await allowed('A writes pages_total 12 / pages_no_text 3 on their own document (the ingestion service, forwarded JWT)',
+    () => asA.from('documents').update({ pages_total: 12, pages_no_text: 3 }).eq('id', doc.id).select('pages_total, pages_no_text'),
+    (d) => d.length === 1 && d[0].pages_total === 12 && d[0].pages_no_text === 3);
+  for (const [label, set] of [['pages_no_text 13 of 12', { pages_no_text: 13 }], ['pages_total -1', { pages_total: -1, pages_no_text: null }], ['pages_no_text -1', { pages_no_text: -1 }]]) {
+    const res = await asA.from('documents').update(set).eq('id', doc.id).select('id');
+    check(`A writes ${label}: refused by the check (23514)`, res.error?.code === '23514', res.error ? `${res.error.code} ${res.error.message}` : 'no error');
+  }
+  // Another student cannot touch them: RLS filters A's row out of B's UPDATE.
+  const B = '0000000b-0000-4000-8000-000000000137';
+  admin(`insert into auth.users (id, email, raw_user_meta_data) values ('${B}', 'b@example.invalid', '{"full_name":"B"}');`);
+  const asB = clientFor(tokenFor(B));
+  const res = await asB.from('documents').update({ pages_total: 1, pages_no_text: 1 }).eq('id', doc.id).select('id');
+  const still = admin(`select pages_total || '/' || pages_no_text from public.documents where id = '${doc.id}';`).trim();
+  check("B's UPDATE of A's page counts matches no row (RLS), and A's 12/3 stand", res.error === null && res.data.length === 0 && still === '12/3', res.error ? res.error.message : `${res.data.length} rows; stored ${still}`);
+}
 await allowed('A INSERTs chunks (the ingestion service, forwarded JWT)', () => asA.from('chunks').insert([{ document_id: doc.id, kb_id: kb.id, chunk_index: 0, content: 'c0' }, { document_id: doc.id, kb_id: kb.id, chunk_index: 1, content: 'c1' }]).select('id'), (d) => d.length === 2);
 await allowed('A DELETEs chunks (the ingestion service, before re-embedding)', () => asA.from('chunks').delete().eq('document_id', doc.id).select('id'), (d) => d.length === 2);
 const conv = await allowed('A INSERTs a conversations row (/api/agent)', () => asA.from('conversations').insert({ kb_id: kb.id, user_id: A }).select('id').single(), (d) => !!d?.id);
