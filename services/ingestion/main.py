@@ -117,6 +117,21 @@ def _safe_basename(name: str | None) -> str:
     return base or "upload"                        # mkstemp adds its own entropy
 
 
+def _strip_nul(text: str) -> str:
+    """Remove U+0000 from converted text, and nothing else.
+
+    Postgres `text` cannot hold U+0000: the chunk insert fails with 22P05
+    ("\\u0000 cannot be converted to text"), after Voyage has already been paid
+    for every chunk. Extraction can emit it, e.g. a PDF whose ToUnicode CMap
+    maps a glyph to <0000> (pdfminer turns that into "\\x00"), or a .txt with a
+    NUL byte. Applied once, before chunking, so the stored markdown, the chunks
+    and their embeddings all see the same text. Every other character is
+    kept: Arabic diacritics, tatweel, bidi marks and other control characters
+    are all valid in Postgres text.
+    """
+    return text.replace("\x00", "")
+
+
 def _chunk_text(text: str, chunk_tokens: int = CHUNK_TOKENS, overlap: int = CHUNK_OVERLAP) -> list[dict]:
     tokens = ENCODER.encode(text)
     if not tokens:
@@ -403,7 +418,7 @@ async def ingest(
     await _load_owned_document(sb, document_id, kb_id)
 
     try:
-        markdown_text = _convert_to_markdown(file)
+        markdown_text = _strip_nul(_convert_to_markdown(file))
         chunks = _chunk_text(markdown_text)
         if chunks:
             embeddings = await _embed([c["content"] for c in chunks], input_type="document")
