@@ -104,12 +104,20 @@ for (const locale of ['ar', 'en']) JOBS.push({ locale, theme: null, s: SCREENS[1
  *      height and size in both cards, each card one description;
  *   4. no outline (lucide) icon left on the home but the plan pill's spark;
  *   5. the recent-activity list without a border or a divider;
- *   6. the greeting's button: a 44 pt avatar with one letter, named.
+ *   6. the greeting's button: a 44 pt avatar with one letter, named;
+ *   7. (round 3) in EVERY text block of the home, full and empty: no line of
+ *      one word, no line starting with a separator; no outline illustration;
+ *      the empty recent-activity well a clay inset without a border.
  */
 function homeChecks() {
   const out = [];
-  const home = document.querySelector('[data-kf-home]');
-  if (!home) return ['no [data-kf-home]'];
+  // BEFORE (main) has no markers: the checks then read main's home root by its
+  // class, so the before report shows what the line checks catch there (a
+  // witness that they are not vacuous). Only AFTER is gated.
+  const marked = document.querySelector('[data-kf-home]');
+  const home = marked || document.querySelector('main div.max-w-6xl');
+  if (!home) return ['no home root'];
+  if (!marked) out.push('no [data-kf-home] (main): read by class');
   const r = (el) => el.getBoundingClientRect();
   const near = (a, b) => Math.abs(a - b) <= 1;
   // 1
@@ -171,7 +179,63 @@ function homeChecks() {
       const bw = ['Top', 'Right', 'Bottom', 'Left'].map((s) => parseFloat(cs[`border${s}Width`]) || 0);
       if (bw.some((w) => w > 0)) out.push(`recent activity: a border on ${el.tagName.toLowerCase()} (${bw.join('/')})`);
     }
-  } // (the zero home shows the empty dashed well instead of the list)
+  }
+  const well = home.querySelector('[data-kf-activity-empty]');
+  if (well) {
+    const cs = getComputedStyle(well);
+    const bw = ['Top', 'Right', 'Bottom', 'Left'].map((s) => parseFloat(cs[`border${s}Width`]) || 0);
+    if (bw.some((w) => w > 0)) out.push(`recent activity: the empty well has a border (${bw.join('/')})`);
+    if (!/inset/.test(cs.boxShadow)) out.push('recent activity: the empty well is not a clay inset');
+  }
+  // 4b. no outline spot illustration (illustrations/index.tsx) left on the home
+  const drawn = [...home.querySelectorAll('[data-illustration]')].map((e) => e.getAttribute('data-illustration'));
+  if (drawn.length) out.push(`icons: outline illustration(s) ${drawn.join(', ')}`);
+  // 7. EVERY text block of the home (round 3, 2026-11-04): no line of one word
+  //    when the block wraps, and no line that starts with a separator, judged
+  //    by the logical first word and by the visual leading word (RTL aware).
+  const SEP = /^[·•]/;
+  // Each text node belongs to its NEAREST block (the first ancestor whose
+  // display is not inline-something), so a block's lines hold only its own
+  // words, never those of a block nested inside it.
+  const blocks = new Map();
+  const tw = document.createTreeWalker(home, NodeFilter.SHOW_TEXT);
+  for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+    if (!n.data.trim()) continue;
+    const el = n.parentElement;
+    if (el.closest('svg, .sr-only, [aria-hidden="true"]')) continue;
+    let b = el;
+    while (b !== home && getComputedStyle(b).display.startsWith('inline')) b = b.parentElement;
+    blocks.set(b, [...(blocks.get(b) || []), n]);
+  }
+  for (const [b, nodes] of blocks) {
+    const words = [];
+    for (const n of nodes) {
+      const re = /\S+/g;
+      for (let m = re.exec(n.data); m; m = re.exec(n.data)) {
+        const range = document.createRange();
+        range.setStart(n, m.index);
+        range.setEnd(n, m.index + m[0].length);
+        const rc = range.getClientRects()[0];
+        if (rc && rc.width > 0) words.push({ w: m[0], top: rc.top, bottom: rc.bottom, left: rc.left, right: rc.right, mid: (rc.top + rc.bottom) / 2 });
+      }
+    }
+    // Lines by vertical overlap (a 19 pt number and its 12 pt "of 10" share a line).
+    const lines = [];
+    for (const w of words) {
+      const line = lines.find((l) => w.mid >= l.top && w.mid <= l.bottom);
+      if (line) { line.words.push(w); line.top = Math.min(line.top, w.top); line.bottom = Math.max(line.bottom, w.bottom); }
+      else lines.push({ top: w.top, bottom: w.bottom, words: [w] });
+    }
+    const rtl = getComputedStyle(b).direction === 'rtl';
+    const name = `${b.tagName.toLowerCase()} "${b.textContent.trim().slice(0, 40)}"`;
+    if (lines.length > 1) {
+      for (const l of lines) if (l.words.length === 1) out.push(`lines: one word alone ("${l.words[0].w}") in ${name}`);
+    }
+    for (const l of lines) {
+      const visual = [...l.words].sort((a, c) => (rtl ? c.right - a.right : a.left - c.left))[0];
+      if (SEP.test(l.words[0].w) || SEP.test(visual.w)) out.push(`lines: a line starts with a separator in ${name}`);
+    }
+  }
   // 6
   const av = home.querySelector('header a[href$="/dashboard/settings"]');
   if (!av) out.push('avatar: no Settings link in the greeting');

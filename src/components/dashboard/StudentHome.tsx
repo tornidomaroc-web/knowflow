@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 import type { Locale } from '@/lib/i18n';
 import { Ring } from '@/components/ui/Ring';
-import { EmptyShelf, SparkBook } from '@/components/illustrations';
 import {
   ClayArrow,
   ClayAnswer,
@@ -13,10 +12,12 @@ import {
   ClayCheck,
   ClayChevron,
   ClayClock,
+  ClayEmptyShelf,
   ClayFile,
   ClayFlame,
   ClayNewSubject,
   ClayQuiz,
+  ClaySparkBook,
   ClayPlus,
   ClayQuestionGlyph,
   ClayUploadGlyph,
@@ -204,12 +205,16 @@ export function StudentHome({
 
   return (
     <div>
-      <div data-kf-home className="max-w-6xl space-y-[1.125rem]">
+      {/* Every line on the home is balanced (text-wrap is inherited; the
+          nowrap pieces keep nowrap), so no card ends on a word alone: the
+          owner's review of 2026-11-04, asserted by the design-c render. */}
+      <div data-kf-home className="max-w-6xl space-y-[1.125rem] [text-wrap:balance]">
         {/* ── Greeting: the date line, the welcome, the avatar to Settings. ── */}
         <header className="rise flex items-center justify-between gap-3 px-1">
           <div className="min-w-0">
             <p className="text-sm font-medium text-muted-foreground">
-              {dateLine ? <><bdi>{dateLine}</bdi>{' · '}</> : null}
+              {/* U+00A0 before the dot: it stays at the end of the date's line. */}
+              {dateLine ? <><bdi>{dateLine}</bdi>{'\u00a0· '}</> : null}
               {labels.welcomeLine}
             </p>
             <h1 className="mt-1 text-[2rem] font-extrabold leading-[2.5rem] text-foreground">{labels.welcome}</h1>
@@ -272,7 +277,11 @@ export function StudentHome({
             tall (the streak's count pill is 26), and one description that
             keeps two lines' room, so the titles and the lines sit at the same
             height. The streak card shows one line; the local-time hint is no
-            longer drawn here. The design-c render asserts the alignment. ── */}
+            longer drawn here. The line COUNTS can differ (the owner's choice,
+            2026-11-04: with today's copy "Keep it going." is one line and
+            "Add a subject and upload its materials" two in 140 pt); the room,
+            the tops and the card heights match, and no line is one word.
+            The design-c render asserts the alignment. ── */}
         <section className="rise rise-2 grid grid-cols-2 gap-3.5">
           <div data-kf-streak={lit ? 'lit' : 'unlit'} data-kf-twoup className="kf-streak flex min-w-0 flex-col rounded-3xl p-4">
             <span data-kf-twoup-icon className="flex h-[3.25rem] w-14 items-end"><ClayFlame lit={lit} /></span>
@@ -344,13 +353,15 @@ export function StudentHome({
               </span>
               <div className="min-w-0">
                 <h2 className="text-sm font-bold text-foreground">{labels.continueTitle}</h2>
-                {/* #121: the subject and the date are each a <bdi>. */}
+                {/* #121: the subject and the date are each a <bdi>. The date has
+                    its own line and no separator (the owner's review,
+                    2026-11-04: the Arabic line wrapped to start with the dot). */}
                 <p className="mt-0.5 text-sm text-muted-foreground">
                   {labels.continueBody.split('{subject}')[0]}
                   <UserName inline className="font-medium text-foreground">{continueCard.subject}</UserName>
-                  {labels.continueBody.split('{subject}')[1]}{' '}
-                  <bdi className="whitespace-nowrap text-faint">· {continueCard.date}</bdi>
+                  {labels.continueBody.split('{subject}')[1]}
                 </p>
+                <p className="mt-0.5 text-xs text-faint"><bdi className="whitespace-nowrap">{continueCard.date}</bdi></p>
               </div>
             </div>
             <Link
@@ -367,8 +378,8 @@ export function StudentHome({
         {stepsLeft > 0 && (
           <section className="kf-card rise rise-3 p-5">
             <div className="flex items-center gap-4">
-              <SparkBook size={64} className="shrink-0" />
-              <h2 className="text-base font-extrabold text-foreground">{labels.startTitle}</h2>
+              <ClaySparkBook className="shrink-0" />
+              <h2 className="min-w-0 text-base font-extrabold text-foreground">{labels.startTitle}</h2>
             </div>
             <ol className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               {onboarding.map((step, i) => {
@@ -414,7 +425,7 @@ export function StudentHome({
 
           {subjects.length === 0 ? (
             <div className="kf-card flex flex-col items-center p-6 text-center">
-              <EmptyShelf size={88} title={labels.noSubjects} />
+              <ClayEmptyShelf title={labels.noSubjects} />
               <p className="mt-2 text-sm font-bold text-foreground">{labels.noSubjects}</p>
               <p className="mt-1 text-sm text-muted-foreground">{labels.noSubjectsDesc}</p>
             </div>

@@ -46,14 +46,61 @@ const base = (p: P, w: number, h: number, vb: string) => ({ width: w, height: h,
    still outline glyphs). Same recipe as the rest: a filled shape on a
    gradient, a catchlight, ink or gold details. 26 x 26 unless sized. ── */
 
-/** A file: a cream page, a folded corner, a gold title line and two text lines. */
+/**
+ * A file: a cream page with a darker green tab down its spine and a green
+ * folded corner, a soft drop under it, a gold title line and two text lines.
+ * The tab and the drop are what separate it from a pale mint tile in light
+ * (the owner's review, 2026-11-04: the all-cream page read faint there).
+ */
 export const ClayFile = (p: P) => (
   <svg {...base(p, 26, 26, '0 0 26 26')}>
+    <path d="M7.6 3.6h8.5L21.6 9v13.5a2 2 0 0 1-2 2H7.6a2 2 0 0 1-2-2v-17a2 2 0 0 1 2-2z" fill="#4C8F5C" fillOpacity="0.28" />
     <path d="M7 2.5h8.5L21 8v13.5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-17a2 2 0 0 1 2-2z" fill={G('cream')} />
-    <path d="M15.5 2.5V7a1 1 0 0 0 1 1H21z" fill="#D9CDB8" />
-    <rect x="8" y="11" width="8" height="2.6" rx="1.3" fill={G('gold')} />
-    <rect x="8" y="15.2" width="10" height="2.2" rx="1.1" fill="#BFB29D" />
-    <rect x="8" y="19" width="6.5" height="2.2" rx="1.1" fill="#BFB29D" />
+    <path d="M7 2.5h2.6v21H7a2 2 0 0 1-2-2v-17a2 2 0 0 1 2-2z" fill={G('green')} />
+    <path d="M15.5 2.5V7a1 1 0 0 0 1 1H21z" fill={G('green')} />
+    <rect x="11" y="11" width="7" height="2.6" rx="1.3" fill={G('gold')} />
+    <rect x="11" y="15.2" width="8" height="2.2" rx="1.1" fill="#9A8D79" />
+    <rect x="11" y="19" width="5.5" height="2.2" rx="1.1" fill="#9A8D79" />
+  </svg>
+);
+
+/**
+ * The three-step card's picture: an open clay book (two blue pages on a
+ * gold spine) with a gold spark above it. Replaces the outline SparkBook on
+ * the home only; the landing, sign-up and subject header keep theirs.
+ */
+export const ClaySparkBook = (p: P) => (
+  <svg {...base(p, 64, 64, '0 0 64 64')}>
+    <ellipse cx="31" cy="56" rx="21" ry="3" fill="#5A83BE" fillOpacity="0.22" />
+    <path d="M8 22c8-3 16-2 23 2v28c-7-4-15-5-23-2z" fill={G('blue')} />
+    <path d="M54 22c-8-3-16-2-23 2v28c7-4 15-5 23-2z" fill={G('blue')} />
+    <path d="M31 24v28" stroke={G('gold')} strokeWidth="3.4" strokeLinecap="round" />
+    <path d="M13 30c4-1 8-.6 12 1M13 36c4-1 8-.6 12 1M37 31c4-1.6 8-2 12-1M37 37c4-1.6 8-2 12-1" fill="none" stroke="#FFFFFF" strokeOpacity="0.75" strokeWidth="2.2" strokeLinecap="round" />
+    <path d="M47 4l2.3 5.6L55 12l-5.7 2.3L47 20l-2.3-5.7L39 12l5.7-2.4z" fill={G('gold')} />
+    <circle cx="16" cy="11" r="3" fill={G('peach')} />
+    <ellipse cx="12.5" cy="24.5" rx="3.4" ry="1.1" transform="rotate(-12 12.5 24.5)" fill="#FFFFFF" fillOpacity="0.5" />
+  </svg>
+);
+
+/**
+ * The empty subjects picture: a clay shelf, one peach book on it, and a
+ * pressed-in slot for the next one with the gold plus coin. No outlines.
+ * `title` names it when it stands alone (the empty state), as EmptyShelf did.
+ */
+export const ClayEmptyShelf = ({ title, ...p }: P & { title?: string }) => (
+  <svg {...base(p, 88, 88, '0 0 96 96')} aria-hidden={title ? undefined : true} role={title ? 'img' : undefined}>
+    {title ? <title>{title}</title> : null}
+    <ellipse cx="48" cy="80" rx="36" ry="4" fill="#7E7262" fillOpacity="0.18" />
+    <rect x="10" y="68" width="76" height="9" rx="4.5" fill={G('taupe')} />
+    <rect x="22" y="30" width="24" height="38" rx="6" fill={G('peach')} />
+    <rect x="40" y="33" width="4" height="32" rx="2" fill={G('cream')} />
+    <rect x="26" y="38" width="10" height="3.6" rx="1.8" fill="#FFFFFF" fillOpacity="0.75" />
+    <ellipse cx="28" cy="33.5" rx="4" ry="1.3" fill="#FFFFFF" fillOpacity="0.6" />
+    <rect x="52" y="30" width="24" height="38" rx="6" fill="#7E7262" fillOpacity="0.16" />
+    <rect x="54" y="32" width="20" height="5" rx="2.5" fill="#7E7262" fillOpacity="0.14" />
+    <circle cx="64" cy="49" r="10" fill={G('gold')} />
+    <path d="M64 44v10M59 49h10" stroke="#1A1611" strokeWidth="2.6" strokeLinecap="round" />
+    <ellipse cx="60.5" cy="44" rx="3.2" ry="1.3" fill="#FFFFFF" fillOpacity="0.6" />
   </svg>
 );
 

@@ -31,7 +31,9 @@ export function RecentActivity({ items, labels, locale }: { items: ActivityItem[
 
   if (!items || items.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-raised p-8 text-center text-sm text-muted-foreground">
+      // Design "C" (the owner's review, 2026-11-04): a clay inset, pressed in,
+      // with no border, like the list's tiles above it have none.
+      <div data-kf-activity-empty className="kf-well rounded-2xl p-8 text-center text-sm text-muted-foreground">
         {labels.noActivity}
       </div>
     );
@@ -50,7 +52,8 @@ export function RecentActivity({ items, labels, locale }: { items: ActivityItem[
                 {conv.knowledge_bases?.name || labels.unknownKb}
               </UserName>
               <p className="mt-1 text-xs text-faint" dir="auto">
-                <bdi>{labels.platformWeb}</bdi> · <bdi>{formatDate(conv.created_at, locale)}</bdi>
+                {/* U+00A0 before the dot, so a wrapped line never starts with it. */}
+                <bdi>{labels.platformWeb}</bdi>{' · '}<bdi>{formatDate(conv.created_at, locale)}</bdi>
               </p>
             </div>
             <Badge className="shrink-0">{labels.conversation}</Badge>
