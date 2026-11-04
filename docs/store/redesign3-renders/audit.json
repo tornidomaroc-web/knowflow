@@ -17,17 +17,17 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
       }
     ],
     "text": 16,
-    "textWorst": 4.72,
+    "textWorst": 7.39,
     "targets": 8,
     "shaping": 16,
     "cost": {
       "shadowed": 12,
       "maxLayers": 3,
-      "blurred": 18,
+      "blurred": 34,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -50,7 +50,7 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
       },
       {
         "ok": true,
@@ -58,13 +58,13 @@
       }
     ],
     "text": 24,
-    "textWorst": 4.72,
+    "textWorst": 7.39,
     "targets": 9,
     "shaping": 16,
     "cost": {
       "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 25,
+      "blurred": 40,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -87,13 +87,13 @@
       }
     ],
     "text": 7,
-    "textWorst": 4.72,
+    "textWorst": 6.86,
     "targets": 5,
     "shaping": 7,
     "cost": {
       "shadowed": 4,
       "maxLayers": 3,
-      "blurred": 6,
+      "blurred": 10,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -116,13 +116,13 @@
       }
     ],
     "text": 6,
-    "textWorst": 4.72,
+    "textWorst": 7.39,
     "targets": 5,
     "shaping": 6,
     "cost": {
       "shadowed": 3,
       "maxLayers": 3,
-      "blurred": 5,
+      "blurred": 9,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -145,13 +145,13 @@
       }
     ],
     "text": 18,
-    "textWorst": 4.72,
+    "textWorst": 6.86,
     "targets": 5,
     "shaping": 14,
     "cost": {
       "shadowed": 8,
       "maxLayers": 3,
-      "blurred": 14,
+      "blurred": 22,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -173,14 +173,14 @@
         "m": "the drawn quiz empty state: spark-book,empty-quiz"
       }
     ],
-    "text": 104,
-    "textWorst": 4.72,
+    "text": 101,
+    "textWorst": 5.6,
     "targets": 16,
-    "shaping": 88,
+    "shaping": 89,
     "cost": {
       "shadowed": 40,
       "maxLayers": 3,
-      "blurred": 62,
+      "blurred": 102,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -202,14 +202,14 @@
         "m": "file-type labels in Arabic: نص, مستند, مستند, عرض, وورد, جدول, مستند, مستند"
       }
     ],
-    "text": 103,
-    "textWorst": 4.72,
+    "text": 100,
+    "textWorst": 5.6,
     "targets": 16,
-    "shaping": 87,
+    "shaping": 88,
     "cost": {
       "shadowed": 39,
       "maxLayers": 3,
-      "blurred": 61,
+      "blurred": 101,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -228,17 +228,17 @@
       },
       {
         "ok": true,
-        "m": "the gold ring stands where the dash was"
+        "m": "the unlit clay flame stands where the dash was"
       }
     ],
-    "text": 51,
-    "textWorst": 4.61,
-    "targets": 10,
-    "shaping": 42,
+    "text": 52,
+    "textWorst": 5.28,
+    "targets": 12,
+    "shaping": 43,
     "cost": {
-      "shadowed": 14,
+      "shadowed": 32,
       "maxLayers": 3,
-      "blurred": 25,
+      "blurred": 96,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -261,13 +261,13 @@
       }
     ],
     "text": 35,
-    "textWorst": 4.72,
+    "textWorst": 6.29,
     "targets": 14,
     "shaping": 30,
     "cost": {
       "shadowed": 22,
       "maxLayers": 3,
-      "blurred": 30,
+      "blurred": 56,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -289,14 +289,14 @@
         "m": "the wordmark reads \"KnowFlow\" on screen"
       }
     ],
-    "text": 55,
-    "textWorst": 4.61,
-    "targets": 15,
-    "shaping": 43,
+    "text": 56,
+    "textWorst": 5.28,
+    "targets": 17,
+    "shaping": 44,
     "cost": {
-      "shadowed": 15,
+      "shadowed": 35,
       "maxLayers": 3,
-      "blurred": 27,
+      "blurred": 105,
       "filters": [],
       "heaviest": "header.kf-topbar \"KnowFlowEnglish\""
     }
@@ -308,13 +308,13 @@
     "ua": "app",
     "findings": [],
     "notes": [
-      "target 183 x 43 < 44 x 44 a.rounded-md \"KnowFlow\"",
-      "target 107 x 17 < 44 x 44 a.text-sm \"نسيت كلمة المرور؟\"",
-      "target 178 x 17 < 44 x 44 a.text-sm \"ليس لديك حساب؟ أنشئ حسابًا\""
+      "target 183 x 43 < 44 x 44 a.kf-hit \"KnowFlow\"",
+      "target 107 x 17 < 44 x 44 a.kf-hit \"نسيت كلمة المرور؟\"",
+      "target 178 x 17 < 44 x 44 a.kf-hit \"ليس لديك حساب؟ أنشئ حسابًا\""
     ],
     "proved": [],
     "text": 11,
-    "textWorst": 6.5,
+    "textWorst": 8.43,
     "targets": 5,
     "shaping": 9,
     "cost": {
@@ -343,17 +343,17 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
       }
     ],
     "text": 16,
-    "textWorst": 5.2,
+    "textWorst": 6.37,
     "targets": 8,
     "shaping": 16,
     "cost": {
       "shadowed": 12,
       "maxLayers": 3,
-      "blurred": 18,
+      "blurred": 34,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -376,7 +376,7 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
       },
       {
         "ok": true,
@@ -384,13 +384,13 @@
       }
     ],
     "text": 24,
-    "textWorst": 5.2,
+    "textWorst": 6.37,
     "targets": 9,
     "shaping": 16,
     "cost": {
       "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 25,
+      "blurred": 40,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -413,13 +413,13 @@
       }
     ],
     "text": 7,
-    "textWorst": 5.2,
+    "textWorst": 6.61,
     "targets": 5,
     "shaping": 7,
     "cost": {
       "shadowed": 4,
       "maxLayers": 3,
-      "blurred": 6,
+      "blurred": 10,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -442,13 +442,13 @@
       }
     ],
     "text": 6,
-    "textWorst": 5.2,
+    "textWorst": 7.24,
     "targets": 5,
     "shaping": 6,
     "cost": {
       "shadowed": 3,
       "maxLayers": 3,
-      "blurred": 5,
+      "blurred": 9,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -471,13 +471,13 @@
       }
     ],
     "text": 18,
-    "textWorst": 5.2,
+    "textWorst": 6.37,
     "targets": 5,
     "shaping": 14,
     "cost": {
       "shadowed": 8,
       "maxLayers": 3,
-      "blurred": 14,
+      "blurred": 22,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -499,14 +499,14 @@
         "m": "the drawn quiz empty state: spark-book,empty-quiz"
       }
     ],
-    "text": 104,
-    "textWorst": 4.59,
+    "text": 101,
+    "textWorst": 4.72,
     "targets": 16,
-    "shaping": 88,
+    "shaping": 89,
     "cost": {
       "shadowed": 40,
       "maxLayers": 3,
-      "blurred": 62,
+      "blurred": 102,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -528,14 +528,14 @@
         "m": "file-type labels in Arabic: نص, مستند, مستند, عرض, وورد, جدول, مستند, مستند"
       }
     ],
-    "text": 103,
-    "textWorst": 4.59,
+    "text": 100,
+    "textWorst": 4.72,
     "targets": 16,
-    "shaping": 87,
+    "shaping": 88,
     "cost": {
       "shadowed": 39,
       "maxLayers": 3,
-      "blurred": 61,
+      "blurred": 101,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -554,17 +554,17 @@
       },
       {
         "ok": true,
-        "m": "the gold ring stands where the dash was"
+        "m": "the unlit clay flame stands where the dash was"
       }
     ],
-    "text": 51,
-    "textWorst": 4.66,
-    "targets": 10,
-    "shaping": 42,
+    "text": 52,
+    "textWorst": 5.16,
+    "targets": 12,
+    "shaping": 43,
     "cost": {
-      "shadowed": 14,
+      "shadowed": 32,
       "maxLayers": 3,
-      "blurred": 25,
+      "blurred": 96,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -587,13 +587,13 @@
       }
     ],
     "text": 35,
-    "textWorst": 4.59,
+    "textWorst": 5.66,
     "targets": 14,
     "shaping": 30,
     "cost": {
       "shadowed": 22,
       "maxLayers": 3,
-      "blurred": 30,
+      "blurred": 56,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
     }
@@ -615,14 +615,14 @@
         "m": "the wordmark reads \"KnowFlow\" on screen"
       }
     ],
-    "text": 55,
-    "textWorst": 4.56,
-    "targets": 15,
-    "shaping": 43,
+    "text": 56,
+    "textWorst": 5.16,
+    "targets": 17,
+    "shaping": 44,
     "cost": {
-      "shadowed": 15,
+      "shadowed": 35,
       "maxLayers": 3,
-      "blurred": 27,
+      "blurred": 105,
       "filters": [],
       "heaviest": "header.kf-topbar \"KnowFlowEnglish\""
     }
@@ -634,13 +634,13 @@
     "ua": "app",
     "findings": [],
     "notes": [
-      "target 183 x 43 < 44 x 44 a.rounded-md \"KnowFlow\"",
-      "target 107 x 17 < 44 x 44 a.text-sm \"نسيت كلمة المرور؟\"",
-      "target 178 x 17 < 44 x 44 a.text-sm \"ليس لديك حساب؟ أنشئ حسابًا\""
+      "target 183 x 43 < 44 x 44 a.kf-hit \"KnowFlow\"",
+      "target 107 x 17 < 44 x 44 a.kf-hit \"نسيت كلمة المرور؟\"",
+      "target 178 x 17 < 44 x 44 a.kf-hit \"ليس لديك حساب؟ أنشئ حسابًا\""
     ],
     "proved": [],
     "text": 11,
-    "textWorst": 4.97,
+    "textWorst": 5.59,
     "targets": 5,
     "shaping": 9,
     "cost": {
@@ -669,17 +669,17 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
       }
     ],
     "text": 16,
-    "textWorst": 4.72,
+    "textWorst": 7.39,
     "targets": 8,
     "shaping": 0,
     "cost": {
       "shadowed": 12,
       "maxLayers": 3,
-      "blurred": 18,
+      "blurred": 34,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -702,7 +702,7 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
       },
       {
         "ok": true,
@@ -710,13 +710,13 @@
       }
     ],
     "text": 22,
-    "textWorst": 4.72,
+    "textWorst": 7.39,
     "targets": 9,
     "shaping": 1,
     "cost": {
       "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 25,
+      "blurred": 40,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -739,13 +739,13 @@
       }
     ],
     "text": 7,
-    "textWorst": 4.72,
+    "textWorst": 6.86,
     "targets": 5,
     "shaping": 0,
     "cost": {
       "shadowed": 4,
       "maxLayers": 3,
-      "blurred": 6,
+      "blurred": 10,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -768,13 +768,13 @@
       }
     ],
     "text": 6,
-    "textWorst": 4.72,
+    "textWorst": 7.39,
     "targets": 5,
     "shaping": 0,
     "cost": {
       "shadowed": 3,
       "maxLayers": 3,
-      "blurred": 5,
+      "blurred": 9,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -797,13 +797,13 @@
       }
     ],
     "text": 18,
-    "textWorst": 4.72,
+    "textWorst": 6.86,
     "targets": 5,
     "shaping": 0,
     "cost": {
       "shadowed": 8,
       "maxLayers": 3,
-      "blurred": 14,
+      "blurred": 22,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -825,14 +825,14 @@
         "m": "the drawn quiz empty state: spark-book,empty-quiz"
       }
     ],
-    "text": 103,
-    "textWorst": 4.72,
+    "text": 97,
+    "textWorst": 5.6,
     "targets": 16,
     "shaping": 1,
     "cost": {
       "shadowed": 40,
       "maxLayers": 3,
-      "blurred": 62,
+      "blurred": 102,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -854,14 +854,14 @@
         "m": "file-type labels in Latin capitals: PDF, PDF, PDF, PPTX, DOCX, XLSX, PDF, PDF"
       }
     ],
-    "text": 102,
-    "textWorst": 4.72,
+    "text": 96,
+    "textWorst": 5.6,
     "targets": 16,
     "shaping": 1,
     "cost": {
       "shadowed": 39,
       "maxLayers": 3,
-      "blurred": 61,
+      "blurred": 101,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -880,17 +880,17 @@
       },
       {
         "ok": true,
-        "m": "the gold ring stands where the dash was"
+        "m": "the unlit clay flame stands where the dash was"
       }
     ],
-    "text": 51,
-    "textWorst": 4.61,
-    "targets": 10,
+    "text": 52,
+    "textWorst": 5.28,
+    "targets": 12,
     "shaping": 0,
     "cost": {
-      "shadowed": 14,
+      "shadowed": 32,
       "maxLayers": 3,
-      "blurred": 25,
+      "blurred": 96,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -913,13 +913,13 @@
       }
     ],
     "text": 35,
-    "textWorst": 4.72,
+    "textWorst": 6.29,
     "targets": 14,
     "shaping": 1,
     "cost": {
       "shadowed": 22,
       "maxLayers": 3,
-      "blurred": 30,
+      "blurred": 56,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -941,14 +941,14 @@
         "m": "the wordmark reads \"KnowFlow\" on screen"
       }
     ],
-    "text": 55,
-    "textWorst": 4.61,
-    "targets": 15,
+    "text": 56,
+    "textWorst": 5.28,
+    "targets": 17,
     "shaping": 1,
     "cost": {
-      "shadowed": 15,
+      "shadowed": 35,
       "maxLayers": 3,
-      "blurred": 27,
+      "blurred": 105,
       "filters": [],
       "heaviest": "header.kf-topbar \"KnowFlowالعربية\""
     }
@@ -960,13 +960,13 @@
     "ua": "app",
     "findings": [],
     "notes": [
-      "target 176 x 43 < 44 x 44 a.rounded-md \"KnowFlow\"",
-      "target 149 x 17 < 44 x 44 a.text-sm \"Forgot your password?\"",
-      "target 206 x 17 < 44 x 44 a.text-sm \"Don't have an account? Sign up\""
+      "target 176 x 43 < 44 x 44 a.kf-hit \"KnowFlow\"",
+      "target 149 x 17 < 44 x 44 a.kf-hit \"Forgot your password?\"",
+      "target 206 x 17 < 44 x 44 a.kf-hit \"Don't have an account? Sign up\""
     ],
     "proved": [],
     "text": 11,
-    "textWorst": 6.5,
+    "textWorst": 8.43,
     "targets": 5,
     "shaping": 0,
     "cost": {
@@ -995,17 +995,17 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
       }
     ],
     "text": 16,
-    "textWorst": 5.2,
+    "textWorst": 6.37,
     "targets": 8,
     "shaping": 0,
     "cost": {
       "shadowed": 12,
       "maxLayers": 3,
-      "blurred": 18,
+      "blurred": 34,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -1028,7 +1028,7 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":632,\"bottom\":747,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
       },
       {
         "ok": true,
@@ -1036,13 +1036,13 @@
       }
     ],
     "text": 22,
-    "textWorst": 5.2,
+    "textWorst": 6.37,
     "targets": 9,
     "shaping": 1,
     "cost": {
       "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 25,
+      "blurred": 40,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -1065,13 +1065,13 @@
       }
     ],
     "text": 7,
-    "textWorst": 5.2,
+    "textWorst": 6.61,
     "targets": 5,
     "shaping": 0,
     "cost": {
       "shadowed": 4,
       "maxLayers": 3,
-      "blurred": 6,
+      "blurred": 10,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -1094,13 +1094,13 @@
       }
     ],
     "text": 6,
-    "textWorst": 5.2,
+    "textWorst": 7.24,
     "targets": 5,
     "shaping": 0,
     "cost": {
       "shadowed": 3,
       "maxLayers": 3,
-      "blurred": 5,
+      "blurred": 9,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -1123,13 +1123,13 @@
       }
     ],
     "text": 18,
-    "textWorst": 5.2,
+    "textWorst": 6.37,
     "targets": 5,
     "shaping": 0,
     "cost": {
       "shadowed": 8,
       "maxLayers": 3,
-      "blurred": 14,
+      "blurred": 22,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -1151,14 +1151,14 @@
         "m": "the drawn quiz empty state: spark-book,empty-quiz"
       }
     ],
-    "text": 103,
-    "textWorst": 4.59,
+    "text": 97,
+    "textWorst": 4.72,
     "targets": 16,
     "shaping": 1,
     "cost": {
       "shadowed": 40,
       "maxLayers": 3,
-      "blurred": 62,
+      "blurred": 102,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -1180,14 +1180,14 @@
         "m": "file-type labels in Latin capitals: PDF, PDF, PDF, PPTX, DOCX, XLSX, PDF, PDF"
       }
     ],
-    "text": 102,
-    "textWorst": 4.59,
+    "text": 96,
+    "textWorst": 4.72,
     "targets": 16,
     "shaping": 1,
     "cost": {
       "shadowed": 39,
       "maxLayers": 3,
-      "blurred": 61,
+      "blurred": 101,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -1206,17 +1206,17 @@
       },
       {
         "ok": true,
-        "m": "the gold ring stands where the dash was"
+        "m": "the unlit clay flame stands where the dash was"
       }
     ],
-    "text": 51,
-    "textWorst": 4.66,
-    "targets": 10,
+    "text": 52,
+    "textWorst": 5.16,
+    "targets": 12,
     "shaping": 0,
     "cost": {
-      "shadowed": 14,
+      "shadowed": 32,
       "maxLayers": 3,
-      "blurred": 25,
+      "blurred": 96,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -1239,13 +1239,13 @@
       }
     ],
     "text": 35,
-    "textWorst": 4.59,
+    "textWorst": 5.66,
     "targets": 14,
     "shaping": 1,
     "cost": {
       "shadowed": 22,
       "maxLayers": 3,
-      "blurred": 30,
+      "blurred": 56,
       "filters": [],
       "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
     }
@@ -1267,14 +1267,14 @@
         "m": "the wordmark reads \"KnowFlow\" on screen"
       }
     ],
-    "text": 55,
-    "textWorst": 4.56,
-    "targets": 15,
+    "text": 56,
+    "textWorst": 5.16,
+    "targets": 17,
     "shaping": 1,
     "cost": {
-      "shadowed": 15,
+      "shadowed": 35,
       "maxLayers": 3,
-      "blurred": 27,
+      "blurred": 105,
       "filters": [],
       "heaviest": "header.kf-topbar \"KnowFlowالعربية\""
     }
@@ -1286,13 +1286,13 @@
     "ua": "app",
     "findings": [],
     "notes": [
-      "target 176 x 43 < 44 x 44 a.rounded-md \"KnowFlow\"",
-      "target 149 x 17 < 44 x 44 a.text-sm \"Forgot your password?\"",
-      "target 206 x 17 < 44 x 44 a.text-sm \"Don't have an account? Sign up\""
+      "target 176 x 43 < 44 x 44 a.kf-hit \"KnowFlow\"",
+      "target 149 x 17 < 44 x 44 a.kf-hit \"Forgot your password?\"",
+      "target 206 x 17 < 44 x 44 a.kf-hit \"Don't have an account? Sign up\""
     ],
     "proved": [],
     "text": 11,
-    "textWorst": 4.97,
+    "textWorst": 5.59,
     "targets": 5,
     "shaping": 0,
     "cost": {

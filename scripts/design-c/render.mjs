@@ -141,8 +141,15 @@ async function shoot(side, job) {
   });
   const theme = await tab.evaluate(() => document.documentElement.getAttribute('data-theme'));
   const a = await tab.evaluate(audit);
+  // The whole page as ONE tall viewport, not a stitched fullPage capture: a
+  // stitched capture paints the fixed tab bar where the first viewport ended,
+  // over the content (the first run of this step). With the viewport as tall
+  // as the document, fixed bars sit at the page's real bottom.
   const file = join(out, side, `${job.name}.png`);
-  await tab.screenshot({ path: file, fullPage: true });
+  const tall = await tab.evaluate(() => Math.ceil(document.documentElement.scrollHeight));
+  await tab.setViewport({ width: 390, height: Math.max(844, tall), deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await tab.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await tab.screenshot({ path: file });
   await ctx.close();
   return { url, status: res.status(), fonts, anim, theme, a };
 }

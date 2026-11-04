@@ -231,7 +231,7 @@ export function StudentHome({
           <div className="min-w-0 flex-1">
             <p className="text-[1.4375rem] font-extrabold leading-tight">{labels.askTitle}</p>
             <p className="mt-1.5 text-[0.9375rem] leading-normal text-[color:var(--clay-ask-muted)]">{labels.askDesc}</p>
-            <span className="kf-gold mt-4 inline-flex min-h-[2.875rem] items-center gap-2 rounded-full px-5 text-[0.9375rem] font-bold">
+            <span className="kf-gold mt-4 inline-flex min-h-[2.875rem] items-center gap-2 whitespace-nowrap rounded-full px-5 text-[0.9375rem] font-bold">
               {labels.askTitle}
               <ClayArrow className="rtl:-scale-x-100" />
             </span>

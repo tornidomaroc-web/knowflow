@@ -31,9 +31,9 @@
       "rows": 186,
       "page": "rgb(20, 17, 13)"
     },
-    "text": 99,
+    "text": 100,
     "targets": 16,
-    "shaping": 87
+    "shaping": 88
   },
   {
     "file": "ar-dark-ask.png",
@@ -59,14 +59,14 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 187 of list 507; first source bottom 431; all sources bottom 483; list at end yes"
       },
       {
         "ok": true,
-        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 187 of list 507; first source bottom 431; all sources bottom 483; list at end yes"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes",
+    "reading": "answer shown; sources: yes; question top 187 of list 507; first source bottom 431; all sources bottom 483; list at end yes",
     "scrim": {
       "rows": 186,
       "page": "rgb(20, 17, 13)"
@@ -107,9 +107,9 @@
       "rows": 186,
       "page": "rgb(20, 17, 13)"
     },
-    "text": 99,
+    "text": 100,
     "targets": 16,
-    "shaping": 87
+    "shaping": 88
   },
   {
     "file": "ar-dark-ask-capture.png",
@@ -135,10 +135,10 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 505; first source bottom 455; all sources bottom 507; list at end no"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 507; first source bottom 453; all sources bottom 505; list at end no"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 16 of list 505; first source bottom 455; all sources bottom 507; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 507; first source bottom 453; all sources bottom 505; list at end no",
     "scrim": {
       "rows": 186,
       "page": "rgb(20, 17, 13)"
@@ -177,11 +177,11 @@
     "reading": null,
     "scrim": {
       "rows": 186,
-      "page": "rgb(250, 247, 242)"
+      "page": "rgb(244, 237, 225)"
     },
-    "text": 99,
+    "text": 100,
     "targets": 16,
-    "shaping": 87
+    "shaping": 88
   },
   {
     "file": "ar-light-ask.png",
@@ -207,17 +207,17 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 187 of list 507; first source bottom 431; all sources bottom 483; list at end yes"
       },
       {
         "ok": true,
-        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 187 of list 507; first source bottom 431; all sources bottom 483; list at end yes"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes",
+    "reading": "answer shown; sources: yes; question top 187 of list 507; first source bottom 431; all sources bottom 483; list at end yes",
     "scrim": {
       "rows": 186,
-      "page": "rgb(250, 247, 242)"
+      "page": "rgb(244, 237, 225)"
     },
     "text": 24,
     "targets": 9,
@@ -253,11 +253,11 @@
     "reading": "summary in view; heading top 107, bar bottom 74",
     "scrim": {
       "rows": 186,
-      "page": "rgb(250, 247, 242)"
+      "page": "rgb(244, 237, 225)"
     },
-    "text": 99,
+    "text": 100,
     "targets": 16,
-    "shaping": 87
+    "shaping": 88
   },
   {
     "file": "ar-light-ask-capture.png",
@@ -283,13 +283,13 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 505; first source bottom 455; all sources bottom 507; list at end no"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 507; first source bottom 453; all sources bottom 505; list at end no"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 16 of list 505; first source bottom 455; all sources bottom 507; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 507; first source bottom 453; all sources bottom 505; list at end no",
     "scrim": {
       "rows": 186,
-      "page": "rgb(250, 247, 242)"
+      "page": "rgb(244, 237, 225)"
     },
     "text": 22,
     "targets": 7,
@@ -327,7 +327,7 @@
       "rows": 186,
       "page": "rgb(20, 17, 13)"
     },
-    "text": 95,
+    "text": 96,
     "targets": 16,
     "shaping": 1
   },
@@ -355,14 +355,14 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 187 of list 507; first source bottom 431; all sources bottom 483; list at end yes"
       },
       {
         "ok": true,
-        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 187 of list 507; first source bottom 431; all sources bottom 483; list at end yes"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes",
+    "reading": "answer shown; sources: yes; question top 187 of list 507; first source bottom 431; all sources bottom 483; list at end yes",
     "scrim": {
       "rows": 186,
       "page": "rgb(20, 17, 13)"
@@ -403,7 +403,7 @@
       "rows": 186,
       "page": "rgb(20, 17, 13)"
     },
-    "text": 95,
+    "text": 96,
     "targets": 16,
     "shaping": 1
   },
@@ -437,9 +437,9 @@
     "reading": null,
     "scrim": {
       "rows": 186,
-      "page": "rgb(250, 247, 242)"
+      "page": "rgb(244, 237, 225)"
     },
-    "text": 95,
+    "text": 96,
     "targets": 16,
     "shaping": 1
   },
@@ -467,17 +467,17 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 187 of list 507; first source bottom 431; all sources bottom 483; list at end yes"
       },
       {
         "ok": true,
-        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes"
+        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 187 of list 507; first source bottom 431; all sources bottom 483; list at end yes"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 183 of list 505; first source bottom 429; all sources bottom 481; list at end yes",
+    "reading": "answer shown; sources: yes; question top 187 of list 507; first source bottom 431; all sources bottom 483; list at end yes",
     "scrim": {
       "rows": 186,
-      "page": "rgb(250, 247, 242)"
+      "page": "rgb(244, 237, 225)"
     },
     "text": 22,
     "targets": 9,
@@ -513,9 +513,9 @@
     "reading": "summary in view; heading top 107, bar bottom 74",
     "scrim": {
       "rows": 186,
-      "page": "rgb(250, 247, 242)"
+      "page": "rgb(244, 237, 225)"
     },
-    "text": 95,
+    "text": 96,
     "targets": 16,
     "shaping": 1
   }

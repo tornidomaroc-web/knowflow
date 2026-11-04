@@ -8,55 +8,55 @@
   },
   "tailWords": 65,
   "calibration": {
-    "n": 26,
-    "span": 595,
+    "n": 32,
+    "span": 593,
     "m": {
       "questionTop": 16,
-      "list": 444,
-      "firstSource": 611,
-      "allSources": 663,
+      "list": 438,
+      "firstSource": 609,
+      "allSources": 661,
       "atEnd": false
     },
-    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 611; all sources bottom 663; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 438; first source bottom 609; all sources bottom 661; list at end no",
     "neighbours": {
       "below": {
-        "n": 25,
-        "span": 575
+        "n": 32,
+        "span": 593
       },
       "above": {
-        "n": 26,
-        "span": 595
+        "n": 33,
+        "span": 613
       }
     }
   },
   "old": {
-    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 611; all sources bottom 663; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 438; first source bottom 609; all sources bottom 661; list at end no",
     "questionTop": 16,
-    "list": 444,
-    "firstSource": 611,
-    "allSources": 663,
+    "list": 438,
+    "firstSource": 609,
+    "allSources": 661,
     "atEnd": false,
-    "gap": 167,
+    "gap": 171,
     "sourcesRows": 52
   },
   "new": {
-    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 531; all sources bottom 583; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 438; first source bottom 529; all sources bottom 581; list at end no",
     "questionTop": 16,
-    "list": 444,
-    "firstSource": 531,
-    "allSources": 583,
+    "list": 438,
+    "firstSource": 529,
+    "allSources": 581,
     "atEnd": false,
-    "gap": 87,
+    "gap": 91,
     "sourcesRows": 52
   },
   "new-question": {
-    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 531; all sources bottom 583; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 438; first source bottom 529; all sources bottom 581; list at end no",
     "questionTop": 16,
-    "list": 444,
-    "firstSource": 531,
-    "allSources": 583,
+    "list": 438,
+    "firstSource": 529,
+    "allSources": 581,
     "atEnd": false,
-    "gap": 87,
+    "gap": 91,
     "sourcesRows": 52
   }
 }
