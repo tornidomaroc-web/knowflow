@@ -65,6 +65,10 @@ const DEVICE_SPAN = DEVICE.firstSource - DEVICE.questionTop;
 // are 44 pt, so the subject bar is 8 px taller and the list 8 px shorter than
 // the capture's, by design; the stand-in must reproduce the device less that.
 const CHIP_BAR_GROWTH = 8;
+// Design "C" (2026-11-03): a clay card has no border, so the Ask card's 1 px
+// top and bottom edges (the "2px of card border" in ChatBox.tsx) are gone and
+// the list is 2 px TALLER than it was, by design.
+const CARD_BORDER_GONE = 2;
 const RE = /question top (-?\d+) of list (\d+); first source bottom (-?\d+|none); all sources bottom (-?\d+|none); list at end (yes|no)/;
 
 const browser = await puppeteer.launch({ executablePath: process.env.CHROME || 'google-chrome', args: ['--no-sandbox', '--hide-scrollbars'] });
@@ -216,9 +220,9 @@ if (!PLANT) {
       fit[name] = { reading: r.reading, ...(r.m || {}), gap: r.m && r.m.firstSource !== null ? r.m.firstSource - r.m.list : null, sourcesRows: r.m && r.m.allSources !== null && r.m.firstSource !== null ? r.m.allSources - r.m.firstSource : null };
     }
     const okCal = Math.abs(calib.span - DEVICE_SPAN) <= 12;
-    const okList = fit.old.list === DEVICE.list - CHIP_BAR_GROWTH;
+    const okList = fit.old.list === DEVICE.list - CHIP_BAR_GROWTH + CARD_BORDER_GONE;
     console.log(`${okCal ? 'ok  ' : 'FAIL'} the old bubble reproduces the device: span ${calib.span} px vs ${DEVICE_SPAN} at tail ${calib.n} of ${words} words`);
-    console.log(`${okList ? 'ok  ' : 'FAIL'} the list is the device's height less the taller subject bar: ${fit.old.list} vs ${DEVICE.list} - ${CHIP_BAR_GROWTH}`);
+    console.log(`${okList ? 'ok  ' : 'FAIL'} the list is the device's height less the taller subject bar, plus the card border design C removed: ${fit.old.list} vs ${DEVICE.list} - ${CHIP_BAR_GROWTH} + ${CARD_BORDER_GONE}`);
     console.log(`note the sources row: ${fit.old.sourcesRows} px from the first pill's bottom to the row's (device ${DEVICE.allSources - DEVICE.firstSource})`);
     console.log(`fit: old bubble gap ${fit.old.gap} px; new bubble gap ${fit.new.gap} px; new bubble and new question gap ${fit['new-question'].gap} px (positive: the first source is that far below the list)`);
     failures += (okCal ? 0 : 1) + (okList ? 0 : 1);

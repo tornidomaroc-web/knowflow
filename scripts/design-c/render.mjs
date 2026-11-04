@@ -124,10 +124,20 @@ async function shoot(side, job) {
     const loaded = [...document.fonts].filter((f) => f.family.replace(/"/g, '') === family && f.status === 'loaded').map((f) => `${f.weight}/${f.unicodeRange.slice(0, 18)}`).sort();
     return { loaded, body: getComputedStyle(document.body).fontFamily, weightsLoaded: [...new Set([...document.fonts].filter((f) => f.family.replace(/"/g, '') === family && f.status === 'loaded').map((f) => Number(f.weight)))].sort() };
   }, FAMILY, WEIGHTS);
+  // Finite animations are finished. An INFINITE one (a processing spinner,
+  // Tailwind's `animate-spin`, which reduced motion does not stop: it is the
+  // state itself) is paused at its first frame, the same on both sides, and
+  // named in the report. Anything still running after that fails the run.
   const anim = await tab.evaluate(async () => {
-    for (const a of document.getAnimations()) { try { if (a.effect?.getComputedTiming().endTime !== Infinity) a.finish(); } catch {} }
+    const paused = [];
+    for (const a of document.getAnimations()) {
+      try {
+        if (a.effect?.getComputedTiming().endTime !== Infinity) a.finish();
+        else { a.pause(); a.currentTime = 0; paused.push(a.animationName || a.id || 'anonymous'); }
+      } catch {}
+    }
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    return document.getAnimations().filter((a) => a.playState === 'running').map((a) => a.animationName || a.id || 'anonymous');
+    return { running: document.getAnimations().filter((a) => a.playState === 'running').map((a) => a.animationName || a.id || 'anonymous'), paused };
   });
   const theme = await tab.evaluate(() => document.documentElement.getAttribute('data-theme'));
   const a = await tab.evaluate(audit);
@@ -146,7 +156,7 @@ for (const job of JOBS) {
       ...(r.status === 200 ? [] : [`HTTP ${r.status}`]),
       ...(r.fonts.weightsLoaded.join(',') === WEIGHTS.join(',') ? [] : [`static Rubik weights loaded ${r.fonts.weightsLoaded.join(',')}`]),
       ...(r.fonts.body.includes(FAMILY) ? [] : [`body font is ${r.fonts.body}`]),
-      ...(r.anim.length ? [`animations still running: ${r.anim.join(', ')}`] : []),
+      ...(r.anim.running.length ? [`animations still running: ${r.anim.running.join(', ')}`] : []),
       ...(job.theme === null ? (r.theme === (side === 'after' ? 'light' : 'dark') ? [] : [`default theme is ${r.theme} on ${side}`]) : (r.theme === job.theme ? [] : [`theme is ${r.theme}, asked ${job.theme}`])),
       ...r.a.text.filter((t) => !t.ok).map((t) => `text ${t.got}:1 < ${t.need}:1 ${t.el}`),
       ...r.a.controls.filter((c) => !c.ok).map((c) => `control ${c.got}:1 < 3:1 ${c.el}`),
@@ -159,7 +169,7 @@ for (const job of JOBS) {
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     if (side === 'after') failures += bad.length;
     const tmin = Math.min(...r.a.text.map((t) => t.got));
-    row.sides[side] = { url: r.url, theme: r.theme, findings: bad, textWorst: Number(tmin.toFixed(2)), text: r.a.text.length, targets: r.a.targets.length, fonts: r.fonts.loaded.length, shadowsMax: r.a.cost.maxLayers };
+    row.sides[side] = { url: r.url, theme: r.theme, findings: bad, textWorst: Number(tmin.toFixed(2)), text: r.a.text.length, targets: r.a.targets.length, fonts: r.fonts.loaded.length, pausedAnimations: r.anim.paused, shadowsMax: r.a.cost.maxLayers };
     console.log(`${side === 'after' && bad.length ? 'FAIL' : 'ok  '} ${side.padEnd(6)} ${job.name}: theme ${r.theme}, ${r.fonts.loaded.length} static faces, text worst ${tmin.toFixed(2)}:1, ${bad.length} finding(s)`);
     for (const b of bad) console.log(`       ${side}: ${b}`);
   }

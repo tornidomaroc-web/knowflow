@@ -78,13 +78,13 @@
 
   --ring: #7a580e;
 
-  --mint: #16714d;
+  --mint: #13633f;
   --mint-subtle: rgba(31, 143, 98, 0.12);
   --sky: #245f9f;
   --sky-subtle: rgba(47, 116, 192, 0.12);
   --coral: #a63c33;
   --coral-subtle: rgba(201, 79, 69, 0.12);
-  --violet: #6f4fc9;
+  --violet: #6445b8;
   --violet-subtle: rgba(111, 79, 201, 0.12);
 
   /* THE CLAY (spec "Clay surface"): no border, no blur, three layers at most. */
@@ -469,13 +469,13 @@ body { background-color: var(--background); color: var(--foreground); }
 
   --ring: #7a580e;
 
-  --mint: #16714d;
+  --mint: #13633f;
   --mint-subtle: rgba(31, 143, 98, 0.12);
   --sky: #245f9f;
   --sky-subtle: rgba(47, 116, 192, 0.12);
   --coral: #a63c33;
   --coral-subtle: rgba(201, 79, 69, 0.12);
-  --violet: #6f4fc9;
+  --violet: #6445b8;
   --violet-subtle: rgba(111, 79, 201, 0.12);
 
   /* THE CLAY (spec "Clay surface"): no border, no blur, three layers at most. */

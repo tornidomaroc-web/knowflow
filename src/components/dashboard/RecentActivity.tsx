@@ -58,7 +58,9 @@ export function RecentActivity({ items, labels, locale }: { items: ActivityItem[
         <div className="mt-2 flex justify-end">
           <button
             onClick={() => setShowAll((v) => !v)}
-            className="text-sm font-semibold text-accent transition-colors hover:text-accent-hover"
+            // 44 pt tall (the design-c render found it 20 pt: the full home is
+            // the first render to list more than LIMIT conversations).
+            className="inline-flex min-h-[2.75rem] items-center px-1 text-sm font-semibold text-accent transition-colors hover:text-accent-hover"
           >
             {showAll ? labels.showLess : labels.viewAll}
           </button>

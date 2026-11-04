@@ -47,6 +47,7 @@ const GROUNDS = [
   ['ask card', '--clay-ask'], ['streak card', '--clay-streak'], ['gold fill', '--accent'], ['danger fill', '--danger'],
   ['gold tint on card', '--accent-subtle', '--surface'], ['gold tint on page', '--accent-subtle', '--background'], ['gold tint on a well', '--primary-subtle', '--clay-well'],
   ['danger tint', '--danger-subtle'], ['well', '--clay-well'],
+  ...['mint', 'sky', 'coral', 'violet'].flatMap((t) => [[t + ' tint on page', '--' + t + '-subtle', '--background'], [t + ' tint on card', '--' + t + '-subtle', '--surface']]),
 ];
 // Foregrounds: [name, token, bar].
 const TEXT = [
@@ -71,6 +72,8 @@ for (const t of ['--foreground', '--clay-streak-muted']) USED.push([t, '--clay-s
 for (const t of ['--accent-edge', '--control-border', '--ring']) for (const g of ORDINARY) USED.push([t, g, null, 3]);
 for (const t of ['--mint', '--sky', '--coral', '--violet', '--chevron']) for (const g of ['--surface', '--raised']) USED.push([t, g, null, 3]);
 USED.push(['--muted-foreground', '--clay-well', null, 3]); // the switch's off bead on its well
+// The supporting tints carry TEXT too (the landing's numbered steps, step badges): each on its own tint, over the page and a card.
+for (const t of ['mint', 'sky', 'coral', 'violet']) for (const g of ['--background', '--surface']) USED.push(['--' + t, '--' + t + '-subtle', g, 4.5]);
 
 const resolveGround = (T, tok, base) => {
   const c = parse(T[tok]);
