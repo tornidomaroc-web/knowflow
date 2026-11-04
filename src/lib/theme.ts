@@ -1,8 +1,10 @@
 /**
  * THE THEME, AND HOW IT IS CHOSEN (register #46, ruled 2026-09-25).
  *
- * The product is dark by default (register #101) and now carries a real light
- * theme and a toggle. The choice lives in ONE cookie, `kf-theme`, and lands on
+ * The product is LIGHT by default since design "C" (owner, 2026-11-03; it was
+ * dark from register #101 until then) and carries a real dark theme and a
+ * toggle. A saved choice is kept: the cookie wins over the default. The
+ * choice lives in ONE cookie, `kf-theme`, and lands on
  * `<html data-theme="…">` before first paint through the inline script below,
  * so a student who chose light never sees a dark flash, and a page that is
  * prerendered static (every marketing page) needs no server read to honour it.
@@ -22,10 +24,10 @@ export type Theme = 'dark' | 'light';
 
 export const THEME_COOKIE = 'kf-theme';
 export const THEME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
-export const DEFAULT_THEME: Theme = 'dark';
+export const DEFAULT_THEME: Theme = 'light';
 
 export function resolveTheme(value: unknown): Theme {
-  return value === 'light' ? 'light' : DEFAULT_THEME;
+  return value === 'dark' ? 'dark' : DEFAULT_THEME;
 }
 
 /**
@@ -34,12 +36,12 @@ export function resolveTheme(value: unknown): Theme {
  *      how a link can open the app in a theme (the preview route uses it), and
  *      it is no more than a student could do from the toggle.
  *   2. The `kf-theme` cookie.
- *   3. Dark.
+ *   3. Light, the default.
  * It sets `data-theme` on <html>, which every token in globals.css keys off.
  * `color-scheme` follows through CSS (`:root` / `[data-theme]` in globals.css),
  * so form controls, scrollbars and the UA's own surfaces match.
  */
-export const THEME_BOOT_SCRIPT = `(function(){try{var d=document.documentElement;var m=/[?&]theme=(light|dark)\\b/.exec(location.search);var t=m?m[1]:null;if(t){document.cookie='${THEME_COOKIE}='+t+';path=/;max-age=${THEME_COOKIE_MAX_AGE};samesite=lax'}else{var c=/(?:^|; )${THEME_COOKIE}=(light|dark)/.exec(document.cookie);t=c?c[1]:'dark'}d.setAttribute('data-theme',t)}catch(e){}})()`;
+export const THEME_BOOT_SCRIPT = `(function(){try{var d=document.documentElement;var m=/[?&]theme=(light|dark)\\b/.exec(location.search);var t=m?m[1]:null;if(t){document.cookie='${THEME_COOKIE}='+t+';path=/;max-age=${THEME_COOKIE_MAX_AGE};samesite=lax'}else{var c=/(?:^|; )${THEME_COOKIE}=(light|dark)/.exec(document.cookie);t=c?c[1]:'light'}d.setAttribute('data-theme',t)}catch(e){}})()`;
 
 /** The client half of the toggle: apply now, and remember. */
 export function applyTheme(theme: Theme): void {

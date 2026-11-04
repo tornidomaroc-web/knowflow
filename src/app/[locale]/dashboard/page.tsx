@@ -151,6 +151,7 @@ export default async function DashboardPage({
         labels={buildHomeLabels({
           home: t.dashboard.home,
           subjectsNavLabel: t.dashboard.nav.knowledge,
+          settingsLabel: t.dashboard.nav.settings,
           cont: t.dashboard.continueCard,
           isPro,
           // Form selection happens HERE, not in StudentHome. The component stays dumb

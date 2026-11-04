@@ -223,6 +223,7 @@ export default async function StudentHomePreview({
           labels={buildHomeLabels({
             home,
             subjectsNavLabel: t.dashboard.nav.knowledge,
+            settingsLabel: t.dashboard.nav.settings,
             cont: t.dashboard.continueCard,
             isPro: false,
             streakUnit: streak === null ? '' : pluralize(safeLocale, streak, home.streakUnit),

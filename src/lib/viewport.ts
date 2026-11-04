@@ -21,8 +21,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: 'cover',
   // The browser chrome's tint on Android and in iOS Safari. One value, the
-  // dark ground: the theme toggle cannot rewrite a <meta> that Next renders
-  // once, and a light-theme student sees a dark address bar, which is the
-  // lesser wrong. The native shells set their status bars from code.
-  themeColor: '#14110d',
+  // DEFAULT theme's ground (light since design "C", 2026-11-03; the dark
+  // #14110d before): the theme toggle cannot rewrite a <meta> that Next
+  // renders once, so a dark-theme student sees a cream address bar, the lesser
+  // wrong now that light is what a new student gets.
+  themeColor: '#f4ede1',
 };

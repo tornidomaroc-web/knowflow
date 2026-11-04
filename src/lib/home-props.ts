@@ -80,9 +80,11 @@ export interface HomeLabelsInput {
   streakUnit: string
   /** The Continue card's three sentences (#85, `dashboard.continueCard`). */
   cont: { title: string; body: string; cta: string }
+  /** The Settings tab's label, the name of the greeting's menu button (design "C"). */
+  settingsLabel?: string
 }
 
-export function buildHomeLabels({ home, subjectsNavLabel, isPro, streakUnit, cont }: HomeLabelsInput) {
+export function buildHomeLabels({ home, subjectsNavLabel, isPro, streakUnit, cont, settingsLabel }: HomeLabelsInput) {
   const activity: RecentActivityLabels = {
     platformWeb: home.platformWeb,
     noActivity: home.noActivity,
@@ -105,6 +107,7 @@ export function buildHomeLabels({ home, subjectsNavLabel, isPro, streakUnit, con
     newSubject: home.newSubject,
     newSubjectDesc: home.newKbDesc,
     subjects: subjectsNavLabel,
+    settings: settingsLabel,
     streakLabel: home.streakLabel,
     streakUnit,
     streakZoneHint: home.streakZoneHint,
@@ -131,6 +134,8 @@ export function appHrefs(locale: Locale) {
     askHref: `/${locale}/dashboard/agent`,
     newSubjectHref: `/${locale}/dashboard/knowledge/new`,
     subjectsHref: `/${locale}/dashboard/knowledge`,
+    // Design "C": the greeting's menu button.
+    settingsHref: `/${locale}/dashboard/settings`,
   }
 }
 

@@ -1,0 +1,124 @@
+name: design-c
+
+# Design "C" (the clay mix), PR 1: the before and after of the token change,
+# the home and the tab bar, IN ONE RUN. Builds the PR's base (main) and this
+# commit, serves both on the runner (3001 before, 3000 after), and
+# scripts/design-c/render.mjs drives the runner image's own Chrome over the
+# design preview routes, the landing and the app's sign-in: 390 x 844 pt at
+# 2x, full page, Arabic and English, light and dark, the same static
+# per-weight Rubik files on both sides (asserted), animations ended
+# (asserted). Every AFTER render is audited (contrast, control edges, 44 pt
+# targets, Arabic shaping, wording, shadows, no backdrop-filter); a finding
+# fails the run. The contrast table of every text and ground token pair is
+# regenerated and must equal the committed docs/design/design-c/contrast.md.
+#
+# NO SECRET. The Supabase values are placeholders pointing at a closed local
+# port: the preview routes make no Supabase call, and the middleware's
+# getUser() returns without a request when there is no session cookie.
+# Nothing is deployed and no production data is read. Linux only.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tailwind.config.ts'
+      - 'scripts/design-c/**'
+      - 'docs/design/design-c/**'
+      - '.github/workflows/design-c.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: design-c-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  before-after:
+    name: Before and after, same fonts, audited (no secrets)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-not-a-key
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+    steps:
+      - name: Check out this commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          path: after
+
+      - name: Check out the base (main)
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          path: before
+          ref: ${{ github.event.pull_request.base.sha || 'main' }}
+
+      - name: The contrast table is current and has no failure
+        working-directory: after
+        run: |
+          set -eu
+          node scripts/design-c/contrast.mjs --md "$RUNNER_TEMP/contrast.md"
+          diff -u docs/design/design-c/contrast.md "$RUNNER_TEMP/contrast.md"
+          echo "ok   docs/design/design-c/contrast.md equals the regenerated table"
+
+      - name: Install both, locked
+        run: |
+          node --version
+          google-chrome --version
+          (cd after && npm ci --no-audit --no-fund)
+          (cd before && npm ci --no-audit --no-fund)
+
+      - name: Build both
+        run: |
+          (cd after && npx next build)
+          (cd before && npx next build)
+
+      - name: Serve both and wait until each preview route answers
+        run: |
+          set -eu
+          (cd after && nohup npx next start -p 3000 > "$RUNNER_TEMP/after.log" 2>&1 &)
+          (cd before && NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3001 nohup npx next start -p 3001 > "$RUNNER_TEMP/before.log" 2>&1 &)
+          for port in 3000 3001; do
+            for i in $(seq 1 60); do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/en/preview/subjects?platform=native" || true)
+              if [ "$code" = "200" ]; then echo "$port up after $i tries"; break; fi
+              if [ "$i" = "60" ]; then cat "$RUNNER_TEMP/after.log" "$RUNNER_TEMP/before.log"; exit 1; fi
+              sleep 1
+            done
+          done
+
+      - name: puppeteer-core and the static Rubik files, pinned, outside the apps
+        run: npm install --prefix "$RUNNER_TEMP/pp" --no-audit --no-fund --ignore-scripts puppeteer-core@23.11.1 @fontsource/rubik@5.2.5
+
+      - name: Render before and after, and audit after
+        working-directory: after
+        env:
+          PUPPETEER_DIR: ${{ runner.temp }}/pp
+        run: CHROME="$(command -v google-chrome)" FONT_DIR="$RUNNER_TEMP/pp/node_modules/@fontsource/rubik" node scripts/design-c/render.mjs --out "$RUNNER_TEMP/design-c"
+
+      - name: Side by side
+        if: ${{ !cancelled() }}
+        working-directory: after
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
+          python3 scripts/design-c/compose.py "$RUNNER_TEMP/design-c"
+          cp "$RUNNER_TEMP/contrast.md" "$RUNNER_TEMP/design-c/contrast.md"
+
+      - name: Server logs
+        if: always()
+        run: tail -n 30 "$RUNNER_TEMP/after.log" "$RUNNER_TEMP/before.log" || true
+
+      - name: Keep the renders
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: design-c
+          path: ${{ runner.temp }}/design-c
+          if-no-files-found: error
+          retention-days: 14

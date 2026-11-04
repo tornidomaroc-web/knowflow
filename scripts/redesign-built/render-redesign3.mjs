@@ -46,7 +46,7 @@ const SCREENS = [
   { key: 'app-subject-empty', path: 'preview/subject', q: { platform: 'native', view: 'empty' }, ua: APP, to: '[data-kf-files-empty]', item: 4 },
   { key: 'app-subject-quiz-empty', path: 'preview/subject', q: { platform: 'native', view: 'quizempty' }, ua: APP, to: '[data-kf-quiz-empty]', item: 4 },
   { key: 'app-subject-files', path: 'preview/subject', q: { platform: 'native' }, ua: APP, to: 'article', item: 5 },
-  { key: 'app-home-streak', path: 'preview/student-home', q: { platform: 'native', streak: '0' }, ua: APP, to: '[data-kf-streak-ring]', item: 6 },
+  { key: 'app-home-streak', path: 'preview/student-home', q: { platform: 'native', streak: '0' }, ua: APP, to: '[data-kf-streak]', item: 6 },
   { key: 'app-settings-reminder', path: 'preview/settings', q: { platform: 'native', reminder: 'on' }, ua: APP, to: '[data-kf-reminder-clock]', item: 7 },
   // `platform=web` hides the preview's own toolbar; the shell is the web's.
   { key: 'web-topbar', path: 'preview/student-home', q: { platform: 'web' }, ua: SAFARI, to: null, item: 8 },
@@ -85,7 +85,8 @@ for (const job of JOBS) {
       f.drawn = [...document.querySelectorAll('[data-illustration]')].map((s) => s.getAttribute('data-illustration'));
       f.typeLabels = [...document.querySelectorAll('article .kf-chip span')].map((s) => s.textContent.trim());
     }
-    if (key === 'app-home-streak') f.ring = !!q('[data-kf-streak-ring]') && !/^-$/.test(txt('[data-kf-streak-ring]'));
+    // Design "C" (2026-11-03): no streak yet is the unlit clay flame and its line, not a dash.
+    if (key === 'app-home-streak') f.ring = q('[data-kf-streak]')?.getAttribute('data-kf-streak') === 'unlit' && !/(^|\s)-(\s|$)/.test(txt('[data-kf-streak]'));
     if (key === 'app-settings-reminder') { f.clock = txt('[data-kf-reminder-clock]'); f.stateLine = txt('[data-kf-reminder-state] [aria-live]'); }
     if (key === 'web-topbar') { const h = q('header.kf-topbar'); f.topbar = !!h; f.topbarShadow = h ? getComputedStyle(h).boxShadow !== 'none' : false;
       // The wordmark reads KnowFlow left to right in both languages (the first
@@ -111,7 +112,7 @@ for (const job of JOBS) {
   if (k === 'app-subject-empty') want.push([facts.drawn.includes('empty-files'), `the drawn files empty state: ${facts.drawn}`]);
   if (k === 'app-subject-quiz-empty') want.push([facts.drawn.includes('empty-quiz'), `the drawn quiz empty state: ${facts.drawn}`]);
   if (k === 'app-subject-files') want.push([ar ? facts.typeLabels.length > 0 && facts.typeLabels.every((t) => /^[؀-ۿ ]+$/.test(t)) : facts.typeLabels.every((t) => /^[A-Z]+$/.test(t)), `file-type labels in ${ar ? 'Arabic' : 'Latin capitals'}: ${facts.typeLabels.join(', ')}`]);
-  if (k === 'app-home-streak') want.push([facts.ring, 'the gold ring stands where the dash was']);
+  if (k === 'app-home-streak') want.push([facts.ring, 'the unlit clay flame stands where the dash was']);
   if (k === 'app-settings-reminder') {
     const norm = (v) => v.replace(/[‎‏؜⁦-⁩]/g, '').replace(/[  ]/g, ' ');
     const want7 = ar ? '7:00 م' : '7:00 pm';

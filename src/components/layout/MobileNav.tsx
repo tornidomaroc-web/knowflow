@@ -12,10 +12,10 @@ import { ThemeToggle } from './ThemeToggle';
 import { TAB_ICONS } from './tab-icons';
 
 /**
- * Mobile navigation (below md). STEP REDESIGN-2: the bottom tab bar floats
- * above the home indicator as a clay slab, the active tab a gold capsule
- * with the FILLED glyph (tab-icons.tsx, Phosphor pair) and the idle ones
- * outlined; labels under every glyph. Inside the app there is NO top bar: a
+ * Mobile navigation (below md). The bottom tab bar floats above the home
+ * indicator as a clay pill bar (design "C", 2026-11-03): filled clay glyphs
+ * (tab-icons.tsx), the active tab a gold clay pill with ink text; labels
+ * under every glyph. Inside the app there is NO top bar: a
  * web pattern (account, language and theme buttons on every screen) that
  * read as a website in a shell (App Review 4.2); those three live in Settings.
  * The web keeps its slim top bar, which is its own navigation.
@@ -89,26 +89,27 @@ export function MobileNav({
       {/* The ground fades in under the floating bar, so rows do not show
           through around it. Paint only, under the bar's layer. */}
       <div aria-hidden="true" className="kf-tabfade pointer-events-none fixed inset-x-0 bottom-0 z-20 h-[calc(7rem+env(safe-area-inset-bottom))] md:hidden" />
+      {/* Design "C" (2026-11-03): a clay pill bar of four equal cells, filled
+          clay glyphs, the active tab a gold clay pill with ink text. */}
       <nav
         aria-label={labels.dashboard}
-        className="kf-tabbar fixed inset-x-4 z-30 flex h-[4.25rem] items-center justify-around rounded-[1.875rem] px-2 md:hidden"
+        className="kf-tabbar fixed inset-x-3.5 z-30 grid h-[4.25rem] grid-cols-4 gap-1 rounded-[1.75rem] p-[7px] md:hidden"
         style={{ bottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
       >
         {items.map((item) => {
           const active = activeNav ? item.key === activeNav : isNavActive(pathname, item);
-          const glyphs = TAB_ICONS[item.key as keyof typeof TAB_ICONS];
-          const Icon = active ? glyphs.fill : glyphs.outline;
+          const Icon = TAB_ICONS[item.key as keyof typeof TAB_ICONS];
           return (
             <Link
               key={item.key}
               href={item.href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex h-[3.75rem] min-w-[4.5rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-[1.375rem] px-1 text-[0.72rem] font-medium transition-colors',
-                active ? 'kf-tab-active font-bold text-accent' : 'text-muted-foreground',
+                'flex min-h-[3.375rem] min-w-0 flex-col items-center justify-center gap-0.5 rounded-[1.25rem] px-1 text-xs transition-colors',
+                active ? 'kf-tab-active font-bold' : 'font-medium text-muted-foreground',
               )}
             >
-              <Icon width={26} height={26} />
+              <Icon active={active} width={26} height={26} />
               <span className="max-w-full truncate">{item.label}</span>
             </Link>
           );
