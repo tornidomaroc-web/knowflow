@@ -31,7 +31,9 @@
  * Each AFTER render is audited in the page (scripts/redesign-built/audit.mjs:
  * text contrast, control edges, 44 pt targets on the app's screens, Arabic
  * shaping, the app's wording rule, the shadow budget, no filter or
- * backdrop-filter). A finding on AFTER fails the run; BEFORE is reported.
+ * backdrop-filter), and every home render also by homeChecks() below (the
+ * owner's six home points of 2026-11-04, measured in the page). A finding on
+ * AFTER fails the run; BEFORE is reported.
  *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
@@ -92,6 +94,97 @@ for (const locale of ['ar', 'en']) for (const theme of ['light', 'dark']) for (c
 // The default: no ?theme=, no cookie (a fresh browser context per job).
 for (const locale of ['ar', 'en']) JOBS.push({ locale, theme: null, s: SCREENS[1], name: `${locale}-default-home-full` });
 
+/**
+ * THE HOME'S LAYOUT, ASSERTED (the owner's review of PR #299, 2026-11-04).
+ * Run in the page on every home render; a finding on AFTER fails the run.
+ *   1. the allowance: three meters in ONE row of equal columns, each caption
+ *      one line and inside its column;
+ *   2. the ask card: no line of one word in its title or its description;
+ *   3. the two-up row: the icon boxes, the titles and the lines at the same
+ *      height and size in both cards, each card one description;
+ *   4. no outline (lucide) icon left on the home but the plan pill's spark;
+ *   5. the recent-activity list without a border or a divider;
+ *   6. the greeting's button: a 44 pt avatar with one letter, named.
+ */
+function homeChecks() {
+  const out = [];
+  const home = document.querySelector('[data-kf-home]');
+  if (!home) return ['no [data-kf-home]'];
+  const r = (el) => el.getBoundingClientRect();
+  const near = (a, b) => Math.abs(a - b) <= 1;
+  // 1
+  const meters = [...home.querySelectorAll('[data-kf-meter]')];
+  if (meters.length !== 3) out.push(`allowance: ${meters.length} meters, want 3`);
+  else {
+    const rs = meters.map(r);
+    if (!rs.every((x) => near(x.top, rs[0].top))) out.push(`allowance: meters not in one row (tops ${rs.map((x) => x.top.toFixed(0)).join(', ')})`);
+    if (!rs.every((x) => near(x.width, rs[0].width))) out.push(`allowance: columns not equal (${rs.map((x) => x.width.toFixed(0)).join(', ')})`);
+    for (const m of meters) {
+      const c = m.querySelector('[data-kf-caption]');
+      const lh = parseFloat(getComputedStyle(c).lineHeight);
+      if (r(c).height > lh * 1.5) out.push(`allowance: caption "${c.textContent}" on more than one line`);
+      if (c.scrollWidth > m.clientWidth + 0.5 || r(c).width > r(m).width + 0.5) out.push(`allowance: caption "${c.textContent}" wider than its column (${c.scrollWidth} > ${m.clientWidth})`);
+    }
+  }
+  // 2
+  for (const sel of ['[data-kf-ask-title]', '[data-kf-ask-desc]']) {
+    const el = home.querySelector(sel);
+    if (!el) { out.push(`ask: no ${sel}`); continue; }
+    const lines = new Map();
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const re = /\S+/g;
+      for (let m = re.exec(n.data); m; m = re.exec(n.data)) {
+        const range = document.createRange();
+        range.setStart(n, m.index);
+        range.setEnd(n, m.index + m[0].length);
+        const top = Math.round(range.getClientRects()[0]?.top ?? -1);
+        const key = [...lines.keys()].find((k) => Math.abs(k - top) <= 3) ?? top;
+        lines.set(key, [...(lines.get(key) || []), m[0]]);
+      }
+    }
+    const ls = [...lines.values()];
+    if (ls.length > 1 && ls.some((l) => l.length === 1)) out.push(`ask: a line of one word in ${sel}: ${ls.map((l) => l.join(' ')).join(' / ')}`);
+  }
+  // 3
+  const cards = [...home.querySelectorAll('[data-kf-twoup]')];
+  if (cards.length !== 2) out.push(`two-up: ${cards.length} cards, want 2`);
+  else {
+    for (const part of ['icon', 'title', 'line']) {
+      const [a, b] = cards.map((c) => c.querySelector(`[data-kf-twoup-${part}]`));
+      if (!a || !b) { out.push(`two-up: no ${part} in a card`); continue; }
+      if (!near(r(a).top, r(b).top)) out.push(`two-up: ${part} tops differ (${r(a).top.toFixed(1)} vs ${r(b).top.toFixed(1)})`);
+      if (part !== 'title' && !near(r(a).height, r(b).height)) out.push(`two-up: ${part} heights differ (${r(a).height.toFixed(1)} vs ${r(b).height.toFixed(1)})`);
+    }
+    const pads = cards.map((c) => getComputedStyle(c).paddingTop);
+    if (pads[0] !== pads[1]) out.push(`two-up: top padding ${pads.join(' vs ')}`);
+    for (const c of cards) if (c.querySelectorAll('p').length !== 2) out.push(`two-up: a card has ${c.querySelectorAll('p').length} paragraphs (a title and one line wanted)`);
+  }
+  // 4
+  const outline = [...home.querySelectorAll('svg.lucide')].filter((s) => !s.classList.contains('lucide-sparkles'));
+  if (outline.length) out.push(`icons: ${outline.length} outline icon(s): ${[...new Set(outline.map((s) => [...s.classList].find((c) => c.startsWith('lucide-')) || 'lucide'))].join(', ')}`);
+  // 5
+  const list = home.querySelector('[data-kf-activity]');
+  if (list) {
+    for (const el of [list, ...list.children]) {
+      const cs = getComputedStyle(el);
+      const bw = ['Top', 'Right', 'Bottom', 'Left'].map((s) => parseFloat(cs[`border${s}Width`]) || 0);
+      if (bw.some((w) => w > 0)) out.push(`recent activity: a border on ${el.tagName.toLowerCase()} (${bw.join('/')})`);
+    }
+  } // (the zero home shows the empty dashed well instead of the list)
+  // 6
+  const av = home.querySelector('header a[href$="/dashboard/settings"]');
+  if (!av) out.push('avatar: no Settings link in the greeting');
+  else {
+    const b = r(av);
+    if (!(near(b.width, 44) && near(b.height, 44))) out.push(`avatar: ${b.width.toFixed(0)} x ${b.height.toFixed(0)}, want 44 x 44`);
+    if (!/^\S$/u.test(av.textContent.trim())) out.push(`avatar: text "${av.textContent.trim()}", want one letter`);
+    if (!av.getAttribute('aria-label')) out.push('avatar: no aria-label');
+    if (av.querySelector('svg')) out.push('avatar: still draws an icon');
+  }
+  return out;
+}
+
 const browser = await puppeteer.launch({ executablePath: process.env.CHROME || 'google-chrome', args: ['--no-sandbox', '--hide-scrollbars', '--font-render-hinting=none'] });
 mkdirSync(join(out, 'before'), { recursive: true });
 mkdirSync(join(out, 'after'), { recursive: true });
@@ -141,6 +234,7 @@ async function shoot(side, job) {
   });
   const theme = await tab.evaluate(() => document.documentElement.getAttribute('data-theme'));
   const a = await tab.evaluate(audit);
+  const home = job.s.key.startsWith('home') ? await tab.evaluate(homeChecks) : [];
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -151,7 +245,7 @@ async function shoot(side, job) {
   await tab.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await tab.screenshot({ path: file });
   await ctx.close();
-  return { url, status: res.status(), fonts, anim, theme, a };
+  return { url, status: res.status(), fonts, anim, theme, a, home };
 }
 
 for (const job of JOBS) {
@@ -172,6 +266,7 @@ for (const job of JOBS) {
       ...(r.a.cost.maxLayers > 3 ? [`${r.a.cost.maxLayers} shadow layers on ${r.a.cost.heaviest}`] : []),
       ...r.a.cost.filters.map((f) => `filter or backdrop-filter on ${f}`),
       ...(job.s.app && job.s.q.platform === 'native' && words.length ? [`wording ${JSON.stringify(words)}`] : []),
+      ...r.home.map((h) => `home layout: ${h}`),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     if (side === 'after') failures += bad.length;

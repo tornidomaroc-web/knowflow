@@ -1,17 +1,22 @@
 import Link from 'next/link';
-import { ArrowRight, BookOpen, Check, FileText, MessageCircle, Plus, Sparkles, Upload } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import type { Locale } from '@/lib/i18n';
 import { Ring } from '@/components/ui/Ring';
 import { EmptyShelf, SparkBook } from '@/components/illustrations';
 import {
   ClayArrow,
+  ClayAnswer,
   ClayAskArt,
   ClayBook,
   ClayBooksGlyph,
+  ClayChat,
+  ClayCheck,
   ClayChevron,
+  ClayClock,
+  ClayFile,
   ClayFlame,
-  ClayMenu,
   ClayNewSubject,
+  ClayQuiz,
   ClayPlus,
   ClayQuestionGlyph,
   ClayUploadGlyph,
@@ -77,10 +82,11 @@ interface StudentHomeLabels {
   newSubject: string;
   newSubjectDesc: string;
   subjects: string;
-  /** The menu button's name (the Settings tab's label). */
+  /** The avatar button's name (the Settings tab's label). */
   settings?: string;
   streakLabel: string;
   streakUnit: string;
+  /** Kept in the labels; no longer drawn on the home's streak card (owner, 2026-11-04). */
   streakZoneHint: string;
   /** One line under the flame: lit ("Keep it going.") or unlit ("Start one today."). */
   streakLit: string;
@@ -110,8 +116,10 @@ export interface StudentHomeProps {
   askHref: string;
   newSubjectHref: string;
   subjectsHref: string;
-  /** The greeting's menu button (design "C"); Settings, in both shells. */
+  /** The greeting's avatar button (design "C"); Settings, in both shells. */
   settingsHref?: string;
+  /** The student's initial on that avatar: the rule Settings uses (`accountInitial`, home-props). */
+  initial?: string;
   /** Null when no purchase link may be shown (Apple 3.1.1(a); src/lib/platform.ts). */
   upgradeHref: string | null;
   /** The most recent conversation, or null for an account that has not asked yet. */
@@ -128,19 +136,23 @@ export interface StudentHomeProps {
   recentActivity: ActivityItem[];
 }
 
-/** One meter of the allowance card: the ring with its picture, the number beside it. */
+/**
+ * One meter of the allowance card, one of three equal columns: the ring with
+ * its picture, the number with "of N", the caption, each centred. The caption
+ * is ONE line at 390 pt in both languages (the owner's review, 2026-11-04: at
+ * 13 px beside the ring it broke over two or three); `nowrap` holds it and the
+ * design-c render asserts it fits its column.
+ */
 function Meter({ value, glyph, tone, remaining, total, label, ofWord }: { value: number; glyph: React.ReactNode; tone: 'accent' | 'green' | 'sky'; remaining: number; total: number; label: string; ofWord: string }) {
   return (
-    <div className="flex min-w-0 items-center gap-2.5">
-      <Ring value={value} size={62} stroke={9} tone={tone} track="var(--ring-track)" label={`${remaining} ${ofWord} ${total} ${label}`}>
+    <div data-kf-meter className="flex min-w-0 flex-col items-center text-center">
+      <Ring value={value} size={58} stroke={8} tone={tone} track="var(--ring-track)" label={`${remaining} ${ofWord} ${total} ${label}`}>
         {glyph}
       </Ring>
-      <div className="min-w-0">
-        <p className="text-[1.3125rem] font-extrabold leading-tight text-foreground">
-          {remaining} <span className="text-[0.8125rem] font-medium text-muted-foreground">{ofWord} {total}</span>
-        </p>
-        <p className="text-[0.8125rem] font-medium text-muted-foreground">{label}</p>
-      </div>
+      <p className="mt-2 whitespace-nowrap text-[1.1875rem] font-extrabold leading-6 text-foreground">
+        {remaining} <span className="text-xs font-medium text-muted-foreground">{ofWord} {total}</span>
+      </p>
+      <p data-kf-caption className="mt-0.5 whitespace-nowrap text-xs font-medium leading-4 text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -165,6 +177,7 @@ export function StudentHome({
   newSubjectHref,
   subjectsHref,
   settingsHref,
+  initial = '?',
   upgradeHref,
   isPro,
   quotas,
@@ -182,12 +195,17 @@ export function StudentHome({
   const en = locale === 'en';
   const mark = en ? '?' : '؟';
   const meterGlyph = [<ClayQuestionGlyph key="q" mark={mark} />, <ClayUploadGlyph key="u" />];
+  // The home's small clay icons, in the order of the stats, the "what KnowFlow
+  // does" lines and the path's three steps.
+  const statIcon = [<ClayBooksGlyph key="s" />, <ClayFile key="f" />, <ClayChat key="c" />];
+  const whatIcon = [<ClayFile key="f" />, <ClayQuiz key="q" />, <ClayAnswer key="a" mark={mark} />];
+  const stepIcon = [<ClayNewSubject key="n" width={30} height={28} />, <ClayUploadGlyph key="u" />, <ClayQuestionGlyph key="q" mark={mark} />];
   const meterTone = ['accent', 'green'] as const;
 
   return (
     <div>
-      <div className="max-w-6xl space-y-[1.125rem]">
-        {/* ── Greeting: the date line, the welcome, the menu button. ── */}
+      <div data-kf-home className="max-w-6xl space-y-[1.125rem]">
+        {/* ── Greeting: the date line, the welcome, the avatar to Settings. ── */}
         <header className="rise flex items-center justify-between gap-3 px-1">
           <div className="min-w-0">
             <p className="text-sm font-medium text-muted-foreground">
@@ -212,13 +230,19 @@ export function StudentHome({
               </span>
             )}
           </div>
+          {/* The student's initial on a gold clay coin, not a hamburger: the
+              button opens Settings, and three lines promised a menu (the
+              owner's review, 2026-11-04). Shown in BOTH shells: the web's top
+              bar carries the wordmark, language, theme and sign out, but no
+              Settings link. 44 pt; the initial is decoration, the name is the
+              Settings label. */}
           {settingsHref && (
             <Link
               href={settingsHref}
               aria-label={labels.settings}
-              className="kf-button pressable inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
+              className="kf-avatar pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg font-extrabold leading-none"
             >
-              <ClayMenu />
+              <span aria-hidden="true">{initial}</span>
             </Link>
           )}
         </header>
@@ -226,24 +250,33 @@ export function StudentHome({
         {/* ── Ask: the dark card, the gold pill, the gold ring and bubble. ── */}
         <Link
           href={askHref}
-          className="kf-ask pressable rise rise-1 group flex items-center gap-3 rounded-[1.75rem] px-5 py-[1.375rem]"
+          className="kf-ask pressable rise rise-1 group flex items-center gap-2 rounded-[1.75rem] px-[1.125rem] py-[1.375rem]"
         >
+          {/* The text has the width (the owner's review, 2026-11-04: the English
+              title broke after "Ask your", the Arabic line left "الجواب." alone):
+              a 76 pt picture and an 8 pt gap, and both lines balanced. The
+              design-c render asserts no line of one word. */}
           <div className="min-w-0 flex-1">
-            <p className="text-[1.4375rem] font-extrabold leading-tight">{labels.askTitle}</p>
-            <p className="mt-1.5 text-[0.9375rem] leading-normal text-[color:var(--clay-ask-muted)]">{labels.askDesc}</p>
+            <p data-kf-ask-title className="text-[1.4375rem] font-extrabold leading-tight [text-wrap:balance]">{labels.askTitle}</p>
+            <p data-kf-ask-desc className="mt-1.5 text-[0.9375rem] leading-normal text-[color:var(--clay-ask-muted)] [text-wrap:balance]">{labels.askDesc}</p>
             <span className="kf-gold mt-4 inline-flex min-h-[2.875rem] items-center gap-2 whitespace-nowrap rounded-full px-5 text-[0.9375rem] font-bold">
               {labels.askTitle}
               <ClayArrow className="rtl:-scale-x-100" />
             </span>
           </div>
-          <ClayAskArt mark={mark} className="shrink-0" />
+          <ClayAskArt mark={mark} width={76} height={76} className="shrink-0" />
         </Link>
 
-        {/* ── The two-up row: one structure, the streak and a new subject. ── */}
+        {/* ── The two-up row: ONE structure for both cards (the owner's review,
+            2026-11-04): the same padding, a 56 x 52 icon box, a title row 26 pt
+            tall (the streak's count pill is 26), and one description that
+            keeps two lines' room, so the titles and the lines sit at the same
+            height. The streak card shows one line; the local-time hint is no
+            longer drawn here. The design-c render asserts the alignment. ── */}
         <section className="rise rise-2 grid grid-cols-2 gap-3.5">
-          <div data-kf-streak={lit ? 'lit' : 'unlit'} className="kf-streak flex min-w-0 flex-col gap-1 rounded-3xl p-4">
-            <ClayFlame lit={lit} />
-            <p className="mt-1 flex flex-wrap items-center gap-2 text-[1.0625rem] font-extrabold text-foreground">
+          <div data-kf-streak={lit ? 'lit' : 'unlit'} data-kf-twoup className="kf-streak flex min-w-0 flex-col rounded-3xl p-4">
+            <span data-kf-twoup-icon className="flex h-[3.25rem] w-14 items-end"><ClayFlame lit={lit} /></span>
+            <p data-kf-twoup-title className="mt-2 flex min-h-[1.625rem] flex-wrap items-center gap-2 text-[1.0625rem] font-extrabold leading-6 text-foreground">
               {labels.streakLabel}
               {streak ? (
                 <span className="kf-gold-sm inline-flex h-[1.625rem] items-center rounded-full px-2.5 text-sm font-extrabold">
@@ -252,13 +285,12 @@ export function StudentHome({
               ) : null}
               {streak === 0 && <span className="sr-only">0 {labels.streakUnit}</span>}
             </p>
-            <p className="text-[0.8125rem] font-medium leading-snug text-[color:var(--clay-streak-muted)]">{lit ? labels.streakLit : labels.streakUnlit}</p>
-            {streak !== null && <p className="text-[0.6875rem] font-medium text-[color:var(--clay-streak-muted)]">{labels.streakZoneHint}</p>}
+            <p data-kf-twoup-line className="mt-1 min-h-[2.25rem] text-[0.8125rem] font-medium leading-[1.125rem] text-[color:var(--clay-streak-muted)]">{lit ? labels.streakLit : labels.streakUnlit}</p>
           </div>
-          <Link href={newSubjectHref} className="kf-card pressable flex min-w-0 flex-col gap-1 p-4">
-            <ClayNewSubject />
-            <p className="mt-1 text-[1.0625rem] font-extrabold text-foreground">{labels.newSubject}</p>
-            <p className="text-[0.8125rem] font-medium leading-snug text-muted-foreground">{labels.newSubjectDesc}</p>
+          <Link href={newSubjectHref} data-kf-twoup className="kf-card pressable flex min-w-0 flex-col p-4">
+            <span data-kf-twoup-icon className="flex h-[3.25rem] w-14 items-end"><ClayNewSubject /></span>
+            <p data-kf-twoup-title className="mt-2 flex min-h-[1.625rem] items-center text-[1.0625rem] font-extrabold leading-6 text-foreground">{labels.newSubject}</p>
+            <p data-kf-twoup-line className="mt-1 min-h-[2.25rem] text-[0.8125rem] font-medium leading-[1.125rem] text-muted-foreground">{labels.newSubjectDesc}</p>
           </Link>
         </section>
 
@@ -276,7 +308,9 @@ export function StudentHome({
               </Link>
             )}
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          {/* ONE row of three equal columns (the owner's review, 2026-11-04: two
+              columns wrapped the third ring under the first). */}
+          <div className="mt-3.5 grid grid-cols-3 gap-2">
             {quotas.map((q, i) => (
               <Meter
                 key={q.key}
@@ -305,8 +339,8 @@ export function StudentHome({
         {continueCard && (
           <section className="kf-card rise rise-3 flex flex-wrap items-center justify-between gap-4 p-5">
             <div className="flex min-w-0 items-center gap-4">
-              <span className="kf-chip inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-subtle text-violet">
-                <MessageCircle className="h-5 w-5" />
+              <span className="kf-chip inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-subtle">
+                <ClayChat />
               </span>
               <div className="min-w-0">
                 <h2 className="text-sm font-bold text-foreground">{labels.continueTitle}</h2>
@@ -324,7 +358,7 @@ export function StudentHome({
               className="kf-gold pressable inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-bold"
             >
               {labels.continueCta}
-              <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />
+              <ClayArrow className="rtl:-scale-x-100" />
             </Link>
           </section>
         )}
@@ -338,16 +372,15 @@ export function StudentHome({
             </div>
             <ol className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               {onboarding.map((step, i) => {
-                const Icon = [Plus, Upload, MessageCircle][i] ?? Plus;
-                const tile = ['bg-mint-subtle text-mint', 'bg-sky-subtle text-sky', 'bg-violet-subtle text-violet'][i] ?? 'bg-accent-subtle text-accent';
+                const tile = ['bg-mint-subtle', 'bg-sky-subtle', 'bg-violet-subtle'][i] ?? 'bg-accent-subtle';
                 return (
                   <li key={step.key}>
                     <Link
                       href={step.href}
                       className="kf-tile pressable liftable group flex h-full items-center gap-3 p-4 sm:flex-col sm:items-start"
                     >
-                      <span className={step.done ? 'kf-gold-sm inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl' : `kf-chip inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tile}`}>
-                        {step.done ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                      <span className={`kf-chip inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${step.done ? 'bg-accent-subtle' : tile}`}>
+                        {step.done ? <ClayCheck /> : stepIcon[i]}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-bold text-foreground">
@@ -423,12 +456,11 @@ export function StudentHome({
         {/* ── Stats as clay tiles, each with its own tint. ── */}
         <section className="rise rise-4 grid grid-cols-3 gap-3">
           {stats.map(({ label, value, desc }, i) => {
-            const Icon = [BookOpen, FileText, MessageCircle][i] ?? BookOpen;
-            const tile = ['bg-sky-subtle text-sky', 'bg-mint-subtle text-mint', 'bg-violet-subtle text-violet'][i] ?? 'bg-accent-subtle text-accent';
+            const tile = ['bg-sky-subtle', 'bg-mint-subtle', 'bg-violet-subtle'][i] ?? 'bg-accent-subtle';
             return (
               <div key={label} className="kf-card p-4">
-                <span className={`kf-chip inline-flex h-9 w-9 items-center justify-center rounded-xl ${tile}`}>
-                  <Icon className="h-4 w-4" />
+                <span className={`kf-chip inline-flex h-10 w-10 items-center justify-center rounded-xl ${tile}`}>
+                  {statIcon[i]}
                 </span>
                 <p className="mt-3 text-2xl font-extrabold leading-none text-foreground">{value}</p>
                 <p className="mt-1 text-xs font-medium text-foreground">{label}</p>
@@ -443,12 +475,11 @@ export function StudentHome({
           <h2 className="text-sm font-bold text-foreground">{labels.whatTitle}</h2>
           <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {labels.whatLines.map((line, i) => {
-              const Icon = [FileText, BookOpen, MessageCircle][i] ?? FileText;
-              const tile = ['bg-mint-subtle text-mint', 'bg-coral-subtle text-coral', 'bg-sky-subtle text-sky'][i] ?? 'bg-accent-subtle text-accent';
+              const tile = ['bg-mint-subtle', 'bg-coral-subtle', 'bg-sky-subtle'][i] ?? 'bg-accent-subtle';
               return (
                 <li key={line} className="kf-tile flex items-start gap-3 p-4">
-                  <span className={`kf-chip inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${tile}`}>
-                    <Icon className="h-4 w-4" />
+                  <span className={`kf-chip inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tile}`}>
+                    {whatIcon[i]}
                   </span>
                   <span className="text-sm text-muted-foreground">{line}</span>
                 </li>
@@ -460,8 +491,8 @@ export function StudentHome({
         {/* ── Recent activity ── */}
         <section className="kf-card rise rise-5 p-5">
           <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
-            <span className="kf-chip inline-flex h-8 w-8 items-center justify-center rounded-lg bg-coral-subtle text-coral">
-              <MessageCircle className="h-4 w-4" />
+            <span className="kf-chip inline-flex h-9 w-9 items-center justify-center rounded-xl bg-coral-subtle">
+              <ClayClock width={22} height={22} />
             </span>
             {labels.recentActivity}
           </h2>

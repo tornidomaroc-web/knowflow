@@ -7,7 +7,7 @@ import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { pluralize } from '@/lib/i18n/plural'
 import { FREE_LIMITS } from '@/lib/limits'
 import { DAILY_CAPS } from '@/lib/rate-limit'
-import { buildHomeLabels, buildHomeProgress, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
+import { accountInitial, buildHomeLabels, buildHomeProgress, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
 import { resolvePlatform } from '@/lib/platform'
 import { formatDayDate } from '@/lib/format-date'
 import { DashboardShell } from '@/components/layout/DashboardShell'
@@ -207,6 +207,8 @@ export default async function StudentHomePreview({
           stats={stats}
           streak={streak}
           {...buildHrefs(safeLocale, platform)}
+          // The avatar: the literal email the shell above shows, through the Settings rule.
+          initial={accountInitial('student@example.com')}
           dateLine={formatDayDate(new Date('2026-10-12T12:00:00Z'), safeLocale, 'Africa/Casablanca')}
           continueCard={
             full

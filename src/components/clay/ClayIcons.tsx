@@ -10,8 +10,10 @@
  * DashboardShell renders, and every icon points at them by id (`kf-c-*`), so
  * a screen with forty icons does not ship forty copies of eight gradients and
  * no two instances can collide on an id. The two stops that differ by theme
- * (the idle taupe and the menu lines) read CSS variables (globals.css), so
- * the same markup is right in light and dark.
+ * (the idle taupe and the ink-or-cream `line`) read CSS variables
+ * (globals.css), so the same markup is right in light and dark. (`line` drew
+ * the greeting's menu glyph, which the clay avatar replaced; it is kept for
+ * the next glyph that needs a theme-following ink.)
  */
 import type { SVGProps } from 'react';
 
@@ -28,7 +30,8 @@ export function ClayDefs() {
         <radialGradient id="kf-c-green" cx="35%" cy="28%" r="85%"><stop offset="0" stopColor="#D3F0CC" /><stop offset="0.6" stopColor="#7DBE85" /><stop offset="1" stopColor="#4C8F5C" /></radialGradient>
         <radialGradient id="kf-c-blue" cx="35%" cy="28%" r="85%"><stop offset="0" stopColor="#E6F0FF" /><stop offset="0.6" stopColor="#8DB4E8" /><stop offset="1" stopColor="#5A83BE" /></radialGradient>
         <radialGradient id="kf-c-peach" cx="35%" cy="28%" r="85%"><stop offset="0" stopColor="#FFE6D8" /><stop offset="0.6" stopColor="#F2A585" /><stop offset="1" stopColor="#D37552" /></radialGradient>
-        <radialGradient id="kf-c-ink" cx="35%" cy="25%" r="85%"><stop offset="0" stopColor="#5A4E42" /><stop offset="1" stopColor="#1A1611" /></radialGradient>
+        <radialGradient id="kf-c-violet" cx="35%" cy="28%" r="85%"><stop offset="0" stopColor="#EDE4FF" /><stop offset="0.6" stopColor="#A893E0" /><stop offset="1" stopColor="#6F58B4" /></radialGradient>
+        <radialGradient id="kf-c-ink"cx="35%" cy="25%" r="85%"><stop offset="0" stopColor="#5A4E42" /><stop offset="1" stopColor="#1A1611" /></radialGradient>
         <radialGradient id="kf-c-taupe" cx="35%" cy="25%" r="85%"><stop offset="0" style={{ stopColor: 'var(--g-taupe-0)' }} /><stop offset="1" style={{ stopColor: 'var(--g-taupe-1)' }} /></radialGradient>
         <radialGradient id="kf-c-line" cx="35%" cy="25%" r="85%"><stop offset="0" style={{ stopColor: 'var(--g-line-0)' }} /><stop offset="1" style={{ stopColor: 'var(--g-line-1)' }} /></radialGradient>
       </defs>
@@ -38,12 +41,71 @@ export function ClayDefs() {
 
 const base = (p: P, w: number, h: number, vb: string) => ({ width: w, height: h, viewBox: vb, 'aria-hidden': true as const, focusable: 'false' as const, ...p });
 
-/** The greeting's menu button: two lines and a short gold one. */
-export const ClayMenu = (p: P) => (
+/* ── The home's small icons (the owner's review of PR #299, 2026-11-04: the
+   stats, "what KnowFlow does", Continue, recent activity and the path were
+   still outline glyphs). Same recipe as the rest: a filled shape on a
+   gradient, a catchlight, ink or gold details. 26 x 26 unless sized. ── */
+
+/** A file: a cream page, a folded corner, a gold title line and two text lines. */
+export const ClayFile = (p: P) => (
   <svg {...base(p, 26, 26, '0 0 26 26')}>
-    <rect x="3" y="5" width="20" height="4" rx="2" fill={G('line')} />
-    <rect x="3" y="11" width="20" height="4" rx="2" fill={G('line')} />
-    <rect x="3" y="17" width="12" height="4" rx="2" fill={G('gold')} />
+    <path d="M7 2.5h8.5L21 8v13.5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-17a2 2 0 0 1 2-2z" fill={G('cream')} />
+    <path d="M15.5 2.5V7a1 1 0 0 0 1 1H21z" fill="#D9CDB8" />
+    <rect x="8" y="11" width="8" height="2.6" rx="1.3" fill={G('gold')} />
+    <rect x="8" y="15.2" width="10" height="2.2" rx="1.1" fill="#BFB29D" />
+    <rect x="8" y="19" width="6.5" height="2.2" rx="1.1" fill="#BFB29D" />
+  </svg>
+);
+
+/** A conversation: a violet bubble, three cream dots, a catchlight. */
+export const ClayChat = (p: P) => (
+  <svg {...base(p, 26, 26, '0 0 26 26')}>
+    <path d="M5 4h16a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-9l-5 4v-4H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z" fill={G('violet')} />
+    <circle cx="8.5" cy="11.5" r="1.7" fill="#FFFFFF" fillOpacity="0.9" />
+    <circle cx="13" cy="11.5" r="1.7" fill="#FFFFFF" fillOpacity="0.9" />
+    <circle cx="17.5" cy="11.5" r="1.7" fill="#FFFFFF" fillOpacity="0.9" />
+    <ellipse cx="8" cy="6.4" rx="3.2" ry="1.1" fill="#FFFFFF" fillOpacity="0.5" />
+  </svg>
+);
+
+/** Summaries and quizzes: a peach card with a gold tick coin. */
+export const ClayQuiz = (p: P) => (
+  <svg {...base(p, 26, 26, '0 0 26 26')}>
+    <rect x="3" y="3" width="16" height="19" rx="4" fill={G('peach')} />
+    <rect x="6" y="7.5" width="9" height="2.4" rx="1.2" fill="#FFFFFF" fillOpacity="0.8" />
+    <rect x="6" y="12" width="6.5" height="2.2" rx="1.1" fill="#FFFFFF" fillOpacity="0.55" />
+    <ellipse cx="7.5" cy="4.9" rx="3" ry="1" fill="#FFFFFF" fillOpacity="0.55" />
+    <circle cx="18" cy="18" r="6" fill={G('gold')} />
+    <path d="M15.4 18.1l1.8 1.8 3.4-3.6" fill="none" stroke="#1A1611" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/** An answer from your files: a blue bubble with the question mark. */
+export const ClayAnswer = ({ mark = '؟', ...p }: P & { mark?: string }) => (
+  <svg {...base(p, 26, 26, '0 0 26 26')}>
+    <path d="M6 3.5h14a4 4 0 0 1 4 4v7a4 4 0 0 1-4 4h-6.5l-5 4v-4H6a4 4 0 0 1-4-4v-7a4 4 0 0 1 4-4z" fill={G('blue')} />
+    <ellipse cx="8" cy="6" rx="3.2" ry="1.1" fill="#FFFFFF" fillOpacity="0.55" />
+    <text x="13" y="15.6" textAnchor="middle" fontFamily="inherit" fontSize="11" fontWeight="800" fill="#1A1611">{mark}</text>
+  </svg>
+);
+
+/** Recent: a cream clock face, ink hands, a gold centre. */
+export const ClayClock = (p: P) => (
+  <svg {...base(p, 26, 26, '0 0 26 26')}>
+    <circle cx="13" cy="13" r="10.5" fill={G('peach')} />
+    <circle cx="13" cy="13" r="7.6" fill={G('cream')} />
+    <path d="M13 8.6V13l3 2" fill="none" stroke="#1A1611" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="13" cy="13" r="1.4" fill={G('gold')} />
+    <ellipse cx="9" cy="6.2" rx="3" ry="1" transform="rotate(-25 9 6.2)" fill="#FFFFFF" fillOpacity="0.6" />
+  </svg>
+);
+
+/** A done step: the gold coin with an ink tick (the path). */
+export const ClayCheck = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 22 22')}>
+    <circle cx="11" cy="11" r="10" fill={G('gold')} />
+    <path d="M6.6 11.3l3 3 5.8-6" fill="none" stroke="#1A1611" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+    <ellipse cx="7.6" cy="5.6" rx="3" ry="1.2" fill="#FFFFFF" fillOpacity="0.55" />
   </svg>
 );
 

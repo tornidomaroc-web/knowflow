@@ -612,6 +612,9 @@ body { background-color: var(--background); color: var(--foreground); }
 /* A surface pill (the header's "new subject", the menu button). */
 .kf-clay .kf-pill { background-color: var(--surface); box-shadow: var(--clay-pill); }
 .kf-clay .kf-button { background-color: var(--surface); box-shadow: var(--clay-button); }
+/* The greeting's avatar (the student's initial, the way to Settings): a gold clay coin,
+   the same gradient as the clay icons' gold, ink text. */
+.kf-clay .kf-avatar { background-color: var(--accent); background-image: radial-gradient(circle at 35% 28%, #ffe7a6 0%, #ebae35 55%, #b57a12 100%); color: var(--accent-foreground); box-shadow: var(--clay-gold-sm); }
 
 /* The home's dark ask card (dark in both themes, a step lighter in dark). */
 .kf-clay .kf-ask { background-color: var(--clay-ask); color: var(--clay-ask-fg); box-shadow: var(--clay-card-ask); }

@@ -39,9 +39,12 @@ export function RecentActivity({ items, labels, locale }: { items: ActivityItem[
 
   return (
     <div>
-      <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-raised">
+      {/* Design "C" (the owner's review of PR #299, 2026-11-04): no hairline
+          box and no dividers; each conversation is a small clay tile, the rows
+          separated by spacing. */}
+      <ul data-kf-activity className="space-y-2.5">
         {visible.map((conv) => (
-          <div key={conv.id} className="flex items-center justify-between gap-4 p-4">
+          <li key={conv.id} className="kf-tile flex items-center justify-between gap-4 rounded-2xl bg-raised px-4 py-3.5">
             <div className="min-w-0">
               <UserName as="p" className="truncate text-sm font-medium text-foreground">
                 {conv.knowledge_bases?.name || labels.unknownKb}
@@ -51,9 +54,9 @@ export function RecentActivity({ items, labels, locale }: { items: ActivityItem[
               </p>
             </div>
             <Badge className="shrink-0">{labels.conversation}</Badge>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
       {items.length > LIMIT && (
         <div className="mt-2 flex justify-end">
           <button

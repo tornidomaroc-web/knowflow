@@ -128,6 +128,15 @@ export function buildHomeLabels({ home, subjectsNavLabel, isPro, streakUnit, con
   }
 }
 
+/**
+ * The student's initial on the home's avatar button (design "C"): the first
+ * character of the email, upper-cased, '?' when there is none. The SAME rule
+ * as the Account card in SettingsPanel.tsx, so the two screens show one letter.
+ */
+export function accountInitial(email: string | null | undefined): string {
+  return ((email ?? '').trim()[0] ?? '?').toUpperCase()
+}
+
 /** The three in-app destinations, the same in both shells. */
 export function appHrefs(locale: Locale) {
   return {
