@@ -454,9 +454,12 @@ jobs:
       # Step Store-Fix-2: at the end of Settings (scrolled to the bottom, en and
       # ar) the home-indicator inset shows the page's colour, not the web
       # view's white (relay runs 38592947638 and 38610848524: the bottom 102
-      # rows were 255,255,255 under a dark page). This run is in the dark
-      # theme, so the band must be #14110d: nothing lighter than it (by more
-      # than 6), nothing darker than the tab bar's drop shadow makes it (24;
+      # rows were 255,255,255 under a dark page). No step sets the theme (no
+      # ?theme=, no kf-theme cookie, no tap on Appearance), so the run shows
+      # the DEFAULT theme, light since design "C" (#299, eb0037b), and the band
+      # must be its page #f4ede1 (run 41913654896 failed here on the old dark
+      # #14110d while both shots were #f4ede1 to the last row): nothing
+      # lighter than it (by more than 6), nothing darker than the tab bar's drop shadow makes it (24;
       # 7 in the Linux render, run 38639956428). sips turns each shot into an
       # uncompressed BMP, read here without any library; a BMP this cannot
       # read is a failure, never a pass.
@@ -472,7 +475,9 @@ jobs:
           test "$n" -eq 2 || { echo "FAIL: expected the en and ar settings-bottom shots, found $n"; exit 1; }
           python3 - "$RUNNER_TEMP"/shots/signed-in-*-settings-bottom.bmp <<'PY'
           import struct, sys
-          PAGE = (0x14, 0x11, 0x0d)
+          # The default theme's --background (src/app/globals.css :root); it was
+          # the dark (0x14, 0x11, 0x0d) until design "C" made light the default.
+          PAGE = (0xf4, 0xed, 0xe1)
           fails = 0
           for path in sys.argv[1:]:
               b = open(path, "rb").read()
