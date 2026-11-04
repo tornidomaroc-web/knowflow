@@ -254,8 +254,9 @@ if (has('src/lib/ask-suggestions.ts')) {
     stats: [], streak: null, askHref: '#', newSubjectHref: '#', subjectsHref: '#', upgradeHref: null, isPro: false, quotas: [],
     subjects: hpOut?.subjects ?? [], subjectsUsed: 2, subjectsLimit: 5, onboarding: [], labels: homeLabels, recentActivity: [],
   }));
-  check(/>60%</.test(homeHtml) && homeHtml.includes('3/5 materialsWord'), '#129 (b): the home ring for the mixed subject is not 60% (3/5)');
-  check(!/>0%</.test(homeHtml) && !homeHtml.includes('0/0') && />-</.test(homeHtml), '#129 (b): a subject with nothing to measure shows 0% or 0/0 instead of a hyphen');
+  // Design "C" (2026-11-03): the home row is a bar plus "materialsWord 3 ofWord 5".
+  check(/data-kf-progress="60"/.test(homeHtml) && homeHtml.includes('materialsWord 3 ofWord 5'), '#129 (b): the home bar for the mixed subject is not 60% (3 of 5)');
+  check(!/data-kf-progress="0"/.test(homeHtml) && !homeHtml.includes('0 ofWord 0') && />-</.test(homeHtml), '#129 (b): a subject with nothing to measure shows 0% or 0 of 0 instead of a hyphen');
 
   const { SubjectsList } = await load('src/components/dashboard/SubjectsList.tsx');
   const labels = { title: 'Subjects', subtitle: 's', newSubject: 'New', emptyTitle: 'e', emptyPrompt: 'p', materials: 'Materials', summarised: 'Summarised', quizzed: 'Quizzed', processing: 'still processing', noMaterials: 'No materials yet', lastAsked: 'Last asked', lastAdded: 'Last added', created: 'Created', ask: 'Ask', addMaterial: 'Add material' };

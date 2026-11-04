@@ -11,7 +11,7 @@ import { getEntitlement } from '@/lib/entitlement'
 import { FREE_LIMITS, PRO_LIMITS } from '@/lib/limits'
 import { DAILY_CAPS } from '@/lib/rate-limit'
 import { formatDate, formatDayDate } from '@/lib/format-date'
-import { buildHomeLabels, buildHomeProgress, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
+import { accountInitial, buildHomeLabels, buildHomeProgress, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
 import { currentPlatform } from '@/lib/platform-server'
 
 // Thin server wrapper: auth + data only. Presentation lives in <StudentHome/>
@@ -124,6 +124,8 @@ export default async function DashboardPage({
         // Step Redesign-2: the weekday from the real date in the student's zone.
         dateLine={formatDayDate(new Date(), safeLocale, timeZone)}
         {...buildHrefs(safeLocale, platform)}
+        // The avatar (design "C"): the letter Settings shows for this account.
+        initial={accountInitial(user.email)}
         // Register #85 (2.4): the most recent conversation, from the read the
         // home already makes. Null for an account that has not asked yet.
         continueCard={
@@ -151,6 +153,7 @@ export default async function DashboardPage({
         labels={buildHomeLabels({
           home: t.dashboard.home,
           subjectsNavLabel: t.dashboard.nav.knowledge,
+          settingsLabel: t.dashboard.nav.settings,
           cont: t.dashboard.continueCard,
           isPro,
           // Form selection happens HERE, not in StudentHome. The component stays dumb

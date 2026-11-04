@@ -4,9 +4,10 @@
  *
  * 1. THE BOOT SCRIPT, RUN. `THEME_BOOT_SCRIPT` from `src/lib/theme.ts` is the
  *    exact string `[locale]/layout.tsx` inlines in <head>. It is executed here
- *    against a fake `document` and `location`: no cookie gives dark; a
- *    `kf-theme=light` cookie gives light; `?theme=light` gives light AND writes
- *    the cookie; a garbage cookie gives dark. Inline scripts have no other way
+ *    against a fake `document` and `location`: no cookie gives light (the
+ *    default since design "C", 2026-11-03); a saved `kf-theme=dark` cookie
+ *    gives dark; `?theme=light` gives light AND writes the cookie; a garbage
+ *    cookie gives light. Inline scripts have no other way
  *    to be tested, and this one runs before every paint of every page.
  * 2. THE SHELL DOES NOT PIN THE THEME. `DashboardShell` carries no hardcoded
  *    `data-theme`, and the layout puts the attribute on <html> with the
@@ -44,10 +45,10 @@ function boot({ cookie = '', search = '' }) {
 }
 if (theme?.THEME_BOOT_SCRIPT) {
   const cases = [
-    { name: 'no cookie', input: {}, want: 'dark' },
+    { name: 'no cookie (design C, 2026-11-03: light is the default)', input: {}, want: 'light' },
     { name: 'cookie light', input: { cookie: 'kf-locale=ar; kf-theme=light' }, want: 'light' },
     { name: 'cookie dark', input: { cookie: 'kf-theme=dark' }, want: 'dark' },
-    { name: 'garbage cookie', input: { cookie: 'kf-theme=blue' }, want: 'dark' },
+    { name: 'garbage cookie', input: { cookie: 'kf-theme=blue' }, want: 'light' },
     { name: '?theme=light', input: { search: '?state=full&theme=light' }, want: 'light', writes: 'kf-theme=light' },
     { name: '?theme=dark over cookie light', input: { search: '?theme=dark', cookie: 'kf-theme=light' }, want: 'dark', writes: 'kf-theme=dark' },
   ];
@@ -83,7 +84,14 @@ if (theme?.THEME_BOOT_SCRIPT) {
   const root = css.match(/:root\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
   const dark = css.match(/\[data-theme="dark"\]\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
   const light = css.match(/\[data-theme="light"\]\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
-  check(/color-scheme:\s*dark/.test(root), ':root does not set color-scheme: dark');
+  // Design "C" (2026-11-03): light is the default, so :root carries the light
+  // palette, value for value the [data-theme="light"] block.
+  check(/color-scheme:\s*light/.test(root), ':root does not set color-scheme: light (the default)');
+  const decls = (b) => [...b.matchAll(/^\s*(--[\w-]+):\s*([^;]+);/gm)].filter(([, k]) => k !== '--radius').map(([, k, v]) => `${k}:${v.trim()}`).sort().join('\n');
+  check(decls(root) !== '' && decls(root) === decls(light), ':root and [data-theme="light"] differ: an absent data-theme must be the light default');
+  const names = (b) => new Set([...b.matchAll(/^\s*(--[\w-]+):/gm)].map(([, k]) => k));
+  const missing = [...names(light)].filter((k) => !names(dark).has(k));
+  check(missing.length === 0, `[data-theme="dark"] lacks ${missing.join(', ')}, which would keep the light value in dark`);
   check(/color-scheme:\s*dark/.test(dark), '[data-theme="dark"] does not set color-scheme: dark');
   check(/color-scheme:\s*light/.test(light), '[data-theme="light"] does not set color-scheme: light');
   for (const u of ['tracking-wide', 'tracking-wider', 'tracking-widest']) {

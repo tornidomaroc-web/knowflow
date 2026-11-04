@@ -5,6 +5,7 @@ import type { Locale } from '@/lib/i18n';
 import type { NavLabels } from '@/components/layout/nav-items';
 import type { Platform } from '@/lib/platform';
 import { cn } from '@/lib/utils';
+import { ClayDefs } from '@/components/clay/ClayIcons';
 
 /**
  * The signed-in chrome — desktop sidebar, mobile top bar and bottom tab bar,
@@ -54,6 +55,8 @@ export function DashboardShell({
   // utilities only, so it follows without a class change.
   return (
     <div className="kf-clay min-h-screen bg-background" data-kf-shell={platform}>
+      {/* The clay icons' gradients, once per page (ClayIcons.tsx). */}
+      <ClayDefs />
       <Sidebar userEmail={email} isPro={isPro} locale={locale} labels={labels} />
       <MobileNav userEmail={email} isPro={isPro} locale={locale} labels={labels} platform={platform} activeNav={activeNav} />
       {/*

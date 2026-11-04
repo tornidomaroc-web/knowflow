@@ -93,7 +93,7 @@ const { renderToStaticMarkup } = await import('react-dom/server');
   check(!/بيولا|الويب/.test(read('src/lib/i18n/locales/ar.ts').replace(/بريد ويب/, '')), 'a transliteration of "web" remains in ar.ts');
   const { RecentActivity } = await load('src/components/dashboard/RecentActivity.tsx');
   const html = renderToStaticMarkup(React.createElement(RecentActivity, { items: [{ id: 'c', created_at: '2026-08-11T00:00:00Z', platform: 'web', knowledge_bases: { name: 'x' } }], labels: { platformWeb: 'المتصفح', noActivity: 'n', conversation: 'c', showLess: 's', viewAll: 'v', unknownKb: 'u' }, locale: 'ar' }));
-  check(/<p[^>]*dir="auto"[^>]*><bdi>المتصفح<\/bdi> · <bdi>11 أغسطس 2026<\/bdi>/.test(html), 'the activity line is not an auto-direction line with isolated parts');
+  check(/<p[^>]*dir="auto"[^>]*><bdi>المتصفح<\/bdi> · <bdi>11 أغسطس 2026<\/bdi>/.test(html), 'the activity line is not an auto-direction line with isolated parts');
 }
 
 // 7. Auth pages.

@@ -2,107 +2,132 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═════════════════════════════════════════════════════════════════════════
+   DESIGN "C", THE CLAY MIX (owner-approved 2026-11-03, PR 1 of the design
+   refresh). LIGHT IS NOW THE DEFAULT, so :root carries the LIGHT palette,
+   value for value the [data-theme="light"] block below.
+
+   WHY :root FOLLOWS THE DEFAULT. The boot script (src/lib/theme.ts) sets
+   data-theme before paint, so :root is what an element sees only when that
+   attribute is absent (no script, or the 404's client-rendered shell before
+   ThemeSync). An absent attribute must mean the default, and the default is
+   light. Until 2026-11-03 it was dark (register #101); the reason recorded
+   there, one palette from the landing to the app so a student never sees a
+   break, still holds, which is why the whole site moves and not the app alone.
+
+   THE PALETTE EXISTS THREE TIMES: here, in [data-theme="light"] (equal to
+   this) and in [data-theme="dark"]. Every token is defined in all three, so a
+   utility never resolves to nothing (#93/#98's rule).
+
+   `--radius` is not a colour and is defined here only: tailwind.config.ts maps
+   `borderRadius.xl` to it, and swapping this block for a theme block without
+   it would leave every `rounded-xl` square behind a green build.
+
+   GOLD IS TWO TOKENS. `--primary`/`--accent` are the FILL (#ebae35), only ever
+   behind ink text (9.12:1). Gold as TEXT, as an edge or as the focus ring is
+   `--primary-text`/`--accent-text`/`--accent-edge`, which Tailwind's text-,
+   border- and ring- utilities read (tailwind.config.ts): #7a580e in light
+   (5.6:1 on the page, 6.3 on a card, 4.7 on the gold tint inside a well,
+   its thinnest pair), the fill gold itself in dark (8.36:1 on a card). Every pair is measured in
+   docs/design/design-c/contrast.md (scripts/design-c/contrast.mjs).
+   ═════════════════════════════════════════════════════════════════════════ */
 :root {
-  /* ═════════════════════════════════════════════════════════════════════════
-     THE PRODUCT IS DARK (register #101). :root CARRIES THE DARK PALETTE.
-
-     The ruling, and its reason, which is not a preference: a student moves
-     landing → signup → login → the app and must never notice a break on the
-     way. Theming the landing alone would not remove the break, it would move
-     it to signup — the page every new student passes through. Eleven routes
-     under [locale] render outside any themed subtree, and <body> sits outside
-     it on every route, so :root is where the palette has to change.
-
-     MERGED INTO :root, NOT A REPLACEMENT OF IT — READ THIS BEFORE "TIDYING" IT.
-     The 27 colour tokens below are [data-theme="dark"]'s declarations, value
-     for value and in its order (24 at #101; #102 added --control-border,
-     #104 added --primary-border and #107 added --header, each to both blocks
-     in the same position).
-     `--radius` is not a colour and is NOT in that
-     block: it is defined here and nowhere else, and tailwind.config.ts maps
-     `borderRadius.xl` to `var(--radius)`. Swap this block for the dark one and
-     `--radius` goes with it; every `border-radius: var(--radius)` is then
-     invalid at computed-value time and falls back to 0, and all 59
-     `rounded-xl` sites in src go square behind a green build with no diff
-     line to show it.
-
-     WHAT STOOD HERE: the Phase-2 light palette ("Calm Focus", cool off-white,
-     emerald primary), #93's state colours and #98's six theme-only tokens, all
-     measured against those light grounds. The rule #93 and #98 established
-     still holds and is why the list is complete: every token a utility can
-     name must be defined on :root, or a page outside a theme emits a var() to
-     nothing and its styling silently drops. #98's aliases (`--accent*` onto
-     `--primary*`, `--raised` onto `--muted`) are gone with the palette they
-     degraded into. `--raised` could not have stayed one: `var(--muted)` would
-     resolve to #221d17, not the dark theme's #26211a.
-
-     THE PALETTE NOW EXISTS TWICE — here, and in [data-theme="dark"], which
-     #101 left byte-for-byte as it was. That kept the change to one
-     block, and it means the two copies can drift: change a value there and it
-     must change here. The dark block's per-pair contrast notes apply here too,
-     because the values are equal — but three of them do not survive
-     re-measurement (2026-09-19): --success is 7.26:1 on --surface and 6.57:1
-     on --raised, not 8.55 / 7.73, and --danger is 5.50:1 on --surface, not
-     6.20. All three still clear AA. They are corrected here rather than there
-     because #101 left that block untouched.
-     ═════════════════════════════════════════════════════════════════════════ */
   --radius: 0.75rem;             /* rounded-xl baseline (D4) */
 
-  /* THE UA FOLLOWS THE THEME (#101 held this as "nothing sets color-scheme").
-     Native form controls, scrollbars, the date picker and the page's own
-     canvas behind overscroll take their palette from this, not from our
-     tokens, so a dark app with it unset showed white scrollbars and a white
-     select menu. Repeated in each themed block so a subtree matches too. */
-  color-scheme: dark;
+  /* THE UA FOLLOWS THE THEME: native form controls, scrollbars and the
+     canvas behind overscroll take their palette from this. Repeated in each
+     themed block so a subtree matches too. */
+  color-scheme: light;
 
-  --background: #14110d;
-  --surface: #1c1813;
-  --raised: #26211a;
-  --muted: #221d17;
-  --header: rgba(20, 17, 13, 0.9);
+  --background: #f4ede1;
+  --surface: #fffcf6;
+  --raised: #f8f1e6;
+  --muted: #efe6d7;
+  --header: rgba(244, 237, 225, 0.9);
 
-  --border: rgba(255, 255, 255, 0.09);
-  --input: #1c1813;
-  --control-border: #7b6f60;
+  --border: rgba(26, 22, 17, 0.10);
+  --input: #fffcf6;
+  --control-border: #857a6c;
 
-  --foreground: #f5f0e8;
-  --muted-foreground: #a39684;
-  --faint: #6f6455;
+  --foreground: #1a1611;
+  --muted-foreground: #5e5446;
+  --faint: #6e6458;
 
-  --accent: #d4a548;
-  --accent-foreground: #14110d;
-  --accent-hover: #e0b25c;
-  --accent-subtle: rgba(212, 165, 72, 0.12);
+  --accent: #ebae35;
+  --accent-foreground: #1a1611;
+  --accent-hover: #f2bc4e;
+  --accent-subtle: rgba(235, 174, 53, 0.18);
+  --accent-text: #7a580e;
+  --accent-text-hover: #5f440a;
+  --accent-edge: #7a580e;
 
-  --success: #4fb98a;
-  --danger: #e8675f;
-  --danger-foreground: #14110d;
-  --danger-subtle: #2c1714;
-  --danger-border: #bb554a;
-  --warning: #f0c070;
+  --success: #186b4b;
+  --danger: #b3322b;
+  --danger-foreground: #ffffff;
+  --danger-subtle: #fdf1f0;
+  --danger-border: #b0584d;
+  --warning: #7a5200;
 
-  --primary: #d4a548;
-  --primary-foreground: #14110d;
-  --primary-hover: #e0b25c;
-  --primary-subtle: rgba(212, 165, 72, 0.12);
-  --primary-border: rgba(212, 165, 72, 0.21);
+  --primary: #ebae35;
+  --primary-foreground: #1a1611;
+  --primary-hover: #f2bc4e;
+  --primary-subtle: rgba(235, 174, 53, 0.18);
+  --primary-border: rgba(181, 122, 18, 0.40);
+  --primary-text: #7a580e;
+  --primary-text-hover: #5f440a;
 
-  --ring: #d4a548;
+  --ring: #7a580e;
 
-  /* THE SUPPORTING PALETTE (docs/design/VISUAL_LANGUAGE.md, rule 4). Four
-     tints for icon tiles and illustrations, so four cards on one screen are
-     not four gold squares. Gold stays the only colour on an action. Each
-     measured on --surface (#1c1813) and --raised (#26211a) as an ICON colour
-     (3:1 non-text bar): mint 7.1 / 6.4, sky 6.8 / 6.1, coral 5.2 / 4.7,
-     violet 5.6 / 5.0. The -subtle forms are 14% fills for tiles. */
-  --mint: #5fd3a6;
-  --mint-subtle: rgba(95, 211, 166, 0.14);
-  --sky: #6fb8ff;
-  --sky-subtle: rgba(111, 184, 255, 0.14);
-  --coral: #ff8a80;
-  --coral-subtle: rgba(255, 138, 128, 0.14);
-  --violet: #b79cff;
-  --violet-subtle: rgba(183, 156, 255, 0.14);
+  --mint: #13633f;
+  --mint-subtle: rgba(31, 143, 98, 0.12);
+  --sky: #245f9f;
+  --sky-subtle: rgba(47, 116, 192, 0.12);
+  --coral: #a63c33;
+  --coral-subtle: rgba(201, 79, 69, 0.12);
+  --violet: #6445b8;
+  --violet-subtle: rgba(111, 79, 201, 0.12);
+
+  /* THE CLAY (spec "Clay surface"): no border, no blur, three layers at most. */
+  --clay-ask: #241e17;
+  --clay-ask-fg: #faf7f0;
+  --clay-ask-muted: #dcd2c2;
+  --clay-streak: #fff4dc;
+  --clay-streak-muted: #5e5446;
+  --ring-track: #ede3d2;
+  --ring-green: #6fa77f;
+  --chevron: #8a7e6d;
+  --tint-1: #fbe3d5;
+  --tint-2: #ddebd9;
+  --tint-3: #dce6f3;
+  --g-taupe-0: #c9bca6;
+  --g-taupe-1: #7e7262;
+  --g-line-0: #5a4e42;
+  --g-line-1: #1a1611;
+  --clay-card: 0 10px 20px rgba(110, 80, 35, 0.14), inset 0 -4px 8px rgba(110, 80, 35, 0.09), inset 0 3px 6px rgba(255, 255, 255, 0.95);
+  --clay-card-streak: 0 10px 20px rgba(110, 80, 35, 0.14), inset 0 -4px 8px rgba(176, 122, 18, 0.12), inset 0 3px 6px rgba(255, 255, 255, 0.95);
+  --clay-card-ask: 0 14px 26px rgba(40, 28, 12, 0.28), inset 0 -5px 10px rgba(0, 0, 0, 0.35), inset 0 3px 6px rgba(255, 255, 255, 0.10);
+  --clay-row: 0 8px 16px rgba(110, 80, 35, 0.13), inset 0 -3px 7px rgba(110, 80, 35, 0.08), inset 0 3px 5px rgba(255, 255, 255, 0.95);
+  --clay-button: 0 6px 14px rgba(110, 80, 35, 0.16), inset 0 -3px 6px rgba(110, 80, 35, 0.10), inset 0 3px 5px rgba(255, 255, 255, 0.95);
+  --clay-pill: 0 5px 10px rgba(110, 80, 35, 0.16), inset 0 -2px 4px rgba(110, 80, 35, 0.10), inset 0 2px 4px rgba(255, 255, 255, 0.95);
+  --clay-tile: 0 4px 8px rgba(110, 80, 35, 0.16), inset 0 -2px 4px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.85);
+  --clay-gold: 0 6px 12px rgba(140, 90, 10, 0.26), inset 0 -3px 5px rgba(120, 70, 0, 0.30), inset 0 3px 5px rgba(255, 255, 255, 0.55);
+  --clay-gold-ask: 0 6px 12px rgba(0, 0, 0, 0.30), inset 0 -3px 5px rgba(120, 70, 0, 0.30), inset 0 3px 5px rgba(255, 255, 255, 0.55);
+  --clay-gold-sm: 0 3px 6px rgba(140, 90, 10, 0.22), inset 0 -2px 3px rgba(120, 70, 0, 0.22), inset 0 2px 3px rgba(255, 255, 255, 0.55);
+  --clay-tab-active: 0 5px 10px rgba(140, 90, 10, 0.28), inset 0 -3px 5px rgba(120, 70, 0, 0.25), inset 0 3px 5px rgba(255, 255, 255, 0.55);
+  --clay-bar: 0 12px 24px rgba(110, 80, 35, 0.20), inset 0 -3px 7px rgba(110, 80, 35, 0.09), inset 0 3px 5px rgba(255, 255, 255, 0.95);
+  --clay-track: inset 0 1px 2px rgba(110, 80, 35, 0.18);
+  /* The older clay rules (wells, switches, segmented controls, the web's top
+     bar) read these; re-valued for this palette. */
+  --clay-top: #fffcf6;
+  --clay-tile-top: #fbf5ec;
+  --clay-well: #ede3d2;
+  --clay-hi: rgba(255, 255, 255, 0.95);
+  --clay-shade: rgba(110, 80, 35, 0.12);
+  --clay-drop: rgba(104, 72, 24, 0.30);
+  --clay-well-shade: rgba(110, 80, 35, 0.22);
+  --clay-gold-hi: rgba(255, 255, 255, 0.55);
+  --clay-gold-shade: rgba(120, 70, 0, 0.30);
+  --clay-edge: rgba(120, 88, 36, 0.10);
 }
 
 /* Phase 2 complete: the legacy neon/terminal tokens (--bg-color, --accent-color,
@@ -270,7 +295,9 @@ body { background-color: var(--background); color: var(--foreground); }
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
-   THE TWO PALETTES (register #85). Dark is the BASE; light is a value swap.
+   THE TWO PALETTES (register #85). Since design "C" (2026-11-03) LIGHT is the
+   base and :root mirrors it; dark is the value swap. The history below is kept
+   as it was written; where it says :root is dark, read it as before 2026-11-03.
 
    THE WARNING THAT STOOD HERE IS SUPERSEDED, AND IS QUOTED RATHER THAN
    DELETED. It read: "WHY THESE SIT ON [data-theme] AND NOT ON :root — READ THIS
@@ -306,106 +333,48 @@ body { background-color: var(--background); color: var(--foreground); }
    ═════════════════════════════════════════════════════════════════════════════ */
 [data-theme="dark"] {
   color-scheme: dark;
-  --background: #14110d;         /* page — warm near-black */
-  --surface: #1c1813;            /* card — one step up */
-  --raised: #26211a;             /* raised — inside a card (meters, tiles) */
-  --muted: #221d17;              /* subtle fill */
 
-  /* THE STICKY HEADER'S OWN FILL (#107), and it is a token because it cannot be
-     a utility: the header was written `bg-background/80`, and Tailwind 3 does
-     not generate an opacity modifier on a bare var() colour, so that class was
-     never emitted — measured as 0 occurrences in production's own served CSS,
-     where `backdrop-blur-md` IS present. The header has been fully transparent
-     since it was written, with a working blur behind nothing.
-     THE 0.80 IT ASKED FOR WOULD ALSO HAVE FAILED. Content scrolls under this
-     bar, so its effective ground is the header's fill composited over whatever
-     is passing beneath. Over a --foreground headline at 0.80, --muted-foreground
-     reads 3.68:1 — under AA. Derived, not picked: 0.86 is the first hundredth
-     that clears 4.5:1 on this palette and 0.89 on the light one, so 0.90 is the
-     first tenth that clears both. Measured here: nav link 6.50:1 over the bare
-     page, 5.13 under a 7xl headline, 5.57 under the gold CTA; the CTA's own
-     gold edge 8.31 / 6.56 / 7.12, all far above the 3:1 non-text bar. */
+  --background: #14110d;
+  --surface: #241e17;
+  --raised: #2b241c;
+  --muted: #2a231b;
   --header: rgba(20, 17, 13, 0.9);
 
-  /* Hairline, not an outline. White at low alpha reads as a lit edge on dark and
-     survives on every surface level without needing a per-level value. */
   --border: rgba(255, 255, 255, 0.09);
   --input: #1c1813;
+  --control-border: #8a7d6c;
 
-  /* A CONTROL'S BOUNDARY, NOT A DIVIDER (#102). `--border` is a catchlight and
-     reads at 1.29:1 on --surface — right for a card edge, wrong for an input.
-     An input whose fill equals its card has no other edge, and WCAG 1.4.11
-     puts a control's boundary at 3:1. On the auth pages the three fields read
-     as black rectangles on black. Derived, not picked: the first step along
-     --faint → --muted-foreground (t = 0.225) that clears 3.6:1 on --surface.
-     Measured: 3.60 on --surface and on the input's own fill, 3.84 on the page,
-     3.41 on --muted, 3.26 on --raised. Above 3:1 on every ground here. */
-  --control-border: #7b6f60;
-
-  /* THREE TEXT LEVELS, and the gap between 1 and 2 is deliberately wide — that
-     gap is what makes a heading read as bright rather than merely larger.
-     Contrast on --background: foreground ~17:1, muted-foreground ~6.4:1 (AA
-     body), faint ~3.3:1. `--faint` is therefore CAPTION AND DECORATION ONLY and
-     must never carry body copy; the register records that limit. */
   --foreground: #f5f0e8;
-  --muted-foreground: #a39684;
-  --faint: #6f6455;
+  --muted-foreground: #b9ac96;
+  --faint: #a4967f;
 
-  /* Gold. ~8:1 on the page ground both ways, so it works as text AND as a fill
-     with --accent-foreground on top. */
-  --accent: #d4a548;
-  --accent-foreground: #14110d;
-  --accent-hover: #e0b25c;
-  --accent-subtle: rgba(212, 165, 72, 0.12);
+  /* The same fill gold as light; in dark it is legible as text too (8.36:1 on
+     a card), so the text token is the fill itself. */
+  --accent: #ebae35;
+  --accent-foreground: #1a1611;
+  --accent-hover: #f2bc4e;
+  --accent-subtle: rgba(235, 174, 53, 0.14);
+  --accent-text: #ebae35;
+  --accent-text-hover: #f5c86a;
+  --accent-edge: #ebae35;
 
-  /* ── STATE ONLY. Never identity: nothing in the chrome may use these to mean
-     "KnowFlow". Every pair below was MEASURED, not chosen by eye, and the
-     figures are in the PR body and register #93.
+  --success: #4fb98a;
+  --danger: #f08a80;
+  --danger-foreground: #14110d;
+  --danger-subtle: #2c1714;
+  --danger-border: #c96558;
+  --warning: #f0c070;
 
-     --success and --danger are #153's values, KEPT. They were measured here for
-     the first time and already clear AA on every ground they can land on
-     (worst: danger 4.97:1 on --raised, success 6.57:1), so replacing them would
-     have been churn. What #153 lacked was the rest of the FAMILY — a fill, a
-     border and a foreground — which is why the sweep could not land until now:
-     `bg-red-50` and `border-red-200` had nowhere to go.
+  --primary: #ebae35;
+  --primary-foreground: #1a1611;
+  --primary-hover: #f2bc4e;
+  --primary-subtle: rgba(235, 174, 53, 0.14);
+  --primary-border: rgba(235, 174, 53, 0.24);
+  --primary-text: #ebae35;
+  --primary-text-hover: #f5c86a;
 
-     THE BORDER IS THE ONE THAT NEEDED SOLVING. WCAG 1.4.11 puts non-text UI at
-     3:1, and the delete-account card's border is not decoration — it is the
-     signal that the card is dangerous. The first candidate (#a4453c) measured
-     2.94:1 on --surface and was REJECTED for missing the bar by 0.06. */
-  --success: #4fb98a;          /* 8.55:1 on surface, 7.73:1 on raised */
-  --danger: #e8675f;           /* 6.20:1 on surface, 4.97:1 on raised, 5.27:1 on danger-subtle */
-  --danger-foreground: #14110d; /* 5.86:1 on the danger fill */
-  --danger-subtle: #2c1714;    /* the bg-red-50 replacement: a tint, not a boundary */
-  --danger-border: #bb554a;    /* 3.79:1 surface / 4.04:1 page / 3.43:1 raised - clears 3:1 everywhere */
-  --warning: #f0c070;          /* 10.49:1 on surface, 9.49:1 on raised */
+  --ring: #ebae35;
 
-  /* `--primary` is kept pointing at the accent so the EXISTING utilities
-     (bg-primary, text-primary, ring) keep working inside a migrated subtree
-     without touching a single component that already uses them. */
-  --primary: #d4a548;
-  --primary-foreground: #14110d;
-  --primary-hover: #e0b25c;
-  --primary-subtle: rgba(212, 165, 72, 0.12);
-  /* THE NOTICE BOX'S EDGE (#104). The info boxes were written
-     `border-primary/30 bg-primary/5`, and Tailwind 3 cannot put an opacity
-     modifier on a bare var() colour, so neither class was ever generated:
-     they rendered preflight's #e5e7eb at 14.26:1 on the card, with no fill.
-     The fill is now --primary-subtle; this is the edge. Derived, not picked:
-     the first alpha that reaches 1.83:1 on --surface OVER THE BOX'S OWN FILL,
-     because a background paints under its border. Measured: 1.85 on --surface
-     (1.50 against the fill inside), 1.83 page, 1.85 raised, 1.86 muted. A
-     gold edge, not a control boundary; that is --control-border's job. */
-  --primary-border: rgba(212, 165, 72, 0.21);
-
-  --ring: #d4a548;
-
-  /* THE SUPPORTING PALETTE (docs/design/VISUAL_LANGUAGE.md, rule 4). Four
-     tints for icon tiles and illustrations, so four cards on one screen are
-     not four gold squares. Gold stays the only colour on an action. Each
-     measured on --surface (#1c1813) and --raised (#26211a) as an ICON colour
-     (3:1 non-text bar): mint 7.1 / 6.4, sky 6.8 / 6.1, coral 5.2 / 4.7,
-     violet 5.6 / 5.0. The -subtle forms are 14% fills for tiles. */
   --mint: #5fd3a6;
   --mint-subtle: rgba(95, 211, 166, 0.14);
   --sky: #6fb8ff;
@@ -414,177 +383,201 @@ body { background-color: var(--background); color: var(--foreground); }
   --coral-subtle: rgba(255, 138, 128, 0.14);
   --violet: #b79cff;
   --violet-subtle: rgba(183, 156, 255, 0.14);
+
+  --clay-ask: #2e261c;
+  --clay-ask-fg: #faf7f0;
+  --clay-ask-muted: #dcd2c2;
+  --clay-streak: #3a2e18;
+  --clay-streak-muted: #d2c5ae;
+  --ring-track: #3a3127;
+  --ring-green: #7dbe85;
+  --chevron: #8f826f;
+  --tint-1: #4a2f24;
+  --tint-2: #263a2b;
+  --tint-3: #243246;
+  --g-taupe-0: #e2d6c2;
+  --g-taupe-1: #9a8d79;
+  --g-line-0: #ffffff;
+  --g-line-1: #d9cdb8;
+  --clay-card: 0 10px 20px rgba(0, 0, 0, 0.45), inset 0 -4px 8px rgba(0, 0, 0, 0.35), inset 0 3px 6px rgba(255, 255, 255, 0.07);
+  --clay-card-streak: 0 10px 20px rgba(0, 0, 0, 0.45), inset 0 -4px 8px rgba(0, 0, 0, 0.35), inset 0 3px 6px rgba(255, 220, 150, 0.10);
+  --clay-card-ask: 0 14px 26px rgba(0, 0, 0, 0.50), inset 0 -5px 10px rgba(0, 0, 0, 0.40), inset 0 3px 6px rgba(255, 220, 150, 0.10);
+  --clay-row: 0 8px 16px rgba(0, 0, 0, 0.42), inset 0 -3px 7px rgba(0, 0, 0, 0.32), inset 0 3px 5px rgba(255, 255, 255, 0.07);
+  --clay-button: 0 6px 14px rgba(0, 0, 0, 0.45), inset 0 -3px 6px rgba(0, 0, 0, 0.40), inset 0 3px 5px rgba(255, 255, 255, 0.07);
+  --clay-pill: 0 5px 10px rgba(0, 0, 0, 0.45), inset 0 -2px 4px rgba(0, 0, 0, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.07);
+  --clay-tile: 0 4px 8px rgba(0, 0, 0, 0.40), inset 0 -2px 4px rgba(0, 0, 0, 0.30), inset 0 2px 4px rgba(255, 255, 255, 0.08);
+  --clay-gold: 0 6px 12px rgba(0, 0, 0, 0.40), inset 0 -3px 5px rgba(120, 70, 0, 0.30), inset 0 3px 5px rgba(255, 255, 255, 0.55);
+  --clay-gold-ask: 0 6px 12px rgba(0, 0, 0, 0.40), inset 0 -3px 5px rgba(120, 70, 0, 0.30), inset 0 3px 5px rgba(255, 255, 255, 0.55);
+  --clay-gold-sm: 0 3px 6px rgba(0, 0, 0, 0.35), inset 0 -2px 3px rgba(120, 70, 0, 0.22), inset 0 2px 3px rgba(255, 255, 255, 0.55);
+  --clay-tab-active: 0 5px 10px rgba(0, 0, 0, 0.40), inset 0 -3px 5px rgba(120, 70, 0, 0.25), inset 0 3px 5px rgba(255, 255, 255, 0.55);
+  --clay-bar: 0 12px 24px rgba(0, 0, 0, 0.55), inset 0 -3px 7px rgba(0, 0, 0, 0.35), inset 0 3px 5px rgba(255, 255, 255, 0.07);
+  --clay-track: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  --clay-top: #241e17;
+  --clay-tile-top: #322a21;
+  --clay-well: #1a1611;
+  --clay-hi: rgba(255, 255, 255, 0.07);
+  --clay-shade: rgba(0, 0, 0, 0.35);
+  --clay-drop: rgba(0, 0, 0, 0.5);
+  --clay-well-shade: rgba(0, 0, 0, 0.5);
+  --clay-gold-hi: rgba(255, 255, 255, 0.55);
+  --clay-gold-shade: rgba(120, 70, 0, 0.30);
+  --clay-edge: rgba(255, 244, 225, 0.06);
 }
 
-/* The light half of the toggle. Same token names, different values — no second
-   build. Gold is DARKENED here: #d4a548 on cream is ~1.7:1 and unreadable, which
-   is the "gold goes muddy on light" problem stated as a number. #8a6514 clears
-   AA on both --background and --surface. */
+/* The light palette, the default (equal to :root). Gold TEXT is darkened here
+   (--accent-text #7a580e): the fill gold on cream is about 1.9:1 and
+   unreadable as text, so it is only ever a fill behind ink. */
 [data-theme="light"] {
   color-scheme: light;
-  --background: #faf7f2;
-  --surface: #ffffff;
-  --raised: #f3ede3;
-  --muted: #f0eae0;
-  /* Same 0.90 over this palette's page: nav link 5.67:1 bare, 4.61 under a 7xl
-     headline, 4.98 under the gold CTA. This is the half that set the value —
-     it needed 0.89 where the dark palette needed 0.86. */
-  --header: rgba(250, 247, 242, 0.9);
+
+  --background: #f4ede1;
+  --surface: #fffcf6;
+  --raised: #f8f1e6;
+  --muted: #efe6d7;
+  --header: rgba(244, 237, 225, 0.9);
 
   --border: rgba(26, 22, 17, 0.10);
-  --input: #ffffff;
-  /* Same derivation on this palette (t = 0.11): 3.62 on --surface and the
-     input's fill, 3.39 on the page, 3.11 on --raised, 3.03 on --muted. Above
-     3:1 everywhere; thinnest on --muted. */
-  --control-border: #8f8578;
+  --input: #fffcf6;
+  --control-border: #857a6c;
 
   --foreground: #1a1611;
-  --muted-foreground: #6b6155;
-  --faint: #948a7c;
+  --muted-foreground: #5e5446;
+  --faint: #6e6458;
 
-  --accent: #8a6514;
-  --accent-foreground: #ffffff;
-  --accent-hover: #6f5010;
-  --accent-subtle: rgba(138, 101, 20, 0.10);
+  --accent: #ebae35;
+  --accent-foreground: #1a1611;
+  --accent-hover: #f2bc4e;
+  --accent-subtle: rgba(235, 174, 53, 0.18);
+  --accent-text: #7a580e;
+  --accent-text-hover: #5f440a;
+  --accent-edge: #7a580e;
 
-  /* Measured on this theme's own grounds, not assumed to mirror the dark set.
-     NOTED RISK, recorded rather than silently accepted: --success measures
-     4.55:1 on --raised, which clears AA by 0.05. It passes today and was left
-     alone on the same no-churn rule as the dark set, but it is the one value
-     here that a future tweak to --raised could push under the bar. */
-  --success: #1c7a55;          /* 6.48:1 on surface, 4.55:1 on raised - thin */
-  --danger: #b3322b;           /* 7.13:1 on surface, 5.29:1 on raised, 5.58:1 on danger-subtle */
-  --danger-foreground: #ffffff; /* 6.16:1 on the danger fill */
+  --success: #186b4b;
+  --danger: #b3322b;
+  --danger-foreground: #ffffff;
   --danger-subtle: #fdf1f0;
-  --danger-border: #bd6a60;    /* 3.89:1 surface / 3.64:1 page / 3.34:1 raised */
-  --warning: #7a5200;          /* 6.92:1 on surface, 5.94:1 on raised */
+  --danger-border: #b0584d;
+  --warning: #7a5200;
 
-  --primary: #8a6514;
-  --primary-foreground: #ffffff;
-  --primary-hover: #6f5010;
-  --primary-subtle: rgba(138, 101, 20, 0.10);
-  /* Same derivation over this palette's 10% fill (alpha 0.36): 1.84 on
-     --surface (1.61 inside), 1.80 page, 1.76 raised, 1.74 muted. */
-  --primary-border: rgba(138, 101, 20, 0.36);
+  --primary: #ebae35;
+  --primary-foreground: #1a1611;
+  --primary-hover: #f2bc4e;
+  --primary-subtle: rgba(235, 174, 53, 0.18);
+  --primary-border: rgba(181, 122, 18, 0.40);
+  --primary-text: #7a580e;
+  --primary-text-hover: #5f440a;
 
-  --ring: #8a6514;
+  --ring: #7a580e;
 
-  /* The same four on the light grounds (#ffffff / #f3ede3), darkened so
-     they hold 3:1 as icons: mint 3.9 / 3.4, sky 4.2 / 3.7, coral 4.1 / 3.6,
-     violet 4.6 / 4.0. */
-  --mint: #1f8f62;
+  --mint: #13633f;
   --mint-subtle: rgba(31, 143, 98, 0.12);
-  --sky: #2f74c0;
+  --sky: #245f9f;
   --sky-subtle: rgba(47, 116, 192, 0.12);
-  --coral: #c94f45;
+  --coral: #a63c33;
   --coral-subtle: rgba(201, 79, 69, 0.12);
-  --violet: #6f4fc9;
+  --violet: #6445b8;
   --violet-subtle: rgba(111, 79, 201, 0.12);
+
+  /* THE CLAY (spec "Clay surface"): no border, no blur, three layers at most. */
+  --clay-ask: #241e17;
+  --clay-ask-fg: #faf7f0;
+  --clay-ask-muted: #dcd2c2;
+  --clay-streak: #fff4dc;
+  --clay-streak-muted: #5e5446;
+  --ring-track: #ede3d2;
+  --ring-green: #6fa77f;
+  --chevron: #8a7e6d;
+  --tint-1: #fbe3d5;
+  --tint-2: #ddebd9;
+  --tint-3: #dce6f3;
+  --g-taupe-0: #c9bca6;
+  --g-taupe-1: #7e7262;
+  --g-line-0: #5a4e42;
+  --g-line-1: #1a1611;
+  --clay-card: 0 10px 20px rgba(110, 80, 35, 0.14), inset 0 -4px 8px rgba(110, 80, 35, 0.09), inset 0 3px 6px rgba(255, 255, 255, 0.95);
+  --clay-card-streak: 0 10px 20px rgba(110, 80, 35, 0.14), inset 0 -4px 8px rgba(176, 122, 18, 0.12), inset 0 3px 6px rgba(255, 255, 255, 0.95);
+  --clay-card-ask: 0 14px 26px rgba(40, 28, 12, 0.28), inset 0 -5px 10px rgba(0, 0, 0, 0.35), inset 0 3px 6px rgba(255, 255, 255, 0.10);
+  --clay-row: 0 8px 16px rgba(110, 80, 35, 0.13), inset 0 -3px 7px rgba(110, 80, 35, 0.08), inset 0 3px 5px rgba(255, 255, 255, 0.95);
+  --clay-button: 0 6px 14px rgba(110, 80, 35, 0.16), inset 0 -3px 6px rgba(110, 80, 35, 0.10), inset 0 3px 5px rgba(255, 255, 255, 0.95);
+  --clay-pill: 0 5px 10px rgba(110, 80, 35, 0.16), inset 0 -2px 4px rgba(110, 80, 35, 0.10), inset 0 2px 4px rgba(255, 255, 255, 0.95);
+  --clay-tile: 0 4px 8px rgba(110, 80, 35, 0.16), inset 0 -2px 4px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.85);
+  --clay-gold: 0 6px 12px rgba(140, 90, 10, 0.26), inset 0 -3px 5px rgba(120, 70, 0, 0.30), inset 0 3px 5px rgba(255, 255, 255, 0.55);
+  --clay-gold-ask: 0 6px 12px rgba(0, 0, 0, 0.30), inset 0 -3px 5px rgba(120, 70, 0, 0.30), inset 0 3px 5px rgba(255, 255, 255, 0.55);
+  --clay-gold-sm: 0 3px 6px rgba(140, 90, 10, 0.22), inset 0 -2px 3px rgba(120, 70, 0, 0.22), inset 0 2px 3px rgba(255, 255, 255, 0.55);
+  --clay-tab-active: 0 5px 10px rgba(140, 90, 10, 0.28), inset 0 -3px 5px rgba(120, 70, 0, 0.25), inset 0 3px 5px rgba(255, 255, 255, 0.55);
+  --clay-bar: 0 12px 24px rgba(110, 80, 35, 0.20), inset 0 -3px 7px rgba(110, 80, 35, 0.09), inset 0 3px 5px rgba(255, 255, 255, 0.95);
+  --clay-track: inset 0 1px 2px rgba(110, 80, 35, 0.18);
+  /* The older clay rules (wells, switches, segmented controls, the web's top
+     bar) read these; re-valued for this palette. */
+  --clay-top: #fffcf6;
+  --clay-tile-top: #fbf5ec;
+  --clay-well: #ede3d2;
+  --clay-hi: rgba(255, 255, 255, 0.95);
+  --clay-shade: rgba(110, 80, 35, 0.12);
+  --clay-drop: rgba(104, 72, 24, 0.30);
+  --clay-well-shade: rgba(110, 80, 35, 0.22);
+  --clay-gold-hi: rgba(255, 255, 255, 0.55);
+  --clay-gold-shade: rgba(120, 70, 0, 0.30);
+  --clay-edge: rgba(120, 88, 36, 0.10);
 }
 
 /* A themed subtree paints its own ground, so it renders correctly wherever it
    is mounted. Without this the tokens would change but the canvas behind them
-   would not. Since :root went dark (#101) the case this guards is the LIGHT
-   subtree, which would otherwise read as light cards floating on a dark page;
-   a dark subtree now paints the same colour the page already has. */
+   would not. Since :root went light (design "C", 2026-11-03) the case this
+   guards is a DARK subtree, which would otherwise read as dark cards floating
+   on a light page. */
 [data-theme] {
   background-color: var(--background);
   color: var(--foreground);
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
-   THE SIGNED-IN APP'S CLAY (Step Redesign-2, docs/design/redesign-mockups).
+   THE SIGNED-IN APP'S CLAY (Step Redesign-2; re-made for design "C", the clay
+   mix, 2026-11-03).
 
    SCOPE. Everything here sits under `.kf-clay`, which DashboardShell sets on
    its root, so the signed-in screens get it in both shells (the web dashboard
-   and the iOS app are one product) and the marketing and auth pages, approved
-   in #207 with their own measured contrast and motion, keep their look. The
-   STRUCTURAL changes (no header buttons, the upload button) are the app's
-   alone and live in the components, keyed on the platform marker.
+   and the iOS app are one product). The COLOURS are no longer scoped: since
+   design "C" the theme blocks above carry the spec's palette for the whole
+   site, and `.kf-clay` adds only the clay SURFACES. The structural changes
+   (no header buttons, the upload button) stay the app's, keyed on the
+   platform marker in the components.
 
-   TOKENS. Dark cards are one clear step lighter than the ground and carry a
-   top-to-bottom gradient, so the depth reads by value as well as by shadow (a
-   drop shadow alone is invisible on near-black, register #85). The text
-   tokens move with them: --muted-foreground 5.2:1 and --faint 4.3:1 on the
-   brightest tile top (#362e24), 4.9 / 4.8 on a card top. Light keeps its
-   grounds (a darker tile would put gold under 4.5:1) and raises --faint and
-   --control-border, which were under AA there (clay prototype, #258).
+   THE SURFACE (spec "Clay surface"). A card has NO border and NO blur behind
+   it: a flat fill and three shadows, a drop below, a shade inside the lower
+   edge, a catchlight inside the top (`--clay-card`, per theme). The two
+   exceptions keep their edge because the edge is the message: the delete
+   card's red border and an empty state's dashed well.
 
-   COST. At most three box-shadow layers on any element, at most two of them
-   blurred, no filter and no backdrop-filter; the render workflow counts them.
+   COST. At most three box-shadow layers on any element, no filter and no
+   backdrop-filter anywhere; the render workflows count them.
    ═════════════════════════════════════════════════════════════════════════════ */
-.kf-clay {
-  --radius: 1.125rem;
-  --surface: #2a241c;
-  --raised: #2e271e;
-  --muted: #2b251d;
-  --input: #1f1a14;
-  --muted-foreground: #b3a593;
-  --faint: #a4967f;
-  --control-border: #8a7d6c;
-  /* --danger #e8675f was 4.39:1 on a card top (#322a21); this is 5.8 / 5.5 on a tile top. */
-  --danger: #f08a80;
-  --clay-top: #322a21;
-  --clay-tile-top: #362e24;
-  --clay-well: #1d1913;
-  --clay-hi: rgba(255, 236, 205, 0.16);
-  --clay-shade: rgba(0, 0, 0, 0.42);
-  --clay-drop: rgba(0, 0, 0, 0.9);
-  --clay-well-shade: rgba(0, 0, 0, 0.55);
-  --clay-gold-hi: rgba(255, 249, 232, 0.55);
-  --clay-gold-shade: rgba(92, 60, 8, 0.45);
-  --clay-edge: rgba(255, 244, 225, 0.06);
-}
-[data-theme="light"] .kf-clay {
-  --surface: #ffffff;
-  --raised: #f3ede3;
-  --muted: #f0eae0;
-  --input: #ffffff;
-  /* Every token the dark block above sets is set here too: a token left out
-     would keep the dark value in light (the first render had
-     --muted-foreground #b3a593 on white, 2.07:1). */
-  --muted-foreground: #6b6155;
-  --faint: #6e6458;
-  --control-border: #857a6c;
-  --danger: #b3322b;
-  --coral: #a63c33;
-  --sky: #245f9f;
-  --mint: #16714d;
-  --clay-top: #fffdf9;
-  --clay-tile-top: #fffaf2;
-  --clay-well: #e9dfcf;
-  --clay-hi: rgba(255, 255, 255, 0.95);
-  --clay-shade: rgba(122, 88, 34, 0.14);
-  --clay-drop: rgba(104, 72, 24, 0.34);
-  --clay-well-shade: rgba(104, 72, 24, 0.22);
-  --clay-gold-hi: rgba(255, 246, 222, 0.75);
-  --clay-gold-shade: rgba(110, 72, 8, 0.32);
-  --clay-edge: rgba(120, 88, 36, 0.10);
-}
+.kf-clay { --radius: 1.125rem; }
 
-/* iOS large title: 34/41 at 700, as the mockups; the tracking rule for RTL
-   above neutralises the Latin tightening on /ar. */
+/* iOS large title: 34/41 at 700; the tracking rule for RTL above neutralises
+   the Latin tightening on /ar. */
 .kf-clay .kf-title { font-size: 2.125rem; line-height: 2.5625rem; font-weight: 700; letter-spacing: -0.4px; }
 @media (min-width: 768px) { .kf-clay .kf-title { font-size: 2.25rem; line-height: 2.75rem; } }
 
-/* Cards (<Card> and the hand-written ones carry `kf-card`): a catchlight on
-   top, a shade inside the lower edge, one drop below. The hairline border is
-   kept at low alpha as the edge; a red edge (the delete card) wins by its own
-   utility, and a dashed edge (an empty state) stays dashed and sunk. */
+/* Cards (<Card> and the hand-written ones carry `kf-card`). */
 .kf-clay .kf-card {
-  border-radius: 1.625rem;
-  border-color: var(--clay-edge);
-  background-image: linear-gradient(180deg, var(--clay-top), var(--surface));
-  box-shadow: inset 0 1.5px 0 var(--clay-hi), inset 0 -10px 18px -12px var(--clay-shade), 0 18px 30px -18px var(--clay-drop);
+  border-width: 0;
+  border-radius: 1.5rem;
+  background-color: var(--surface);
+  background-image: none;
+  box-shadow: var(--clay-card);
 }
-.kf-clay .kf-card.border-danger-border { border-color: var(--danger-border); }
-.kf-clay .kf-card.border-dashed { background-image: none; box-shadow: inset 0 2px 8px -2px var(--clay-well-shade); border-color: var(--control-border); }
+.kf-clay .kf-card.border-danger-border { border-width: 1px; border-color: var(--danger-border); }
+.kf-clay .kf-card.border-dashed { border-width: 1px; background-color: var(--raised); box-shadow: inset 0 2px 8px -2px var(--clay-well-shade); border-color: var(--control-border); }
+/* The home's subject rows: a clay card a step smaller. */
+.kf-clay .kf-row { border-radius: 1.375rem; background-color: var(--surface); box-shadow: var(--clay-row); }
 
-/* Inner tiles (stat meters, steps, quota cells): raised a little. */
+/* Inner tiles (stat meters, steps, quota cells): a small clay lump. */
 .kf-clay .kf-tile {
   border-radius: 1.125rem;
-  background-image: linear-gradient(180deg, var(--clay-tile-top), var(--raised));
-  box-shadow: inset 0 1px 0 var(--clay-hi), inset 0 -6px 10px -7px var(--clay-shade), 0 8px 14px -10px var(--clay-drop);
+  background-color: var(--raised);
+  background-image: none;
+  box-shadow: var(--clay-tile);
 }
 /* Wells (a note, a track, a field): pressed in. */
 .kf-clay .kf-well {
@@ -592,32 +585,55 @@ body { background-color: var(--background); color: var(--foreground); }
   box-shadow: inset 0 3px 7px -2px var(--clay-well-shade), inset 0 -1px 0 var(--clay-hi);
 }
 /* Icon chips: the tint, a rim. */
-.kf-clay .kf-chip { border-radius: 0.875rem; box-shadow: inset 0 1px 0 var(--clay-hi), inset 0 -5px 8px -6px var(--clay-shade); }
+.kf-clay .kf-chip { border-radius: 0.875rem; box-shadow: var(--clay-tile); }
 
 /* Buttons: every buttonVariants() control carries `pressable` (Button.tsx is
-   untouched, so the visual-system proof holds). Rest raised, press sunk; and
-   every one at least 44 pt tall, the small size included (it is 36 px). */
+   untouched). Every one at least 44 pt tall, the small size included (36 px).
+   The gold one is the fill gold behind ink text (spec: the gold pill). */
 .kf-clay .pressable { min-height: 2.75rem; }
-.kf-clay .pressable.bg-primary {
-  background-image: linear-gradient(180deg, var(--primary-hover), var(--primary));
-  box-shadow: inset 0 1.5px 0 var(--clay-gold-hi), inset 0 -6px 10px -6px var(--clay-gold-shade), 0 12px 20px -12px var(--clay-drop);
+.kf-clay .pressable.bg-primary,
+.kf-clay .pressable.bg-accent {
+  background-image: none;
+  box-shadow: var(--clay-gold);
 }
 .kf-clay .pressable.bg-surface {
-  border-color: var(--clay-edge);
-  background-image: linear-gradient(180deg, var(--clay-tile-top), var(--raised));
-  box-shadow: inset 0 1px 0 var(--clay-hi), inset 0 -6px 10px -7px var(--clay-shade), 0 10px 16px -12px var(--clay-drop);
+  border-color: transparent;
+  background-image: none;
+  box-shadow: var(--clay-pill);
 }
 .kf-clay .pressable:active { box-shadow: inset 0 3px 7px -2px var(--clay-well-shade), inset 0 -1px 0 var(--clay-hi); }
 @media (prefers-reduced-motion: no-preference) {
   .kf-clay .pressable:active { transform: translateY(1px) scale(0.99); }
 }
 
-/* The student's chat bubble: gold clay, three layers (shadow-soft's two plus
-   Tailwind's two zero-size ring layers would read as four). */
-.kf-clay .kf-bubble-user {
-  background-image: linear-gradient(180deg, var(--primary-hover), var(--primary));
-  box-shadow: inset 0 1.5px 0 var(--clay-gold-hi), inset 0 -6px 10px -6px var(--clay-gold-shade), 0 12px 20px -12px var(--clay-drop);
-}
+/* The gold clay pill and the small count pill (spec: the streak count). */
+.kf-clay .kf-gold { background-color: var(--accent); color: var(--accent-foreground); box-shadow: var(--clay-gold); }
+.kf-clay .kf-gold-sm { background-color: var(--accent); color: var(--accent-foreground); box-shadow: var(--clay-gold-sm); }
+/* A surface pill (the header's "new subject", the menu button). */
+.kf-clay .kf-pill { background-color: var(--surface); box-shadow: var(--clay-pill); }
+.kf-clay .kf-button { background-color: var(--surface); box-shadow: var(--clay-button); }
+/* The greeting's avatar (the student's initial, the way to Settings): a gold clay coin,
+   the same gradient as the clay icons' gold, ink text. */
+.kf-clay .kf-avatar { background-color: var(--accent); background-image: radial-gradient(circle at 35% 28%, #ffe7a6 0%, #ebae35 55%, #b57a12 100%); color: var(--accent-foreground); box-shadow: var(--clay-gold-sm); }
+
+/* The home's dark ask card (dark in both themes, a step lighter in dark). */
+.kf-clay .kf-ask { background-color: var(--clay-ask); color: var(--clay-ask-fg); box-shadow: var(--clay-card-ask); }
+.kf-clay .kf-ask .kf-gold { box-shadow: var(--clay-gold-ask); }
+/* The streak card's warm tint. */
+.kf-clay .kf-streak { background-color: var(--clay-streak); box-shadow: var(--clay-card-streak); }
+/* Progress tracks (the subject bar): pressed in. */
+.kf-clay .kf-track { background-color: var(--ring-track); box-shadow: var(--clay-track); }
+/* The subject icon tiles, a tint per index. */
+.kf-clay .kf-tint-1 { background-color: var(--tint-1); box-shadow: var(--clay-tile); }
+.kf-clay .kf-tint-2 { background-color: var(--tint-2); box-shadow: var(--clay-tile); }
+.kf-clay .kf-tint-3 { background-color: var(--tint-3); box-shadow: var(--clay-tile); }
+/* The subjects header's "all subjects" link: ink, underlined, in light; the
+   gold text in dark (the mockups). */
+.kf-clay .kf-all-link { color: var(--foreground); }
+[data-theme="dark"] .kf-clay .kf-all-link { color: var(--accent-text); }
+
+/* The student's chat bubble: gold clay, ink text. */
+.kf-clay .kf-bubble-user { background-image: none; box-shadow: var(--clay-gold); }
 
 /* Segmented controls (the language group, the theme radiogroup): a sunken
    track with a control boundary, the chosen option a raised gold-edged pill,
@@ -632,25 +648,19 @@ body { background-color: var(--background); color: var(--foreground); }
 .kf-clay [role="radiogroup"].bg-raised > button { border-radius: 0.75rem; border: 1.5px solid transparent; min-height: 2.75rem; }
 .kf-clay [role="group"].bg-raised > .bg-surface,
 .kf-clay [role="radiogroup"].bg-raised > .bg-surface {
-  border-color: var(--accent);
-  background-image: linear-gradient(180deg, var(--clay-tile-top), var(--raised));
-  background-color: var(--raised);
-  box-shadow: inset 0 1px 0 var(--clay-hi), inset 0 -4px 8px -5px var(--clay-shade), 0 6px 10px -6px var(--clay-drop);
+  border-color: var(--accent-edge);
+  background-image: none;
+  background-color: var(--surface);
+  box-shadow: var(--clay-pill);
 }
 
 /* The switch: a bounded sunken track; the thumb IS the state, a bead that
    holds 3:1 on its track in both positions (off: --muted-foreground on the
-   well, 6.0 dark / 5.0 light; on: the dark bead on gold, 8.3 / 7.1). The old
-   off state (a surface thumb on a muted track, 1.1:1) read as disabled. */
+   well; on: the ink bead on the fill gold). */
 .kf-clay .kf-switch-track { border: 1px solid var(--control-border); background-color: var(--clay-well); box-shadow: inset 0 3px 6px -2px var(--clay-well-shade); }
-.kf-clay [aria-checked="true"] > .kf-switch-track { border-color: var(--primary); background-color: var(--primary); background-image: linear-gradient(180deg, var(--primary-hover), var(--primary)); box-shadow: inset 0 3px 6px -2px var(--clay-gold-shade); }
+.kf-clay [aria-checked="true"] > .kf-switch-track { border-color: var(--accent-edge); background-color: var(--primary); background-image: none; box-shadow: inset 0 3px 6px -2px var(--clay-gold-shade); }
 .kf-clay .kf-switch-thumb { background-color: var(--muted-foreground); box-shadow: inset 0 1px 0 var(--clay-hi), inset 0 -3px 5px -2px var(--clay-shade), 0 3px 6px -2px var(--clay-drop); }
 .kf-clay [aria-checked="true"] .kf-switch-thumb { background-color: var(--primary-foreground); box-shadow: inset 0 1px 0 rgba(255, 236, 205, 0.18), 0 3px 6px -2px var(--clay-gold-shade); }
-
-/* A notice on the gold tint (the partial-summary line) inside a well: in
-   light the brand gold read 3.6:1 there; the darker gold the buttons use on
-   hover carries it (5.4:1). The brand gold itself does not move. */
-[data-theme="light"] .kf-clay .bg-primary-subtle.text-primary { color: var(--primary-hover); }
 
 /* Fields: a sunken well with a control boundary. */
 .kf-clay input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
@@ -659,18 +669,15 @@ body { background-color: var(--background); color: var(--foreground); }
 .kf-clay .kf-composer { border-color: var(--control-border); background-color: var(--input); box-shadow: inset 0 3px 7px -2px var(--clay-well-shade), inset 0 -1px 0 var(--clay-hi); }
 .kf-clay .kf-composer textarea { box-shadow: none; border: 0; background: transparent; }
 
-/* The floating tab bar: a clay slab above the home indicator, the active tab
-   a gold capsule with the filled glyph. */
+/* The floating tab bar (spec: a clay pill bar, filled clay icons, the active
+   tab a gold clay pill with ink text). No border. */
 .kf-clay .kf-tabbar {
-  background-image: linear-gradient(180deg, var(--clay-tile-top), var(--raised));
-  background-color: var(--raised);
-  border: 1px solid var(--clay-edge);
-  box-shadow: inset 0 1.5px 0 var(--clay-hi), inset 0 -8px 14px -10px var(--clay-shade), 0 18px 30px -12px var(--clay-drop);
+  background-image: none;
+  background-color: var(--surface);
+  border: 0;
+  box-shadow: var(--clay-bar);
 }
-.kf-clay .kf-tab-active { background-color: var(--accent-subtle); box-shadow: inset 0 1px 0 var(--clay-hi), inset 0 -4px 8px -6px var(--clay-shade); }
-/* In light the brand gold read 4.03:1 on its own tinted capsule; the deeper
-   gold the buttons use on hover is 6.2:1 there. Dark keeps the brand gold. */
-[data-theme="light"] .kf-clay .kf-tab-active { color: var(--accent-hover); }
+.kf-clay .kf-tab-active { background-color: var(--accent); color: var(--accent-foreground); box-shadow: var(--clay-tab-active); }
 /* Content scrolls under the floating bar; the ground fades in behind it, as
    iOS does. Paint only, under the bar's layer. */
 .kf-clay .kf-tabfade { background: linear-gradient(180deg, transparent, var(--background) 62%); }
@@ -678,26 +685,18 @@ body { background-color: var(--background); color: var(--foreground); }
 /* Step Redesign-3. The web's phone top bar, in the same clay as the tab bar:
    a slab with a lit lower edge and one drop, its bottom corners rounded. The
    marketing and sign-in pages have their own header (SiteHeader) outside
-   .kf-clay and are untouched. */
+   .kf-clay. */
 .kf-clay .kf-topbar {
-  border-color: var(--clay-edge);
+  border-color: transparent;
   border-radius: 0 0 1.375rem 1.375rem;
-  background-image: linear-gradient(180deg, var(--raised), var(--clay-tile-top));
-  background-color: var(--raised);
-  box-shadow: inset 0 -1.5px 0 var(--clay-hi), inset 0 8px 14px -10px var(--clay-shade), 0 14px 24px -14px var(--clay-drop);
+  background-image: none;
+  background-color: var(--surface);
+  box-shadow: var(--clay-bar);
 }
 /* Inside the app: the ground behind the status bar, fading out below it.
-   Step Store-Fix-1: OPAQUE for the whole top inset, then the 0.75rem fade.
-   The old gradient was opaque for only its top 55% (about 39 pt of a 71 pt
-   scrim on a 59 pt inset), so text scrolled under the clock read through it
-   (store capture 38579234295: ar/03, en/03, en/04). Same token as the page
-   (body and <main> paint var(--background)), in dark and in light. */
+   Step Store-Fix-1: OPAQUE for the whole top inset, then the 0.75rem fade
+   (store capture 38579234295). Same token as the page, in dark and in light. */
 .kf-clay .kf-topfade { background: linear-gradient(180deg, var(--background) 0, var(--background) env(safe-area-inset-top, 0px), transparent 100%); }
-/* The web home's plan pill on its gold tint read 4.37:1 in light (the
-   Redesign-3 render of the web shell); the deeper gold is 6.2:1 there. */
-[data-theme="light"] .kf-clay .kf-plan-pill.text-accent { color: var(--accent-hover); }
-/* No streak yet: an empty gold ring, raised like the gold controls. */
-.kf-clay .kf-streak-ring { box-shadow: 0 6px 10px -6px var(--clay-drop); }
 
 /* Guideline 4.0 ("controls that are difficult to use due to size") and the
    HIG's 44 x 44 pt: a text link or small button gets a tap area of at least

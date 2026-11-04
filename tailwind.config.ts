@@ -70,6 +70,48 @@ const config: Config = {
         coral: { DEFAULT: 'var(--coral)', subtle: 'var(--coral-subtle)' },
         violet: { DEFAULT: 'var(--violet)', subtle: 'var(--violet-subtle)' },
       },
+      // DESIGN "C" (2026-11-03): GOLD IS A FILL, NOT A TEXT COLOUR, ON LIGHT.
+      // `bg-primary`/`bg-accent` stay the fill gold above (#ebae35, behind ink
+      // text). The TEXT, BORDER and RING utilities of the same names read their
+      // own tokens, a darker gold in light measured at 4.5:1 or better on every
+      // ground (globals.css; docs/design/design-c/contrast.md). One switch here
+      // instead of 89 call sites, so `text-accent` can never put the fill gold
+      // on cream.
+      textColor: {
+        primary: {
+          DEFAULT: 'var(--primary-text)',
+          foreground: 'var(--primary-foreground)',
+          hover: 'var(--primary-text-hover)',
+          subtle: 'var(--primary-subtle)',
+          border: 'var(--primary-border)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent-text)',
+          foreground: 'var(--accent-foreground)',
+          hover: 'var(--accent-text-hover)',
+          subtle: 'var(--accent-subtle)',
+        },
+      },
+      borderColor: {
+        primary: {
+          DEFAULT: 'var(--accent-edge)',
+          foreground: 'var(--primary-foreground)',
+          hover: 'var(--primary-text-hover)',
+          subtle: 'var(--primary-subtle)',
+          border: 'var(--primary-border)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent-edge)',
+          foreground: 'var(--accent-foreground)',
+          hover: 'var(--accent-text-hover)',
+          subtle: 'var(--accent-subtle)',
+        },
+      },
+      // A focus ring is a control state (WCAG 1.4.11, 3:1): the ring token.
+      ringColor: {
+        primary: 'var(--ring)',
+        accent: 'var(--ring)',
+      },
       fontFamily: {
         // Rubik covers Latin + Arabic in one family (see src/app/[locale]/layout.tsx).
         sans: ['var(--font-rubik)', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],

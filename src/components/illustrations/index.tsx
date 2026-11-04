@@ -135,7 +135,7 @@ export function Trophy(p: Props) {
  * cards (a lit top edge, a shade inside the lower edge, a soft drop under the
  * object), still from the theme's own tokens, so each re-colours with light
  * and dark and costs no request. The shade and the lit edge are flat shapes,
- * not filters (the render audit refuses filter and backdrop-filter).
+ * not filters (the render audit refuses any filter or backdrop blur).
  */
 
 /** A soft drop under an object: an ellipse in the clay drop colour. */

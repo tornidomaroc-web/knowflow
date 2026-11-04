@@ -67,9 +67,11 @@ for (const p of ['src/components/dashboard/StudentHome.tsx', 'src/components/das
     recentActivity: [{ id: 'c1', created_at: '2026-09-24T21:40:00Z', platform: 'web', knowledge_bases: { name: 'Micro' } }],
   }));
   check(/<bdi[^>]*>Microeconomics<\/bdi>/.test(html), 'the Continue card does not isolate the subject name');
-  check(/<bdi[^>]*>· 24 سبتمبر 2026<\/bdi>/.test(html), 'the Continue card does not isolate the date');
+  // Design "C" round 3 (2026-11-04): the date has its own line and no separator.
+  check(/<bdi[^>]*>24 سبتمبر 2026<\/bdi>/.test(html) && !/·\s*24 سبتمبر/.test(html), 'the Continue card does not isolate the date (or still puts a separator before it)');
   // The label is a <bdi> since #122, so the match spans the tag.
-  check(html.includes('<bdi>الويب</bdi> ·') && !html.includes('WEB'), 'the activity list prints the platform enum instead of the translated label');
+  // A no-break space before the dot since design "C" round 3: no line starts with it.
+  check(html.includes('<bdi>الويب</bdi> ·') && !html.includes('WEB'), 'the activity list prints the platform enum instead of the translated label');
 }
 
 // 4. Suggestions.

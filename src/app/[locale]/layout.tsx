@@ -88,7 +88,7 @@ export default async function LocaleLayout({
   return (
     // NO `data-theme` HERE, ON PURPOSE. The boot script in <head> sets it from
     // the kf-theme cookie before first paint, and :root already carries the
-    // dark palette, so an absent attribute IS the default. Writing
+    // default (light) palette, so an absent attribute IS the default. Writing
     // data-theme="dark" in this JSX was tried and it broke the 404: Next serves
     // an unmatched URL as an error shell (<html id="__next_error__">) that is
     // client-rendered rather than hydrated, and that render set the attribute

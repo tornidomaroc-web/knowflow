@@ -11,10 +11,12 @@ import { cn } from '@/lib/utils';
  * student's own allowance), or one of the supporting tints when several
  * rings sit side by side and should not read as four gold coins.
  */
-export type RingTone = 'accent' | 'mint' | 'sky' | 'coral' | 'violet';
+export type RingTone = 'accent' | 'green' | 'mint' | 'sky' | 'coral' | 'violet';
 
 const TONE: Record<RingTone, string> = {
   accent: 'var(--accent)',
+  // Design "C": the second ring of the allowance card (#6fa77f / #7dbe85).
+  green: 'var(--ring-green)',
   mint: 'var(--mint)',
   sky: 'var(--sky)',
   coral: 'var(--coral)',
@@ -27,6 +29,7 @@ export function Ring({
   stroke = 7,
   tone = 'accent',
   label,
+  track,
   children,
   className,
 }: {
@@ -34,6 +37,9 @@ export function Ring({
   size?: number;
   stroke?: number;
   tone?: RingTone;
+  /** The track's colour; by default --faint at 0.45 (review #122). Design "C"'s
+   *  allowance card passes its own --ring-track, at full opacity. */
+  track?: string;
   /** Screen-reader text, e.g. "7 of 10 questions left". */
   label: string;
   children?: React.ReactNode;
@@ -53,7 +59,7 @@ export function Ring({
         {/* The track reads on every ground (review #122, defect 3): --raised on a
             raised tile was the tile's own colour, and a 0% ring vanished. --faint
             at 0.45 is a visible circle on --surface and --raised in both themes. */}
-        <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--faint)" strokeOpacity="0.45" strokeWidth={stroke} fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={r} stroke={track ?? 'var(--faint)'} strokeOpacity={track ? 1 : 0.45} strokeWidth={stroke} fill="none" />
         <circle
           cx={size / 2}
           cy={size / 2}

@@ -31,7 +31,9 @@ export function RecentActivity({ items, labels, locale }: { items: ActivityItem[
 
   if (!items || items.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-raised p-8 text-center text-sm text-muted-foreground">
+      // Design "C" (the owner's review, 2026-11-04): a clay inset, pressed in,
+      // with no border, like the list's tiles above it have none.
+      <div data-kf-activity-empty className="kf-well rounded-2xl p-8 text-center text-sm text-muted-foreground">
         {labels.noActivity}
       </div>
     );
@@ -39,26 +41,32 @@ export function RecentActivity({ items, labels, locale }: { items: ActivityItem[
 
   return (
     <div>
-      <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-raised">
+      {/* Design "C" (the owner's review of PR #299, 2026-11-04): no hairline
+          box and no dividers; each conversation is a small clay tile, the rows
+          separated by spacing. */}
+      <ul data-kf-activity className="space-y-2.5">
         {visible.map((conv) => (
-          <div key={conv.id} className="flex items-center justify-between gap-4 p-4">
+          <li key={conv.id} className="kf-tile flex items-center justify-between gap-4 rounded-2xl bg-raised px-4 py-3.5">
             <div className="min-w-0">
               <UserName as="p" className="truncate text-sm font-medium text-foreground">
                 {conv.knowledge_bases?.name || labels.unknownKb}
               </UserName>
               <p className="mt-1 text-xs text-faint" dir="auto">
-                <bdi>{labels.platformWeb}</bdi> · <bdi>{formatDate(conv.created_at, locale)}</bdi>
+                {/* U+00A0 before the dot, so a wrapped line never starts with it. */}
+                <bdi>{labels.platformWeb}</bdi>{' · '}<bdi>{formatDate(conv.created_at, locale)}</bdi>
               </p>
             </div>
             <Badge className="shrink-0">{labels.conversation}</Badge>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
       {items.length > LIMIT && (
         <div className="mt-2 flex justify-end">
           <button
             onClick={() => setShowAll((v) => !v)}
-            className="text-sm font-semibold text-accent transition-colors hover:text-accent-hover"
+            // 44 pt tall (the design-c render found it 20 pt: the full home is
+            // the first render to list more than LIMIT conversations).
+            className="inline-flex min-h-[2.75rem] items-center px-1 text-sm font-semibold text-accent transition-colors hover:text-accent-hover"
           >
             {showAll ? labels.showLess : labels.viewAll}
           </button>

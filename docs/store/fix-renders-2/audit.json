@@ -3,11 +3,6 @@
     "file": "ar-dark-answer.png",
     "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=capture&theme=dark",
     "findings": [],
-    "known": [
-      "target 146 x 34 < 44 x 44 button.whitespace-nowrap \"علوم الحياة والأرض\"",
-      "target 116 x 34 < 44 x 44 button.whitespace-nowrap \"الاقتصاد العام\"",
-      "target 134 x 34 < 44 x 44 button.whitespace-nowrap \"التاريخ والجغرافيا\""
-    ],
     "proved": [
       {
         "ok": true,
@@ -23,10 +18,10 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 444; first source bottom 471; all sources bottom 523; list at end no"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 438; first source bottom 469; all sources bottom 521; list at end no"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 471; all sources bottom 523; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 438; first source bottom 469; all sources bottom 521; list at end no",
     "bubble": {
       "blocks": [
         "h1",
@@ -48,11 +43,6 @@
     "file": "ar-light-answer.png",
     "url": "http://127.0.0.1:3000/ar/preview/ask?platform=native&view=capture&theme=light",
     "findings": [],
-    "known": [
-      "target 146 x 34 < 44 x 44 button.whitespace-nowrap \"علوم الحياة والأرض\"",
-      "target 116 x 34 < 44 x 44 button.whitespace-nowrap \"الاقتصاد العام\"",
-      "target 134 x 34 < 44 x 44 button.whitespace-nowrap \"التاريخ والجغرافيا\""
-    ],
     "proved": [
       {
         "ok": true,
@@ -68,10 +58,10 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 444; first source bottom 471; all sources bottom 523; list at end no"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 438; first source bottom 469; all sources bottom 521; list at end no"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 471; all sources bottom 523; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 438; first source bottom 469; all sources bottom 521; list at end no",
     "bubble": {
       "blocks": [
         "h1",
@@ -93,11 +83,6 @@
     "file": "en-dark-answer.png",
     "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&view=capture&theme=dark",
     "findings": [],
-    "known": [
-      "target 84 x 34 < 44 x 44 button.whitespace-nowrap \"Biology\"",
-      "target 108 x 34 < 44 x 44 button.whitespace-nowrap \"Economics\"",
-      "target 84 x 34 < 44 x 44 button.whitespace-nowrap \"History\""
-    ],
     "proved": [
       {
         "ok": true,
@@ -113,10 +98,10 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 444; first source bottom 531; all sources bottom 583; list at end no"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 438; first source bottom 529; all sources bottom 581; list at end no"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 531; all sources bottom 583; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 438; first source bottom 529; all sources bottom 581; list at end no",
     "bubble": {
       "blocks": [
         "h1",
@@ -138,11 +123,6 @@
     "file": "en-light-answer.png",
     "url": "http://127.0.0.1:3000/en/preview/ask?platform=native&view=capture&theme=light",
     "findings": [],
-    "known": [
-      "target 84 x 34 < 44 x 44 button.whitespace-nowrap \"Biology\"",
-      "target 108 x 34 < 44 x 44 button.whitespace-nowrap \"Economics\"",
-      "target 84 x 34 < 44 x 44 button.whitespace-nowrap \"History\""
-    ],
     "proved": [
       {
         "ok": true,
@@ -158,10 +138,10 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 444; first source bottom 531; all sources bottom 583; list at end no"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 438; first source bottom 529; all sources bottom 581; list at end no"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 16 of list 444; first source bottom 531; all sources bottom 583; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 438; first source bottom 529; all sources bottom 581; list at end no",
     "bubble": {
       "blocks": [
         "h1",
@@ -183,7 +163,6 @@
     "file": "ar-dark-settings-end.png",
     "url": "http://127.0.0.1:3000/ar/preview/settings?platform=native&theme=dark",
     "findings": [],
-    "known": [],
     "proved": [
       {
         "ok": true,
@@ -211,7 +190,6 @@
     "file": "en-dark-settings-end.png",
     "url": "http://127.0.0.1:3000/en/preview/settings?platform=native&theme=dark",
     "findings": [],
-    "known": [],
     "proved": [
       {
         "ok": true,

@@ -122,7 +122,9 @@ const { renderToStaticMarkup } = await import('react-dom/server');
   check(/rise rise-1/.test(html) && /pressable/.test(html), 'the home does not rise in or press');
   const unlit = renderToStaticMarkup(React.createElement(StudentHome, { ...base, streak: 0, subjects: [{ id: 's', name: 'Micro', materials: 4, summarised: 2 }] }));
   check(!/kf-flame/.test(unlit) && /streakUnlit/.test(unlit), 'an unlit streak still animates or lacks its line');
-  check(/>50%<\/span>/.test(unlit), 'a subject on the home has no ring with its percent');
+  // Design "C" (2026-11-03): a home subject row is a gold bar with its count
+  // (the mockup's "ملخّص 2 من 4"), still a picture of the number (rule 2).
+  check(/data-kf-progress="50"/.test(unlit) && /style="width:50%"/.test(unlit) && /role="img" aria-label="2 ofWord 4 materialsWord"/.test(unlit), 'a subject on the home has no bar with its count');
 
   const { SubjectsList } = await load('src/components/dashboard/SubjectsList.tsx');
   const sl = { title: 't', subtitle: 's', newSubject: 'n', emptyTitle: 'Nothing yet', emptyPrompt: 'p', materials: 'M', summarised: 'S', quizzed: 'Q', processing: 'p', noMaterials: 'none', lastAsked: 'la', lastAdded: 'ld', created: 'c', ask: 'Ask', addMaterial: 'add' };

@@ -81,7 +81,10 @@ export function SiteHeader({ locale, labels, showPricing }: { locale: Locale; la
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-header pt-[env(safe-area-inset-top)] backdrop-blur-md">
+    // No blur behind the bar (design "C" forbids a backdrop blur anywhere).
+    // --header is opaque enough on its own: its 0.90 was derived
+    // for contrast over content scrolling beneath (#107), not from the blur.
+    <header className="sticky top-0 z-50 border-b border-border bg-header pt-[env(safe-area-inset-top)]">
       <div className="max-w-7xl mx-auto px-6 h-16 md:h-20 flex items-center justify-between gap-4">
         <Link
           href={`/${locale}`}
