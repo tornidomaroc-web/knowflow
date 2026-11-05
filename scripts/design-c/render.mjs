@@ -612,8 +612,10 @@ function reviewChecks() {
     if (!vis(k)) continue;
     measured.kits++;
     const kids = [...k.children].filter(vis).map((c) => c.getBoundingClientRect());
-    const tops = kids.map((r) => r.top);
-    if (tops.length && Math.max(...tops) - Math.min(...tops) > 2) findings.push(`a study kit wraps: its label and chips start at ${tops.map((t) => t.toFixed(0)).join(', ')} ("${txt(k)}")`);
+    // One row = every child's vertical middle within 2 px (the label line and
+    // the 28 pt chips are centred on one row, so their tops differ).
+    const mids = kids.map((r) => (r.top + r.bottom) / 2);
+    if (mids.length && Math.max(...mids) - Math.min(...mids) > 2) findings.push(`a study kit wraps: its label and chips sit at ${mids.map((t) => t.toFixed(0)).join(', ')} ("${txt(k)}")`);
     if (k.scrollWidth > k.clientWidth + 1) findings.push(`a study kit overflows its well (${k.scrollWidth} > ${k.clientWidth}): "${txt(k)}"`);
   }
   // 3. Delete at the start of its row in the action group.
