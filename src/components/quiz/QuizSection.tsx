@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { readServerLimitMessage } from '@/lib/limit-messages';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
-import { ClayChoiceEmpty, ClayChoicePicked, ClayChoiceRight, ClayChoiceWrong, ClayQuiz } from '@/components/clay/ClayIcons';
+import { ClayChoiceEmpty, ClayChoicePicked, ClayChoiceRight, ClayChoiceWrong, ClayDoc, ClayQuiz } from '@/components/clay/ClayIcons';
 
 // Only the fields this section needs from a document, mirroring SummarySection's
 // SummaryDoc rather than accepting a whole `Document`.
@@ -258,7 +258,7 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
             is drawn, with the route's sentence under the picture. */}
         {error && error === q.errors.notEnoughText ? (
           <div data-kf-quiz-empty="" className="kf-well mt-3 flex flex-col items-center rounded-2xl p-5 text-center">
-            <ClayQuiz width={56} height={56} data-kf-clay-art="empty-quiz" />
+            <ClayDoc tone="peach" width={56} height={56} data-kf-clay-art="empty-quiz" />
             <p className="mt-2 text-sm text-muted-foreground">{error}</p>
           </div>
         ) : (

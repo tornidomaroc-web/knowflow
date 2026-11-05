@@ -372,9 +372,14 @@ function lineChecks(scope) {
   for (let n = tw.nextNode(); n; n = tw.nextNode()) {
     if (!n.data.trim()) continue;
     const el = n.parentElement;
-    if (!el || el.closest('svg, script, style, noscript, .sr-only, [aria-hidden="true"], [hidden], [data-username], [data-kf-generated], [data-kf-bubble], [data-kf-summary] > p[dir="auto"]')) continue;
+    if (!el || el.closest('svg, script, style, noscript, .sr-only, [aria-hidden="true"], [hidden], [data-kf-generated], [data-kf-bubble], [data-kf-summary] > p[dir="auto"]')) continue;
     let b = el;
     while (b !== root && getComputedStyle(b).display.startsWith('inline')) b = b.parentElement;
+    // PR 4: a student's name is read for its PLACE, never judged itself: its
+    // words count toward the line they sit on, so "Microeconomics simply."
+    // is a line of two words, not "simply." alone (scratch run 42103571385
+    // flagged exactly that), and a name's own word is never a finding.
+    n.kfName = !!el.closest('[data-username]');
     blocks.set(b, [...(blocks.get(b) || []), n]);
   }
   for (const [b, nodes] of blocks) {
@@ -386,7 +391,7 @@ function lineChecks(scope) {
         range.setStart(n, m.index);
         range.setEnd(n, m.index + m[0].length);
         const rc = range.getClientRects()[0];
-        if (rc && rc.width > 0) words.push({ w: m[0], top: rc.top, bottom: rc.bottom, left: rc.left, right: rc.right, mid: (rc.top + rc.bottom) / 2 });
+        if (rc && rc.width > 0) words.push({ w: m[0], name: n.kfName, top: rc.top, bottom: rc.bottom, left: rc.left, right: rc.right, mid: (rc.top + rc.bottom) / 2 });
       }
     }
     const lines = [];
@@ -397,7 +402,7 @@ function lineChecks(scope) {
     }
     const rtl = getComputedStyle(b).direction === 'rtl';
     const name = `${b.tagName.toLowerCase()} "${b.textContent.trim().replace(/\s+/g, ' ').slice(0, 40)}"`;
-    if (lines.length > 1) for (const l of lines) if (l.words.length === 1) out.push(`one word alone ("${l.words[0].w}") in ${name}`);
+    if (lines.length > 1) for (const l of lines) if (l.words.length === 1 && !l.words[0].name) out.push(`one word alone ("${l.words[0].w}") in ${name}`);
     for (const l of lines) {
       const visual = [...l.words].sort((a, c) => (rtl ? c.right - a.right : a.left - c.left))[0];
       if (SEP.test(l.words[0].w) || SEP.test(visual.w)) out.push(`a line starts with a separator in ${name}`);
