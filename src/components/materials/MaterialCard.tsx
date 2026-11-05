@@ -147,8 +147,12 @@ export function MaterialCard({
       )}
 
       {status === 'ready' && !empty && (
-        <div className="kf-well mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl bg-raised px-3 py-2 text-xs">
-          <span className="font-medium text-muted-foreground">{labels.checklist}</span>
+        // Design "C", PR 3 (the owner's review of #303): ONE structure on every
+        // card, in both languages: the label, then the two chips, in one row
+        // that never wraps at 390 pt (11 pt text, short gaps; the design-c
+        // render flags a kit whose chips wrap).
+        <div data-kf-kit="" className="kf-well mt-3 flex flex-nowrap items-center gap-1.5 whitespace-nowrap rounded-xl bg-raised px-2.5 py-2 text-[0.6875rem]">
+          <span className="shrink-0 font-medium text-muted-foreground">{labels.checklist}</span>
           <Check done={hasSummary} done_label={labels.summaryDone} todo_label={labels.summaryTodo} />
           <Check done={hasQuiz} done_label={labels.quizDone} todo_label={labels.quizTodo} />
         </div>
@@ -172,7 +176,7 @@ function Check({ done, done_label, todo_label }: { done: boolean; done_label: st
   return (
     // Step Redesign-2: a pill each; the one still to do is a plain pill in the
     // secondary text colour, not a faint hole (the mockup critique).
-    <span className={cn('kf-pill inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 font-medium', done ? 'bg-surface text-success' : 'bg-surface text-muted-foreground')}>
+    <span data-kf-kit-chip="" className={cn('kf-pill inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2 font-medium', done ? 'bg-surface text-success' : 'bg-surface text-muted-foreground')}>
       {done ? <ClayCheck width={14} height={14} /> : <ClayTodo />}
       {done ? done_label : todo_label}
     </span>

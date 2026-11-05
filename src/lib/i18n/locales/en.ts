@@ -302,6 +302,9 @@ export const en = {
       lastAdded: "Last added",
       created: "Created",
       addMaterial: "Add material",
+      // Design "C", PR 3: in place of the ring's dash (#129 (b)); an agent draft
+      // for the owner (docs/copy-drafts/design_c_pr3.md).
+      nothingToSummarise: "Nothing here can be summarised: the files failed or have no text.",
     },
     subjectDetail: {
       askAbout: "Ask about this subject",
@@ -553,10 +556,10 @@ export const en = {
       typesLabel: "Accepted types",
       sizeLine: "Up to {limit} per file",
       dropHereTouch: "Drop files here or tap to upload",
-      // Design "C", PR 3: the upload tile. Both English lines are agent drafts
-      // for the owner (docs/copy-drafts/design_c_pr3.md).
+      // Design "C", PR 3: the upload tile, both lines approved by the owner
+      // (docs/copy/ARABIC_STRINGS_app_v5.md).
       fromDevice: "A file from your device",
-      fromDeviceDesc: "PDF, slides or notes. They all work.",
+      fromDeviceDesc: "Any study file works.",
       supported: "Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (up to {limit} per file)",
       uploading: "Uploading…",
       // #113. What the student reads during the synchronous wait, in order:

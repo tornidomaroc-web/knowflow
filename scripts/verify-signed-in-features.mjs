@@ -268,7 +268,9 @@ if (has('src/lib/ask-suggestions.ts')) {
     newHref: '#', locale: 'en', labels,
   }));
   check(/>60%<\/span>/.test(list), '#129 (b): the subjects page ring for the mixed subject is not 60%');
-  check(/>-<\/span>/.test(list) && !/>NaN/.test(list), '#129 (b): the subjects page shows no hyphen (or NaN) for a subject with nothing to measure');
+  // Design "C", PR 3 (the owner's review of #303): no ring with a hyphen any
+  // more; the card says in words that nothing can be summarised, never 0%.
+  check(/data-kf-nothing-to-summarise/.test(list) && !/>0%<\/span>/.test(list) && !/>NaN/.test(list), '#129 (b): the subjects page does not say "nothing to summarise" (or shows 0% or NaN) for a subject with nothing to measure');
 
   // (c) Ask offers only subjects with an answerable file, and never lands blank.
   check(list.includes('href="/en/dashboard/agent?kb=m"') && !list.includes('href="/en/dashboard/agent?kb=z"'), '#129 (c): the subjects page offers Ask for a subject Ask cannot answer from');

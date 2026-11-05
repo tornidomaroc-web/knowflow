@@ -57,7 +57,7 @@ export function DashboardShell({
     <div className="kf-clay min-h-screen bg-background" data-kf-shell={platform}>
       {/* The clay icons' gradients, once per page (ClayIcons.tsx). */}
       <ClayDefs />
-      <Sidebar userEmail={email} isPro={isPro} locale={locale} labels={labels} />
+      <Sidebar userEmail={email} isPro={isPro} locale={locale} labels={labels} activeNav={activeNav} />
       <MobileNav userEmail={email} isPro={isPro} locale={locale} labels={labels} platform={platform} activeNav={activeNav} />
       {/*
         The content canvas for every dashboard screen. WORDING CORRECTED #85:

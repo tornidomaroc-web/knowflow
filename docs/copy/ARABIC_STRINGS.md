@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
 Generated 2026-11-05 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **428 Arabic strings.**
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **429 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -308,6 +308,7 @@ file is not read by the app.
 | `dashboard.subjects.lastAdded` | آخر إضافة | Last added |
 | `dashboard.subjects.created` | أُنشئت | Created |
 | `dashboard.subjects.addMaterial` | أضف ملفًا | Add material |
+| `dashboard.subjects.nothingToSummarise` | لا يمكن تلخيص شيء هنا: الملفات لم تنجح أو بلا نص. | Nothing here can be summarised: the files failed or have no text. |
 
 ## Signed-in app: subjectDetail (`dashboard.subjectDetail`)
 
@@ -561,7 +562,7 @@ file is not read by the app.
 | `dashboard.upload.sizeLine` | حتى {limit} للملف الواحد | Up to {limit} per file |
 | `dashboard.upload.dropHereTouch` | اسحب ملفاتك إلى هنا أو اضغط لرفعها | Drop files here or tap to upload |
 | `dashboard.upload.fromDevice` | ملف من جهازك | A file from your device |
-| `dashboard.upload.fromDeviceDesc` | PDF أو شرائح أو ملاحظات. كلّها تنفع. | PDF, slides or notes. They all work. |
+| `dashboard.upload.fromDeviceDesc` | كل ملفات الدراسة تنفع. | Any study file works. |
 | `dashboard.upload.supported` | الملفات المقبولة: PDF, DOCX, PPTX, XLSX, TXT, MD (حتى {limit} للملف الواحد) | Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (up to {limit} per file) |
 | `dashboard.upload.uploading` | نرفع ملفك… | Uploading… |
 | `dashboard.upload.reading` | نقرأ ملفك… | Reading your file… |

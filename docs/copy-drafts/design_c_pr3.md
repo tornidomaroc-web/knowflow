@@ -1,12 +1,9 @@
 # Design "C" PR 3 copy: agent drafts for the owner
 
-**Status: DRAFT, awaiting the owner.** Nothing here is approved. The app ships these lines so the tile can be looked at, as earlier drafts did (`redesign_v1.md`, `redesign_v2.md`); the owner approves, replaces or rejects each one, and the approved Arabic is then recorded as a batch under `docs/copy/`.
+**Status: ONE DRAFT, awaiting the owner.** The upload tile's drafts (`dashboard.upload.fromDevice` English, `dashboard.upload.fromDeviceDesc`) are RETIRED: the owner approved the English title and replaced the line in the review of #303, recorded in `docs/copy/ARABIC_STRINGS_app_v5.md`.
 
-Where: the upload tile on a subject page, in the app and on the web (src/components/upload/DropZone.tsx). Its title is the approved "ملف من جهازك" (`docs/copy/ARABIC_STRINGS_app_v5.md`); under the tile, the approved lines for the accepted types and the size limit stay as they were.
+The app ships the draft below so it can be looked at, as earlier drafts did (`redesign_v1.md`, `redesign_v2.md`); the owner approves, replaces or rejects it, and the approved Arabic is then recorded as a batch under `docs/copy/`.
 
-| Key | Arabic (draft) | English (draft) | Source |
+| Key | Arabic (draft) | English (draft) | Where and why |
 |---|---|---|---|
-| `dashboard.upload.fromDevice` | (approved: ملف من جهازك) | A file from your device | the English twin of the approved title |
-| `dashboard.upload.fromDeviceDesc` | PDF أو شرائح أو ملاحظات. كلّها تنفع. | PDF, slides or notes. They all work. | the artboard's line under that choice (upload-sheet.dc.html), not yet approved as copy |
-
-Note for the owner: "PDF أو شرائح أو ملاحظات" names three kinds of file; the tile also accepts Word, Excel, text and Markdown files, which the approved types line under the tile lists. If the description should not suggest a narrower list, a shorter draft is "كل ملفات الدراسة تنفع." / "Any study file works."
+| `dashboard.subjects.nothingToSummarise` | لا يمكن تلخيص شيء هنا: الملفات لم تنجح أو بلا نص. | Nothing here can be summarised: the files failed or have no text. | A subject card on the subjects list (src/components/dashboard/SubjectsList.tsx), in place of the ring that showed "-" (the owner's review of #303: "make it read clearly"). It shows only when every file of the subject failed or has no text, so nothing can ever be summarised and there is no honest percent (#129 (b): 0% would promise work the student can do). "لم تنجح" and "بلا نص" are the approved status words of the material card (statusError, statusNoText). |

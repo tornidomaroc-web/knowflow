@@ -286,6 +286,9 @@ export const ar: Translation = {
       lastAdded: "آخر إضافة",
       created: "أُنشئت",
       addMaterial: "أضف ملفًا",
+      // Design "C", PR 3: in place of the ring's dash (#129 (b)); an agent draft
+      // for the owner (docs/copy-drafts/design_c_pr3.md).
+      nothingToSummarise: "لا يمكن تلخيص شيء هنا: الملفات لم تنجح أو بلا نص.",
     },
     subjectDetail: {
       askAbout: "اسأل عن هذه المادة",
@@ -517,11 +520,10 @@ export const ar: Translation = {
       typesLabel: "الأنواع المقبولة",
       sizeLine: "حتى {limit} للملف الواحد",
       dropHereTouch: "اسحب ملفاتك إلى هنا أو اضغط لرفعها",
-      // Design "C", PR 3: the upload tile (upload-sheet.dc.html's first choice).
-      // fromDevice approved by the owner (docs/copy/ARABIC_STRINGS_app_v5.md);
-      // fromDeviceDesc an agent draft from the artboard (docs/copy-drafts/design_c_pr3.md).
+      // Design "C", PR 3: the upload tile (upload-sheet.dc.html's first choice),
+      // both lines approved by the owner (docs/copy/ARABIC_STRINGS_app_v5.md).
       fromDevice: "ملف من جهازك",
-      fromDeviceDesc: "PDF أو شرائح أو ملاحظات. كلّها تنفع.",
+      fromDeviceDesc: "كل ملفات الدراسة تنفع.",
       supported: "الملفات المقبولة: PDF, DOCX, PPTX, XLSX, TXT, MD (حتى {limit} للملف الواحد)",
       uploading: "نرفع ملفك…",
       reading: "نقرأ ملفك…",

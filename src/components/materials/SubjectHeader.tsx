@@ -62,7 +62,8 @@ export function SubjectHeader({
         {items.map(({ Icon, value, label }) => (
           <div key={label} className="kf-tile rounded-xl bg-raised p-3">
             <dt className="flex items-center gap-1.5 text-xs">
-              <Icon width={18} height={18} className="shrink-0" />
+              {/* A fixed box that never shrinks beside a long label (design "C", PR 3). */}
+              <span data-kf-stat-icon="" className="inline-flex h-[18px] w-[18px] shrink-0"><Icon width={18} height={18} /></span>
               <span className="text-muted-foreground">{label}</span>
             </dt>
             <dd className="mt-1 text-2xl font-bold leading-none text-foreground">{value}</dd>

@@ -8,23 +8,31 @@ import { Badge } from '@/components/ui';
 import { ENDONYM, otherLocale, switchLocaleHref, type Locale } from '@/lib/i18n';
 import { getNavItems, isNavActive, type NavLabels } from './nav-items';
 import { SignOutButton } from './SignOutButton';
+import { TAB_ICONS } from './tab-icons';
 import { ThemeToggle } from './ThemeToggle';
 
 /**
  * Desktop sidebar (md+). Fixed to the inline-start edge via logical properties
  * (`start-0`, `border-e`), so it mirrors automatically under dir="rtl" with no
  * isRtl branching. Mobile navigation lives in MobileNav.
+ *
+ * Design "C", PR 3: the four entries carry the tab bar's clay glyphs
+ * (tab-icons.tsx, #299), the active one in its ink-and-cream version; the
+ * rows keep their size, so the hit areas are unchanged. `activeNav` marks the
+ * entry as the tab bar does (a design preview's path is not a nav path).
  */
 export function Sidebar({
   userEmail,
   isPro,
   locale,
   labels,
+  activeNav,
 }: {
   userEmail: string;
   isPro?: boolean;
   locale: Locale;
   labels: NavLabels & { signOut: string };
+  activeNav?: string;
 }) {
   const pathname = usePathname();
   const items = getNavItems(locale, labels);
@@ -39,8 +47,8 @@ export function Sidebar({
 
       <nav className="flex-1 space-y-1 px-3 py-4">
         {items.map((item) => {
-          const active = isNavActive(pathname, item);
-          const Icon = item.icon;
+          const active = activeNav ? item.key === activeNav : isNavActive(pathname, item);
+          const Icon = TAB_ICONS[item.key as keyof typeof TAB_ICONS];
           return (
             <Link
               key={item.key}
@@ -53,7 +61,7 @@ export function Sidebar({
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}
             >
-              <Icon className="h-5 w-5 shrink-0" />
+              <Icon active={active} width={22} height={22} className="shrink-0" data-kf-nav-icon="" />
               {item.label}
             </Link>
           );

@@ -151,18 +151,21 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
                   {!hasNoText(doc) && <SummarySection doc={doc} />}
                   {!hasNoText(doc) && <QuizSection doc={doc} />}
                   {/* #47: Rename beside Delete, now as cells of the card's action
-                      group (#121, defect 6); an open panel spans the row. */}
+                      group (#121, defect 6); an open panel spans the row.
+                      Design "C", PR 3 (the owner's review of #303): Delete first,
+                      so it sits at the row's start in both languages (left in
+                      English, right in Arabic), in the app and on the web. */}
+                    <DeleteMaterialControl
+                      documentId={doc.id}
+                      labels={withSupportEmail(t.dashboard.kbDetail.deleteMaterial)}
+                      onDeleted={(deletedId) => setDocs(prev => prev.filter(d => d.id !== deletedId))}
+                    />
                     <RenameMaterialControl
                       documentId={doc.id}
                       filename={doc.filename}
                       labels={withSupportEmail(t.dashboard.kbDetail.renameMaterial)}
                       onRenamed={(renamedId, filename) => setDocs(prev => prev.map(d => (d.id === renamedId ? { ...d, filename } : d)))}
                       onGone={(goneId) => setDocs(prev => prev.filter(d => d.id !== goneId))}
-                    />
-                    <DeleteMaterialControl
-                      documentId={doc.id}
-                      labels={withSupportEmail(t.dashboard.kbDetail.deleteMaterial)}
-                      onDeleted={(deletedId) => setDocs(prev => prev.filter(d => d.id !== deletedId))}
                     />
                 </MaterialCard>
               ))}
