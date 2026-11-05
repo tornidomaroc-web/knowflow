@@ -66,7 +66,6 @@ const CLAY_FIELD =
 type Variant = 'default' | 'clay';
 type FieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & { label: string; variant?: Variant };
 
-const fieldClass = (v: Variant) => (v === 'clay' ? CLAY_FIELD : FIELD);
 const labelClass = (v: Variant) => (v === 'clay' ? 'text-sm font-bold text-foreground' : 'text-sm font-medium text-foreground');
 
 export function AuthField({ label, className, variant = 'default', ...props }: FieldProps) {
@@ -76,7 +75,9 @@ export function AuthField({ label, className, variant = 'default', ...props }: F
       <label htmlFor={id} className={labelClass(variant)}>
         {label}
       </label>
-      <input id={id} className={cn(fieldClass(variant), className)} {...props} />
+      {/* The two consts are named here, not behind a helper: scripts/field-zoom/
+          static-fields.mjs reads an input's size from the consts its className names. */}
+      <input id={id} className={cn(variant === 'clay' ? CLAY_FIELD : FIELD, className)} {...props} />
     </div>
   );
 }
@@ -99,7 +100,7 @@ export function PasswordField({ label, showLabel, className, variant = 'default'
         <input
           id={id}
           type={shown ? 'text' : 'password'}
-          className={cn(fieldClass(variant), clay ? 'pe-[3.25rem]' : 'pe-11', className)}
+          className={cn(clay ? CLAY_FIELD : FIELD, clay ? 'pe-[3.25rem]' : 'pe-11', className)}
           {...props}
         />
         <button
