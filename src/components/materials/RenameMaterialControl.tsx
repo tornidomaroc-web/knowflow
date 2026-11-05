@@ -66,7 +66,8 @@ export function RenameMaterialFields({
   onCancel: () => void;
 }) {
   return (
-    <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
+    // Design "C", PR 3: a pressed-in clay well, no hairline around it.
+    <div className="kf-well space-y-2 rounded-2xl p-3">
       <label htmlFor={inputId} className="block text-sm text-foreground">
         {labels.label}
       </label>

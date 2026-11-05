@@ -82,7 +82,9 @@ for (const job of JOBS) {
       f.drawn = [...document.querySelectorAll('[data-illustration]')].map((s) => s.getAttribute('data-illustration'));
     }
     if (key.startsWith('app-subject')) {
-      f.drawn = [...document.querySelectorAll('[data-illustration]')].map((s) => s.getAttribute('data-illustration'));
+      // Design "C", PR 3: the files empty state is drawn in clay
+      // (`data-kf-clay-art`, NoMaterials.tsx), no longer the outline picture.
+      f.drawn = [...document.querySelectorAll('[data-illustration], [data-kf-clay-art]')].map((s) => s.getAttribute('data-illustration') || s.getAttribute('data-kf-clay-art'));
       f.typeLabels = [...document.querySelectorAll('article .kf-chip span')].map((s) => s.textContent.trim());
     }
     // Design "C" (2026-11-03): no streak yet is the unlit clay flame and its line, not a dash.

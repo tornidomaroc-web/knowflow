@@ -12,7 +12,7 @@ import { ClayFile } from '@/components/clay/ClayIcons';
 export function NoMaterials({ text }: { text: string }) {
   return (
     <div data-kf-files-empty="" className="kf-well rise flex flex-col items-center rounded-3xl p-8 text-center">
-      <ClayFile width={64} height={64} role="img" aria-hidden={undefined} aria-label={text} />
+      <ClayFile width={64} height={64} role="img" aria-hidden={undefined} aria-label={text} data-kf-clay-art="empty-files" />
       <p className="mt-3 max-w-xs text-sm text-muted-foreground">{text}</p>
     </div>
   );

@@ -63,7 +63,9 @@ export interface SubjectsListProps {
 export function SubjectsList({ subjects, newHref, locale, labels }: SubjectsListProps) {
   return (
     <div>
-      <div className="max-w-6xl space-y-6">
+      {/* Every line is balanced (text-wrap is inherited), so no card ends on a
+          word alone; the design-c render asserts it. */}
+      <div className="max-w-6xl space-y-6 [text-wrap:balance]">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="kf-title text-2xl font-bold text-foreground md:text-3xl">{labels.title}</h1>
@@ -115,7 +117,9 @@ function SubjectCard({ subject: s, locale, labels, index }: { subject: SubjectIt
         </span>
         <Link href={s.href} className="flex min-h-[2.75rem] min-w-0 flex-1 flex-col justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <UserName as="h2" className="truncate text-lg font-extrabold text-foreground">{s.name}</UserName>
-          {s.description ? <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{s.description}</p> : null}
+          {/* The description is the student's own text, isolated as a name is
+              (UserName), so an Arabic line beside Latin words keeps its order. */}
+          {s.description ? <UserName as="p" className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{s.description}</UserName> : null}
         </Link>
         <span className="kf-pill inline-flex h-7 shrink-0 items-center rounded-full px-2.5 text-xs font-bold uppercase text-muted-foreground">{s.language}</span>
       </div>
