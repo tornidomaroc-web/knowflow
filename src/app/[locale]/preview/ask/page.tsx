@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Menu } from 'lucide-react'
+import { ClayClock } from '@/components/clay/ClayIcons'
+import { KBSelector } from '@/components/agent/KBSelector'
 import { notFound } from 'next/navigation'
 import { ChatBox } from '@/components/agent/ChatBox'
 import { AgentEmptyState } from '@/components/agent/AgentEmptyState'
@@ -13,6 +14,8 @@ import { PreviewHistory } from './PreviewHistory'
 import { PreviewSubjectChips } from './PreviewSubjectChips'
 import { AskNoAnswerableSubject } from '@/components/agent/SubjectChips'
 import { answerableSubjectIds, initialAskSubject } from '@/lib/material-text'
+import type { KnowledgeBase } from '@/types'
+import LONG from './long.json'
 import { CAPTURE_CITATIONS, CAPTURE_EN, CAPTURE_QUESTION, CAPTURE_QUESTION_NEW, CAPTURE_SUBJECTS, captureAnswer } from './capture'
 
 /**
@@ -44,6 +47,15 @@ import { CAPTURE_CITATIONS, CAPTURE_EN, CAPTURE_QUESTION, CAPTURE_QUESTION_NEW, 
  *              question and answer as markdown (./capture.ts says which part
  *              is verbatim). `?tail=N` sets the stand-in's length, `?q=new`
  *              asks plan.json's new question.
+ *   app        Design "C", PR 4: the screen exactly as /dashboard/agent builds
+ *              it, the REAL KBSelector (the history button or column, the
+ *              subject bar, ChatBox) over the five subjects above, with a
+ *              history of five past conversations as literal data
+ *              (KBSelector's `preview`: nothing is read from Supabase).
+ *              `?open=c2` opens the long one as if picked from the history;
+ *              `?drawer=1` opens the phone's history drawer. A question typed
+ *              here goes to /api/agent like any other (the proof run answers
+ *              it in the browser; nothing reaches a server route).
  */
 export const metadata: Metadata = {
   title: 'Ask: design preview',
@@ -54,14 +66,14 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }))
 }
 
-type View = 'default' | 'none' | 'zero' | 'history' | 'answer' | 'subjects' | 'noanswer' | 'capture'
+type View = 'default' | 'none' | 'zero' | 'history' | 'answer' | 'subjects' | 'noanswer' | 'capture' | 'app'
 
 export default async function AskPreview({
   params,
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ view?: string; platform?: string; tail?: string; q?: string }>
+  searchParams: Promise<{ view?: string; platform?: string; tail?: string; q?: string; open?: string; drawer?: string }>
 }) {
   if (process.env.VERCEL_ENV === 'production') notFound()
   const { locale } = await params
@@ -72,7 +84,7 @@ export default async function AskPreview({
   const sp = await searchParams
   const raw = sp.view
   const platform = resolvePlatform(sp.platform)
-  const view: View = raw === 'none' || raw === 'zero' || raw === 'history' || raw === 'answer' || raw === 'subjects' || raw === 'noanswer' || raw === 'capture' ? raw : 'default'
+  const view: View = raw === 'none' || raw === 'zero' || raw === 'history' || raw === 'answer' || raw === 'subjects' || raw === 'noanswer' || raw === 'capture' || raw === 'app' ? raw : 'default'
 
   // #129 (c): five subjects and their files, through the real rule.
   const kbs = [
@@ -124,12 +136,47 @@ export default async function AskPreview({
     },
   ]
 
+  // Design "C", PR 4 (`view=app`): five past conversations, newest first, in
+  // two subjects; c2 is a long one (a long question, an answer with a
+  // heading and a list, three sources, then a question and an answer in the
+  // other language). The messages table stores no sources; the preview
+  // passes them so the opened conversation shows its pills.
+  const day = (d: number) => new Date(Date.UTC(2026, 10, d, 9, 30)).toISOString()
+  const appKbs = kbs.map((k) => ({ ...k, user_id: 'u', description: null, language: ar ? 'ar' : 'en', created_at: day(1) })) as unknown as KnowledgeBase[]
+  const historyList = [
+    { id: 'c1', kb_id: 'k1', created_at: day(5), knowledge_bases: { name: kbs[0].name } },
+    { id: 'c2', kb_id: 'k4', created_at: day(4), knowledge_bases: { name: kbs[3].name } },
+    { id: 'c3', kb_id: 'k1', created_at: day(2), knowledge_bases: { name: kbs[0].name } },
+    { id: 'c4', kb_id: 'k4', created_at: day(1), knowledge_bases: { name: kbs[3].name } },
+    { id: 'c5', kb_id: 'k1', created_at: new Date(Date.UTC(2026, 9, 28, 18, 0)).toISOString(), knowledge_bases: { name: kbs[0].name } },
+  ]
+  const chem = (i: number, id: string, f: string, sim: number) => ({ index: i, document_id: id, chunk_id: `${id}-${i}`, filename: f, similarity: sim })
+  const summaryFile = ar ? 'ملخص الكيمياء العضوية - الفصل 7.pdf' : 'Organic Chemistry summary - Chapter 7.pdf'
+  const historyMessages = {
+    c2: [
+      { role: 'user', content: LONG[safeLocale].question },
+      {
+        role: 'assistant',
+        content: LONG[safeLocale].answer,
+        citations: [
+          chem(1, 'o1', summaryFile, 0.92),
+          chem(2, 'o2', 'reactions-cheatsheet-v3.pdf', 0.86),
+          chem(3, 'o3', ar ? 'محاضرة Reactions (2).pptx' : 'Lecture التفاعلات (2).pptx', 0.81),
+        ],
+      },
+      { role: 'user', content: LONG[safeLocale].otherQuestion },
+      { role: 'assistant', content: LONG[safeLocale].otherAnswer, citations: [chem(1, 'o1', summaryFile, 0.9), chem(2, 'o2', 'reactions-cheatsheet-v3.pdf', 0.83)] },
+    ],
+    c1: conversation,
+  }
+  const appMaterials = materials.map((m, i) => ({ id: `m${i}`, kb_id: 'k1', filename: m.filename, lead: m.lead }))
+
   return (
     <div className="min-h-screen">
       <div className={sp.platform ? 'hidden' : 'flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs'}>
         <span className="font-semibold text-foreground">ask · preview</span>
         <span className="text-faint">{safeLocale} · {view}</span>
-        {(['default', 'none', 'zero', 'history', 'answer', 'subjects', 'noanswer', 'capture'] as const).filter((v) => v !== view).map((v) => (
+        {(['default', 'none', 'zero', 'history', 'answer', 'subjects', 'noanswer', 'capture', 'app'] as const).filter((v) => v !== view).map((v) => (
           <Link key={v} href={`/${safeLocale}/preview/ask${v === 'default' ? '' : `?view=${v}`}`} className="rounded-full border border-border px-3 py-1 font-semibold text-muted-foreground">
             {v}
           </Link>
@@ -159,11 +206,11 @@ export default async function AskPreview({
             labels={{ title: t.dashboard.nav.knowledge, prompt: t.dashboard.home.newKbDesc, cta: t.dashboard.home.newSubject }}
           />
         ) : view === 'subjects' ? (
-          <div className="overflow-hidden rounded-xl border border-border">
+          <div className="kf-card overflow-hidden rounded-xl">
             <PreviewSubjectChips subjects={offered} initial={initialAskSubject(kbs.map((k) => k.id), answerable, 'k2')} />
           </div>
         ) : view === 'noanswer' ? (
-          <div className="flex h-[28rem] flex-col overflow-hidden rounded-xl border border-border bg-surface">
+          <div className="kf-card flex h-[28rem] flex-col overflow-hidden rounded-xl bg-surface">
             <AskNoAnswerableSubject href={`/${safeLocale}/dashboard/knowledge`} labels={{ title: t.dashboard.home.step2Title, cta: t.dashboard.upload.uploadButton }} />
           </div>
         ) : view === 'capture' ? (
@@ -171,11 +218,12 @@ export default async function AskPreview({
           // (its history button and subject bar over ChatBox).
           <div className={`flex flex-col md:h-[calc(100dvh-4rem)] ${platform === 'native' ? 'h-[calc(100dvh-1.25rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]' : 'h-[calc(100dvh-4.5rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]'}`}>
             {platform === 'native' && <AskTitle text={t.dashboard.nav.agent} />}
-            <div className="kf-card flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-surface">
+            <div className="kf-card flex min-h-0 flex-1 overflow-hidden rounded-xl bg-surface">
               <div className="flex flex-1 flex-col overflow-hidden">
-                <div className="flex items-center gap-2 border-b border-border bg-surface p-3">
-                  <span aria-hidden="true" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground md:hidden">
-                    <Menu className="h-5 w-5" />
+                {/* Design "C", PR 4: KBSelector's bar as it now is (the clock pill, no hairline). */}
+                <div className="flex items-center gap-2 bg-surface p-3">
+                  <span aria-hidden="true" className="kf-pill inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full md:hidden">
+                    <ClayClock width={22} height={22} />
                   </span>
                   <PreviewSubjectChips bare subjects={ar ? CAPTURE_SUBJECTS : CAPTURE_EN.subjects} initial="s1" />
                 </div>
@@ -194,8 +242,20 @@ export default async function AskPreview({
               </div>
             </div>
           </div>
+        ) : view === 'app' ? (
+          // As /dashboard/agent: the same height rule, the large title in the
+          // app, then the real KBSelector.
+          <div className={`flex flex-col md:h-[calc(100dvh-4rem)] ${platform === 'native' ? 'h-[calc(100dvh-1.25rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]' : 'h-[calc(100dvh-4.5rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]'}`}>
+            {platform === 'native' && <AskTitle text={t.dashboard.nav.agent} />}
+            <KBSelector
+              kbs={appKbs}
+              materials={appMaterials}
+              answerableIds={[...answerable]}
+              preview={{ conversations: historyList, messages: historyMessages, open: sp.open, drawer: sp.drawer === '1' }}
+            />
+          </div>
         ) : view === 'history' ? (
-          <div className="h-[28rem] overflow-hidden rounded-xl border border-border">
+          <div className="kf-card h-[28rem] overflow-hidden rounded-xl">
             <PreviewHistory />
           </div>
         ) : (
@@ -206,7 +266,7 @@ export default async function AskPreview({
           // the app, the conversation scrolling, the composer at the bottom.
           <div className={`flex flex-col md:h-[calc(100dvh-4rem)] ${platform === 'native' ? 'h-[calc(100dvh-1.25rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]' : 'h-[calc(100dvh-4.5rem-6.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]'}`}>
             {platform === 'native' && <AskTitle text={t.dashboard.nav.agent} />}
-            <div className="kf-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-surface">
+            <div className="kf-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl bg-surface">
               <ChatBox
                 kbId="00000000-0000-0000-0000-000000000000"
                 kbName={ar ? 'مبادئ الاقتصاد الجزئي' : 'Microeconomics'}

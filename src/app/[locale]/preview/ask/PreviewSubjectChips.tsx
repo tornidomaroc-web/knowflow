@@ -13,7 +13,7 @@ export function PreviewSubjectChips({ subjects, initial, bare = false }: { subje
   // `bare`: the chips alone, for a bar the page draws itself (view=capture).
   if (bare) return <SubjectChips subjects={subjects} selectedId={selected} onPick={setSelected} />
   return (
-    <div className="border-b border-border bg-surface p-3">
+    <div className="bg-surface p-3">
       <SubjectChips subjects={subjects} selectedId={selected} onPick={setSelected} />
     </div>
   )

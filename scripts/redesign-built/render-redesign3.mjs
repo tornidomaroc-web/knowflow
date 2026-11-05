@@ -79,7 +79,9 @@ for (const job of JOBS) {
     if (key.startsWith('app-ask')) {
       f.composer = (() => { const c = q('[data-kf-composer]'); if (!c) return null; const r = c.getBoundingClientRect(); const bar = q('nav.kf-tabbar')?.getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), barTop: bar ? Math.round(bar.top) : null }; })();
       f.sources = [...document.querySelectorAll('p')].filter((p) => /^(Sources|المصادر)$/.test(p.textContent.trim())).length;
-      f.drawn = [...document.querySelectorAll('[data-illustration]')].map((s) => s.getAttribute('data-illustration'));
+      // Design "C", PR 4: Ask's empty states are drawn in clay
+      // (`data-kf-clay-art`, ClayAskArt), no longer the outline picture.
+      f.drawn = [...document.querySelectorAll('[data-illustration], [data-kf-clay-art]')].map((s) => s.getAttribute('data-illustration') || s.getAttribute('data-kf-clay-art'));
     }
     if (key.startsWith('app-subject')) {
       // Design "C", PR 3: the files empty state is drawn in clay

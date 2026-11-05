@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Button, Sheet } from '@/components/ui';
+import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
+import { ClaySpark } from '@/components/clay/ClayIcons';
 import { createClient } from '@/lib/supabase/client';
 import { AI_CONSENT_WITHDRAWN, aiConsentGrant } from '@/lib/ai-consent';
 import type { useTranslation } from '@/lib/i18n';
@@ -138,18 +140,21 @@ export function AiConsentProvider({
         onClose={() => !busy && settle(false)}
         side="bottom"
         label={labels.title}
-        className="mx-auto max-w-lg"
+        // Design "C", PR 4: the sheet is mounted beside the dashboard shell,
+        // outside its `.kf-clay` root, so it carries the scope itself: its
+        // buttons are the clay ones, its corners the clay card's.
+        className="kf-clay mx-auto max-w-lg rounded-t-[1.75rem]"
       >
         {open && (
           <div
             data-kf-consent-sheet="open"
             className="max-h-[85dvh] overflow-y-auto px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
           >
-            <h2 className="text-lg font-semibold text-foreground">{labels.title}</h2>
+            <ClaySectionTitle icon={<ClaySpark />}>{labels.title}</ClaySectionTitle>
             <p className="mt-3 text-sm text-muted-foreground">{labels.intro}</p>
             <ul className="mt-3 space-y-2 text-sm text-foreground">
-              <li className="rounded-lg bg-muted px-3 py-2">{labels.anthropic}</li>
-              <li className="rounded-lg bg-muted px-3 py-2">{labels.voyage}</li>
+              <li className="kf-well rounded-2xl px-3.5 py-2.5">{labels.anthropic}</li>
+              <li className="kf-well rounded-2xl px-3.5 py-2.5">{labels.voyage}</li>
             </ul>
             <p className="mt-3 text-sm text-foreground">{labels.notSent}</p>
             <p className="mt-2 text-xs text-muted-foreground">

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { readServerLimitMessage } from '@/lib/limit-messages';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
+import { ClaySummary } from '@/components/clay/ClayIcons';
 
 // Only the fields this section needs from a document. The subject page already
 // fetches these via `select('*')`, so a cached summary renders with NO API call
@@ -92,12 +93,16 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
       // widens only a child holding an open panel ([&>*:has(>div)]); this block
       // holds none, so on a phone it sat at half width beside an empty cell
       // (seen in the store screenshots, 2026-10-09).
-      <div className="kf-well col-span-full rounded-2xl p-4">
-        <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {s.heading}
+      // Design "C", PR 4: the clay summary page beside the title, as the
+      // subject header draws it; the title's text stays its own element (the
+      // device run finds the heading by a leaf whose text is exactly it).
+      <div className="kf-well col-span-full rounded-[1.5rem] p-4" data-kf-summary="">
+        <h3 className="mb-3 flex items-center gap-2 text-[0.9375rem] font-extrabold text-foreground">
+          <ClaySummary width={22} height={22} className="shrink-0" />
+          <span>{s.heading}</span>
         </h3>
         {isPartial && (
-          <p className="mb-3 rounded-lg bg-primary-subtle px-3 py-2 text-xs text-primary">
+          <p data-kf-partial="" className="mb-3 rounded-xl bg-primary-subtle px-3 py-2 text-xs font-medium text-primary">
             {s.partialNotice}
           </p>
         )}

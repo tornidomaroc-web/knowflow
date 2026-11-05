@@ -1,0 +1,19 @@
+{
+  "_": "Design \"C\", PR 4: the long conversation of the Ask proof (scripts/design-c/render.mjs types it into the real ChatBox and answers /api/agent in the browser with these words and sources; the preview's view=app opens it from the history as c2). A long student question with a Latin term inside the Arabic and an Arabic term inside the English, an answer with a heading and a list, then a question and an answer in the other language.",
+  "ar": {
+    "question": "لم أفهم جيدًا الفرق بين التفاعل بالإضافة والتفاعل بالاستبدال في Chapter 7، هل يمكنك أن تشرح لي الفرق بمثال من الملخص ثم تخبرني كيف أميّز بينهما في الامتحان؟",
+    "answer": "### الفرق باختصار\nفي **الإضافة** تنكسر الرابطة الثنائية وتنضم ذرتان إلى الجزيء، أما في **الاستبدال** فتحل ذرة محل ذرة أخرى ويبقى هيكل الجزيء كما هو.\n\n- مثال الإضافة: الإيثين مع البروم يعطي ثنائي بروموإيثان.\n- مثال الاستبدال: الميثان مع الكلور في الضوء يعطي كلوروميثان.\n- في الامتحان: ابحث عن الرابطة الثنائية في المادة المتفاعلة.",
+    "otherQuestion": "Can you say it in English, in one sentence?",
+    "otherAnswer": "Addition opens a double bond and adds two atoms, while substitution swaps one atom for another and keeps the rest of the molecule."
+  },
+  "en": {
+    "question": "I did not really understand the difference between addition and substitution reactions in الفصل 7. Can you explain it with an example from the summary, and then tell me how to tell them apart in the exam?",
+    "answer": "### The difference in short\nIn **addition** the double bond breaks and two atoms join the molecule; in **substitution** one atom takes the place of another and the skeleton stays the same.\n\n- Addition: ethene with bromine gives dibromoethane.\n- Substitution: methane with chlorine in light gives chloromethane.\n- In the exam: look for a double bond in the starting compound.",
+    "otherQuestion": "هل يمكنك قولها بالعربية في جملة واحدة؟",
+    "otherAnswer": "الإضافة تفتح الرابطة الثنائية وتضيف ذرتين، أما الاستبدال فيبدّل ذرة بأخرى ويبقي بقية الجزيء."
+  },
+  "sources": {
+    "ar": [["ملخص الكيمياء العضوية - الفصل 7.pdf", 0.92], ["reactions-cheatsheet-v3.pdf", 0.86], ["محاضرة Reactions (2).pptx", 0.81]],
+    "en": [["Organic Chemistry summary - Chapter 7.pdf", 0.92], ["reactions-cheatsheet-v3.pdf", 0.86], ["Lecture التفاعلات (2).pptx", 0.81]]
+  }
+}

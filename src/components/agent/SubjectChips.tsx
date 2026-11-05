@@ -1,10 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
-import { EmptyAsk } from '@/components/illustrations';
+import { ClayAskArt, ClayUploadGlyph } from '@/components/clay/ClayIcons';
 import { UserName } from '@/components/ui/UserName';
 
 /**
@@ -27,7 +26,10 @@ export function SubjectChips({
   // store shot ar/04 needed them (Store-Shots-1); the screenshots are uploaded,
   // so the target wins. Height, not font: the text stays text-sm, centred.
   return (
-    <div className="flex gap-2 overflow-x-auto">
+    // Design "C", PR 4: the chosen subject is the gold clay pill, the others
+    // surface clay pills; no edges. The row pads its own shadows so the
+    // horizontal scroll does not clip them.
+    <div className="-my-1 flex gap-2 overflow-x-auto px-1 py-1">
       {subjects.map((kb) => (
         <button
           key={kb.id}
@@ -35,10 +37,10 @@ export function SubjectChips({
           onClick={() => onPick(kb.id)}
           aria-pressed={selectedId === kb.id}
           className={cn(
-            'inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
+            'inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             selectedId === kb.id
-              ? 'border-primary bg-primary text-primary-foreground'
-              : 'border-border text-muted-foreground hover:border-primary hover:text-foreground',
+              ? 'kf-gold'
+              : 'kf-pill text-foreground',
           )}
         >
           <UserName>{kb.name}</UserName>
@@ -58,10 +60,10 @@ export function AskNoAnswerableSubject({ href, labels }: { href: string; labels:
   return (
     <div className="flex flex-1 items-center justify-center p-6">
       <div className="flex max-w-sm flex-col items-center text-center">
-        <EmptyAsk size={112} title={labels.title} />
+        <ClayAskArt width={96} height={96} data-kf-clay-art="empty-ask" />
         <p className="mt-4 text-base font-semibold text-foreground">{labels.title}</p>
         <Link href={href} className={cn(buttonVariants({ variant: 'primary' }), 'mt-4')}>
-          <Upload className="h-4 w-4" />
+          <ClayUploadGlyph width={24} height={24} />
           {labels.cta}
         </Link>
       </div>

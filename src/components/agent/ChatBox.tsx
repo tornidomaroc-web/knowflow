@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { buttonVariants } from '@/components/ui';
+import { cn } from '@/lib/utils';
 import { MessageBubble, Citation } from './MessageBubble';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { askSuggestions, type MaterialForSuggestion } from '@/lib/ask-suggestions';
-import { ChatPages } from '@/components/illustrations';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
-import { BookOpen, ListChecks, Send, Sparkles } from 'lucide-react';
+import { ClayAnswer, ClayAskArt, ClayBook, ClayQuiz, ClaySend, ClaySpark, ClaySummary } from '@/components/clay/ClayIcons';
 import { UserName } from '@/components/ui/UserName';
 
 interface Message {
@@ -213,10 +213,15 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
       shrink below the full un-scrolled message list — reintroducing the same
       overflow from the inside.
     */
+    /* Design "C", PR 4: no hairline left in the box. The subject line sits
+       on the card; the conversation is a pressed-in well inside it; the
+       composer is the card's last row. The well's corners and its 0.5rem
+       side inset are paint only: the list keeps its height (the Ask fit of
+       render-fix2.mjs reads it). */
     <div className="flex min-h-0 flex-1 flex-col bg-surface">
-      <div className="flex items-center gap-3 border-b border-border bg-surface px-4 py-3">
-        <span className="kf-chip inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-subtle text-sky">
-          <BookOpen className="h-4 w-4" />
+      <div className="flex items-center gap-3 bg-surface px-4 py-3">
+        <span className="kf-tile inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+          <ClayBook width={22} height={22} />
         </span>
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">{t.dashboard.agent.chatWith}</p>
@@ -224,7 +229,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
         </div>
       </div>
 
-      <div className="flex-1 space-y-6 overflow-y-auto bg-background p-6" ref={scrollRef}>
+      <div data-kf-thread="" className="kf-well mx-2 flex-1 space-y-6 overflow-y-auto rounded-[1.25rem] p-4 md:p-6" ref={scrollRef}>
         {messages.map((m, i) => (
           <MessageBubble
             key={m.id}
@@ -240,21 +245,26 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
           /* Register #85 (SIGNED_IN_FEATURES.md 2.3): a first screen with
              something to press. Built here from names only; nothing is sent
              until a suggestion is pressed, and then it is the student's own
-             message through the same path and the same daily cap. */
-          <div className="mx-auto mt-2 max-w-lg">
+             message through the same path and the same daily cap. Design
+             "C", PR 4: the home ask card's clay picture, clay suggestion
+             cards with a clay tile each. */
+          <div data-kf-ask-empty="" className="mx-auto mt-2 max-w-lg">
             <div className="rise flex flex-col items-center text-center">
-              <ChatPages size={112} />
+              <ClayAskArt width={96} height={96} mark={safeLocale === 'ar' ? '؟' : '?'} data-kf-clay-art="empty-ask" />
               <h3 className="mt-3 text-lg font-bold text-foreground">{t.dashboard.agent.emptyTitle}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{t.dashboard.agent.startTyping}</p>
             </div>
-            <p className="rise rise-1 mt-6 flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-accent" />
+            <p className="rise rise-1 mt-6 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <ClaySpark width={20} height={20} />
               {t.dashboard.suggestions.heading}
             </p>
-            <div className="mt-2 grid grid-cols-1 gap-2">
+            <div className="mt-2 grid grid-cols-1 gap-2.5">
               {askSuggestions(t.dashboard.suggestions, kbName, materials).map((q, i) => {
-                const Icon = [BookOpen, Sparkles, ListChecks][i] ?? Sparkles;
-                const tint = ['bg-mint-subtle text-mint', 'bg-violet-subtle text-violet', 'bg-coral-subtle text-coral'][i] ?? 'bg-accent-subtle text-accent';
+                const icon = [
+                  <ClaySummary key="s" width={24} height={24} />,
+                  <ClayAnswer key="a" width={24} height={24} mark={safeLocale === 'ar' ? '؟' : '?'} />,
+                  <ClayQuiz key="q" width={24} height={24} />,
+                ][i] ?? <ClaySummary width={24} height={24} />;
                 return (
                   <button
                     key={q}
@@ -262,10 +272,11 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
                     onClick={() => handleSend(q)}
                     disabled={isLoading}
                     dir="auto"
-                    className={`kf-card pressable liftable rise rise-${i + 2} flex min-h-[3.5rem] items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-start text-sm text-foreground transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+                    data-kf-suggestion=""
+                    className={`kf-card pressable liftable rise rise-${i + 2} flex min-h-[3.5rem] items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-start text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
                   >
-                    <span className={`kf-chip inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tint}`}>
-                      <Icon className="h-4 w-4" />
+                    <span className="kf-tile inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                      {icon}
                     </span>
                     <span className="min-w-0 flex-1">{isolated(q, kbName)}</span>
                   </button>
@@ -279,7 +290,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
       {/* Step Redesign-3: the composer is the last row of a column whose height
           the page fixes, so it stays put at the bottom while the conversation
           above it scrolls (`sticky` keeps it there should the column ever grow). */}
-      <div data-kf-composer="" className="sticky bottom-0 shrink-0 border-t border-border bg-surface p-3 pb-6 md:p-4">
+      <div data-kf-composer="" className="sticky bottom-0 shrink-0 bg-surface p-3 pb-6 md:p-4">
         <div className="kf-composer flex items-end gap-2 rounded-2xl border border-control-border bg-background p-2 focus-within:border-primary">
           <textarea
             value={input}
@@ -293,9 +304,9 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
             onClick={() => handleSend()}
             disabled={isLoading || !input.trim()}
             aria-label={t.dashboard.agent.send}
-            className={buttonVariants({ variant: 'primary', size: 'icon' })}
+            className={cn(buttonVariants({ variant: 'primary', size: 'icon' }), 'rounded-full')}
           >
-            <Send className="h-5 w-5 rtl:-scale-x-100" />
+            <ClaySend className="rtl:-scale-x-100" />
           </button>
         </div>
         {/* Only where a keyboard is likely: md and up, and only once the platform

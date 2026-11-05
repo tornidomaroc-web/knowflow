@@ -609,3 +609,51 @@ export const TabGear = ({ active, ...p }: T) => (
     <circle cx="12" cy="12" r="3.3" fill={active ? '#EBAE35' : 'var(--surface)'} />
   </svg>
 );
+
+/* ── Design "C", PR 4: Ask's send button and the quiz's choice markers. Same
+   recipe: a filled shape on a shared gradient, ink details, a catchlight. The
+   four quiz markers differ in SHAPE, not only in colour (an empty dimple, a
+   gold coin with a dot, a green coin with a tick, a red coin with a cross),
+   so a choice's state reads without its colour. ── */
+
+/** Send: a filled ink paper plane (on the gold send button); mirrored under RTL by the caller. */
+export const ClaySend = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 24 24')}>
+    <path d="M3.4 11.1L19.6 3.6c1-.5 2 .5 1.6 1.5l-7.4 16.3c-.5 1-1.9.9-2.2-.1l-1.6-5.9-5.9-1.7c-1-.3-1.1-1.7-.1-2.2z" fill="#1A1611" />
+    <path d="M10 14.6l4.6-4.6" stroke="#EBAE35" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
+/** A quiz choice not picked: a small pressed-in dimple. */
+export const ClayChoiceEmpty = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 22 22')}>
+    <circle cx="11" cy="11" r="9" fill="var(--clay-well)" stroke="var(--control-border)" strokeWidth="1.5" />
+  </svg>
+);
+
+/** A quiz choice picked: the gold coin with an ink dot. */
+export const ClayChoicePicked = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 22 22')}>
+    <circle cx="11" cy="11" r="10" fill={G('gold')} />
+    <circle cx="11" cy="11" r="3.6" fill="#1A1611" />
+    <ellipse cx="7.6" cy="5.6" rx="3" ry="1.2" fill="#FFFFFF" fillOpacity="0.55" />
+  </svg>
+);
+
+/** The right answer: a green coin with an ink tick. */
+export const ClayChoiceRight = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 22 22')}>
+    <circle cx="11" cy="11" r="10" fill={G('green')} />
+    <path d="M6.6 11.3l3 3 5.8-6" fill="none" stroke="#1A1611" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+    <ellipse cx="7.6" cy="5.6" rx="3" ry="1.2" fill="#FFFFFF" fillOpacity="0.55" />
+  </svg>
+);
+
+/** A wrong pick: a red coin with a cream cross. */
+export const ClayChoiceWrong = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 22 22')}>
+    <circle cx="11" cy="11" r="10" fill={G('red')} />
+    <path d="M7.5 7.5l7 7M14.5 7.5l-7 7" stroke="#FFFFFF" strokeWidth="2.3" strokeLinecap="round" />
+    <ellipse cx="7.6" cy="5.6" rx="3" ry="1.2" fill="#FFFFFF" fillOpacity="0.45" />
+  </svg>
+);

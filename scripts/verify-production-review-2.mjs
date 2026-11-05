@@ -83,7 +83,7 @@ const { renderToStaticMarkup } = await import('react-dom/server');
   check(ar.dashboard.suggestions.heading === 'جرّب أن تسأل', `the Arabic heading is "${ar.dashboard.suggestions.heading}", expected جرّب أن تسأل`);
   const chat = read('src/components/agent/ChatBox.tsx');
   check(/hidden text-\[11px\] text-faint md:block/.test(chat) && /navigator\.platform/.test(chat), 'the keyboard hint is not md-and-up and per platform');
-  check(/emptyTitle/.test(chat) && /data-illustration|ChatPages/.test(chat), 'the Ask empty state has no headline or picture');
+  check(/emptyTitle/.test(chat) && /data-illustration|ChatPages|ClayAskArt/.test(chat), 'the Ask empty state has no headline or picture');
   // A hamza sweep: the standalone forms that are always written with one.
   const src = read('src/lib/i18n/locales/ar.ts');
   const bad = [/(^|[^ء-ي])ان([^ء-ي]|$)/, /(^|[^ء-ي])اذا([^ء-ي]|$)/, /(^|[^ء-ي])او([^ء-ي]|$)/, /(^|[^ء-ي])انشئ/, /(^|[^ء-ي])اضف([^ء-ي]|$)/, /(^|[^ء-ي])اسال/, /(^|[^ء-ي])الان([^ء-ي]|$)/, /(^|[^ء-ي])اكثر/, /(^|[^ء-ي])انت([^ء-ي]|$)/, /(^|[^ء-ي])اسئلة/, /(^|[^ء-ي])اجابة/, /(^|[^ء-ي])انشاء/, /(^|[^ء-ي])ارسال/, /(^|[^ء-ي])الغاء/];
