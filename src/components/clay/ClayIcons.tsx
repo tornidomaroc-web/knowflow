@@ -464,12 +464,12 @@ export const ClayStar = (p: P) => (
   </svg>
 );
 
-/** Help and legal: a green tile, a cream ring buoy with gold bands. */
-export const ClayHelp = (p: P) => (
+/** Help and legal: a green tile, a cream coin with the page's question mark. */
+export const ClayHelp = ({ mark = '؟', ...p }: P & { mark?: string }) => (
   <svg {...base(p, 36, 36, '0 0 36 36')}>
     <rect x="3" y="3" width="30" height="30" rx="10" fill={G('green')} />
-    <circle cx="18" cy="18" r="8.6" fill="none" stroke={G('cream')} strokeWidth="5" />
-    <path d="M12.4 12.4l2.8 2.8M20.8 20.8l2.8 2.8M23.6 12.4l-2.8 2.8M15.2 20.8l-2.8 2.8" stroke={G('gold')} strokeWidth="3.6" strokeLinecap="round" />
+    <circle cx="18" cy="18" r="9.5" fill={G('cream')} />
+    <text x="18" y="23.2" textAnchor="middle" fontFamily="inherit" fontSize="15" fontWeight="800" fill="#1A1611">{mark}</text>
     <ellipse cx="10" cy="7.2" rx="4" ry="1.3" fill="#FFFFFF" fillOpacity="0.5" />
   </svg>
 );

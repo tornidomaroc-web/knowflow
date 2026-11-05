@@ -187,7 +187,7 @@ export function SettingsPanel({
         {/* ── Help and legal. Apple 5.1.1(i): the privacy policy must be reachable
             inside the app; the terms and a support address belong beside it. ── */}
         <Card className="p-5">
-          <ClaySectionTitle icon={<ClayHelp />}>{labels.helpLegal}</ClaySectionTitle>
+          <ClaySectionTitle icon={<ClayHelp mark={locale === 'ar' ? '؟' : '?'} />}>{labels.helpLegal}</ClaySectionTitle>
           {/* Design "C", PR 3: the rows are clay tiles a few points apart, no
               divider lines (no hairline in "C"). */}
           <ul className="mt-4 space-y-2">
