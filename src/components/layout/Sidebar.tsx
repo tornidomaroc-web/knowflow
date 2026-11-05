@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Languages } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui';
 import { ENDONYM, otherLocale, switchLocaleHref, type Locale } from '@/lib/i18n';
 import { getNavItems, isNavActive, type NavLabels } from './nav-items';
 import { SignOutButton } from './SignOutButton';
 import { TAB_ICONS } from './tab-icons';
+import { ClayGlobe } from '@/components/clay/ClayIcons';
 import { ThemeToggle } from './ThemeToggle';
 
 /**
@@ -20,6 +20,12 @@ import { ThemeToggle } from './ThemeToggle';
  * (tab-icons.tsx, #299), the active one in its ink-and-cream version; the
  * rows keep their size, so the hit areas are unchanged. `activeNav` marks the
  * entry as the tab bar does (a design preview's path is not a nav path).
+ * The active entry takes the tab bar's treatment, the gold clay pill
+ * (`kf-tab-active`) with ink text, so its ink-and-cream glyph reads in both
+ * themes (the owner's review of #303: on the dark brown highlight it nearly
+ * disappeared). The footer's language, appearance and sign-out glyphs are
+ * clay too (ClayGlobe, ClayMoon/ClaySun, ClaySignOut), same sizes, same hit
+ * areas.
  */
 export function Sidebar({
   userEmail,
@@ -57,7 +63,7 @@ export function Sidebar({
               className={cn(
                 'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                 active
-                  ? 'bg-primary-subtle text-primary'
+                  ? 'kf-tab-active font-bold'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}
             >
@@ -79,7 +85,7 @@ export function Sidebar({
           lang={otherLocale(locale)}
           className="flex min-h-[2.75rem] items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
-          <Languages className="h-5 w-5 shrink-0" />
+          <ClayGlobe width={20} height={20} className="shrink-0" />
           {ENDONYM[otherLocale(locale)]}
         </a>
         <div className="flex items-center justify-between px-3 py-1">

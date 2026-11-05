@@ -73,10 +73,16 @@
  * tile's icon is never narrower than 12 px (it was squeezed to 2 px beside
  * "Summarised"); a study kit (label and two chips) is one row that does not
  * wrap or overflow; in a material card's action group the Delete control
- * sits at the row's inline start (left in English, right in Arabic); the web
- * sidebar's nav icons are the clay tab glyphs, no outline icon. The
- * selectors also match main's markup, so BEFORE shows the defects the checks
- * catch (a witness that they are not blind).
+ * sits at the row's inline start (left in English, right in Arabic), read on
+ * EVERY material card that has one, alone in its row or paired; the web
+ * sidebar has no outline icon anywhere (its entries AND its footer: language,
+ * appearance, sign out), and its active entry is the gold clay pill
+ * (`kf-tab-active`, the gold fill) as on the tab bar. The selectors also
+ * match main's markup, so BEFORE shows the defects the checks catch (a
+ * witness that they are not blind). The Delete check has its own forced
+ * wrong case, deletePlant(), run after the shot on every subject screen:
+ * Delete pushed to the row's end must be flagged on every card, or the run
+ * fails as blind.
  *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
@@ -618,24 +624,64 @@ function reviewChecks() {
     if (mids.length && Math.max(...mids) - Math.min(...mids) > 2) findings.push(`a study kit wraps: its label and chips sit at ${mids.map((t) => t.toFixed(0)).join(', ')} ("${txt(k)}")`);
     if (k.scrollWidth > k.clientWidth + 1) findings.push(`a study kit overflows its well (${k.scrollWidth} > ${k.clientWidth}): "${txt(k)}"`);
   }
-  // 3. Delete at the start of its row in the action group.
-  for (const d of document.querySelectorAll('[data-kf-actions] > [data-kf-action="delete"]')) {
-    if (!vis(d)) continue;
+  // 3. Delete at the start of its row, on EVERY material card that has one.
+  measured.materialCards = 0;
+  for (const card of document.querySelectorAll('[data-kf-material]')) {
+    if (!vis(card)) continue;
+    measured.materialCards++;
+    const d = card.querySelector('[data-kf-action="delete"]');
+    if (!d || !vis(d)) continue;
     measured.deletes++;
-    const box = d.parentElement.getBoundingClientRect();
-    const cs = getComputedStyle(d.parentElement);
-    const r = d.getBoundingClientRect();
-    const rtl = cs.direction === 'rtl';
-    const off = rtl ? (box.right - parseFloat(cs.paddingRight)) - r.right : r.left - (box.left + parseFloat(cs.paddingLeft));
-    if (Math.abs(off) > 2) findings.push(`Delete is not at the start of its row (${rtl ? 'right' : 'left'} edge off by ${off.toFixed(1)} px)`);
+    const off = deleteOffset(d);
+    if (Math.abs(off.px) > 2) findings.push(`Delete is not at the start of its row on "${txt(card)}" (${off.rtl ? 'right' : 'left'} edge off by ${off.px.toFixed(1)} px)`);
   }
-  // 4. The web sidebar's nav: clay glyphs only.
+  // 4. The web sidebar, entries and footer: clay glyphs only; the active entry gold.
   for (const a of document.querySelectorAll('aside nav a')) {
     if (!vis(a)) continue;
     measured.navIcons++;
-    if (a.querySelector('svg.lucide')) findings.push(`the sidebar entry "${txt(a)}" still draws an outline icon`);
+    if (a.getAttribute('aria-current') === 'page') {
+      measured.activeEntry = `${txt(a)}: ${getComputedStyle(a).backgroundColor}`;
+      if (!a.classList.contains('kf-tab-active') || getComputedStyle(a).backgroundColor !== 'rgb(235, 174, 53)') findings.push(`the active sidebar entry "${txt(a)}" is not the gold clay pill (${getComputedStyle(a).backgroundColor})`);
+    }
+  }
+  for (const svg of document.querySelectorAll('aside svg')) {
+    if (svg.getBoundingClientRect().height === 0) continue;
+    measured.sidebarIcons = (measured.sidebarIcons || 0) + 1;
+    if (svg.classList.contains('lucide')) findings.push(`the sidebar still draws an outline icon beside "${txt(svg.closest('a, button, div') || svg.parentElement)}"`);
   }
   return { findings, measured };
+}
+
+/** Where a material's Delete sits against its action group's inline start. Self-contained (it is serialised into the page with its callers). */
+function deleteOffset(d) {
+  const grid = d.closest('[data-kf-actions]') || d.parentElement;
+  const box = grid.getBoundingClientRect();
+  const cs = getComputedStyle(grid);
+  const r = d.getBoundingClientRect();
+  const rtl = cs.direction === 'rtl';
+  return { rtl, px: rtl ? (box.right - parseFloat(cs.paddingRight)) - r.right : r.left - (box.left + parseFloat(cs.paddingLeft)) };
+}
+
+/**
+ * THE DELETE CHECK'S FORCED WRONG CASE (run AFTER the shot). Pushes every
+ * Delete to the last column of its row with a style tag, measures it with
+ * the same rule as reviewChecks() 3, and removes the tag. Every card must be
+ * flagged; one that is not makes the check blind, which fails the run.
+ */
+function deletePlant() {
+  const tag = document.createElement('style');
+  tag.textContent = '[data-kf-action="delete"] { grid-column: -2 / -1 !important; }';
+  document.head.appendChild(tag);
+  let cards = 0, caught = 0;
+  try {
+    for (const card of document.querySelectorAll('[data-kf-material]')) {
+      const d = card.querySelector('[data-kf-action="delete"]');
+      if (!d || d.getBoundingClientRect().height === 0) continue;
+      cards++;
+      if (Math.abs(deleteOffset(d).px) > 2) caught++;
+    }
+  } finally { tag.remove(); }
+  return { cards, caught, finding: cards > 0 && caught === cards ? null : `the Delete check is blind: Delete forced to the row's end on ${cards} card(s), flagged on ${caught}` };
 }
 
 /**
@@ -734,6 +780,8 @@ async function shoot(side, job) {
   const gate = job.s.native ? await tab.evaluate(appChecks) : null;
   const tiles = await tab.evaluate(tileChecks);
   const pr3 = job.s.pr3 ? await tab.evaluate(pr3Checks) : null;
+  // reviewChecks() and deletePlant() call deleteOffset() in the page, so it is defined there first.
+  await tab.evaluate(`window.deleteOffset = ${deleteOffset.toString()}`);
   const review = await tab.evaluate(reviewChecks);
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
@@ -745,8 +793,9 @@ async function shoot(side, job) {
   await tab.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await tab.screenshot({ path: file });
   const picker = job.s.pr3 && /preview\/subject$/.test(job.s.path) ? await tab.evaluate(pickerCheck) : null;
+  const plant = /preview\/subject$/.test(job.s.path) && job.s.q.view !== 'empty' ? await tab.evaluate(deletePlant) : null;
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant };
 }
 
 for (const job of JOBS) {
@@ -775,6 +824,7 @@ for (const job of JOBS) {
       ...(r.pr3 ? r.pr3.findings.map((f) => `pr3: ${f}`) : []),
       ...(r.picker?.finding ? [`pr3: ${r.picker.finding}`] : []),
       ...r.review.findings.map((f) => `review: ${f}`),
+      ...(side === 'after' && r.plant?.finding ? [`review: ${r.plant.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -789,7 +839,7 @@ for (const job of JOBS) {
       // What pr3Checks() and pickerCheck() read on a PR 3 screen.
       ...(r.pr3 ? { pr3: { ...r.pr3.measured, pickerOpened: r.picker ? r.picker.opened : undefined } } : {}),
       // What reviewChecks() read on this page.
-      review: r.review.measured,
+      review: { ...r.review.measured, ...(r.plant ? { deletePlant: { cards: r.plant.cards, caught: r.plant.caught } } : {}) },
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no
       // plan, price, upgrade or free word.

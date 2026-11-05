@@ -544,6 +544,30 @@ export const ClayTodo = (p: P) => (
   </svg>
 );
 
+/**
+ * Sign out: a cream door ajar on its taupe frame and a gold arrow leaving
+ * through it. Points to the inline end; the caller mirrors it under RTL.
+ */
+export const ClaySignOut = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 24 24')}>
+    <rect x="3" y="3" width="12" height="18" rx="3" fill={G('taupe')} />
+    <path d="M5 4.6l6.5 1.6v13.6L5 21.4z" fill={G('cream')} />
+    <circle cx="9.6" cy="13" r="1" fill="#7E7262" />
+    <path d="M13.5 12h7.5M18 8.8l3.2 3.2-3.2 3.2" fill="none" stroke={G('gold')} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/** The other language: a blue globe with cream meridians and a gold equator. */
+export const ClayGlobe = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 24 24')}>
+    <circle cx="12" cy="12" r="9.5" fill={G('blue')} />
+    <ellipse cx="12" cy="12" rx="4" ry="9.5" fill="none" stroke="#FFFFFF" strokeOpacity="0.8" strokeWidth="1.6" />
+    <path d="M3 9h18M3 15h18" stroke="#FFFFFF" strokeOpacity="0.65" strokeWidth="1.5" />
+    <path d="M2.5 12h19" stroke={G('gold')} strokeWidth="2" />
+    <ellipse cx="8" cy="6" rx="2.6" ry="1" transform="rotate(-25 8 6)" fill="#FFFFFF" fillOpacity="0.6" />
+  </svg>
+);
+
 /** A subject's empty card: a pressed-in slot with the gold plus coin (add a file). */
 export const ClayAddFile = (p: P) => (
   <svg {...base(p, 26, 26, '0 0 26 26')}>

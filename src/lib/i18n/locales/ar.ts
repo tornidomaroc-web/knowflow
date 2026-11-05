@@ -286,8 +286,8 @@ export const ar: Translation = {
       lastAdded: "آخر إضافة",
       created: "أُنشئت",
       addMaterial: "أضف ملفًا",
-      // Design "C", PR 3: in place of the ring's dash (#129 (b)); an agent draft
-      // for the owner (docs/copy-drafts/design_c_pr3.md).
+      // Design "C", PR 3: in place of the ring's dash (#129 (b)); approved by the
+      // owner in the review of #303 (docs/copy/ARABIC_STRINGS_app_v5.md).
       nothingToSummarise: "لا يمكن تلخيص شيء هنا: الملفات لم تنجح أو بلا نص.",
     },
     subjectDetail: {

@@ -302,8 +302,8 @@ export const en = {
       lastAdded: "Last added",
       created: "Created",
       addMaterial: "Add material",
-      // Design "C", PR 3: in place of the ring's dash (#129 (b)); an agent draft
-      // for the owner (docs/copy-drafts/design_c_pr3.md).
+      // Design "C", PR 3: in place of the ring's dash (#129 (b)); approved by the
+      // owner in the review of #303 (docs/copy/ARABIC_STRINGS_app_v5.md).
       nothingToSummarise: "Nothing here can be summarised: the files failed or have no text.",
     },
     subjectDetail: {
