@@ -25,7 +25,7 @@ for n in names:
     img.paste(a, (0, band))
     img.paste(b, (a.width + gap, band))
     d = ImageDraw.Draw(img)
-    d.text((12, 10), f'BEFORE (main)  {n}', fill=(255, 255, 255), font=font)
+    d.text((12, 10), f'BEFORE ({os.environ.get("BEFORE_LABEL") or "main"})  {n}', fill=(255, 255, 255), font=font)
     d.text((a.width + gap + 12, 10), f'AFTER (this PR)  {n}', fill=(255, 255, 255), font=font)
     img.save(os.path.join(out, n), optimize=True)
     hh, ww = min(a.height, b.height), min(a.width, b.width)

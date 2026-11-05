@@ -1,7 +1,6 @@
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
 import { buttonVariants } from '@/components/ui';
-import { EmptyAsk } from '@/components/illustrations';
+import { ClayEmptyShelf, ClayPlus } from '@/components/clay/ClayIcons';
 
 interface AgentEmptyStateLabels {
   title: string;
@@ -22,13 +21,14 @@ export interface AgentEmptyStateProps {
 export function AgentEmptyState({ newHref, labels }: AgentEmptyStateProps) {
   return (
     <div>
-      {/* Step Redesign-3: the drawn Ask empty state (illustrations, EmptyAsk). */}
-      <div className="kf-card rise mx-auto flex max-w-md flex-col items-center rounded-2xl border border-dashed border-border bg-surface p-10 text-center">
-        <EmptyAsk size={128} title={labels.title} />
+      {/* Design "C", PR 4: a clay card (no dashed edge) with the home's clay
+          empty shelf, the same picture the empty home draws. */}
+      <div data-kf-ask-zero="" className="kf-card rise mx-auto flex max-w-md flex-col items-center rounded-2xl bg-surface p-10 text-center">
+        <ClayEmptyShelf title={labels.title} data-kf-clay-art="empty-ask" />
         <h2 className="mt-4 text-xl font-semibold text-foreground">{labels.title}</h2>
         <p className="mb-6 mt-2 text-sm text-muted-foreground">{labels.prompt}</p>
         <Link href={newHref} className={buttonVariants({ variant: 'primary' })}>
-          <Plus className="h-4 w-4" />
+          <ClayPlus width={20} height={20} />
           {labels.cta}
         </Link>
       </div>

@@ -84,6 +84,24 @@
  * Delete pushed to the row's end must be flagged on every card, or the run
  * fails as blind.
  *
+ * PR 4 (Ask, the quiz and the summary; scripts/design-c/pr4.mjs) adds, 390 x
+ * 844 at 2x, both languages, both themes, in the app and on the web: Ask
+ * empty, Ask with a long conversation typed into the real ChatBox (the page
+ * grown so the whole thread shows), Ask's history (the phone's drawer; on a
+ * desk at 1280 the history column beside the opened conversation), Ask's two
+ * empty states (no subject; no subject Ask can answer from), the AI
+ * permission sheet, and on the material card: the study buttons idle, the
+ * summary loading, its error, a stored partial summary, the quiz taken with
+ * one option picked and its result (right, wrong, blank). The routes those
+ * controls call are answered IN THE BROWSER with fixtures (no request
+ * reaches a server route), the same on both sides. A card state is shot as
+ * that card alone. Each is read by pr4Checks() (no bubble, choice or source
+ * text clipped; no outline icon, dashed edge or hairline in the parts PR 4
+ * redrew; the quiz's four states by four marker shapes and TRAP 1's right
+ * answer on option 0; what ios-signed-in.yml reads still there). Text the
+ * page does not choose (an answer, a question, a quiz item, a summary) is
+ * not read by lineChecks() or tileChecks(), as a student's own name is not.
+ *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
  *      http://127.0.0.1:3000), CHROME, PUPPETEER_DIR, FONT_DIR (the
@@ -95,6 +113,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { kfWording } from '../lib/app-wording.mjs';
 import { audit } from '../redesign-built/audit.mjs';
+import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing } from './pr4.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -159,6 +178,8 @@ add('subject-app-empty', 'preview/subject', { platform: 'native', view: 'empty' 
 add('subject-web', 'preview/subject', { platform: 'web' }, SAFARI, { pr3: true });
 add('subject-web-empty', 'preview/subject', { platform: 'web', view: 'empty' }, SAFARI, { pr3: true });
 for (const k of ['settings-app', 'settings-web', 'subject-app']) byKeyEarly(k).pr3 = true;
+const LONG = pr4Screens(add, { APP, SAFARI, DESK, DESKTOP }, resolve('.'));
+const KEEP = keepTogetherList(resolve('.'));
 const byKey = (k) => SCREENS.find((x) => x.key === k);
 function byKeyEarly(k) { return SCREENS.find((x) => x.key === k); }
 
@@ -352,9 +373,14 @@ function lineChecks(scope) {
   for (let n = tw.nextNode(); n; n = tw.nextNode()) {
     if (!n.data.trim()) continue;
     const el = n.parentElement;
-    if (!el || el.closest('svg, script, style, noscript, .sr-only, [aria-hidden="true"], [hidden], [data-username]')) continue;
+    if (!el || el.closest('svg, script, style, noscript, .sr-only, [aria-hidden="true"], [hidden], [data-kf-generated], [data-kf-bubble], [data-kf-summary] > p[dir="auto"]')) continue;
     let b = el;
     while (b !== root && getComputedStyle(b).display.startsWith('inline')) b = b.parentElement;
+    // PR 4: a student's name is read for its PLACE, never judged itself: its
+    // words count toward the line they sit on, so "Microeconomics simply."
+    // is a line of two words, not "simply." alone (scratch run 42103571385
+    // flagged exactly that), and a name's own word is never a finding.
+    n.kfName = !!el.closest('[data-username]');
     blocks.set(b, [...(blocks.get(b) || []), n]);
   }
   for (const [b, nodes] of blocks) {
@@ -366,7 +392,7 @@ function lineChecks(scope) {
         range.setStart(n, m.index);
         range.setEnd(n, m.index + m[0].length);
         const rc = range.getClientRects()[0];
-        if (rc && rc.width > 0) words.push({ w: m[0], top: rc.top, bottom: rc.bottom, left: rc.left, right: rc.right, mid: (rc.top + rc.bottom) / 2 });
+        if (rc && rc.width > 0) words.push({ w: m[0], name: n.kfName, top: rc.top, bottom: rc.bottom, left: rc.left, right: rc.right, mid: (rc.top + rc.bottom) / 2 });
       }
     }
     const lines = [];
@@ -377,7 +403,7 @@ function lineChecks(scope) {
     }
     const rtl = getComputedStyle(b).direction === 'rtl';
     const name = `${b.tagName.toLowerCase()} "${b.textContent.trim().replace(/\s+/g, ' ').slice(0, 40)}"`;
-    if (lines.length > 1) for (const l of lines) if (l.words.length === 1) out.push(`one word alone ("${l.words[0].w}") in ${name}`);
+    if (lines.length > 1) for (const l of lines) if (l.words.length === 1 && !l.words[0].name) out.push(`one word alone ("${l.words[0].w}") in ${name}`);
     for (const l of lines) {
       const visual = [...l.words].sort((a, c) => (rtl ? c.right - a.right : a.left - c.left))[0];
       if (SEP.test(l.words[0].w) || SEP.test(visual.w)) out.push(`a line starts with a separator in ${name}`);
@@ -406,7 +432,7 @@ function lineChecks(scope) {
 function tileChecks() {
   const findings = [];
   const measured = { rows: 0, tiles: 0, groups: 0, heroLines: null };
-  const SKIP = 'svg, script, style, noscript, .sr-only, [aria-hidden="true"], [hidden], [data-username]';
+  const SKIP = 'svg, script, style, noscript, .sr-only, [aria-hidden="true"], [hidden], [data-username], [data-kf-generated], [data-kf-bubble], [data-kf-summary] > p[dir="auto"]';
   const visible = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
   const firstLineTop = (el) => {
     const range = document.createRange();
@@ -735,8 +761,10 @@ async function shoot(side, job) {
   await tab.setViewport(job.s.view);
   await tab.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await tab.setRequestInterception(true);
+  const held = [];
   tab.on('request', (r) => {
     const u = r.url();
+    if (job.s.pr4 && pr4Mock(job, LONG, r, held)) return;
     if (u.startsWith(FONT_HOST)) {
       const body = fontFiles.get(u.slice(FONT_HOST.length));
       return body ? r.respond({ status: 200, contentType: 'font/woff2', body, headers: { 'access-control-allow-origin': '*' } }) : r.respond({ status: 404, body: '' });
@@ -747,7 +775,7 @@ async function shoot(side, job) {
   // loses its query on the way, so its theme is asked with the cookie the
   // ?theme= link would have written.
   if (job.theme && job.s.lands) await tab.setCookie({ name: 'kf-theme', value: job.theme, url: SIDES[side] });
-  const q = new URLSearchParams({ ...job.s.q, ...(job.theme && !job.s.lands ? { theme: job.theme } : {}) }).toString();
+  const q = new URLSearchParams({ ...(side === 'before' && job.s.beforeQ ? job.s.beforeQ : job.s.q), ...(job.theme && !job.s.lands ? { theme: job.theme } : {}) }).toString();
   const url = `${SIDES[side]}/${job.locale}${job.s.path ? '/' + job.s.path : ''}${q ? '?' + q : ''}`;
   const res = await tab.goto(url, { waitUntil: 'networkidle0', timeout: 90000 });
   await tab.addStyleTag({ content: PIN });
@@ -757,6 +785,9 @@ async function shoot(side, job) {
     const loaded = [...document.fonts].filter((f) => f.family.replace(/"/g, '') === family && f.status === 'loaded').map((f) => `${f.weight}/${f.unicodeRange.slice(0, 18)}`).sort();
     return { loaded, body: getComputedStyle(document.body).fontFamily, weightsLoaded: [...new Set([...document.fonts].filter((f) => f.family.replace(/"/g, '') === family && f.status === 'loaded').map((f) => Number(f.weight)))].sort() };
   }, FAMILY, WEIGHTS);
+  // PR 4: the interaction through the real controls, before the animations
+  // are ended (a new bubble rises in, the drawer slides).
+  const acted = job.s.act ? await pr4Act(tab, job, LONG).catch((e) => ({ act: job.s.act, error: String(e).slice(0, 200) })) : null;
   // Finite animations are finished. An INFINITE one (a processing spinner,
   // Tailwind's `animate-spin`, which reduced motion does not stop: it is the
   // state itself) is paused at its first frame, the same on both sides, and
@@ -783,19 +814,29 @@ async function shoot(side, job) {
   // reviewChecks() and deletePlant() call deleteOffset() in the page, so it is defined there first.
   await tab.evaluate(`window.deleteOffset = ${deleteOffset.toString()}`);
   const review = await tab.evaluate(reviewChecks);
+  const pr4 = job.s.pr4 ? await tab.evaluate(pr4Checks, job.s.pr4, job.s.act || null) : null;
+  const phrases = await tab.evaluate(phraseChecks, KEEP);
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
   // as the document, fixed bars sit at the page's real bottom.
   const file = join(out, side, `${job.name}.png`);
   const tall = await tab.evaluate(() => Math.ceil(document.documentElement.scrollHeight));
-  await tab.setViewport({ ...job.s.view, height: Math.max(job.s.view.height, tall) });
+  // PR 4, `grow`: the conversation scrolls inside a column of the screen's
+  // height, so the page is made taller by what the thread hides, and the
+  // whole thread shows, the composer still at the bottom.
+  const hidden = job.s.grow ? await tab.evaluate(() => { const t = document.querySelector('[data-kf-thread]') || document.querySelector('[data-kf-composer]')?.previousElementSibling; return t ? Math.max(0, t.scrollHeight - t.clientHeight) : 0; }) : 0;
+  await tab.setViewport({ ...job.s.view, height: Math.max(job.s.view.height + hidden, tall) });
   await tab.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-  await tab.screenshot({ path: file });
+  const card = job.s.shot ? await tab.$(`[data-kf-shot="${job.s.shot}"]`) : null;
+  if (card) await card.screenshot({ path: file });
+  else await tab.screenshot({ path: file });
   const picker = job.s.pr3 && /preview\/subject$/.test(job.s.path) ? await tab.evaluate(pickerCheck) : null;
   const plant = /preview\/subject$/.test(job.s.path) && job.s.q.view !== 'empty' ? await tab.evaluate(deletePlant) : null;
+  const ring = job.s.pr4 === 'consent' ? await keyRing(tab) : null;
+  for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring };
 }
 
 for (const job of JOBS) {
@@ -825,6 +866,11 @@ for (const job of JOBS) {
       ...(r.picker?.finding ? [`pr3: ${r.picker.finding}`] : []),
       ...r.review.findings.map((f) => `review: ${f}`),
       ...(side === 'after' && r.plant?.finding ? [`review: ${r.plant.finding}`] : []),
+      ...(r.acted?.error ? [`pr4: the interaction failed: ${r.acted.error}`] : []),
+      ...(job.s.shot && !r.shotCard ? [`pr4: no card to shoot (${job.s.shot})`] : []),
+      ...(r.pr4 ? r.pr4.findings.map((f) => `pr4: ${f}`) : []),
+      ...r.phrases.findings.map((f) => `pr4: ${f}`),
+      ...(r.ring && !r.ring.ok ? [`pr4: Tab on the open sheet draws no focus ring (${JSON.stringify(r.ring)})`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -840,6 +886,9 @@ for (const job of JOBS) {
       ...(r.pr3 ? { pr3: { ...r.pr3.measured, pickerOpened: r.picker ? r.picker.opened : undefined } } : {}),
       // What reviewChecks() read on this page.
       review: { ...r.review.measured, ...(r.plant ? { deletePlant: { cards: r.plant.cards, caught: r.plant.caught } } : {}) },
+      // What pr4Checks() read, and how much of the thread the page was grown by.
+      ...(r.pr4 ? { pr4: { ...r.pr4.measured, act: job.s.act || null, grownBy: r.hidden || 0, ...(r.ring ? { tabRing: r.ring } : {}) } } : {}),
+      protectedPhrasesRead: r.phrases.read,
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no
       // plan, price, upgrade or free word.

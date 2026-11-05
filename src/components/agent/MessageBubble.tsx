@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import { FileName } from '@/components/ui/FileName';
+import { ClayChipFile } from '@/components/clay/ClayIcons';
 
 export interface Citation {
   index: number;
@@ -47,14 +48,20 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`flex max-w-[85%] flex-col gap-2 md:max-w-[75%] ${isUser ? 'items-end' : 'items-start'}`}>
+        {/* Design "C", PR 4: the question a gold clay bubble at the end, the
+            answer a clay card at the start, each with its tail corner on
+            the side it speaks from (the landing's answer card, Landing.dc.html).
+            The card's padding and margins are the same as before, so the
+            blocks inside it keep their 8 px rhythm (render-fix2's gap check). */}
         <div
           dir="auto"
-          className={`rounded-2xl p-4 text-sm ${
+          data-kf-bubble={isUser ? 'question' : 'answer'}
+          className={`rounded-[1.25rem] p-4 text-sm ${
             isUser ? 'whitespace-pre-wrap' : ''
           } ${
             isUser
-              ? 'kf-bubble-user bg-primary text-primary-foreground shadow-soft'
-              : 'kf-card border border-border bg-surface text-foreground shadow-soft'
+              ? 'kf-bubble-user rounded-ee-md bg-primary text-primary-foreground'
+              : 'kf-card !rounded-[1.25rem] !rounded-es-md bg-surface text-foreground'
           }`}
         >
           {/* Markdown marks inherit the bubble's text color so they read on both
@@ -90,24 +97,30 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
         {!isUser && !isStreaming && citations && citations.length > 0 && (
           <>
             {sourcesLabel && <p className="px-1 text-[11px] font-semibold text-muted-foreground">{sourcesLabel}</p>}
+            {/* Each source a clay pill with a small file chip, as the landing's
+                answer card draws them; 44 pt tall when it is a link. The row
+                stays dir="ltr" (register #124): "[1]" sits left of the name in
+                both languages, and FileName keeps the name one unit. */}
             <div className="flex flex-wrap gap-2 px-1" dir="ltr">
-              {citations.map((c) => {
-                const pill = (
-                  <span
-                    title={`${c.filename} · ${(c.similarity * 100).toFixed(0)}% match`}
-                    className="cursor-default rounded-full border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                  >
-                    [{c.index}] <FileName name={c.filename} inline withoutExtension />
-                  </span>
+              {citations.map((c, i) => {
+                const body = (
+                  <>
+                    <ClayChipFile tone={i % 2 ? 'blue' : 'peach'} />
+                    <span>
+                      [{c.index}] <FileName name={c.filename} inline withoutExtension />
+                    </span>
+                  </>
                 );
-                // With a destination the pill is a link to the material, 44 pt tall
-                // through its padding, and reads in the text colour.
+                const title = `${c.filename} · ${(c.similarity * 100).toFixed(0)}% match`;
+                // With a destination the pill is a link to the material.
                 return sourceHref ? (
-                  <Link key={c.chunk_id} href={sourceHref(c)} className="kf-tile inline-flex min-h-[2.75rem] items-center rounded-full bg-raised px-1 [&>span]:cursor-pointer [&>span]:border-0 [&>span]:text-xs [&>span]:text-foreground">
-                    {pill}
+                  <Link key={c.chunk_id} href={sourceHref(c)} title={title} data-kf-source="" className="kf-pill inline-flex min-h-[2.75rem] items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    {body}
                   </Link>
                 ) : (
-                  <span key={c.chunk_id} className="contents">{pill}</span>
+                  <span key={c.chunk_id} title={title} className="kf-pill inline-flex min-h-8 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-semibold text-muted-foreground">
+                    {body}
+                  </span>
                 );
               })}
             </div>

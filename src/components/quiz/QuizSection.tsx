@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { readServerLimitMessage } from '@/lib/limit-messages';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
-import { EmptyQuiz } from '@/components/illustrations';
+import { ClayChoiceEmpty, ClayChoicePicked, ClayChoiceRight, ClayChoiceWrong, ClayDoc, ClayQuiz } from '@/components/clay/ClayIcons';
 
 // Only the fields this section needs from a document, mirroring SummarySection's
 // SummaryDoc rather than accepting a whole `Document`.
@@ -258,7 +258,7 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
             is drawn, with the route's sentence under the picture. */}
         {error && error === q.errors.notEnoughText ? (
           <div data-kf-quiz-empty="" className="kf-well mt-3 flex flex-col items-center rounded-2xl p-5 text-center">
-            <EmptyQuiz size={80} title={error} />
+            <ClayDoc tone="peach" width={56} height={56} data-kf-clay-art="empty-quiz" />
             <p className="mt-2 text-sm text-muted-foreground">{error}</p>
           </div>
         ) : (
@@ -272,43 +272,51 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
   const resultFor = (itemId: string): GradedResultView | null =>
     results.find((r) => r.item_id === itemId) ?? null;
 
+  // Design "C", PR 4: the quiz is a pressed-in well across the card's row,
+  // each question a clay card in it, each option a clay choice whose state
+  // reads by its MARKER'S SHAPE as well as its colour: an empty dimple, the
+  // gold coin with a dot (picked), a green coin with a tick (the right
+  // answer, shown only where the route revealed it), a red coin with a cross
+  // (a wrong pick). An unanswered question keeps its sentence.
   return (
-    <div className="rounded-xl border border-border bg-background p-4">
-      <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {q.heading}
+    <div data-kf-quiz={phase} className="kf-well col-span-full rounded-[1.5rem] p-3 md:p-4">
+      <h3 className="mb-3 flex items-center gap-2 px-1 text-[0.9375rem] font-extrabold text-foreground">
+        <ClayQuiz width={22} height={22} className="shrink-0" />
+        <span>{q.heading}</span>
       </h3>
 
       {isPartial && (
-        <p className="mb-3 rounded-lg bg-primary-subtle px-3 py-2 text-xs text-primary">
+        <p className="mb-3 rounded-xl bg-primary-subtle px-3 py-2 text-xs text-primary">
           {q.partialNotice}
         </p>
       )}
 
       {showingResults && (
-        <p className="mb-3 text-sm font-medium text-foreground">
-          {q.score}: {score} / {total}
+        <p data-kf-quiz-score="" className="kf-tile mb-3 flex min-h-11 items-center gap-2 rounded-2xl px-3 py-2 text-[0.9375rem] font-extrabold text-foreground">
+          <ClayChoiceRight width={22} height={22} className="shrink-0" />
+          <span>{q.score}: {score} / {total}</span>
         </p>
       )}
 
-      <ol className="space-y-5">
+      <ol className="space-y-3">
         {items.map((item, qIndex) => {
           const result = showingResults ? resultFor(item.id) : null;
           const revealed = result ? revealedIndex(result) : null;
           const answered = result ? answeredIndex(result, item.options.length) : null;
 
           return (
-            <li key={item.id} className="space-y-2">
-              <p className="text-sm font-medium text-foreground">
+            <li key={item.id} data-kf-question="" className="kf-card space-y-2 !rounded-[1.25rem] p-3.5">
+              <p data-kf-generated="" className="text-sm font-semibold text-foreground">
                 {qIndex + 1}. {item.question}
               </p>
 
               {/* An unattempted item in the results: the route revealed nothing for
                   it, so there is nothing to show but the honest fact. */}
               {showingResults && answered === null && (
-                <p className="text-xs text-muted-foreground">{q.noAnswer}</p>
+                <p className="text-xs font-medium text-muted-foreground">{q.noAnswer}</p>
               )}
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {item.options.map((option, oIndex) => {
                   const chosen = showingResults
                     ? answered === oIndex
@@ -316,30 +324,28 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
                   const isRevealedCorrect = revealed !== null && revealed === oIndex;
                   const isWrongChoice = showingResults && chosen && !result?.is_correct;
 
-                  // CORRECT reuses the existing `primary` tokens, NOT a raw green.
-                  // `--primary` is already #047857 (emerald-700) and
-                  // `--primary-subtle` is emerald-50, so a raw `green-700`
-                  // (#15803d) would plant a second, subtly-different green beside
-                  // the theme's own — precisely the drift P2.7 purged.
-                  //
-                  // INCORRECT stays raw Tailwind red, matching this codebase's
-                  // actual precedent (statusColor's text-red-700 / text-amber-700
-                  // and SummarySection's text-red-700). There is no semantic
-                  // "danger" surface token to reuse.
-                  let tone = 'border-border bg-surface text-foreground';
-                  if (showingResults && isRevealedCorrect) {
-                    tone = 'border-primary bg-primary-subtle font-medium text-primary';
-                  } else if (isWrongChoice) {
-                    tone = 'border-danger bg-danger-subtle text-danger';
-                  } else if (chosen) {
-                    tone = 'border-primary bg-primary-subtle text-foreground';
-                  }
+                  // The state, by fill AND marker. CORRECT is the mint the app
+                  // uses for "done" (never the gold of "picked", which is what
+                  // the quiz showed before and which read the same as a pick);
+                  // WRONG the danger tokens. Every pair is in the contrast table.
+                  let state: 'idle' | 'picked' | 'right' | 'wrong' = 'idle';
+                  if (showingResults && isRevealedCorrect) state = 'right';
+                  else if (isWrongChoice) state = 'wrong';
+                  else if (chosen) state = 'picked';
+                  const tone = {
+                    idle: 'kf-pill text-foreground',
+                    picked: 'kf-pill !bg-accent-subtle font-semibold text-foreground',
+                    right: 'kf-pill !bg-mint-subtle font-semibold text-mint',
+                    wrong: 'kf-pill !bg-danger-subtle font-semibold text-danger',
+                  }[state];
+                  const Marker = { idle: ClayChoiceEmpty, picked: ClayChoicePicked, right: ClayChoiceRight, wrong: ClayChoiceWrong }[state];
 
                   return (
                     <label
                       key={oIndex}
-                      className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-sm ${tone} ${
-                        showingResults ? 'cursor-default' : ''
+                      data-kf-choice={state}
+                      className={`flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring ${tone} ${
+                        showingResults ? 'cursor-default' : 'cursor-pointer'
                       }`}
                     >
                       <input
@@ -348,9 +354,10 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
                         checked={chosen}
                         disabled={showingResults || phase === 'submitting'}
                         onChange={() => choose(item.id, oIndex)}
-                        className="mt-0.5 shrink-0"
+                        className="sr-only"
                       />
-                      <span className="min-w-0">{option}</span>
+                      <Marker className="shrink-0" />
+                      <span data-kf-generated="" className="min-w-0">{option}</span>
                     </label>
                   );
                 })}
@@ -360,7 +367,7 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
                   actually carried correct_index — i.e. only on items the student
                   attempted in range. Never inferred, never guessed. */}
               {showingResults && revealed !== null && !result?.is_correct && (
-                <p className="text-xs text-primary">
+                <p data-kf-generated="" className="text-xs font-semibold text-mint">
                   {q.correctAnswer}: {item.options[revealed]}
                 </p>
               )}
@@ -373,14 +380,14 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
 
       <div className="mt-4">
         {showingResults ? (
-          <button onClick={retake} className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
+          <button onClick={retake} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'w-full whitespace-nowrap')}>
             {q.retake}
           </button>
         ) : (
           <button
             onClick={submit}
             disabled={phase === 'submitting'}
-            className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+            className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'w-full whitespace-nowrap')}
           >
             {phase === 'submitting' ? q.submitting : q.submit}
           </button>

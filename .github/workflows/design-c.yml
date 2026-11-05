@@ -31,6 +31,12 @@ on:
       - 'docs/design/design-c/**'
       - '.github/workflows/design-c.yml'
   workflow_dispatch:
+    inputs:
+      before_ref:
+        description: 'what BEFORE is built from (default main). The owner review of #305 runs it once on d32bd5f to prove the new checks fail there.'
+        type: string
+        required: false
+        default: 'main'
 
 permissions:
   contents: read
@@ -61,7 +67,7 @@ jobs:
         with:
           persist-credentials: false
           path: before
-          ref: ${{ github.event.pull_request.base.sha || 'main' }}
+          ref: ${{ github.event.pull_request.base.sha || inputs.before_ref || 'main' }}
 
       - name: The contrast table is current and has no failure
         working-directory: after
@@ -111,7 +117,7 @@ jobs:
         working-directory: after
         run: |
           python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
-          python3 scripts/design-c/compose.py "$RUNNER_TEMP/design-c"
+          BEFORE_LABEL="${{ github.event.pull_request && 'main' || inputs.before_ref || 'main' }}" python3 scripts/design-c/compose.py "$RUNNER_TEMP/design-c"
           cp "$RUNNER_TEMP/contrast.md" "$RUNNER_TEMP/design-c/contrast.md"
 
       - name: Server logs

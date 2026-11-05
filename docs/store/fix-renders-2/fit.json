@@ -12,12 +12,12 @@
     "span": 593,
     "m": {
       "questionTop": 16,
-      "list": 438,
+      "list": 441,
       "firstSource": 609,
       "allSources": 661,
       "atEnd": false
     },
-    "reading": "answer shown; sources: yes; question top 16 of list 438; first source bottom 609; all sources bottom 661; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 441; first source bottom 609; all sources bottom 661; list at end no",
     "neighbours": {
       "below": {
         "n": 32,
@@ -30,33 +30,33 @@
     }
   },
   "old": {
-    "reading": "answer shown; sources: yes; question top 16 of list 438; first source bottom 609; all sources bottom 661; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 441; first source bottom 609; all sources bottom 661; list at end no",
     "questionTop": 16,
-    "list": 438,
+    "list": 441,
     "firstSource": 609,
     "allSources": 661,
     "atEnd": false,
-    "gap": 171,
+    "gap": 168,
     "sourcesRows": 52
   },
   "new": {
-    "reading": "answer shown; sources: yes; question top 16 of list 438; first source bottom 529; all sources bottom 581; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 441; first source bottom 529; all sources bottom 581; list at end no",
     "questionTop": 16,
-    "list": 438,
+    "list": 441,
     "firstSource": 529,
     "allSources": 581,
     "atEnd": false,
-    "gap": 91,
+    "gap": 88,
     "sourcesRows": 52
   },
   "new-question": {
-    "reading": "answer shown; sources: yes; question top 16 of list 438; first source bottom 529; all sources bottom 581; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 441; first source bottom 529; all sources bottom 581; list at end no",
     "questionTop": 16,
-    "list": 438,
+    "list": 441,
     "firstSource": 529,
     "allSources": 581,
     "atEnd": false,
-    "gap": 91,
+    "gap": 88,
     "sourcesRows": 52
   }
 }

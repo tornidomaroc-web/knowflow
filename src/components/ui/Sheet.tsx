@@ -10,6 +10,14 @@ interface SheetProps {
   side?: 'left' | 'right' | 'bottom';
   className?: string;
   label?: string;
+  /**
+   * Where focus goes on open. 'first' (the default, unchanged): the first
+   * focusable inside. 'panel': the dialog itself, named by `label`, so no
+   * control shows a keyboard focus ring the moment the sheet appears; Tab
+   * then reaches the first control (the owner's review of #305: the AI
+   * permission sheet opened with a ring around its privacy link).
+   */
+  initialFocus?: 'first' | 'panel';
   children: ReactNode;
 }
 
@@ -22,7 +30,7 @@ const FOCUSABLE =
  * open, Tab/Shift+Tab cycle within it, and focus is restored to the trigger on
  * close. Required now that Sheet hosts the interactive conversation drawer.
  */
-export function Sheet({ open, onClose, side = 'bottom', className, label, children }: SheetProps) {
+export function Sheet({ open, onClose, side = 'bottom', className, label, initialFocus = 'first', children }: SheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   // Keep the latest onClose without re-running the open effect on every parent
   // render (callers pass inline arrows), which would otherwise re-steal focus.
@@ -37,8 +45,9 @@ export function Sheet({ open, onClose, side = 'bottom', className, label, childr
     const focusables = () =>
       panel ? Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)) : [];
 
-    // Move focus into the panel (first focusable, else the panel itself).
-    (focusables()[0] ?? panel)?.focus();
+    // Move focus into the panel (first focusable, else the panel itself; the
+    // panel itself when asked).
+    (initialFocus === 'panel' ? panel : (focusables()[0] ?? panel))?.focus();
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -56,7 +65,9 @@ export function Sheet({ open, onClose, side = 'bottom', className, label, childr
       const last = items[items.length - 1];
       const active = document.activeElement;
       if (e.shiftKey) {
-        if (active === first || !panel.contains(active)) {
+        // From the panel itself (initialFocus 'panel'), Shift+Tab wraps to
+        // the last control instead of leaving the dialog.
+        if (active === first || active === panel || !panel.contains(active)) {
           e.preventDefault();
           last.focus();
         }
@@ -71,7 +82,7 @@ export function Sheet({ open, onClose, side = 'bottom', className, label, childr
       document.removeEventListener('keydown', onKey);
       previouslyFocused?.focus?.();
     };
-  }, [open]);
+  }, [open, initialFocus]);
 
   const panelPos =
     side === 'bottom'
