@@ -17,19 +17,19 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":634,\"bottom\":748,\"barTop\":772}"
       }
     ],
-    "text": 16,
+    "text": 17,
     "textWorst": 7.39,
     "targets": 8,
     "shaping": 16,
     "cost": {
-      "shadowed": 12,
+      "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 34,
+      "blurred": 38,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"اسأل\""
     }
   },
   {
@@ -50,7 +50,7 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":634,\"bottom\":748,\"barTop\":772}"
       },
       {
         "ok": true,
@@ -62,11 +62,11 @@
     "targets": 9,
     "shaping": 16,
     "cost": {
-      "shadowed": 14,
+      "shadowed": 16,
       "maxLayers": 3,
-      "blurred": 40,
+      "blurred": 44,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"اسأل\""
     }
   },
   {
@@ -87,15 +87,15 @@
       }
     ],
     "text": 7,
-    "textWorst": 6.86,
+    "textWorst": 7.39,
     "targets": 5,
     "shaping": 7,
     "cost": {
-      "shadowed": 4,
+      "shadowed": 5,
       "maxLayers": 3,
-      "blurred": 10,
+      "blurred": 15,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"اسأل\""
     }
   },
   {
@@ -120,11 +120,11 @@
     "targets": 5,
     "shaping": 6,
     "cost": {
-      "shadowed": 3,
+      "shadowed": 5,
       "maxLayers": 3,
-      "blurred": 9,
+      "blurred": 15,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"اسأل\""
     }
   },
   {
@@ -141,19 +141,19 @@
       },
       {
         "ok": true,
-        "m": "the drawn files empty state: spark-book,empty-files"
+        "m": "the drawn files empty state: empty-files"
       }
     ],
-    "text": 18,
+    "text": 19,
     "textWorst": 6.86,
     "targets": 5,
-    "shaping": 14,
+    "shaping": 15,
     "cost": {
-      "shadowed": 8,
+      "shadowed": 9,
       "maxLayers": 3,
-      "blurred": 22,
+      "blurred": 25,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"المواد\""
     }
   },
   {
@@ -170,19 +170,19 @@
       },
       {
         "ok": true,
-        "m": "the drawn quiz empty state: spark-book,empty-quiz"
+        "m": "the drawn quiz empty state: empty-quiz"
       }
     ],
-    "text": 101,
+    "text": 103,
     "textWorst": 5.6,
-    "targets": 16,
-    "shaping": 89,
+    "targets": 17,
+    "shaping": 91,
     "cost": {
-      "shadowed": 40,
+      "shadowed": 57,
       "maxLayers": 3,
-      "blurred": 102,
+      "blurred": 149,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"المواد\""
     }
   },
   {
@@ -202,16 +202,16 @@
         "m": "file-type labels in Arabic: نص, مستند, مستند, عرض, وورد, جدول, مستند, مستند"
       }
     ],
-    "text": 100,
+    "text": 102,
     "textWorst": 5.6,
-    "targets": 16,
-    "shaping": 88,
+    "targets": 17,
+    "shaping": 90,
     "cost": {
-      "shadowed": 39,
+      "shadowed": 56,
       "maxLayers": 3,
-      "blurred": 101,
+      "blurred": 148,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"المواد\""
     }
   },
   {
@@ -232,15 +232,15 @@
       }
     ],
     "text": 52,
-    "textWorst": 5.28,
+    "textWorst": 4.93,
     "targets": 12,
-    "shaping": 43,
+    "shaping": 42,
     "cost": {
-      "shadowed": 32,
+      "shadowed": 34,
       "maxLayers": 3,
-      "blurred": 96,
+      "blurred": 100,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"الرئيسية\""
     }
   },
   {
@@ -265,11 +265,11 @@
     "targets": 14,
     "shaping": 30,
     "cost": {
-      "shadowed": 22,
+      "shadowed": 20,
       "maxLayers": 3,
-      "blurred": 56,
+      "blurred": 50,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"الإعدادات\""
     }
   },
   {
@@ -289,16 +289,16 @@
         "m": "the wordmark reads \"KnowFlow\" on screen"
       }
     ],
-    "text": 56,
-    "textWorst": 5.28,
+    "text": 57,
+    "textWorst": 4.93,
     "targets": 17,
     "shaping": 44,
     "cost": {
-      "shadowed": 35,
+      "shadowed": 37,
       "maxLayers": 3,
-      "blurred": 105,
+      "blurred": 109,
       "filters": [],
-      "heaviest": "header.kf-topbar \"KnowFlowEnglish\""
+      "heaviest": "a.flex \"الرئيسية\""
     }
   },
   {
@@ -307,22 +307,18 @@
     "item": 0,
     "ua": "app",
     "findings": [],
-    "notes": [
-      "target 183 x 43 < 44 x 44 a.kf-hit \"KnowFlow\"",
-      "target 107 x 17 < 44 x 44 a.kf-hit \"نسيت كلمة المرور؟\"",
-      "target 178 x 17 < 44 x 44 a.kf-hit \"ليس لديك حساب؟ أنشئ حسابًا\""
-    ],
+    "notes": [],
     "proved": [],
-    "text": 11,
-    "textWorst": 8.43,
+    "text": 9,
+    "textWorst": 8.36,
     "targets": 5,
     "shaping": 9,
     "cost": {
-      "shadowed": 0,
-      "maxLayers": 0,
-      "blurred": 0,
+      "shadowed": 5,
+      "maxLayers": 3,
+      "blurred": 9,
       "filters": [],
-      "heaviest": ""
+      "heaviest": "div.kf-card \"البريد الإلكترونيكلمة المرورنسيت كلم\""
     }
   },
   {
@@ -343,19 +339,19 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":634,\"bottom\":748,\"barTop\":772}"
       }
     ],
-    "text": 16,
-    "textWorst": 6.37,
+    "text": 17,
+    "textWorst": 5.83,
     "targets": 8,
     "shaping": 16,
     "cost": {
-      "shadowed": 12,
+      "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 34,
+      "blurred": 38,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"اسأل\""
     }
   },
   {
@@ -376,7 +372,7 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":634,\"bottom\":748,\"barTop\":772}"
       },
       {
         "ok": true,
@@ -384,15 +380,15 @@
       }
     ],
     "text": 24,
-    "textWorst": 6.37,
+    "textWorst": 5.83,
     "targets": 9,
     "shaping": 16,
     "cost": {
-      "shadowed": 14,
+      "shadowed": 16,
       "maxLayers": 3,
-      "blurred": 40,
+      "blurred": 44,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"اسأل\""
     }
   },
   {
@@ -413,15 +409,15 @@
       }
     ],
     "text": 7,
-    "textWorst": 6.61,
+    "textWorst": 7.24,
     "targets": 5,
     "shaping": 7,
     "cost": {
-      "shadowed": 4,
+      "shadowed": 5,
       "maxLayers": 3,
-      "blurred": 10,
+      "blurred": 15,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"اسأل\""
     }
   },
   {
@@ -446,11 +442,11 @@
     "targets": 5,
     "shaping": 6,
     "cost": {
-      "shadowed": 3,
+      "shadowed": 5,
       "maxLayers": 3,
-      "blurred": 9,
+      "blurred": 15,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"اسأل\""
     }
   },
   {
@@ -467,19 +463,19 @@
       },
       {
         "ok": true,
-        "m": "the drawn files empty state: spark-book,empty-files"
+        "m": "the drawn files empty state: empty-files"
       }
     ],
-    "text": 18,
-    "textWorst": 6.37,
+    "text": 19,
+    "textWorst": 5.83,
     "targets": 5,
-    "shaping": 14,
+    "shaping": 15,
     "cost": {
-      "shadowed": 8,
+      "shadowed": 9,
       "maxLayers": 3,
-      "blurred": 22,
+      "blurred": 25,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"المواد\""
     }
   },
   {
@@ -496,19 +492,19 @@
       },
       {
         "ok": true,
-        "m": "the drawn quiz empty state: spark-book,empty-quiz"
+        "m": "the drawn quiz empty state: empty-quiz"
       }
     ],
-    "text": 101,
+    "text": 103,
     "textWorst": 4.72,
-    "targets": 16,
-    "shaping": 89,
+    "targets": 17,
+    "shaping": 91,
     "cost": {
-      "shadowed": 40,
+      "shadowed": 57,
       "maxLayers": 3,
-      "blurred": 102,
+      "blurred": 149,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"المواد\""
     }
   },
   {
@@ -528,16 +524,16 @@
         "m": "file-type labels in Arabic: نص, مستند, مستند, عرض, وورد, جدول, مستند, مستند"
       }
     ],
-    "text": 100,
+    "text": 102,
     "textWorst": 4.72,
-    "targets": 16,
-    "shaping": 88,
+    "targets": 17,
+    "shaping": 90,
     "cost": {
-      "shadowed": 39,
+      "shadowed": 56,
       "maxLayers": 3,
-      "blurred": 101,
+      "blurred": 148,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"المواد\""
     }
   },
   {
@@ -558,15 +554,15 @@
       }
     ],
     "text": 52,
-    "textWorst": 5.16,
+    "textWorst": 4.93,
     "targets": 12,
-    "shaping": 43,
+    "shaping": 42,
     "cost": {
-      "shadowed": 32,
+      "shadowed": 34,
       "maxLayers": 3,
-      "blurred": 96,
+      "blurred": 100,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"الرئيسية\""
     }
   },
   {
@@ -591,11 +587,11 @@
     "targets": 14,
     "shaping": 30,
     "cost": {
-      "shadowed": 22,
+      "shadowed": 20,
       "maxLayers": 3,
-      "blurred": 56,
+      "blurred": 50,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"الرئيسيةالمواداسألالإعدادات\""
+      "heaviest": "a.flex \"الإعدادات\""
     }
   },
   {
@@ -615,16 +611,16 @@
         "m": "the wordmark reads \"KnowFlow\" on screen"
       }
     ],
-    "text": 56,
-    "textWorst": 5.16,
+    "text": 57,
+    "textWorst": 4.93,
     "targets": 17,
     "shaping": 44,
     "cost": {
-      "shadowed": 35,
+      "shadowed": 37,
       "maxLayers": 3,
-      "blurred": 105,
+      "blurred": 109,
       "filters": [],
-      "heaviest": "header.kf-topbar \"KnowFlowEnglish\""
+      "heaviest": "a.flex \"الرئيسية\""
     }
   },
   {
@@ -633,22 +629,18 @@
     "item": 0,
     "ua": "app",
     "findings": [],
-    "notes": [
-      "target 183 x 43 < 44 x 44 a.kf-hit \"KnowFlow\"",
-      "target 107 x 17 < 44 x 44 a.kf-hit \"نسيت كلمة المرور؟\"",
-      "target 178 x 17 < 44 x 44 a.kf-hit \"ليس لديك حساب؟ أنشئ حسابًا\""
-    ],
+    "notes": [],
     "proved": [],
-    "text": 11,
-    "textWorst": 5.59,
+    "text": 9,
+    "textWorst": 6.35,
     "targets": 5,
     "shaping": 9,
     "cost": {
-      "shadowed": 0,
-      "maxLayers": 0,
-      "blurred": 0,
+      "shadowed": 5,
+      "maxLayers": 3,
+      "blurred": 9,
       "filters": [],
-      "heaviest": ""
+      "heaviest": "div.kf-card \"البريد الإلكترونيكلمة المرورنسيت كلم\""
     }
   },
   {
@@ -669,7 +661,7 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":634,\"bottom\":748,\"barTop\":772}"
       }
     ],
     "text": 16,
@@ -677,11 +669,11 @@
     "targets": 8,
     "shaping": 0,
     "cost": {
-      "shadowed": 12,
+      "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 34,
+      "blurred": 38,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Ask\""
     }
   },
   {
@@ -702,7 +694,7 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":634,\"bottom\":748,\"barTop\":772}"
       },
       {
         "ok": true,
@@ -714,11 +706,11 @@
     "targets": 9,
     "shaping": 1,
     "cost": {
-      "shadowed": 14,
+      "shadowed": 16,
       "maxLayers": 3,
-      "blurred": 40,
+      "blurred": 44,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Ask\""
     }
   },
   {
@@ -739,15 +731,15 @@
       }
     ],
     "text": 7,
-    "textWorst": 6.86,
+    "textWorst": 7.39,
     "targets": 5,
     "shaping": 0,
     "cost": {
-      "shadowed": 4,
+      "shadowed": 5,
       "maxLayers": 3,
-      "blurred": 10,
+      "blurred": 15,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Ask\""
     }
   },
   {
@@ -772,11 +764,11 @@
     "targets": 5,
     "shaping": 0,
     "cost": {
-      "shadowed": 3,
+      "shadowed": 5,
       "maxLayers": 3,
-      "blurred": 9,
+      "blurred": 15,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Ask\""
     }
   },
   {
@@ -793,19 +785,19 @@
       },
       {
         "ok": true,
-        "m": "the drawn files empty state: spark-book,empty-files"
+        "m": "the drawn files empty state: empty-files"
       }
     ],
-    "text": 18,
+    "text": 19,
     "textWorst": 6.86,
     "targets": 5,
     "shaping": 0,
     "cost": {
-      "shadowed": 8,
+      "shadowed": 9,
       "maxLayers": 3,
-      "blurred": 22,
+      "blurred": 25,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Subjects\""
     }
   },
   {
@@ -822,19 +814,19 @@
       },
       {
         "ok": true,
-        "m": "the drawn quiz empty state: spark-book,empty-quiz"
+        "m": "the drawn quiz empty state: empty-quiz"
       }
     ],
-    "text": 97,
+    "text": 99,
     "textWorst": 5.6,
-    "targets": 16,
+    "targets": 17,
     "shaping": 1,
     "cost": {
-      "shadowed": 40,
+      "shadowed": 57,
       "maxLayers": 3,
-      "blurred": 102,
+      "blurred": 149,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Subjects\""
     }
   },
   {
@@ -854,16 +846,16 @@
         "m": "file-type labels in Latin capitals: PDF, PDF, PDF, PPTX, DOCX, XLSX, PDF, PDF"
       }
     ],
-    "text": 96,
+    "text": 98,
     "textWorst": 5.6,
-    "targets": 16,
+    "targets": 17,
     "shaping": 1,
     "cost": {
-      "shadowed": 39,
+      "shadowed": 56,
       "maxLayers": 3,
-      "blurred": 101,
+      "blurred": 148,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Subjects\""
     }
   },
   {
@@ -884,15 +876,15 @@
       }
     ],
     "text": 52,
-    "textWorst": 5.28,
+    "textWorst": 4.93,
     "targets": 12,
     "shaping": 0,
     "cost": {
-      "shadowed": 32,
+      "shadowed": 34,
       "maxLayers": 3,
-      "blurred": 96,
+      "blurred": 100,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Dashboard\""
     }
   },
   {
@@ -917,11 +909,11 @@
     "targets": 14,
     "shaping": 1,
     "cost": {
-      "shadowed": 22,
+      "shadowed": 20,
       "maxLayers": 3,
-      "blurred": 56,
+      "blurred": 50,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Settings\""
     }
   },
   {
@@ -941,16 +933,16 @@
         "m": "the wordmark reads \"KnowFlow\" on screen"
       }
     ],
-    "text": 56,
-    "textWorst": 5.28,
+    "text": 57,
+    "textWorst": 4.93,
     "targets": 17,
     "shaping": 1,
     "cost": {
-      "shadowed": 35,
+      "shadowed": 37,
       "maxLayers": 3,
-      "blurred": 105,
+      "blurred": 109,
       "filters": [],
-      "heaviest": "header.kf-topbar \"KnowFlowالعربية\""
+      "heaviest": "a.flex \"Dashboard\""
     }
   },
   {
@@ -959,22 +951,18 @@
     "item": 0,
     "ua": "app",
     "findings": [],
-    "notes": [
-      "target 176 x 43 < 44 x 44 a.kf-hit \"KnowFlow\"",
-      "target 149 x 17 < 44 x 44 a.kf-hit \"Forgot your password?\"",
-      "target 206 x 17 < 44 x 44 a.kf-hit \"Don't have an account? Sign up\""
-    ],
+    "notes": [],
     "proved": [],
-    "text": 11,
-    "textWorst": 8.43,
+    "text": 9,
+    "textWorst": 8.36,
     "targets": 5,
     "shaping": 0,
     "cost": {
-      "shadowed": 0,
-      "maxLayers": 0,
-      "blurred": 0,
+      "shadowed": 5,
+      "maxLayers": 3,
+      "blurred": 9,
       "filters": [],
-      "heaviest": ""
+      "heaviest": "div.kf-card \"EmailPasswordForgot your password?Si\""
     }
   },
   {
@@ -995,19 +983,19 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":634,\"bottom\":748,\"barTop\":772}"
       }
     ],
     "text": 16,
-    "textWorst": 6.37,
+    "textWorst": 5.83,
     "targets": 8,
     "shaping": 0,
     "cost": {
-      "shadowed": 12,
+      "shadowed": 14,
       "maxLayers": 3,
-      "blurred": 34,
+      "blurred": 38,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Ask\""
     }
   },
   {
@@ -1028,7 +1016,7 @@
       },
       {
         "ok": true,
-        "m": "the composer is on screen above the tab bar: {\"top\":633,\"bottom\":748,\"barTop\":772}"
+        "m": "the composer is on screen above the tab bar: {\"top\":634,\"bottom\":748,\"barTop\":772}"
       },
       {
         "ok": true,
@@ -1036,15 +1024,15 @@
       }
     ],
     "text": 22,
-    "textWorst": 6.37,
+    "textWorst": 5.83,
     "targets": 9,
     "shaping": 1,
     "cost": {
-      "shadowed": 14,
+      "shadowed": 16,
       "maxLayers": 3,
-      "blurred": 40,
+      "blurred": 44,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Ask\""
     }
   },
   {
@@ -1065,15 +1053,15 @@
       }
     ],
     "text": 7,
-    "textWorst": 6.61,
+    "textWorst": 7.24,
     "targets": 5,
     "shaping": 0,
     "cost": {
-      "shadowed": 4,
+      "shadowed": 5,
       "maxLayers": 3,
-      "blurred": 10,
+      "blurred": 15,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Ask\""
     }
   },
   {
@@ -1098,11 +1086,11 @@
     "targets": 5,
     "shaping": 0,
     "cost": {
-      "shadowed": 3,
+      "shadowed": 5,
       "maxLayers": 3,
-      "blurred": 9,
+      "blurred": 15,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Ask\""
     }
   },
   {
@@ -1119,19 +1107,19 @@
       },
       {
         "ok": true,
-        "m": "the drawn files empty state: spark-book,empty-files"
+        "m": "the drawn files empty state: empty-files"
       }
     ],
-    "text": 18,
-    "textWorst": 6.37,
+    "text": 19,
+    "textWorst": 5.83,
     "targets": 5,
     "shaping": 0,
     "cost": {
-      "shadowed": 8,
+      "shadowed": 9,
       "maxLayers": 3,
-      "blurred": 22,
+      "blurred": 25,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Subjects\""
     }
   },
   {
@@ -1148,19 +1136,19 @@
       },
       {
         "ok": true,
-        "m": "the drawn quiz empty state: spark-book,empty-quiz"
+        "m": "the drawn quiz empty state: empty-quiz"
       }
     ],
-    "text": 97,
+    "text": 99,
     "textWorst": 4.72,
-    "targets": 16,
+    "targets": 17,
     "shaping": 1,
     "cost": {
-      "shadowed": 40,
+      "shadowed": 57,
       "maxLayers": 3,
-      "blurred": 102,
+      "blurred": 149,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Subjects\""
     }
   },
   {
@@ -1180,16 +1168,16 @@
         "m": "file-type labels in Latin capitals: PDF, PDF, PDF, PPTX, DOCX, XLSX, PDF, PDF"
       }
     ],
-    "text": 96,
+    "text": 98,
     "textWorst": 4.72,
-    "targets": 16,
+    "targets": 17,
     "shaping": 1,
     "cost": {
-      "shadowed": 39,
+      "shadowed": 56,
       "maxLayers": 3,
-      "blurred": 101,
+      "blurred": 148,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Subjects\""
     }
   },
   {
@@ -1210,15 +1198,15 @@
       }
     ],
     "text": 52,
-    "textWorst": 5.16,
+    "textWorst": 4.93,
     "targets": 12,
     "shaping": 0,
     "cost": {
-      "shadowed": 32,
+      "shadowed": 34,
       "maxLayers": 3,
-      "blurred": 96,
+      "blurred": 100,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Dashboard\""
     }
   },
   {
@@ -1243,11 +1231,11 @@
     "targets": 14,
     "shaping": 1,
     "cost": {
-      "shadowed": 22,
+      "shadowed": 20,
       "maxLayers": 3,
-      "blurred": 56,
+      "blurred": 50,
       "filters": [],
-      "heaviest": "nav.kf-tabbar \"DashboardSubjectsAskSettings\""
+      "heaviest": "a.flex \"Settings\""
     }
   },
   {
@@ -1267,16 +1255,16 @@
         "m": "the wordmark reads \"KnowFlow\" on screen"
       }
     ],
-    "text": 56,
-    "textWorst": 5.16,
+    "text": 57,
+    "textWorst": 4.93,
     "targets": 17,
     "shaping": 1,
     "cost": {
-      "shadowed": 35,
+      "shadowed": 37,
       "maxLayers": 3,
-      "blurred": 105,
+      "blurred": 109,
       "filters": [],
-      "heaviest": "header.kf-topbar \"KnowFlowالعربية\""
+      "heaviest": "a.flex \"Dashboard\""
     }
   },
   {
@@ -1285,22 +1273,18 @@
     "item": 0,
     "ua": "app",
     "findings": [],
-    "notes": [
-      "target 176 x 43 < 44 x 44 a.kf-hit \"KnowFlow\"",
-      "target 149 x 17 < 44 x 44 a.kf-hit \"Forgot your password?\"",
-      "target 206 x 17 < 44 x 44 a.kf-hit \"Don't have an account? Sign up\""
-    ],
+    "notes": [],
     "proved": [],
-    "text": 11,
-    "textWorst": 5.59,
+    "text": 9,
+    "textWorst": 6.35,
     "targets": 5,
     "shaping": 0,
     "cost": {
-      "shadowed": 0,
-      "maxLayers": 0,
-      "blurred": 0,
+      "shadowed": 5,
+      "maxLayers": 3,
+      "blurred": 9,
       "filters": [],
-      "heaviest": ""
+      "heaviest": "div.kf-card \"EmailPasswordForgot your password?Si\""
     }
   }
 ]
