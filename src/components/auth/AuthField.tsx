@@ -111,7 +111,11 @@ export function PasswordField({ label, showLabel, className, variant = 'default'
           aria-controls={id}
           className={
             clay
-              ? 'absolute end-1 top-1 flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+              // Full height and flush with the field's end, as the default is: a
+              // button set in from the edge leaves the field tappable around it,
+              // and field-zoom's overlap check fails (run 41943986698). 52 pt
+              // square, so the eye's centre is where the artboard puts it.
+              ? 'absolute inset-y-0 end-0 flex w-[3.25rem] items-center justify-center rounded-e-2xl text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'
               : 'absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'
           }
         >
