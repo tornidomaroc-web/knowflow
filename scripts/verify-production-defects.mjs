@@ -119,7 +119,9 @@ for (const p of ['src/components/dashboard/StudentHome.tsx', 'src/components/das
 // 6. The action group.
 {
   const card = read('src/components/materials/MaterialCard.tsx');
-  check(/grid grid-cols-2 gap-2 sm:grid-cols-4/.test(card) && /:has\(>div\)\]:col-span-full/.test(card), 'the material card has no balanced action grid');
+  // Design "C", PR 3: two equal columns at every width; below sm the two
+  // study buttons (`data-kf-study`) take a row each, so neither wraps at 390 pt.
+  check(/grid grid-cols-2 gap-2/.test(card) && /\[&>\[data-kf-study\]:not\(:has\(>div\)\)\]:col-span-2/.test(card) && /:has\(>div\)\]:col-span-full/.test(card), 'the material card has no balanced action grid');
   for (const p of ['src/components/summary/SummarySection.tsx', 'src/components/quiz/QuizSection.tsx', 'src/components/materials/RenameMaterialControl.tsx', 'src/components/materials/DeleteMaterialControl.tsx']) {
     check(/w-full/.test(read(p)), `${p}'s idle button is not full width`);
   }

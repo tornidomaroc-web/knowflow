@@ -517,6 +517,11 @@ export const ar: Translation = {
       typesLabel: "الأنواع المقبولة",
       sizeLine: "حتى {limit} للملف الواحد",
       dropHereTouch: "اسحب ملفاتك إلى هنا أو اضغط لرفعها",
+      // Design "C", PR 3: the upload tile (upload-sheet.dc.html's first choice).
+      // fromDevice approved by the owner (docs/copy/ARABIC_STRINGS_app_v5.md);
+      // fromDeviceDesc an agent draft from the artboard (docs/copy-drafts/design_c_pr3.md).
+      fromDevice: "ملف من جهازك",
+      fromDeviceDesc: "PDF أو شرائح أو ملاحظات. كلّها تنفع.",
       supported: "الملفات المقبولة: PDF, DOCX, PPTX, XLSX, TXT, MD (حتى {limit} للملف الواحد)",
       uploading: "نرفع ملفك…",
       reading: "نقرأ ملفك…",

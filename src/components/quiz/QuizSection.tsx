@@ -243,12 +243,13 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
   if (doc.status !== 'ready') return null;
 
   if (phase === 'idle' || phase === 'loading') {
+    // Design "C", PR 3: as SummarySection, a row of its own on a phone, one line.
     return (
-      <div>
+      <div data-kf-study="quiz">
         <button
           onClick={start}
           disabled={phase === 'loading'}
-          className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'w-full')}
+          className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'w-full whitespace-nowrap')}
         >
           {phase === 'loading' ? q.starting : q.start}
         </button>
@@ -256,7 +257,7 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
             quiz empty state the app has (there is no list of quizzes), so it
             is drawn, with the route's sentence under the picture. */}
         {error && error === q.errors.notEnoughText ? (
-          <div data-kf-quiz-empty="" className="kf-card mt-3 flex flex-col items-center rounded-2xl border border-dashed border-border bg-surface p-5 text-center">
+          <div data-kf-quiz-empty="" className="kf-well mt-3 flex flex-col items-center rounded-2xl p-5 text-center">
             <EmptyQuiz size={80} title={error} />
             <p className="mt-2 text-sm text-muted-foreground">{error}</p>
           </div>

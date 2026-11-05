@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { ClaySpark } from '@/components/clay/ClayIcons';
+import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
 import { Button, Card } from '@/components/ui';
 import { useAiConsent } from './AiConsentProvider';
 
@@ -27,12 +28,7 @@ export function AiConsentCard() {
 
   return (
     <Card className="p-5" data-kf-consent-state={consented ? 'on' : 'off'}>
-      <h2 className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
-        <span className="section-icon inline-flex h-8 w-8 items-center justify-center rounded-lg bg-sky-subtle text-sky">
-          <Sparkles className="h-4 w-4" />
-        </span>
-        {labels.heading}
-      </h2>
+      <ClaySectionTitle icon={<ClaySpark />}>{labels.heading}</ClaySectionTitle>
       <p className="mt-3 text-sm text-foreground">{consented ? labels.stateOn : labels.stateOff}</p>
       {failed && (
         <p role="alert" className="mt-3 text-sm font-medium text-danger">

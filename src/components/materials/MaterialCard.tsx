@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, CheckCircle2, Circle, FileText } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { ClayCheck, ClayDoc, ClayTodo } from '@/components/clay/ClayIcons';
 import { cn } from '@/lib/utils';
 import { FileName } from '@/components/ui/FileName';
 import { formatDate } from '@/lib/format-date';
@@ -88,22 +89,30 @@ export function MaterialCard({
 
   // A tint per file type (VISUAL_LANGUAGE.md rule 4), so a list of materials
   // reads as a shelf of different things, not a column of identical tiles.
+  // Design "C", PR 3: the tint is the clay page's tone; the tile behind it
+  // keeps the type's subtle ground and the label its colour.
   const tile =
     fileType === 'pdf' ? 'bg-coral-subtle text-coral'
     : fileType === 'pptx' ? 'bg-violet-subtle text-violet'
     : fileType === 'docx' ? 'bg-sky-subtle text-sky'
     : fileType === 'xlsx' ? 'bg-mint-subtle text-mint'
     : 'bg-accent-subtle text-accent';
+  const tone =
+    fileType === 'pdf' ? 'peach'
+    : fileType === 'pptx' ? 'violet'
+    : fileType === 'docx' ? 'blue'
+    : fileType === 'xlsx' ? 'green'
+    : 'gold';
   // Step Redesign-3: the label from the dictionary, so the Arabic layout reads
   // "مستند" where it read "PDF"; a type the app does not know keeps its letters.
   const typeLabel = fileType
     ? (labels.fileTypes as Record<string, string> | undefined)?.[fileType] ?? fileType.toUpperCase()
     : '';
   return (
-    <article id={anchorId} className="kf-card rise rounded-2xl border border-border bg-surface p-4 md:p-5">
+    <article id={anchorId} data-kf-material="" className="kf-card rise p-4 md:p-5">
       <div className="flex items-start gap-3">
-        <span className={`kf-chip inline-flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl ${tile}`}>
-          <FileText className="h-5 w-5" />
+        <span className={`kf-chip inline-flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl ${tile}`}>
+          <ClayDoc tone={tone} width={20} height={20} />
           <span className="max-w-full truncate px-0.5 text-[9px] font-bold uppercase leading-none">{typeLabel}</span>
         </span>
         <div className="min-w-0 flex-1">
@@ -148,8 +157,13 @@ export function MaterialCard({
       {/* THE ACTION GROUP (register #121, defect 6). The four controls each
           render a full-width button in their idle state and a panel when open;
           the grid gives the buttons equal cells, and a child that has opened a
-          panel (a div where a button stood) spans the full row. */}
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 [&>*:has(>div)]:col-span-full">{children}</div>
+          panel (a div where a button stood) spans the full row.
+          Design "C", PR 3: two columns at every width, and below sm the two
+          study buttons (`data-kf-study`, "Summarize this material" and "Quiz
+          me on this material") take a row each, so neither breaks over two
+          lines at 390 pt (a 158 pt half-row could not hold three words); the
+          design-c render asserts one line each. */}
+      <div data-kf-actions="" className="mt-3 grid grid-cols-2 gap-2 [&>[data-kf-study]:not(:has(>div))]:col-span-2 sm:[&>[data-kf-study]:not(:has(>div))]:col-span-1 [&>*:has(>div)]:col-span-full">{children}</div>
     </article>
   );
 }
@@ -158,8 +172,8 @@ function Check({ done, done_label, todo_label }: { done: boolean; done_label: st
   return (
     // Step Redesign-2: a pill each; the one still to do is a plain pill in the
     // secondary text colour, not a faint hole (the mockup critique).
-    <span className={cn('inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 font-medium', done ? 'bg-surface text-success' : 'bg-surface text-muted-foreground')}>
-      {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
+    <span className={cn('kf-pill inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 font-medium', done ? 'bg-surface text-success' : 'bg-surface text-muted-foreground')}>
+      {done ? <ClayCheck width={14} height={14} /> : <ClayTodo />}
       {done ? done_label : todo_label}
     </span>
   );

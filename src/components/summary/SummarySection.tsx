@@ -115,12 +115,14 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
 
   // No summary yet → explicit, user-initiated generation only (protects the daily
   // cap; never auto-generates on page open).
+  // Design "C", PR 3: `data-kf-study` gives this button a row of its own on a
+  // phone (MaterialCard's action group), and it never wraps.
   return (
-    <div>
+    <div data-kf-study="summary">
       <button
         onClick={generate}
         disabled={isLoading}
-        className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'w-full')}
+        className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'w-full whitespace-nowrap')}
       >
         {isLoading ? s.generating : s.generate}
       </button>

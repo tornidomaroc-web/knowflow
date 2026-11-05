@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { BellRing } from 'lucide-react';
+import { ClayBell } from '@/components/clay/ClayIcons';
+import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
 import { Card } from '@/components/ui';
 import type { useTranslation } from '@/lib/i18n';
 import {
@@ -151,12 +152,7 @@ export function StudyReminderCard({
 
   return (
     <Card className="p-5" data-kf-reminder-state={phase} data-kf-reminder-time={time}>
-      <h2 className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
-        <span className="section-icon inline-flex h-8 w-8 items-center justify-center rounded-lg bg-coral-subtle text-coral">
-          <BellRing className="h-4 w-4" />
-        </span>
-        {labels.heading}
-      </h2>
+      <ClaySectionTitle icon={<ClayBell />}>{labels.heading}</ClaySectionTitle>
       <p className="mt-3 text-sm text-muted-foreground">{labels.description}</p>
       <div className="mt-4 flex items-center justify-between gap-4">
         <span id="kf-reminder-label" className="text-sm font-medium text-foreground">{labels.toggle}</span>

@@ -553,6 +553,10 @@ export const en = {
       typesLabel: "Accepted types",
       sizeLine: "Up to {limit} per file",
       dropHereTouch: "Drop files here or tap to upload",
+      // Design "C", PR 3: the upload tile. Both English lines are agent drafts
+      // for the owner (docs/copy-drafts/design_c_pr3.md).
+      fromDevice: "A file from your device",
+      fromDeviceDesc: "PDF, slides or notes. They all work.",
       supported: "Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (up to {limit} per file)",
       uploading: "Uploading…",
       // #113. What the student reads during the synchronous wait, in order:
