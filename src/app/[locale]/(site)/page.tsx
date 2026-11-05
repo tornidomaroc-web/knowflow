@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { useTranslation, Locale } from '@/lib/i18n';
-import { keepDotWithBefore, keepLastTwo } from '@/lib/separator';
+import { keepDotWithBefore, keepLastTwo, sentences } from '@/lib/separator';
 import {
   ClayArrow,
   ClayBrandMark,
@@ -78,7 +78,13 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
               <span className="h-2 w-2 rounded-full bg-mint" />
               {keepDotWithBefore(t.hero.badge)}
             </span>
-            <h1 className="rise rise-1 text-[2.375rem] font-extrabold leading-[1.2] text-foreground sm:text-5xl lg:text-6xl">{t.hero.title}</h1>
+            {/* One line per sentence, in both languages and at every width
+                (the owner's review, 2026-11-05): "أي سؤال." stays whole. */}
+            <h1 data-kf-hero-title className="rise rise-1 text-[2.375rem] font-extrabold leading-[1.2] text-foreground sm:text-5xl lg:text-6xl">
+              {sentences(t.hero.title).map((s, i) => (
+                <span key={i} className="block">{i > 0 ? ' ' : null}{s}</span>
+              ))}
+            </h1>
             <p className="rise rise-2 text-[1.0625rem] font-medium text-muted-foreground lg:text-lg">{t.hero.hook}</p>
           </div>
 
@@ -138,12 +144,16 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           </Reveal>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
             {features.map(({ Art, title, desc }, i) => (
+              // ONE STRUCTURE PER TILE (the owner's review, 2026-11-05): the icon
+              // box, a title block that keeps two lines' room (top-aligned),
+              // then the description, which so starts at the same height in
+              // every tile of a row, at 390 and at 1280, in both languages.
               <Reveal key={title} delay={(i + 1) as 1 | 2 | 3 | 4} className="kf-card flex flex-col gap-1 rounded-[1.375rem] p-3.5">
-                <Art />
+                <span data-kf-tile-icon className="block h-[2.875rem] shrink-0"><Art /></span>
                 {/* 15 pt in Arabic (the artboard); 14 pt in English, whose longer
                     first words ("Summaries") would otherwise stand alone in a
-                    143 pt column. */}
-                <h3 className={`mt-1.5 font-extrabold leading-[1.35] text-foreground ${isRtl ? 'text-[0.9375rem]' : 'text-sm'}`}>{title}</h3>
+                    143 pt column. 2.7em = two lines of 1.35. */}
+                <h3 className={`mt-1.5 min-h-[2.7em] font-extrabold leading-[1.35] text-foreground ${isRtl ? 'text-[0.9375rem]' : 'text-sm'}`}>{title}</h3>
                 <p className="text-[0.8125rem] font-medium leading-[1.45] text-muted-foreground">{desc}</p>
               </Reveal>
             ))}

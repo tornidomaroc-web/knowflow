@@ -12,3 +12,18 @@ export const keepDotWithBefore = (s: string) => s.replace(/ · /g, '\u00a0· ');
  * only: the bound pair must fit the line.
  */
 export const keepLastTwo = (s: string) => s.replace(/ (\S+)$/, '\u00a0$1');
+
+/**
+ * The sentences of a short line, each kept whole (the owner's review of PR 2,
+ * 2026-11-05): the hero title breaks BY SENTENCE in both languages, so
+ * "أي سؤال." never loses "أي" to the line above. The string is the approved
+ * copy, unchanged; only where it may break changes.
+ */
+export const sentences = (s: string) => s.split(/(?<=[.؟?!])\s+/).filter(Boolean);
+
+/**
+ * A string cut around its parenthesised groups: the odd entries are the
+ * groups, "(600 درهم)", which the page sets in a no-wrap span so a group never
+ * splits across two lines (the same review; asserted by the design-c render).
+ */
+export const parenGroups = (s: string) => s.split(/(\([^()]*\))/);

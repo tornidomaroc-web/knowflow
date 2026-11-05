@@ -1,4 +1,5 @@
 import { FileName } from '@/components/ui/FileName';
+import { parenGroups } from '@/lib/separator';
 import { ClayCheck, ClayChipFile, ClayQuiz, ClaySummary } from '@/components/clay/ClayIcons';
 
 export interface HeroDemoCopy {
@@ -34,8 +35,10 @@ export function HeroDemo({ copy, rtl }: { copy: HeroDemoCopy; rtl: boolean }) {
         {copy.question}
       </p>
       <div className="landing-sweep kf-ask-bubble flex max-w-[92%] flex-col gap-2.5 self-end rounded-[1.25rem] rounded-es-md p-3.5">
+        {/* A parenthesised amount, "(600 درهم)", never splits across two lines
+            (the owner's review, 2026-11-05): each group is one no-wrap span. */}
         <p dir="auto" className="text-[0.9375rem] font-medium leading-[1.6]">
-          {copy.body}
+          {parenGroups(copy.body).map((part, i) => (i % 2 ? <span key={i} className="whitespace-nowrap">{part}</span> : part))}
         </p>
         {/* Each chip names its file and nothing else (#108: the file, never the
             page). FileName isolates it, so a Latin extension stays at its end. */}

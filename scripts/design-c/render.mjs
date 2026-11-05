@@ -39,7 +39,10 @@
  * text contrast, control edges, 44 pt targets on every phone-width screen,
  * Arabic shaping, the shadow budget, no filter or backdrop-filter); every
  * page's text blocks by lineChecks() (no line of one word, no line that
- * starts with a separator); every app render by appChecks() (no Apple and no
+ * starts with a separator); every page, the home included, by tileChecks()
+ * (in a row of tiles the descriptions' first lines at one y within 2 px, no
+ * parenthesised group split across lines, the hero title one line per
+ * sentence); every app render by appChecks() (no Apple and no
  * Google button) and the app's wording rule (no plan, price, upgrade or free
  * word); the home by homeChecks(). A finding on AFTER fails the run; BEFORE
  * is reported.
@@ -339,6 +342,121 @@ function lineChecks(scope) {
 }
 
 /**
+ * ROWS, GROUPS AND THE HERO (the owner's review of PR 2, 2026-11-05), on
+ * EVERY page of the run, the home included. Self-contained: it runs in the
+ * page and returns { findings, measured } so the report states what it read
+ * even when nothing fails.
+ *   1. ROWS: a tile or card is a child of a grid or a row flexbox that holds
+ *      a heading (h1 to h6) and, after it, a paragraph (its description).
+ *      Children are grouped into rows by their top (2 px); in each row of two
+ *      or more tiles, the description's FIRST LINE starts at the same y in
+ *      every tile, within 2 px.
+ *   2. GROUPS: in every text block (the blocks lineChecks() reads, the same
+ *      exclusions), a parenthesised group "( ... )" never splits across two
+ *      lines.
+ *   3. THE HERO TITLE (where the page has one, `[data-kf-hero-title]`): one
+ *      line per sentence, each sentence on its own line.
+ */
+function tileChecks() {
+  const findings = [];
+  const measured = { rows: 0, tiles: 0, groups: 0, heroLines: null };
+  const SKIP = 'svg, script, style, noscript, .sr-only, [aria-hidden="true"], [hidden], [data-username]';
+  const visible = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+  const firstLineTop = (el) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const rects = [...range.getClientRects()].filter((r) => r.width > 0 && r.height > 0);
+    return rects.length ? Math.min(...rects.map((r) => r.top)) : null;
+  };
+  // The distinct lines a range covers: rects grouped by their vertical middle.
+  const linesOf = (range) => {
+    const lines = [];
+    for (const r of range.getClientRects()) {
+      if (!(r.width > 0 && r.height > 0)) continue;
+      const mid = (r.top + r.bottom) / 2;
+      const l = lines.find((x) => mid >= x.top && mid <= x.bottom);
+      if (l) { l.top = Math.min(l.top, r.top); l.bottom = Math.max(l.bottom, r.bottom); } else lines.push({ top: r.top, bottom: r.bottom });
+    }
+    return lines.length;
+  };
+  const label = (el) => `${el.tagName.toLowerCase()} "${el.textContent.trim().replace(/\s+/g, ' ').slice(0, 40)}"`;
+
+  // 1. Rows of tiles.
+  for (const box of document.body.querySelectorAll('*')) {
+    if (box.closest(SKIP)) continue;
+    const cs = getComputedStyle(box);
+    const isRowBox = cs.display.endsWith('grid') || (cs.display.endsWith('flex') && cs.flexDirection.startsWith('row'));
+    if (!isRowBox) continue;
+    const tiles = [];
+    for (const child of box.children) {
+      if (!visible(child)) continue;
+      const heading = child.querySelector('h1, h2, h3, h4, h5, h6');
+      if (!heading || !visible(heading)) continue;
+      const desc = [...child.querySelectorAll('p')].find((p) => visible(p) && !p.closest(SKIP) && p.textContent.trim() && (heading.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING) && !heading.contains(p));
+      if (!desc) continue;
+      tiles.push({ top: child.getBoundingClientRect().top, desc, y: firstLineTop(desc) });
+    }
+    const rows = [];
+    for (const t of tiles) {
+      const row = rows.find((r) => Math.abs(r[0].top - t.top) <= 2);
+      if (row) row.push(t); else rows.push([t]);
+    }
+    for (const row of rows) {
+      if (row.length < 2) continue;
+      measured.rows++;
+      measured.tiles += row.length;
+      const ys = row.map((t) => t.y).filter((y) => y !== null);
+      const spread = Math.max(...ys) - Math.min(...ys);
+      if (spread > 2) findings.push(`a row of ${row.length} in ${label(box)}: the descriptions' first lines start ${spread.toFixed(1)} px apart (${row.map((t) => `${label(t.desc)} at ${t.y.toFixed(1)}`).join('; ')})`);
+    }
+  }
+
+  // 2. Parenthesised groups, per text block.
+  const blocks = new Map();
+  const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+    if (!n.data.trim()) continue;
+    const el = n.parentElement;
+    if (!el || el.closest(SKIP)) continue;
+    let b = el;
+    while (b !== document.body && getComputedStyle(b).display.startsWith('inline')) b = b.parentElement;
+    blocks.set(b, [...(blocks.get(b) || []), n]);
+  }
+  for (const [b, nodes] of blocks) {
+    let text = '';
+    const at = [];
+    for (const n of nodes) { at.push({ n, start: text.length }); text += n.data; }
+    const locate = (i) => { let k = at.length - 1; while (k > 0 && at[k].start > i) k--; return [at[k].n, i - at[k].start]; };
+    const re = /\([^()]*\)/g;
+    for (let m = re.exec(text); m; m = re.exec(text)) {
+      const range = document.createRange();
+      range.setStart(...locate(m.index));
+      range.setEnd(...locate(m.index + m[0].length - 1));
+      range.setEnd(range.endContainer, range.endOffset + 1);
+      measured.groups++;
+      const n = linesOf(range);
+      if (n > 1) findings.push(`the group "${m[0]}" splits across ${n} lines in ${label(b)}`);
+    }
+  }
+
+  // 3. The hero title, one line per sentence.
+  const hero = document.querySelector('[data-kf-hero-title]');
+  if (hero) {
+    const spans = [...hero.children];
+    const range = document.createRange();
+    range.selectNodeContents(hero);
+    measured.heroLines = linesOf(range);
+    for (const s of spans) {
+      const r = document.createRange();
+      r.selectNodeContents(s);
+      if (linesOf(r) !== 1) findings.push(`hero title: the sentence "${s.textContent.trim()}" takes ${linesOf(r)} lines`);
+    }
+    if (measured.heroLines !== spans.length) findings.push(`hero title: ${measured.heroLines} lines for ${spans.length} sentences`);
+  }
+  return { findings, measured };
+}
+
+/**
  * THE APP'S GATES, IN THE PAGE (every render with the app's user agent): no
  * Sign in with Apple button (it ships natively in 1.1) and no Google button
  * (Google refuses OAuth in an embedded web view; the platform gate hides it).
@@ -416,6 +534,7 @@ async function shoot(side, job) {
   const home = job.s.key.startsWith('home') ? await tab.evaluate(homeChecks) : [];
   const lines = job.s.key.startsWith('home') ? [] : await tab.evaluate(lineChecks, job.s.lineScope || null);
   const gate = job.s.native ? await tab.evaluate(appChecks) : null;
+  const tiles = await tab.evaluate(tileChecks);
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -426,7 +545,7 @@ async function shoot(side, job) {
   await tab.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await tab.screenshot({ path: file });
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles };
 }
 
 for (const job of JOBS) {
@@ -451,6 +570,7 @@ for (const job of JOBS) {
       ...(r.gate ? [...r.gate.apple.map((n) => `app: an Apple button "${n}"`), ...r.gate.google.map((n) => `app: a Google button "${n}"`)] : []),
       ...r.home.map((h) => `home layout: ${h}`),
       ...r.lines.map((l) => `lines: ${l}`),
+      ...r.tiles.findings.map((f) => `rows: ${f}`),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -460,6 +580,8 @@ for (const job of JOBS) {
     row.sides[side] = {
       url: r.url, landed: r.landed, theme: r.theme, findings: bad,
       known: known.map((b) => ({ finding: b, why: KNOWN.find((k) => k.finding.test(b)).why })), textWorst: Number(tmin.toFixed(2)), text: r.a.text.length, targets: r.a.targets.length, fonts: r.fonts.loaded.length, pausedAnimations: r.anim.paused, shadowsMax: r.a.cost.maxLayers,
+      // What tileChecks() read, so a pass says how much it measured.
+      rows: r.tiles.measured,
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no
       // plan, price, upgrade or free word.
