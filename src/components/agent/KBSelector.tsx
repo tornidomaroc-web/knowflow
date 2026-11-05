@@ -142,6 +142,7 @@ export function KBSelector({ kbs, materials = [], answerableIds, preview }: { kb
           onClose={() => setDrawerOpen(false)}
           side={isRtl ? 'right' : 'left'}
           label={t.dashboard.agent.history}
+          initialFocus="panel"
           className="rounded-e-[1.75rem]"
         >
           <div data-kf-history="drawer" className="h-full">{sidebar}</div>

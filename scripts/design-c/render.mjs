@@ -113,7 +113,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { kfWording } from '../lib/app-wording.mjs';
 import { audit } from '../redesign-built/audit.mjs';
-import { pr4Screens, pr4Mock, pr4Act, pr4Checks } from './pr4.mjs';
+import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing } from './pr4.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -179,6 +179,7 @@ add('subject-web', 'preview/subject', { platform: 'web' }, SAFARI, { pr3: true }
 add('subject-web-empty', 'preview/subject', { platform: 'web', view: 'empty' }, SAFARI, { pr3: true });
 for (const k of ['settings-app', 'settings-web', 'subject-app']) byKeyEarly(k).pr3 = true;
 const LONG = pr4Screens(add, { APP, SAFARI, DESK, DESKTOP }, resolve('.'));
+const KEEP = keepTogetherList(resolve('.'));
 const byKey = (k) => SCREENS.find((x) => x.key === k);
 function byKeyEarly(k) { return SCREENS.find((x) => x.key === k); }
 
@@ -814,6 +815,7 @@ async function shoot(side, job) {
   await tab.evaluate(`window.deleteOffset = ${deleteOffset.toString()}`);
   const review = await tab.evaluate(reviewChecks);
   const pr4 = job.s.pr4 ? await tab.evaluate(pr4Checks, job.s.pr4, job.s.act || null) : null;
+  const phrases = await tab.evaluate(phraseChecks, KEEP);
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -832,8 +834,9 @@ async function shoot(side, job) {
   const picker = job.s.pr3 && /preview\/subject$/.test(job.s.path) ? await tab.evaluate(pickerCheck) : null;
   const plant = /preview\/subject$/.test(job.s.path) && job.s.q.view !== 'empty' ? await tab.evaluate(deletePlant) : null;
   await ctx.close();
+  const ring = job.s.pr4 === 'consent' ? await keyRing(tab) : null;
   for (const h of held) h.abort().catch(() => {});
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring };
 }
 
 for (const job of JOBS) {
@@ -866,6 +869,8 @@ for (const job of JOBS) {
       ...(r.acted?.error ? [`pr4: the interaction failed: ${r.acted.error}`] : []),
       ...(job.s.shot && !r.shotCard ? [`pr4: no card to shoot (${job.s.shot})`] : []),
       ...(r.pr4 ? r.pr4.findings.map((f) => `pr4: ${f}`) : []),
+      ...r.phrases.findings.map((f) => `pr4: ${f}`),
+      ...(r.ring && !r.ring.ok ? [`pr4: Tab on the open sheet draws no focus ring (${JSON.stringify(r.ring)})`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -882,7 +887,8 @@ for (const job of JOBS) {
       // What reviewChecks() read on this page.
       review: { ...r.review.measured, ...(r.plant ? { deletePlant: { cards: r.plant.cards, caught: r.plant.caught } } : {}) },
       // What pr4Checks() read, and how much of the thread the page was grown by.
-      ...(r.pr4 ? { pr4: { ...r.pr4.measured, act: job.s.act || null, grownBy: r.hidden || 0 } } : {}),
+      ...(r.pr4 ? { pr4: { ...r.pr4.measured, act: job.s.act || null, grownBy: r.hidden || 0, ...(r.ring ? { tabRing: r.ring } : {}) } } : {}),
+      protectedPhrasesRead: r.phrases.read,
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no
       // plan, price, upgrade or free word.

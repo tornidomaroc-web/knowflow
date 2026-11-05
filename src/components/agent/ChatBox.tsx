@@ -260,17 +260,21 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
              message through the same path and the same daily cap. Design
              "C", PR 4: the home ask card's clay picture, clay suggestion
              cards with a clay tile each. */
-          <div data-kf-ask-empty="" className="mx-auto mt-2 max-w-lg [text-wrap:pretty]">
+          <div data-kf-ask-empty="" className="mx-auto max-w-lg [text-wrap:pretty]">
+            {/* The owner's review of #305: at 390 x 844 the third suggestion
+                was cut by the well. The picture is 56 pt (was 96) and the
+                gaps tighter, so all three show whole above the composer;
+                design-c's render checks fail on a suggestion cut by its list. */}
             <div className="rise flex flex-col items-center text-center">
-              <ClayAskArt width={96} height={96} mark={safeLocale === 'ar' ? '؟' : '?'} data-kf-clay-art="empty-ask" />
-              <h3 className="mt-3 text-lg font-bold text-foreground [text-wrap:balance]">{t.dashboard.agent.emptyTitle}</h3>
+              <ClayAskArt width={56} height={56} mark={safeLocale === 'ar' ? '؟' : '?'} data-kf-clay-art="empty-ask" />
+              <h3 className="mt-2 text-lg font-bold text-foreground [text-wrap:balance]">{t.dashboard.agent.emptyTitle}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{t.dashboard.agent.startTyping}</p>
             </div>
-            <p className="rise rise-1 mt-6 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <p className="rise rise-1 mt-4 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
               <ClaySpark width={20} height={20} />
               {t.dashboard.suggestions.heading}
             </p>
-            <div className="mt-2 grid grid-cols-1 gap-2.5">
+            <div className="mt-2 grid grid-cols-1 gap-2">
               {askSuggestions(t.dashboard.suggestions, kbName, materials).map((q, i) => {
                 const icon = [
                   <ClaySummary key="s" width={24} height={24} />,
@@ -285,7 +289,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
                     disabled={isLoading}
                     dir="auto"
                     data-kf-suggestion=""
-                    className={`kf-card pressable liftable rise rise-${i + 2} flex min-h-[3.5rem] items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-start text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+                    className={`kf-card pressable liftable rise rise-${i + 2} flex min-h-[3.25rem] items-center gap-3 rounded-2xl bg-surface px-4 py-2.5 text-start text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
                   >
                     <span className="kf-tile inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
                       {icon}

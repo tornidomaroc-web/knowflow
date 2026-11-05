@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
@@ -25,11 +26,47 @@ export function SubjectChips({
   // line, 6 px padding each side, 1 px borders) and stayed so only while the
   // store shot ar/04 needed them (Store-Shots-1); the screenshots are uploaded,
   // so the target wins. Height, not font: the text stays text-sm, centred.
+  //
+  // Design "C", PR 4 (the owner's review of #305): a chip cut at the bar's
+  // edge said nothing about the bar scrolling. The edge that hides chips now
+  // fades out (a mask, paint only: no blur, the chips keep their 44 pt), and
+  // only that edge: the scroll position is read in physical pixels, so the
+  // fade is on the right side in RTL and in LTR, and moves as the bar scrolls.
+  const ref = useRef<HTMLDivElement>(null);
+  const [fade, setFade] = useState<{ left: boolean; right: boolean }>({ left: false, right: false });
+  const measure = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const kids = [...el.children].map((c) => c.getBoundingClientRect());
+    // A chip that runs past the padding box on a side is hidden there.
+    const left = kids.some((k) => k.left < r.left - 0.5);
+    const right = kids.some((k) => k.right > r.right + 0.5);
+    setFade((f) => (f.left === left && f.right === right ? f : { left, right }));
+  }, []);
+  useEffect(() => {
+    measure();
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    el.addEventListener('scroll', measure, { passive: true });
+    return () => { ro.disconnect(); el.removeEventListener('scroll', measure); };
+  }, [measure, subjects.length]);
+  const mask = fade.left || fade.right
+    ? `linear-gradient(to right, ${fade.left ? 'transparent' : '#000'} 0, #000 ${fade.left ? '2.5rem' : '0'}, #000 calc(100% - ${fade.right ? '2.5rem' : '0px'}), ${fade.right ? 'transparent' : '#000'} 100%)`
+    : undefined;
   return (
     // Design "C", PR 4: the chosen subject is the gold clay pill, the others
     // surface clay pills; no edges. The row pads its own shadows so the
     // horizontal scroll does not clip them.
-    <div className="-my-2 flex min-w-0 flex-1 gap-2 overflow-x-auto px-2 py-2">
+    <div
+      ref={ref}
+      data-kf-chips=""
+      data-kf-fade={[fade.left && 'left', fade.right && 'right'].filter(Boolean).join(' ') || undefined}
+      style={mask ? { maskImage: mask, WebkitMaskImage: mask } : undefined}
+      className="-my-2 flex min-w-0 flex-1 gap-2 overflow-x-auto px-2 py-2"
+    >
       {subjects.map((kb) => (
         <button
           key={kb.id}

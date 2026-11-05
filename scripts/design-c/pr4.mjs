@@ -174,6 +174,17 @@ export async function pr4Act(tab, job, LONG) {
  *      summary heading as a leaf whose text is exactly it, the quiz buttons
  *      by their words, the consent sheet with both company names and its
  *      accept button.
+ * The owner's review of #305 (2026-11-05) adds, each proven to fail on
+ * d32bd5f (the witness run of design-c.yml with before_ref=d32bd5f):
+ *   6. no Ask suggestion is CUT by its list: each card is wholly inside the
+ *      list's visible box or wholly outside it (scrolled away), never part;
+ *   7. a subject chip that runs past the chip bar's edge has the fade on
+ *      THAT edge: the bar's mask-image ends transparent on the cut side;
+ *   8. a freshly opened sheet shows no keyboard focus ring: nothing inside
+ *      the dialog but the dialog itself matches :focus-visible at the shot
+ *      (keyRing(), after the shot, proves Tab still draws one).
+ * phraseChecks() (every screen) is the fourth: a protected phrase
+ * (src/lib/keep-together.ts) never spans two lines.
  */
 export function pr4Checks(kind, act) {
   const findings = [];
@@ -250,6 +261,49 @@ export function pr4Checks(kind, act) {
     measured.quiz = states;
     if (JSON.stringify(states) !== JSON.stringify(['idle', 'idle', 'picked', 'idle'])) findings.push(`quiz taking: question 1 states ${JSON.stringify(states)}, want option 3 picked`);
   }
+  // 6. Ask suggestions, never cut by the list.
+  for (const c of document.querySelectorAll('[data-kf-suggestion]')) {
+    if (!vis(c)) continue;
+    measured.suggestions = (measured.suggestions || 0) + 1;
+    let box = c.parentElement;
+    while (box && !/(auto|scroll|hidden)/.test(getComputedStyle(box).overflowY)) box = box.parentElement;
+    if (!box) continue;
+    const B = box.getBoundingClientRect(), R = c.getBoundingClientRect();
+    const top = Math.max(B.top, 0), bottom = Math.min(B.bottom, window.innerHeight);
+    const inside = R.top >= top - 0.5 && R.bottom <= bottom + 0.5;
+    const outside = R.bottom <= top + 0.5 || R.top >= bottom - 0.5;
+    if (inside) measured.suggestionsWhole = (measured.suggestionsWhole || 0) + 1;
+    if (!inside && !outside) findings.push(`a suggestion is cut by its list: ${label(c)} (${R.top.toFixed(0)}-${R.bottom.toFixed(0)} in ${top.toFixed(0)}-${bottom.toFixed(0)})`);
+  }
+  // 7. Chips cut at the bar's edge carry the fade there. The bar is read by
+  // structure on d32bd5f (no marker): a sideways-scrolling row of pressed buttons.
+  const bars = new Set([...document.querySelectorAll('[data-kf-chips]'), ...[...document.querySelectorAll('button[aria-pressed]')].map((b) => b.parentElement).filter((r) => /(auto|scroll)/.test(getComputedStyle(r).overflowX))]);
+  for (const bar of bars) {
+    if (!vis(bar)) continue;
+    measured.chipBars = (measured.chipBars || 0) + 1;
+    const B = bar.getBoundingClientRect();
+    const cs = getComputedStyle(bar);
+    const mask = cs.maskImage && cs.maskImage !== 'none' ? cs.maskImage : (cs.webkitMaskImage || 'none');
+    const stops = mask === 'none' ? [] : (mask.match(/rgba?\([^)]*\)/g) || []);
+    const clear = (c) => /rgba\([^)]*,\s*0\)/.test(c || '');
+    const reversed = /to left/.test(mask);
+    const fadeLeft = clear(reversed ? stops[stops.length - 1] : stops[0]);
+    const fadeRight = clear(reversed ? stops[0] : stops[stops.length - 1]);
+    for (const chip of bar.querySelectorAll('button')) {
+      const R = chip.getBoundingClientRect();
+      const cutLeft = R.left < B.left - 0.5 && R.right > B.left;
+      const cutRight = R.right > B.right + 0.5 && R.left < B.right;
+      if (cutLeft || cutRight) measured.chipsCut = (measured.chipsCut || 0) + 1;
+      if ((cutLeft && !fadeLeft) || (cutRight && !fadeRight)) findings.push(`a chip is cut at the bar's ${cutLeft ? 'left' : 'right'} edge with no fade there: ${label(chip)} (mask ${mask.slice(0, 60)})`);
+    }
+  }
+  // 8. A freshly opened sheet: no focus ring on a control.
+  const dlg = [...document.querySelectorAll('[role="dialog"]')].find((d) => d.closest('[aria-hidden="true"]') === null && vis(d));
+  if (dlg) {
+    const a = document.activeElement;
+    measured.sheetFocus = a ? (a === dlg ? 'the dialog' : label(a)) : null;
+    if (a && a !== dlg && dlg.contains(a) && a.matches(':focus-visible')) findings.push(`a freshly opened sheet shows a focus ring on ${label(a)}`);
+  }
   // 5. The device run's own selectors.
   if (kind === 'study') {
     if (act === 'none' && document.querySelector('[data-kf-shot="done"]')) {
@@ -268,4 +322,72 @@ export function pr4Checks(kind, act) {
     if (!d || names.length !== 2 || !d.querySelector('[data-kf-consent=accept]')) findings.push(`device run: the consent sheet must name Anthropic and Voyage AI and carry its accept button (${names.join(', ')})`);
   }
   return { findings, measured };
+}
+
+/** The protected phrases, read from src/lib/keep-together.ts (one list). */
+export function keepTogetherList(root) {
+  const src = readFileSync(join(root, 'src', 'lib', 'keep-together.ts'), 'utf8');
+  const m = /KEEP_TOGETHER = \[([^\]]*)\]/.exec(src);
+  return m ? [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]) : [];
+}
+
+/**
+ * EVERY SCREEN: no protected phrase spans two lines. Self-contained; per
+ * text block (the nearest non-inline ancestor), the phrase's words may be
+ * joined by a space or a no-break space; a phrase inside a longer word
+ * ("بالذكاء الاصطناعي") is read too.
+ */
+export function phraseChecks(list) {
+  const findings = [];
+  let read = 0;
+  if (!list.length) return { findings: ['no protected phrase list'], read };
+  const re = new RegExp(list.map((p) => p.split(' ').join('[ \u00A0]+')).join('|'), 'g');
+  const blocks = new Map();
+  const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+    if (!n.data.trim()) continue;
+    const el = n.parentElement;
+    if (!el || el.closest('svg, script, style, noscript, .sr-only, [hidden]')) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) continue;
+    let b = el;
+    while (b !== document.body && getComputedStyle(b).display.startsWith('inline')) b = b.parentElement;
+    blocks.set(b, [...(blocks.get(b) || []), n]);
+  }
+  for (const [b, nodes] of blocks) {
+    let text = '';
+    const at = [];
+    for (const n of nodes) { at.push({ n, start: text.length }); text += n.data; }
+    const locate = (i) => { let k = at.length - 1; while (k > 0 && at[k].start > i) k--; return [at[k].n, i - at[k].start]; };
+    re.lastIndex = 0;
+    for (let m = re.exec(text); m; m = re.exec(text)) {
+      read++;
+      const range = document.createRange();
+      range.setStart(...locate(m.index));
+      const [en, eo] = locate(m.index + m[0].length - 1);
+      range.setEnd(en, eo + 1);
+      const lines = [];
+      for (const r of range.getClientRects()) {
+        if (!(r.width > 0 && r.height > 0)) continue;
+        const mid = (r.top + r.bottom) / 2;
+        const l = lines.find((x) => mid >= x.top && mid <= x.bottom);
+        if (l) { l.top = Math.min(l.top, r.top); l.bottom = Math.max(l.bottom, r.bottom); } else lines.push({ top: r.top, bottom: r.bottom });
+      }
+      if (lines.length > 1) findings.push(`the phrase "${m[0].replace(/\u00A0/g, ' ')}" splits across ${lines.length} lines in ${b.tagName.toLowerCase()} "${b.textContent.trim().slice(0, 40)}"`);
+    }
+  }
+  return { findings, read };
+}
+
+/** After the shot, on a sheet: Tab reaches a control inside it and draws a focus ring (keyboard use keeps its ring). */
+export async function keyRing(tab) {
+  await tab.keyboard.press('Tab');
+  return tab.evaluate(() => {
+    const d = [...document.querySelectorAll('[role="dialog"]')].find((x) => x.closest('[aria-hidden="true"]') === null);
+    const a = document.activeElement;
+    if (!d || !a || !d.contains(a) || a === d) return { ok: false, on: a ? a.tagName : null };
+    const cs = getComputedStyle(a);
+    const ring = (cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0) || /rgb/.test(cs.boxShadow) && cs.boxShadow !== 'none';
+    return { ok: a.matches(':focus-visible') && ring, on: `${a.tagName.toLowerCase()} "${(a.textContent || '').trim().slice(0, 30)}"`, shadow: cs.boxShadow.slice(0, 60) };
+  });
 }

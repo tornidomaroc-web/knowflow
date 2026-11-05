@@ -6,7 +6,10 @@ import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { UserName } from '@/components/ui/UserName';
-import { ClayChat } from '@/components/clay/ClayIcons';
+import { ClayChat, ClayPlus } from '@/components/clay/ClayIcons';
+
+/** The label without a leading or trailing typed "+" (the clay plus is drawn instead). */
+const withoutTypedPlus = (label: string) => label.replace(/^\s*\+\s*|\s*\+\s*$/g, '');
 
 interface Conversation {
   id: string;
@@ -34,8 +37,13 @@ export function ConversationSidebar({ activeId, onSelect, onNew, conversations }
     <div className="flex h-full flex-col overflow-hidden">
       <div className="p-3">
         <button onClick={onNew} className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'w-full rounded-full')}>
-          {/* The words carry their own "+" (agent.newConversation), so no plus coin. */}
-          {t.dashboard.agent.newConversation}
+          {/* The owner's review of #305: the clay plus at the start, as on the
+              home's "new subject" pill, in both languages. The approved words
+              (agent.newConversation) carry a typed "+", which drew at the end
+              of the Arabic label; it is dropped here, at render, and the
+              dictionary is left as approved. */}
+          <ClayPlus width={20} height={20} className="shrink-0" />
+          <span>{withoutTypedPlus(t.dashboard.agent.newConversation)}</span>
         </button>
       </div>
       <div className="flex-1 space-y-2 overflow-y-auto px-3 pb-3 pt-1">
