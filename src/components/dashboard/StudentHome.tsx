@@ -470,7 +470,7 @@ export function StudentHome({
             const tile = ['bg-sky-subtle', 'bg-mint-subtle', 'bg-violet-subtle'][i] ?? 'bg-accent-subtle';
             return (
               <div key={label} className="kf-card p-4">
-                <span className={`kf-chip inline-flex h-10 w-10 items-center justify-center rounded-xl ${tile}`}>
+                <span data-kf-stat-icon="" className={`kf-chip inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tile}`}>
                   {statIcon[i]}
                 </span>
                 <p className="mt-3 text-2xl font-extrabold leading-none text-foreground">{value}</p>

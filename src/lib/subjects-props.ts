@@ -25,5 +25,6 @@ export function buildSubjectsLabels(t: Dict): SubjectsListLabels {
     created: s.created,
     ask: t.dashboard.nav.agent,
     addMaterial: s.addMaterial,
+    nothingToSummarise: s.nothingToSummarise,
   };
 }

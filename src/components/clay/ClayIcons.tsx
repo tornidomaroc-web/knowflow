@@ -31,6 +31,7 @@ export function ClayDefs() {
         <radialGradient id="kf-c-blue" cx="35%" cy="28%" r="85%"><stop offset="0" stopColor="#E6F0FF" /><stop offset="0.6" stopColor="#8DB4E8" /><stop offset="1" stopColor="#5A83BE" /></radialGradient>
         <radialGradient id="kf-c-peach" cx="35%" cy="28%" r="85%"><stop offset="0" stopColor="#FFE6D8" /><stop offset="0.6" stopColor="#F2A585" /><stop offset="1" stopColor="#D37552" /></radialGradient>
         <radialGradient id="kf-c-violet" cx="35%" cy="28%" r="85%"><stop offset="0" stopColor="#EDE4FF" /><stop offset="0.6" stopColor="#A893E0" /><stop offset="1" stopColor="#6F58B4" /></radialGradient>
+        <radialGradient id="kf-c-red" cx="35%" cy="28%" r="85%"><stop offset="0" stopColor="#FFD9D2" /><stop offset="0.6" stopColor="#E0675A" /><stop offset="1" stopColor="#B23A2E" /></radialGradient>
         <radialGradient id="kf-c-ink"cx="35%" cy="25%" r="85%"><stop offset="0" stopColor="#5A4E42" /><stop offset="1" stopColor="#1A1611" /></radialGradient>
         <radialGradient id="kf-c-taupe" cx="35%" cy="25%" r="85%"><stop offset="0" style={{ stopColor: 'var(--g-taupe-0)' }} /><stop offset="1" style={{ stopColor: 'var(--g-taupe-1)' }} /></radialGradient>
         <radialGradient id="kf-c-line" cx="35%" cy="25%" r="85%"><stop offset="0" style={{ stopColor: 'var(--g-line-0)' }} /><stop offset="1" style={{ stopColor: 'var(--g-line-1)' }} /></radialGradient>
@@ -414,6 +415,167 @@ export const ClaySummary = (p: P) => (
     <rect x="8" y="12" width="8" height="2.2" rx="1.1" fill="#FFFFFF" fillOpacity="0.6" />
     <rect x="8" y="16.2" width="6" height="2.2" rx="1.1" fill="#FFFFFF" fillOpacity="0.6" />
     <ellipse cx="8.5" cy="4.6" rx="3" ry="1" fill="#FFFFFF" fillOpacity="0.55" />
+  </svg>
+);
+
+/* ── Design "C", PR 3: Settings' other sections, the upload tile and the
+   subjects' small stats. Same recipe as ClaySliders (a 36 pt tinted tile, a
+   white or gold glyph on it, a catchlight) so every Settings section starts
+   with one picture of one size. ── */
+
+/** Account: a blue tile, a cream person with a gold collar. */
+export const ClayAccount = (p: P) => (
+  <svg {...base(p, 36, 36, '0 0 36 36')}>
+    <rect x="3" y="3" width="30" height="30" rx="10" fill={G('blue')} />
+    <circle cx="18" cy="14" r="5.2" fill={G('cream')} />
+    <path d="M8.5 28.5c1.2-5.2 5-8 9.5-8s8.3 2.8 9.5 8z" fill={G('cream')} />
+    <path d="M14.5 21.4l3.5 3 3.5-3" fill="none" stroke={G('gold')} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <ellipse cx="10" cy="7.2" rx="4" ry="1.3" fill="#FFFFFF" fillOpacity="0.5" />
+  </svg>
+);
+
+/** The study reminder: a peach tile and a gold bell with an ink clapper. */
+export const ClayBell = (p: P) => (
+  <svg {...base(p, 36, 36, '0 0 36 36')}>
+    <rect x="3" y="3" width="30" height="30" rx="10" fill={G('peach')} />
+    <path d="M18 8.5a7 7 0 0 1 7 7v4.6l2.2 3.4H8.8l2.2-3.4v-4.6a7 7 0 0 1 7-7z" fill={G('gold')} />
+    <circle cx="18" cy="26.6" r="2.4" fill="#1A1611" />
+    <ellipse cx="14.6" cy="12.4" rx="2.2" ry="1" transform="rotate(-35 14.6 12.4)" fill="#FFFFFF" fillOpacity="0.6" />
+    <ellipse cx="10" cy="7.2" rx="4" ry="1.3" fill="#FFFFFF" fillOpacity="0.5" />
+  </svg>
+);
+
+/** The AI permission: a blue tile with a gold four-point spark and a small one. */
+export const ClaySpark = (p: P) => (
+  <svg {...base(p, 36, 36, '0 0 36 36')}>
+    <rect x="3" y="3" width="30" height="30" rx="10" fill={G('violet')} />
+    <path d="M16 8.5l2.4 6.1 6.1 2.4-6.1 2.4L16 25.5l-2.4-6.1L7.5 17l6.1-2.4z" fill={G('gold')} />
+    <path d="M25 21l1.1 2.4 2.4 1.1-2.4 1.1L25 28l-1.1-2.4-2.4-1.1 2.4-1.1z" fill="#FFFFFF" fillOpacity="0.85" />
+    <ellipse cx="10" cy="7.2" rx="4" ry="1.3" fill="#FFFFFF" fillOpacity="0.5" />
+  </svg>
+);
+
+/** The plan (web, or a Pro student): a gold tile with a cream star. */
+export const ClayStar = (p: P) => (
+  <svg {...base(p, 36, 36, '0 0 36 36')}>
+    <rect x="3" y="3" width="30" height="30" rx="10" fill={G('gold')} />
+    <path d="M18 8.6l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3-5.6-3-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z" fill={G('cream')} />
+    <ellipse cx="10" cy="7.2" rx="4" ry="1.3" fill="#FFFFFF" fillOpacity="0.55" />
+  </svg>
+);
+
+/** Help and legal: a green tile, a cream coin with the page's question mark. */
+export const ClayHelp = ({ mark = '؟', ...p }: P & { mark?: string }) => (
+  <svg {...base(p, 36, 36, '0 0 36 36')}>
+    <rect x="3" y="3" width="30" height="30" rx="10" fill={G('green')} />
+    <circle cx="18" cy="18" r="9.5" fill={G('cream')} />
+    <text x="18" y="23.2" textAnchor="middle" fontFamily="inherit" fontSize="15" fontWeight="800" fill="#1A1611">{mark}</text>
+    <ellipse cx="10" cy="7.2" rx="4" ry="1.3" fill="#FFFFFF" fillOpacity="0.5" />
+  </svg>
+);
+
+/** Deleting the account: a red tile, a cream bin with its lid lifted. */
+export const ClayBin = (p: P) => (
+  <svg {...base(p, 36, 36, '0 0 36 36')}>
+    <rect x="3" y="3" width="30" height="30" rx="10" fill={G('red')} />
+    <rect x="10" y="10.4" width="16" height="3.2" rx="1.6" transform="rotate(-8 18 12)" fill={G('cream')} />
+    <rect x="15.6" y="7.6" width="4.8" height="2.6" rx="1.3" transform="rotate(-8 18 12)" fill={G('cream')} />
+    <path d="M11.6 15.6h12.8l-1.1 10.2a2.4 2.4 0 0 1-2.4 2.2h-5.8a2.4 2.4 0 0 1-2.4-2.2z" fill={G('cream')} />
+    <path d="M16 18.6v6M20 18.6v6" stroke="#B23A2E" strokeOpacity="0.55" strokeWidth="1.8" strokeLinecap="round" />
+    <ellipse cx="10" cy="7.2" rx="4" ry="1.3" fill="#FFFFFF" fillOpacity="0.5" />
+  </svg>
+);
+
+/** A Help and legal row's privacy policy: a blue shield with a gold tick. */
+export const ClayShield = (p: P) => (
+  <svg {...base(p, 26, 26, '0 0 26 26')}>
+    <path d="M13 2.5l8.5 3.2v6.4c0 5.4-3.6 9.6-8.5 11.4-4.9-1.8-8.5-6-8.5-11.4V5.7z" fill={G('blue')} />
+    <path d="M9 12.8l2.8 2.8 5.2-5.4" fill="none" stroke={G('gold')} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+    <ellipse cx="9" cy="6.4" rx="3" ry="1" fill="#FFFFFF" fillOpacity="0.55" />
+  </svg>
+);
+
+/** A Help and legal row's support address: a cream envelope with a gold flap. */
+export const ClayMail = (p: P) => (
+  <svg {...base(p, 26, 26, '0 0 26 26')}>
+    <rect x="2.5" y="5.5" width="21" height="15" rx="4" fill={G('cream')} />
+    <path d="M3.6 7.4L13 14l9.4-6.6" fill="none" stroke={G('gold')} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M2.5 9.5v7a4 4 0 0 0 4 4h13a4 4 0 0 0 4-4v-7" fill="#7E7262" fillOpacity="0.12" />
+  </svg>
+);
+
+/**
+ * The upload tile's picture (upload-sheet.dc.html, its "a file from your
+ * device" choice): a cream page with a gold title line and text lines, and
+ * a gold coin with an ink arrow up, on its soft shadow.
+ */
+export const ClayUploadFile = (p: P) => (
+  <svg {...base(p, 48, 48, '0 0 48 48')}>
+    <ellipse cx="24" cy="45" rx="14" ry="2.5" fill="#B57A12" fillOpacity="0.22" />
+    <path d="M12 4h17l9 9v26a5 5 0 0 1-5 5H12a5 5 0 0 1-5-5V9a5 5 0 0 1 5-5z" fill={G('cream')} />
+    <path d="M29 4v7a2 2 0 0 0 2 2h7z" fill="#D9CDB8" />
+    <rect x="13" y="19" width="14" height="4" rx="2" fill={G('gold')} />
+    <rect x="13" y="26" width="18" height="3.5" rx="1.75" fill="#BFB29D" />
+    <rect x="13" y="32" width="12" height="3.5" rx="1.75" fill="#BFB29D" />
+    <circle cx="36" cy="35" r="9" fill={G('gold')} />
+    <path d="M36 39.5v-8M32.5 34.5l3.5-3.5 3.5 3.5" fill="none" stroke="#1A1611" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/**
+ * A material's type tile: a page in its type's tone (peach a PDF, blue a
+ * Word file, violet slides, green a sheet, gold the rest), its corner folded,
+ * two white lines, a catchlight. The caller sets the size.
+ */
+export const ClayDoc = ({ tone = 'gold', ...p }: P & { tone?: 'peach' | 'blue' | 'violet' | 'green' | 'gold' }) => (
+  <svg {...base(p, 22, 22, '0 0 22 22')}>
+    <path d="M5.5 1.5h7l5 5v12a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2z" fill={G(tone)} />
+    <path d="M12.5 1.5v4a1 1 0 0 0 1 1h4z" fill="#FFFFFF" fillOpacity="0.55" />
+    <rect x="6.5" y="10" width="8" height="2" rx="1" fill="#FFFFFF" fillOpacity="0.85" />
+    <rect x="6.5" y="14" width="6" height="2" rx="1" fill="#FFFFFF" fillOpacity="0.6" />
+    <ellipse cx="7" cy="3.6" rx="2.2" ry="0.8" fill="#FFFFFF" fillOpacity="0.55" />
+  </svg>
+);
+
+/** A to-do mark of the study kit: a small pressed-in ring (the done one is ClayCheck). */
+export const ClayTodo = (p: P) => (
+  <svg {...base(p, 14, 14, '0 0 22 22')}>
+    <circle cx="11" cy="11" r="8.5" fill="none" stroke="currentColor" strokeWidth="2.6" />
+  </svg>
+);
+
+/**
+ * Sign out: a cream door ajar on its taupe frame and a gold arrow leaving
+ * through it. Points to the inline end; the caller mirrors it under RTL.
+ */
+export const ClaySignOut = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 24 24')}>
+    <rect x="3" y="3" width="12" height="18" rx="3" fill={G('taupe')} />
+    <path d="M5 4.6l6.5 1.6v13.6L5 21.4z" fill={G('cream')} />
+    <circle cx="9.6" cy="13" r="1" fill="#7E7262" />
+    <path d="M13.5 12h7.5M18 8.8l3.2 3.2-3.2 3.2" fill="none" stroke={G('gold')} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/** The other language: a blue globe with cream meridians and a gold equator. */
+export const ClayGlobe = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 24 24')}>
+    <circle cx="12" cy="12" r="9.5" fill={G('blue')} />
+    <ellipse cx="12" cy="12" rx="4" ry="9.5" fill="none" stroke="#FFFFFF" strokeOpacity="0.8" strokeWidth="1.6" />
+    <path d="M3 9h18M3 15h18" stroke="#FFFFFF" strokeOpacity="0.65" strokeWidth="1.5" />
+    <path d="M2.5 12h19" stroke={G('gold')} strokeWidth="2" />
+    <ellipse cx="8" cy="6" rx="2.6" ry="1" transform="rotate(-25 8 6)" fill="#FFFFFF" fillOpacity="0.6" />
+  </svg>
+);
+
+/** A subject's empty card: a pressed-in slot with the gold plus coin (add a file). */
+export const ClayAddFile = (p: P) => (
+  <svg {...base(p, 26, 26, '0 0 26 26')}>
+    <rect x="4" y="2.5" width="15" height="19" rx="4" fill={G('cream')} />
+    <rect x="7.5" y="7" width="7" height="2.4" rx="1.2" fill={G('gold')} />
+    <rect x="7.5" y="11.4" width="8" height="2.1" rx="1.05" fill="#BFB29D" />
+    <circle cx="18.5" cy="18.5" r="5.5" fill={G('gold')} />
+    <path d="M18.5 16v5M16 18.5h5" stroke="#1A1611" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
 

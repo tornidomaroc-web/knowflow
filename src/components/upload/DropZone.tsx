@@ -6,7 +6,7 @@ import { AlertTriangle, CheckCircle2, FileText, Upload } from 'lucide-react';
 import { buttonVariants } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { usePlatform } from '@/components/platform/PlatformProvider';
-import { UploadCloud } from '@/components/illustrations';
+import { ClayUploadFile } from '@/components/clay/ClayIcons';
 import { FileName } from '@/components/ui/FileName';
 import type { Document } from '@/types';
 import { Locale, resolveLocale, useTranslation } from '@/lib/i18n';
@@ -67,7 +67,14 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
   const [now, setNow] = useState(0);
   // Step Redesign-2. Inside the app the control is ONE primary button that
   // opens the native picker (no drag-and-drop wording on a phone); on the web
-  // the dashed zone stays, and says "tap" rather than "click" on a touch screen.
+  // the zone stays a drop target, and says "tap" rather than "click" on a
+  // touch screen.
+  // Design "C", PR 3 (the owner's ruling, 2026-11-05: the one-choice upload
+  // sheet is an extra tap, so no sheet in 1.0): on both platforms the idle
+  // control is the sheet's "a file from your device" choice as a tile on the
+  // page (upload-sheet.dc.html). ONE tap opens the same picker; the checks,
+  // the consent, the transport and every state after the pick are unchanged.
+  // The sheet comes back in 1.1 with the scan tile beside this one.
   const buttonFirst = usePlatform() === 'native';
   const [touch, setTouch] = useState(false);
   useEffect(() => {
@@ -195,40 +202,40 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
 
   return (
     <div
-      onClick={() => !busy && !buttonFirst && fileInputRef.current?.click()}
+      onClick={() => !busy && state !== 'idle' && !buttonFirst && fileInputRef.current?.click()}
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
       aria-busy={busy}
-      className={`relative flex flex-col items-center justify-center gap-3 rounded-xl p-8 text-center transition-colors ${
-        state === 'idle' && buttonFirst
-          ? 'border-0 p-0'
-          : state === 'idle'
-          ? 'kf-card cursor-pointer border-2 border-dashed border-border bg-surface hover:border-primary hover:bg-muted'
+      // Design "C", PR 3: no dashed edge. Idle is the tile alone; a running or
+      // finished upload sits in a pressed-in well; a refusal keeps a solid red
+      // edge, because there the edge is the message (as the delete card's).
+      className={`relative flex flex-col items-center justify-center gap-3 rounded-3xl text-center transition-colors ${
+        state === 'idle'
+          ? 'p-0'
           : state === 'error'
-            ? 'cursor-pointer border-2 border-dashed border-danger-border bg-danger-subtle'
-            : 'border-2 border-dashed border-primary bg-primary-subtle'
+            ? 'cursor-pointer border border-danger-border bg-danger-subtle p-8'
+            : 'kf-well p-6'
       }`}
     >
       <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.docx,.pptx,.xlsx,.txt,.md" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
 
-      {state === 'idle' && buttonFirst && (
+      {state === 'idle' && (
         <>
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            data-kf-upload="button"
-            className={cn(buttonVariants({ variant: 'primary' }), 'min-h-[3.125rem] w-full text-base')}
+            onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+            data-kf-upload="tile"
+            className="kf-streak pressable flex min-h-[4.75rem] w-full items-center gap-3.5 rounded-[1.375rem] px-4 py-3.5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Upload className="h-5 w-5" />
-            {u.uploadButton}
+            <ClayUploadFile className="shrink-0" />
+            <span className="min-w-0 flex-1">
+              <span data-kf-upload-title="" className="block text-[1.0625rem] font-extrabold text-foreground">{u.fromDevice}</span>
+              <span data-kf-upload-desc="" className="mt-0.5 block text-[0.8125rem] font-medium text-[color:var(--clay-streak-muted)]">{u.fromDeviceDesc}</span>
+            </span>
           </button>
-          <TypesLines label={u.typesLabel} size={u.sizeLine.replace('{limit}', uploadLimitLabel(safeLocale))} />
-        </>
-      )}
-      {state === 'idle' && !buttonFirst && (
-        <>
-          <UploadCloud size={80} />
-          <p className="text-sm font-medium text-foreground">{touch ? u.dropHereTouch : u.dropHere}</p>
+          {/* The web keeps its drop target: the whole zone takes a dropped file,
+              and this line says so ("tap" on a touch screen). */}
+          {!buttonFirst && <p className="text-sm font-medium text-foreground">{touch ? u.dropHereTouch : u.dropHere}</p>}
           <TypesLines label={u.typesLabel} size={u.sizeLine.replace('{limit}', uploadLimitLabel(safeLocale))} />
         </>
       )}

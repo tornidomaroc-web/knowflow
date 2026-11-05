@@ -157,7 +157,7 @@ export default async function SubjectPreview({
                   {m.id === 'd2' || m.id === 'd6' ? <PreviewRenameFields filename={m.filename} labels={renameLabels} /> : null}
                   {/* #123 batch 2: the study kit as the subject page renders it,
                       idle on the no-summary card, and with a partial summary. */}
-                  {m.id === 'd4' ? <PreviewStudyKit docId={m.id} summary={null} partial={false} deleteLabels={deleteLabels} /> : null}
+                  {m.id === 'd4' ? <PreviewStudyKit docId={m.id} summary={null} partial={false} deleteLabels={deleteLabels} rename={{ filename: m.filename, labels: withSupportEmail(renameLabels) }} /> : null}
                   {m.id === 'd1' ? <PreviewStudyKit docId={m.id} summary={partialSummary} partial quizEmpty={view === 'quizempty'} deleteLabels={deleteLabels} /> : null}
                   {m.id === 'd8' ? <PreviewStudyKit docId={m.id} summary={null} partial={false} noText deleteLabels={deleteLabels} /> : null}
                 </MaterialCard>

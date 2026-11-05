@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Button, Card, Input } from '@/components/ui';
+import { ClayBin } from '@/components/clay/ClayIcons';
+import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
 
 export interface DeleteAccountLabels {
   heading: string;
@@ -132,10 +134,12 @@ export function DeleteAccountCard({ labels, homeHref, showBillingNote }: DeleteA
   }
 
   return (
-    <Card className="border-danger-border p-6">
-      <h2 className="mb-4 text-xs font-medium uppercase tracking-wide text-danger">
+    // Design "C", PR 3: the clay card KEEPS its red border (globals.css: the
+    // edge is the message) and takes the clay bin and the section title.
+    <Card data-kf-delete-card="" className="border-danger-border p-5">
+      <ClaySectionTitle icon={<ClayBin />} className="mb-4 text-danger">
         {labels.heading}
-      </h2>
+      </ClaySectionTitle>
 
       <p className="mb-2 text-sm text-foreground">{labels.description}</p>
       <p className="mb-2 text-sm font-medium text-danger">{labels.permanentWarning}</p>

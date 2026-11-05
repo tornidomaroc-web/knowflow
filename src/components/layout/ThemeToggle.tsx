@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, type KeyboardEvent } from 'react';
-import { Moon, Sun } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { applyTheme, currentTheme, type Theme } from '@/lib/theme';
 import { ClayMoon, ClaySun } from '@/components/clay/ClayIcons';
@@ -85,7 +84,8 @@ export function ThemeToggle({
           className,
         )}
       >
-        {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+        {/* Design "C", PR 3: the clay moon and sun, as the clay variant draws them. */}
+        {theme === 'light' ? <ClayMoon /> : <ClaySun />}
       </button>
     );
   }

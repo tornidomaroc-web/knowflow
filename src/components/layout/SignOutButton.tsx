@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ChevronRight, LogOut } from 'lucide-react';
+import { ClayChevron, ClaySignOut } from '@/components/clay/ClayIcons';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui';
 import type { Locale } from '@/lib/i18n';
@@ -39,10 +39,11 @@ export function SignOutButton({
         className="flex min-h-[3.5rem] w-full items-center gap-3 rounded-lg py-2 text-start transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="kf-chip inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-subtle text-accent">
-          <LogOut className="h-4 w-4 rtl:-scale-x-100" />
+          {/* Design "C", PR 3: the clay sign-out glyph, everywhere this button is. */}
+          <ClaySignOut width={20} height={20} className="rtl:-scale-x-100" />
         </span>
         <span className="min-w-0 flex-1 text-sm font-medium text-foreground">{label}</span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-faint rtl:-scale-x-100" />
+        <ClayChevron className="shrink-0 rtl:-scale-x-100" />
       </button>
     );
   }
@@ -50,14 +51,14 @@ export function SignOutButton({
   if (iconOnly) {
     return (
       <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label={label} title={label}>
-        <LogOut className="h-5 w-5" />
+        <ClaySignOut className="rtl:-scale-x-100" />
       </Button>
     );
   }
 
   return (
     <Button variant="ghost" onClick={handleSignOut} className="w-full justify-start text-muted-foreground">
-      <LogOut className="h-4 w-4" />
+      <ClaySignOut width={20} height={20} className="shrink-0 rtl:-scale-x-100" />
       {label}
     </Button>
   );

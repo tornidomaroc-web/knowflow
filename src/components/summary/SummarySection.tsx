@@ -92,7 +92,7 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
       // widens only a child holding an open panel ([&>*:has(>div)]); this block
       // holds none, so on a phone it sat at half width beside an empty cell
       // (seen in the store screenshots, 2026-10-09).
-      <div className="kf-well col-span-full rounded-xl border border-border bg-background p-4">
+      <div className="kf-well col-span-full rounded-2xl p-4">
         <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {s.heading}
         </h3>
@@ -115,12 +115,14 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
 
   // No summary yet → explicit, user-initiated generation only (protects the daily
   // cap; never auto-generates on page open).
+  // Design "C", PR 3: `data-kf-study` gives this button a row of its own on a
+  // phone (MaterialCard's action group), and it never wraps.
   return (
-    <div>
+    <div data-kf-study="summary">
       <button
         onClick={generate}
         disabled={isLoading}
-        className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'w-full')}
+        className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'w-full whitespace-nowrap')}
       >
         {isLoading ? s.generating : s.generate}
       </button>

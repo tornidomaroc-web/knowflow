@@ -263,7 +263,7 @@ jobs:
           test -n "$KF_SMOKE_PASSWORD" || { echo "REVIEWER_PASSWORD is empty"; exit 1; }
           cat > "$RUNNER_TEMP/steps.json" <<'JSON'
           [
-            {"name":"google-hint","wait":500,"js":"(function(){var h=document.querySelector('[data-kf-google-hint]');if(!h){return 'no hint'}var a=h.querySelector('a');return (h.innerText||'').replace(/\\s+/g,' ').trim()+' | '+(a?a.getAttribute('href'):'no link')})()"},
+            {"name":"google-hint","wait":500,"js":"(function(){var h=document.querySelector('[data-kf-google-hint]');if(!h){return 'no hint'}var a=h.querySelector('a');var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]'),f=e&&e.form,b=f&&f.querySelector('button[type=submit]');var fld=function(x){if(!x){return null}var r=x.getBoundingClientRect();return {type:x.type,clay:x.classList.contains('kf-field'),h:Math.round(r.height),fs:parseFloat(getComputedStyle(x).fontSize)}};var br=b?b.getBoundingClientRect():null;var lay={email:fld(e),password:fld(p),submit:b?{gold:b.classList.contains('kf-gold'),bg:getComputedStyle(b).backgroundColor,h:Math.round(br.height),w:Math.round(br.width)}:null};return (h.innerText||'').replace(/\\s+/g,' ').trim()+' | '+(a?a.getAttribute('href'):'no link')+' || '+JSON.stringify(lay)})()"},
             {"name":"login","until":"/(en|ar)/dashboard$","timeout":60000,"wait":3000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);var f=e.form;if(!f){return 'no form'}setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted'})()"},
             {"name":"home","wait":3000,"js":"(function(){window.scrollTo(0,0);return location.pathname})()"},
             {"name":"home-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
@@ -291,7 +291,7 @@ jobs:
             {"name":"reminder-off","wait":3000,"js":"(function(){var b=document.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked off'})()"},
             {"name":"reminder-read-off","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
             {"name":"reminder-pending-off","until":"#kfP[0-9]+=","timeout":15000,"wait":300,"js":"(function(){var m=function(v){history.replaceState(history.state,'',location.pathname+location.search+'#kfP'+Date.now()+'='+encodeURIComponent(v))};window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){m(JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}})))},function(e){m('error '+e.message)});return 'asked'})()"},
-            {"name":"settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
+            {"name":"settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);var g=Array.prototype.slice.call(document.querySelectorAll('[role=radiogroup]')).map(function(x){var o=Array.prototype.slice.call(x.querySelectorAll('[role=radio]'));var v=function(y){return y.getAttribute('data-theme-option')||y.getAttribute('lang')||(y.innerText||'').trim()};return {kind:x.querySelector('[data-theme-option]')?'appearance':(x.querySelector('[lang]')?'language':'other'),seg:x.classList.contains('kf-seg'),options:o.map(v),checked:o.filter(function(y){return y.getAttribute('aria-checked')==='true'}).map(v),minH:o.length?Math.round(Math.min.apply(null,o.map(function(y){return y.getBoundingClientRect().height}))):0}});return 'scrolled '+document.body.scrollHeight+' || '+JSON.stringify({theme:document.documentElement.getAttribute('data-theme'),groups:g})})()"},
             {"name":"en-privacy","until":"/en/privacy$","wait":4000,"js":"(function(){location.assign('/en/privacy');return 'assigned /en/privacy'})()"},
             {"name":"en-terms","until":"/en/terms$","wait":4000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
             {"name":"en-refund","until":"/en/refund$","wait":4000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
@@ -306,7 +306,7 @@ jobs:
             {"name":"ar-reminder-off","wait":3000,"js":"(function(){var b=document.querySelector('[data-kf-reminder=toggle]');if(!b){return 'no toggle'}b.click();return 'clicked off'})()"},
             {"name":"ar-reminder-read-off","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-reminder-state]');return c?c.getAttribute('data-kf-reminder-state')+' '+c.getAttribute('data-kf-reminder-time'):'no reminder card'})()"},
             {"name":"ar-reminder-pending-off","until":"#kfP[0-9]+=","timeout":15000,"wait":300,"js":"(function(){var m=function(v){history.replaceState(history.state,'',location.pathname+location.search+'#kfP'+Date.now()+'='+encodeURIComponent(v))};window.Capacitor.nativePromise('LocalNotifications','getPending',{}).then(function(r){m(JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}})))},function(e){m('error '+e.message)});return 'asked'})()"},
-            {"name":"ar-settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
+            {"name":"ar-settings-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);var g=Array.prototype.slice.call(document.querySelectorAll('[role=radiogroup]')).map(function(x){var o=Array.prototype.slice.call(x.querySelectorAll('[role=radio]'));var v=function(y){return y.getAttribute('data-theme-option')||y.getAttribute('lang')||(y.innerText||'').trim()};return {kind:x.querySelector('[data-theme-option]')?'appearance':(x.querySelector('[lang]')?'language':'other'),seg:x.classList.contains('kf-seg'),options:o.map(v),checked:o.filter(function(y){return y.getAttribute('aria-checked')==='true'}).map(v),minH:o.length?Math.round(Math.min.apply(null,o.map(function(y){return y.getBoundingClientRect().height}))):0}});return 'scrolled '+document.body.scrollHeight+' || '+JSON.stringify({theme:document.documentElement.getAttribute('data-theme'),groups:g})})()"},
             {"name":"ar-privacy","until":"/ar/privacy$","wait":4000,"js":"(function(){location.assign('/ar/privacy');return 'assigned /ar/privacy'})()"},
             {"name":"ar-terms","until":"/ar/terms$","wait":4000,"js":"(function(){location.assign('/ar/terms');return 'assigned /ar/terms'})()"},
             {"name":"ar-refund","until":"/ar/refund$","wait":4000,"js":"(function(){location.assign('/ar/refund');return 'assigned /ar/refund'})()"},
@@ -370,8 +370,20 @@ jobs:
           need(L.get("google") == 0 and L.get("bridge") is True, f"...the twin, with the bridge: google={L.get('google')} bridge={L.get('bridge')}")
           # The line for Google-registered students: on the app's login page
           # (no Google button there), linking to the page's own forgot link.
-          GH = str(by.get("google-hint", {}).get("result", ""))
+          # Design "C", PR 3: the same step also reads the login's layout, after
+          # " || " (no field value, only types, classes and sizes).
+          GH, _, GHL = str(by.get("google-hint", {}).get("result", "")).partition(" || ")
           need("Google" in GH and GH.endswith("/forgot-password") and "Forgot your password?" in GH, f"the login page in the app tells a Google-registered student to use the forgot link: {GH}")
+          # (b) The login in the new layout: the email and password fields are
+          # the clay fields (.kf-field), 16 pt text and at least 44 pt tall, and
+          # the sign-in button is the gold clay pill (.kf-gold on the gold fill
+          # #ebae35), at least 44 pt tall.
+          try: LO = json.loads(GHL)
+          except Exception: LO = {}
+          def fld_ok(f, kind): return bool(f) and f.get("type") == kind and f.get("clay") is True and f.get("h", 0) >= 44 and f.get("fs", 0) >= 16
+          need(fld_ok(LO.get("email"), "email") and fld_ok(LO.get("password"), "password"), f"the login shows the email and password fields in the clay layout (16 pt, 44 pt tall): email={LO.get('email')} password={LO.get('password')}")
+          SB = LO.get("submit") or {}
+          need(SB.get("gold") is True and SB.get("bg") == "rgb(235, 174, 53)" and SB.get("h", 0) >= 44, f"...and the gold sign-in button: {SB}")
           need(by.get("login", {}).get("result") == "submitted", f"the login form was filled and submitted: {by.get('login', {}).get('result')}")
           H = P("home")
           need(re.search(r"/(en|ar)/dashboard$", url(H)), f"the dashboard opened after sign-in: {H.get('href')}")
@@ -430,6 +442,21 @@ jobs:
           need(by.get("ar-reminder-on", {}).get("result") == "clicked on", f"the Arabic Settings shows the reminder off and switches it on: {by.get('ar-reminder-on', {}).get('result')}")
           need(len(parts) == 3 and parts[0] == "on 19:00" and re.fullmatch("7:00 م", parts[1]) is not None and "7:00 م" in parts[2] and not re.search(r"(?i)\b[ap]\.?m\b", RC), f"the Arabic reminder reads its time in Arabic, beside the picker and in the sentence: {RC}")
           need(by.get("ar-reminder-read-off", {}).get("result") == "off 19:00" and pend("ar-reminder-pending-off") == [], f"...and switching it off cancels it: {by.get('ar-reminder-read-off', {}).get('result')} {pend('ar-reminder-pending-off')}")
+          # (a) Design "C", PR 3: Settings' two choices, read at the end of the
+          # English and of the Arabic Settings (the steps that scroll there):
+          # one Language and one Appearance segmented control (.kf-seg), two
+          # options each, every option at least 44 pt tall; the chosen language
+          # is the page's own, and the chosen appearance is the page's theme,
+          # which is light, the default (no step asks for a theme).
+          for name, loc in (("settings-bottom", "en"), ("ar-settings-bottom", "ar")):
+              _, _, raw = str(by.get(name, {}).get("result", "")).partition(" || ")
+              try: SG = json.loads(raw)
+              except Exception: SG = {}
+              gs = SG.get("groups") or []
+              lang = [g for g in gs if g.get("kind") == "language"]
+              look = [g for g in gs if g.get("kind") == "appearance"]
+              need(len(lang) == 1 and lang[0].get("seg") is True and sorted(lang[0].get("options", [])) == ["ar", "en"] and lang[0].get("checked") == [loc] and lang[0].get("minH", 0) >= 44, f"{name}: the Language control is the segmented pair with {loc} chosen: {lang}")
+              need(len(look) == 1 and look[0].get("seg") is True and sorted(look[0].get("options", [])) == ["dark", "light"] and look[0].get("checked") == [SG.get("theme")] and SG.get("theme") == "light" and look[0].get("minH", 0) >= 44, f"{name}: the Appearance control is the segmented pair with the page's theme (light, the default) chosen: theme={SG.get('theme')} {look}")
           # Step Wording-1: the legal and site twins and the main screens in
           # Arabic too, each read on the page it was sent to (a bounce to the
           # login page would read clean and prove nothing).
