@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { UserName } from '@/components/ui/UserName';
-import { ClayChat, ClayPlus } from '@/components/clay/ClayIcons';
+import { ClayChat } from '@/components/clay/ClayIcons';
 
 interface Conversation {
   id: string;
@@ -34,7 +34,7 @@ export function ConversationSidebar({ activeId, onSelect, onNew, conversations }
     <div className="flex h-full flex-col overflow-hidden">
       <div className="p-3">
         <button onClick={onNew} className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'w-full rounded-full')}>
-          <ClayPlus width={20} height={20} />
+          {/* The words carry their own "+" (agent.newConversation), so no plus coin. */}
           {t.dashboard.agent.newConversation}
         </button>
       </div>

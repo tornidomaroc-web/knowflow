@@ -86,12 +86,24 @@ function decodeCitations(header: string | null): Citation[] | undefined {
  * alone at a line's end.
  */
 function isolated(q: string, subject: string) {
-  return q.split(/(\u2068[^\u2069]*\u2069)/).map((part, i) => {
-    if (!part.startsWith('\u2068')) return part;
+  const parts = q.split(/(\u2068[^\u2069]*\u2069)/);
+  return parts.map((part, i) => {
+    if (!part.startsWith('\u2068')) {
+      // Design "C", PR 4: punctuation right after the subject's name goes
+      // with the name (below), so it is not drawn twice.
+      return parts[i - 1] && parts[i - 1].slice(1, -1) === subject ? part.replace(TRAILING, '') : part;
+    }
     const text = part.slice(1, -1);
-    return text === subject ? <UserName key={i} inline>{text}</UserName> : <bdi key={i}>{text}</bdi>;
+    if (text !== subject) return <bdi key={i}>{text}</bdi>;
+    // The name is one box (UserName inline), and a line may break after a
+    // box: a full stop or question mark right after the name could start a
+    // line on its own (the proof run's "." alone). It is kept with the name.
+    const tail = (parts[i + 1] ?? '').match(TRAILING)?.[0] ?? '';
+    const box = <UserName key={i} inline>{text}</UserName>;
+    return tail ? <span key={i} className="whitespace-nowrap">{box}{tail}</span> : box;
   });
 }
+const TRAILING = /^[.,!?\u060C\u061F\u00BB\u201D:;]+/;
 
 export function ChatBox({ kbId, kbName, materials = [], initialConversationId, initialMessages, onConversationCreated }: ChatBoxProps) {
   const params = useParams<{ locale: Locale }>();
@@ -248,10 +260,10 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
              message through the same path and the same daily cap. Design
              "C", PR 4: the home ask card's clay picture, clay suggestion
              cards with a clay tile each. */
-          <div data-kf-ask-empty="" className="mx-auto mt-2 max-w-lg">
+          <div data-kf-ask-empty="" className="mx-auto mt-2 max-w-lg [text-wrap:pretty]">
             <div className="rise flex flex-col items-center text-center">
               <ClayAskArt width={96} height={96} mark={safeLocale === 'ar' ? '؟' : '?'} data-kf-clay-art="empty-ask" />
-              <h3 className="mt-3 text-lg font-bold text-foreground">{t.dashboard.agent.emptyTitle}</h3>
+              <h3 className="mt-3 text-lg font-bold text-foreground [text-wrap:balance]">{t.dashboard.agent.emptyTitle}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{t.dashboard.agent.startTyping}</p>
             </div>
             <p className="rise rise-1 mt-6 flex items-center gap-2 text-xs font-semibold text-muted-foreground">

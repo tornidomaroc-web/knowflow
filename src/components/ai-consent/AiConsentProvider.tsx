@@ -148,9 +148,9 @@ export function AiConsentProvider({
         {open && (
           <div
             data-kf-consent-sheet="open"
-            className="max-h-[85dvh] overflow-y-auto px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+            className="max-h-[85dvh] overflow-y-auto px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] [text-wrap:pretty]"
           >
-            <ClaySectionTitle icon={<ClaySpark />}>{labels.title}</ClaySectionTitle>
+            <ClaySectionTitle icon={<ClaySpark />} className="[text-wrap:balance]">{labels.title}</ClaySectionTitle>
             <p className="mt-3 text-sm text-muted-foreground">{labels.intro}</p>
             <ul className="mt-3 space-y-2 text-sm text-foreground">
               <li className="kf-well rounded-2xl px-3.5 py-2.5">{labels.anthropic}</li>
@@ -159,7 +159,7 @@ export function AiConsentProvider({
             <p className="mt-3 text-sm text-foreground">{labels.notSent}</p>
             <p className="mt-2 text-xs text-muted-foreground">
               {labels.withdrawHint}{' '}
-              <Link href={privacyHref} className="underline hover:text-primary">
+              <Link href={privacyHref} className="whitespace-nowrap rounded underline hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {labels.privacyLink}
               </Link>
             </p>

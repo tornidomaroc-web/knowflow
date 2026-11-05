@@ -253,9 +253,10 @@ export function pr4Checks(kind, act) {
   // 5. The device run's own selectors.
   if (kind === 'study') {
     if (act === 'none' && document.querySelector('[data-kf-shot="done"]')) {
-      const leaf = [...document.querySelectorAll('h1,h2,h3,h4,p,span,div')].filter((x) => x.children.length === 0 && /^(SUMMARY|Summary|الملخص|ملخص)$/.test((x.innerText || '').trim()));
+      const leaf = [...document.querySelectorAll('h1,h2,h3,h4,p,span,div')].filter((x) => x.children.length === 0 && /^(SUMMARY|Summary|الملخّص|الملخص|ملخص)$/.test((x.innerText || '').trim()));
       measured.summaryLeaf = leaf.length;
-      if (!leaf.length) findings.push('device run: no summary heading leaf (ios-signed-in step "summary")');
+      // The device run's step reads English; capture_steps.py's SUMMARY adds the Arabic with its shadda.
+      if (!leaf.length) findings.push('device run: no summary heading leaf (ios-signed-in step "summary", capture_steps.py SUMMARY)');
       if (![...document.querySelectorAll('button')].some((x) => /Quiz me on this material|اختبرني في هذا الملف/.test(x.innerText || ''))) findings.push('device run: no quiz button (step "quiz-open")');
     }
     if (act === 'quiz-taking' && ![...document.querySelectorAll('button')].some((x) => /Check my answers|صحّح إجاباتي/.test(x.innerText || ''))) findings.push('device run: no "Check my answers" button (step "quiz")');

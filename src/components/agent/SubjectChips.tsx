@@ -29,7 +29,7 @@ export function SubjectChips({
     // Design "C", PR 4: the chosen subject is the gold clay pill, the others
     // surface clay pills; no edges. The row pads its own shadows so the
     // horizontal scroll does not clip them.
-    <div className="-my-1 flex gap-2 overflow-x-auto px-1 py-1">
+    <div className="-my-2 flex min-w-0 flex-1 gap-2 overflow-x-auto px-2 py-2">
       {subjects.map((kb) => (
         <button
           key={kb.id}

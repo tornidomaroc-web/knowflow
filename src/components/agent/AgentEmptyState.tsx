@@ -24,7 +24,7 @@ export function AgentEmptyState({ newHref, labels }: AgentEmptyStateProps) {
       {/* Design "C", PR 4: a clay card (no dashed edge) with the home's clay
           empty shelf, the same picture the empty home draws. */}
       <div data-kf-ask-zero="" className="kf-card rise mx-auto flex max-w-md flex-col items-center rounded-2xl bg-surface p-10 text-center">
-        <ClayEmptyShelf title={labels.title} />
+        <ClayEmptyShelf title={labels.title} data-kf-clay-art="empty-ask" />
         <h2 className="mt-4 text-xl font-semibold text-foreground">{labels.title}</h2>
         <p className="mb-6 mt-2 text-sm text-muted-foreground">{labels.prompt}</p>
         <Link href={newHref} className={buttonVariants({ variant: 'primary' })}>
