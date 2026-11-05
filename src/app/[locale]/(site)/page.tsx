@@ -110,7 +110,10 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
         </div>
       </section>
 
-      {/* 2. HOW IT WORKS: three steps, a clay picture each. */}
+      {/* 2. HOW IT WORKS: three steps, a clay picture each. From md the three
+          cards are one row, so each card's content starts at its top and the
+          descriptions share one y (the design-c row check; centred, the
+          longer third card's text sat 10.8 px lower at 1280). */}
       <section id="how-it-works" className="scroll-mt-20 py-[1.625rem] lg:py-20">
         <div className="mx-auto max-w-7xl px-[1.125rem] md:px-6" dir={dir}>
           <Reveal className="mb-3.5">
@@ -119,7 +122,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           </Reveal>
           <ol className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
             {t.howItWorks.steps.map((step, idx) => (
-              <Reveal key={idx} as="li" delay={(idx + 1) as 1 | 2 | 3} className="kf-card flex items-center gap-3.5 rounded-3xl p-4">
+              <Reveal key={idx} as="li" delay={(idx + 1) as 1 | 2 | 3} className="kf-card flex items-center gap-3.5 rounded-3xl p-4 md:items-start">
                 <span className="shrink-0" data-art={stepArt[idx].key}>{stepArt[idx].art}</span>
                 <div className="min-w-0 flex-1">
                   <h3 className="flex items-center gap-2 text-[1.0625rem] font-extrabold text-foreground">
