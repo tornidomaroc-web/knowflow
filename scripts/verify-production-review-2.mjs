@@ -4,6 +4,9 @@
  *
  *  1. Landing steps carry the right picture: upload → cloud, ask → pages that
  *     talk, answer → the book that sparks (rendered, read by data-illustration).
+ *     Since design "C", PR 2 the pictures are the approved artboard's clay
+ *     (Landing.dc.html): upload → the cloud, ask → the gold bubble with the
+ *     question mark, answer → the page with the tick (read by data-art).
  *  2. Landing "what you get": exactly one picture per card, no icon tile.
  *  3. A 0% ring still draws a track that is not the tile's own colour.
  *  4. Arabic dates use the standard month names with Western digits.
@@ -12,7 +15,9 @@
  *     "try asking" heading carries its hamza; a hamza sweep over ar.ts.
  *  6. The platform label is a word ("المتصفح" / "Browser"), isolated, in an
  *     auto-direction line; no transliteration of "web" remains.
- *  7. Login and signup carry an illustration, the rise and the press.
+ *  7. Login and signup carry an illustration, the rise and the press. Since
+ *     design "C", PR 2 the picture is the real app icon as a tile (84 pt) and
+ *     the page behind the form is plain (Login.dc.html): no drifting shape.
  *  Plus: the Arabic strings export exists and covers every leaf in ar.ts.
  *
  * Tier 0: no network, no credential, no database, no app.
@@ -38,11 +43,11 @@ const { renderToStaticMarkup } = await import('react-dom/server');
   const { default: LandingPage } = await load('src/app/[locale]/(site)/page.tsx');
   const html = renderToStaticMarkup(await LandingPage({ params: Promise.resolve({ locale: 'en' }) }));
   const steps = html.split('<ol')[1]?.split('</ol>')[0] ?? '';
-  const order = [...steps.matchAll(/data-illustration="([\w-]+)"/g)].map((m) => m[1]);
-  console.error(`step illustrations: ${order.join(' > ')}`);
-  check(order.join(',') === 'upload-cloud,chat-pages,spark-book', `the steps carry ${order.join(', ')}; expected cloud, pages, book`);
+  const order = [...steps.matchAll(/data-art="([\w-]+)"/g)].map((m) => m[1]);
+  console.error(`step pictures: ${order.join(' > ')}`);
+  check(order.join(',') === 'upload-cloud,ask-bubble,answer-page', `the steps carry ${order.join(', ')}; expected cloud, bubble, page`);
   const cards = html.split('<section')[3] ?? '';
-  const perCard = cards.split('liftable flex flex-col').slice(1).map((c) => (c.match(/<svg/g) ?? []).length);
+  const perCard = cards.split('kf-card flex flex-col').slice(1).map((c) => (c.match(/<svg/g) ?? []).length);
   console.error(`pictures per feature card: ${perCard.join(', ')}`);
   check(perCard.length === 4 && perCard.every((n) => n === 1), 'each "what you get" card must carry exactly one picture');
   check(!/lucide-quote|<svg[^>]*class="[^"]*h-5 w-5"[^>]*>[\s\S]*?<path d="M3 21c3 0 7-1 7-8/.test(cards), 'a quote-mark icon is still on a feature card');
@@ -99,9 +104,9 @@ const { renderToStaticMarkup } = await import('react-dom/server');
 // 7. Auth pages.
 for (const p of ['src/app/[locale]/login/page.tsx', 'src/app/[locale]/signup/page.tsx']) {
   const src = read(p);
-  check(/from '@\/components\/illustrations'/.test(src) && /size=\{88\}/.test(src), `${p} has no illustration`);
-  check(/className="rise mb-8/.test(src) && /rise rise-1/.test(src), `${p} does not rise in`);
-  check(/hero-float/.test(src), `${p} has no depth behind the form`);
+  check(/<BrandIcon size=\{84\}/.test(src), `${p} has no picture (the app icon tile)`);
+  check(/className="rise flex/.test(src) && /rise rise-1/.test(src), `${p} does not rise in`);
+  check(!/hero-float/.test(src), `${p} still draws a drifting shape behind the form; the artboard's page is plain`);
 }
 for (const p of ['src/components/auth/GoogleButton.tsx', 'src/components/auth/AppleButton.tsx']) check(/pressable/.test(read(p)), `${p} does not press`);
 

@@ -118,7 +118,7 @@ export default async function SubjectPreview({
           signOut: t.dashboard.nav.signOut,
         }}
       >
-        <div className="mx-auto max-w-4xl space-y-6">
+        <div className="mx-auto max-w-4xl space-y-6 [text-wrap:balance]">
           <SubjectHeader
             name={ar ? 'مبادئ الاقتصاد الجزئي' : 'Microeconomics'}
             description={ar ? 'الفصل الأول، د. العلوي' : 'Semester 1, Dr. Alaoui'}

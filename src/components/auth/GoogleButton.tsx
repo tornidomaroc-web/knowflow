@@ -76,7 +76,8 @@ export function GoogleButton({
         type="button"
         onClick={start}
         disabled={loading}
-        className="pressable flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-surface disabled:opacity-60"
+        // Design "C", PR 2 (Login.dc.html): a clay surface pill, 54 pt tall.
+        className="pressable kf-pill flex min-h-[3.375rem] w-full items-center justify-center gap-2.5 rounded-full px-4 text-base font-bold text-foreground transition-colors disabled:opacity-60"
       >
         <GoogleMark />
         <span>{label}</span>

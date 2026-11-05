@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { BrandIcon } from '@/components/brand/BrandIcon';
+import { ClayClose, ClayMenu } from '@/components/clay/ClayIcons';
 import { ENDONYM, otherLocale, switchLocaleHref, type Locale } from '@/lib/i18n';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -73,24 +74,21 @@ export function SiteHeader({ locale, labels, showPricing }: { locale: Locale; la
     { href: `/${locale}/about`, label: labels.about },
   ];
 
-  const wordmark = (
-    <>
-      {labels.home.replace('Flow', '')}
-      <span className="text-primary">Flow</span>
-    </>
-  );
 
   return (
     // No blur behind the bar (design "C" forbids a backdrop blur anywhere).
     // --header is opaque enough on its own: its 0.90 was derived
     // for contrast over content scrolling beneath (#107), not from the blur.
-    <header className="sticky top-0 z-50 border-b border-border bg-header pt-[env(safe-area-inset-top)]">
-      <div className="max-w-7xl mx-auto px-6 h-16 md:h-20 flex items-center justify-between gap-4">
+    // Design "C", PR 2 (Landing.dc.html): no hairline under it; the real app
+    // icon as a tile beside the name, and the two controls as clay tiles.
+    <header className="sticky top-0 z-50 bg-header pt-[env(safe-area-inset-top)]">
+      <div className="max-w-7xl mx-auto px-[1.125rem] md:px-6 h-[4.75rem] md:h-20 flex items-center justify-between gap-4">
         <Link
           href={`/${locale}`}
-          className="rounded-md text-2xl font-bold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex min-h-[2.75rem] items-center gap-2.5 rounded-xl text-[1.3125rem] font-extrabold leading-none text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {wordmark}
+          <BrandIcon size={40} radius={12} />
+          {labels.home}
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
@@ -121,15 +119,15 @@ export function SiteHeader({ locale, labels, showPricing }: { locale: Locale; la
             {ENDONYM[other]}
           </a>
           <ThemeToggle
-            variant="icon"
+            variant="clay"
             labels={{ appearance: labels.appearance, dark: labels.themeDark, light: labels.themeLight }}
           />
-          <Link href={`/${locale}/login`} className="text-muted-foreground transition-colors hover:text-primary">
+          <Link href={`/${locale}/login`} className="text-muted-foreground transition-colors hover:text-foreground">
             {labels.signIn}
           </Link>
           <Link
             href={`/${locale}/signup`}
-            className="inline-flex items-center justify-center rounded-xl border border-primary px-6 py-2 text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+            className="kf-gold inline-flex min-h-[2.75rem] items-center justify-center rounded-full px-6 font-bold transition-colors"
           >
             {labels.getStarted}
           </Link>
@@ -142,27 +140,28 @@ export function SiteHeader({ locale, labels, showPricing }: { locale: Locale; la
           not trap focus or hide the page from a screen reader; it names itself
           with aria-expanded and hands the panel back with aria-controls.
         */}
-        {/* The theme toggle sits beside the hamburger below md: one tap, no menu. */}
-        <ThemeToggle
-          variant="icon"
-          className="md:hidden"
-          labels={{ appearance: labels.appearance, dark: labels.themeDark, light: labels.themeLight }}
-        />
-        <button
-          ref={buttonRef}
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-controls="site-menu"
-          aria-label={labels.menu}
-          className="md:hidden -me-2 inline-flex h-11 w-11 items-center justify-center rounded-md text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        {/* The theme toggle sits beside the menu below md: one tap, no menu. */}
+        <div className="flex items-center gap-2 md:hidden">
+          <ThemeToggle
+            variant="clay"
+            labels={{ appearance: labels.appearance, dark: labels.themeDark, light: labels.themeLight }}
+          />
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-controls="site-menu"
+            aria-label={labels.menu}
+            className="kf-pill inline-flex h-11 w-11 items-center justify-center rounded-[0.875rem] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {open ? <ClayClose /> : <ClayMenu />}
+          </button>
+        </div>
       </div>
 
       {/* Rendered in both states so `aria-controls` always resolves to it. */}
-      <div id="site-menu" hidden={!open} className="md:hidden border-t border-border bg-background">
+      <div id="site-menu" hidden={!open} className="md:hidden bg-background">
         <nav className="max-w-7xl mx-auto px-6 py-4 flex flex-col text-base font-medium">
           {links.map((l) => (
             <Link
@@ -190,7 +189,7 @@ export function SiteHeader({ locale, labels, showPricing }: { locale: Locale; la
           {/* Last, and the only filled control: the one thing this menu is for. */}
           <Link
             href={`/${locale}/signup`}
-            className="mt-3 inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
+            className="kf-gold mt-3 inline-flex min-h-[3rem] items-center justify-center rounded-full px-6 text-base font-extrabold transition-colors"
           >
             {labels.getStarted}
           </Link>

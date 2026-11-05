@@ -4,17 +4,18 @@
  * The REAL landing page is rendered with react-dom/server for both locales,
  * and the stylesheet is read:
  *   1. Five sections, each with an illustration; at least eight Reveal
- *      wrappers; three parallax shapes; the hero demo with its four beats
- *      (type, sweep, fade, pop); no <img>, no external script.
+ *      wrappers; the hero demo with its four beats (type, sweep, fade, pop);
+ *      no <img>, no external script. Since design "C", PR 2 (the approved
+ *      artboard Landing.dc.html draws a plain page) there is NO drifting
+ *      shape and no grid behind the hero, so the parallax went with them.
  *   2. Arabic first: the Arabic page carries dir="rtl" on its copy and the
  *      hero card, the RTL rule for the typed question exists, and the
  *      bilingual section shows both scripts on both locales.
  *   3. Every start state sits inside `prefers-reduced-motion: no-preference`
  *      (.reveal, hero-type, hero-pop, hero-float), and #49's sweep keeps
  *      its reduce rule.
- *   4. Fast: Reveal and Parallax are each under 3 KB of source, the page
- *      HTML is under 60 KB, and the parallax is off below 768px and with
- *      reduced motion (read from source).
+ *   4. Fast: Reveal is under 3 KB of source and observes once, the page HTML
+ *      is under 60 KB (read from source).
  *
  * Tier 0: no network, no credential, no database, no app.
  *
@@ -51,7 +52,7 @@ for (const [locale, html] of Object.entries(pages)) {
   check(sections === 5, `${locale}: expected 5 sections, got ${sections}`);
   check(svgs >= 10, `${locale}: expected at least 10 illustrations/icons, got ${svgs}`);
   check(reveals >= 8, `${locale}: expected at least 8 Reveal wrappers, got ${reveals}`);
-  check(depths >= 3, `${locale}: expected 3 parallax shapes, got ${depths}`);
+  check(depths === 0, `${locale}: ${depths} drifting shape(s) behind the hero; the artboard draws a plain page`);
   for (const c of ['hero-type', 'landing-sweep', 'landing-fade', 'hero-pop']) check(html.includes(c), `${locale}: the hero demo lacks its ${c} beat`);
   check(!/<img/.test(html) && !/<script src=/.test(html), `${locale}: the landing carries an image or an external script`);
   check(html.length < 60000, `${locale}: the landing HTML is ${html.length} bytes, over 60 KB`);
@@ -77,12 +78,10 @@ check(pages.ar.includes('العربية أولًا'), 'the Arabic page lacks its
 
 // 4. Fast.
 {
-  for (const f of ['src/components/landing/Reveal.tsx', 'src/components/landing/Parallax.tsx']) {
+  for (const f of ['src/components/landing/Reveal.tsx']) {
     const size = statSync(resolvePath(ROOT, f)).size;
     check(size < 3072, `${f} is ${size} bytes of source, over 3 KB`);
   }
-  const par = read('src/components/landing/Parallax.tsx');
-  check(/prefers-reduced-motion: reduce/.test(par) && /max-width: 767px/.test(par) && /passive: true/.test(par) && /requestAnimationFrame/.test(par), 'the parallax is not gated and throttled');
   const rev = read('src/components/landing/Reveal.tsx');
   check(/IntersectionObserver/.test(rev) && /io\.disconnect\(\)/.test(rev) && /prefers-reduced-motion: reduce/.test(rev), 'the reveal does not observe once, or ignores reduced motion');
 }

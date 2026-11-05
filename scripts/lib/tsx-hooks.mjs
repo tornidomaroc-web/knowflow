@@ -64,6 +64,16 @@ export function installTsxHooks(ROOT, stubs = {}) {
       return next(spec, ctx);
     },
     load(url, ctx, next) {
+      // A static image import (`import icon from '…/x.png'`, which Next turns
+      // into { src, width, height }): the same shape, with the file's own path
+      // as `src` and its PNG header's size, so a page that shows an image
+      // renders here as it does in the build.
+      if (url.startsWith('file:') && url.endsWith('.png')) {
+        const b = readFileSync(fileURLToPath(url));
+        const src = '/_next/static/media/' + fileURLToPath(url).split(/[\\/]/).pop();
+        const value = { src, width: b.readUInt32BE(16), height: b.readUInt32BE(20) };
+        return { format: 'module', source: `export default ${JSON.stringify(value)};`, shortCircuit: true };
+      }
       if (url.startsWith('file:') && url.endsWith('.tsx')) {
         const source = readFileSync(fileURLToPath(url), 'utf8');
         const { outputText } = ts.transpileModule(source, {

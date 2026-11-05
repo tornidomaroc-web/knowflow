@@ -21,6 +21,11 @@ export interface SiteFooterLabels {
  * NOT a client component, deliberately. It is rendered by the server layout, so
  * `getFullYear()` runs once on the server even on the pricing page, which is
  * itself `'use client'` — the year is never a hydration mismatch.
+ *
+ * Design "C", PR 2 (Landing.dc.html): the name, the four links as 44 pt
+ * targets, the copyright, centred on a phone. The artboard has no GitHub
+ * link, so the footer no longer carries one (the label stays in the
+ * dictionaries and the type, unused).
  */
 export function SiteFooter({ locale, labels, showRefund = true }: { locale: Locale; labels: SiteFooterLabels; showRefund?: boolean }) {
   // Step Wording-1: the app sells nothing, so its chrome carries no Refund
@@ -33,28 +38,19 @@ export function SiteFooter({ locale, labels, showRefund = true }: { locale: Loca
   ];
 
   return (
-    <footer className="py-12 bg-background">
-      <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="text-xl font-bold tracking-tight">
-          {labels.home.replace('Flow', '')}
-          <span className="text-primary">Flow</span>
-        </div>
-        <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-xs font-medium text-muted-foreground">
+    <footer className="pt-[1.875rem] pb-10">
+      <div className="max-w-7xl mx-auto px-[1.125rem] md:px-6 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6">
+        <p className="text-lg font-extrabold text-foreground">{labels.home}</p>
+        <nav className="flex flex-wrap justify-center gap-x-1.5 gap-y-1 text-sm font-medium text-muted-foreground">
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className="transition-colors hover:text-foreground">
+            <Link key={l.href} href={l.href} className="inline-flex min-h-[2.75rem] items-center px-2 transition-colors hover:text-foreground">
               {l.label}
             </Link>
           ))}
-          <Link
-            href="https://github.com/tornidomaroc-web/knowflow"
-            className="transition-colors hover:text-primary"
-          >
-            {labels.github}
-          </Link>
-        </div>
-        <div className="text-xs text-muted-foreground">
+        </nav>
+        <p className="text-[0.8125rem] text-muted-foreground">
           &copy; {new Date().getFullYear()} {labels.copyright}
-        </div>
+        </p>
       </div>
     </footer>
   );

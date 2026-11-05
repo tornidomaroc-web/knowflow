@@ -96,7 +96,10 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
 
   return (
     <div>
-      <div className="max-w-5xl space-y-6">
+      {/* Every line on the subject page is balanced (design "C", PR 2; text-wrap
+          is inherited), so no card ends on a word alone: the design-c render
+          asserts it. */}
+      <div className="max-w-5xl space-y-6 [text-wrap:balance]">
         {kb ? (
           <SubjectHeader
             name={kb.name}

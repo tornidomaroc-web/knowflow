@@ -48,22 +48,36 @@ import { cn } from '@/lib/utils';
  * on branch diag/ipad-zoom, run 40258021621: x1.143 = 16/14). `leading-5`
  * keeps the 20 px line, so the field's height does not change; desktop keeps
  * 14 px.
+ *
+ * `variant="clay"` (design "C", PR 2, Login.dc.html), for sign-in and
+ * sign-up only: the field is pressed into the card (`.kf-field`: the clay
+ * well, with the 3.6:1 control edge kept for WCAG 1.4.11), 52 pt tall, and
+ * 16 pt text at EVERY width; the label 14 pt bold. Forgot-password and
+ * reset-password keep the default until their own pass.
  */
 
 const FIELD =
   'w-full rounded-xl border border-control-border bg-input px-4 py-3 text-base leading-5 md:text-sm text-foreground ' +
   'placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring';
 
-type FieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & { label: string };
+const CLAY_FIELD =
+  'kf-field h-[3.25rem] w-full rounded-2xl px-4 text-base text-foreground placeholder:text-muted-foreground';
 
-export function AuthField({ label, className, ...props }: FieldProps) {
+type Variant = 'default' | 'clay';
+type FieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & { label: string; variant?: Variant };
+
+const labelClass = (v: Variant) => (v === 'clay' ? 'text-sm font-bold text-foreground' : 'text-sm font-medium text-foreground');
+
+export function AuthField({ label, className, variant = 'default', ...props }: FieldProps) {
   const id = useId();
   return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-sm font-medium text-foreground">
+    <div className={cn('flex flex-col', variant === 'clay' ? 'gap-1.5' : 'gap-2')}>
+      <label htmlFor={id} className={labelClass(variant)}>
         {label}
       </label>
-      <input id={id} className={cn(FIELD, className)} {...props} />
+      {/* The two consts are named here, not behind a helper: scripts/field-zoom/
+          static-fields.mjs reads an input's size from the consts its className names. */}
+      <input id={id} className={cn(variant === 'clay' ? CLAY_FIELD : FIELD, className)} {...props} />
     </div>
   );
 }
@@ -73,19 +87,20 @@ type PasswordFieldProps = Omit<FieldProps, 'type'> & {
   showLabel: string;
 };
 
-export function PasswordField({ label, showLabel, className, ...props }: PasswordFieldProps) {
+export function PasswordField({ label, showLabel, className, variant = 'default', ...props }: PasswordFieldProps) {
   const id = useId();
   const [shown, setShown] = useState(false);
+  const clay = variant === 'clay';
   return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-sm font-medium text-foreground">
+    <div className={cn('flex flex-col', clay ? 'gap-1.5' : 'gap-2')}>
+      <label htmlFor={id} className={labelClass(variant)}>
         {label}
       </label>
       <div className="relative">
         <input
           id={id}
           type={shown ? 'text' : 'password'}
-          className={cn(FIELD, 'pe-11', className)}
+          className={cn(clay ? CLAY_FIELD : FIELD, clay ? 'pe-[3.25rem]' : 'pe-11', className)}
           {...props}
         />
         <button
@@ -94,9 +109,17 @@ export function PasswordField({ label, showLabel, className, ...props }: Passwor
           aria-label={showLabel}
           aria-pressed={shown}
           aria-controls={id}
-          className="absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          className={
+            clay
+              // Full height and flush with the field's end, as the default is: a
+              // button set in from the edge leaves the field tappable around it,
+              // and field-zoom's overlap check fails (run 41943986698). 52 pt
+              // square, so the eye's centre is where the artboard puts it.
+              ? 'absolute inset-y-0 end-0 flex w-[3.25rem] items-center justify-center rounded-e-2xl text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'
+              : 'absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'
+          }
         >
-          {shown ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+          {shown ? <EyeOff className={clay ? 'h-5 w-5' : 'h-4 w-4'} aria-hidden="true" /> : <Eye className={clay ? 'h-5 w-5' : 'h-4 w-4'} aria-hidden="true" />}
         </button>
       </div>
     </div>
