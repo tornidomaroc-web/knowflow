@@ -833,9 +833,9 @@ async function shoot(side, job) {
   else await tab.screenshot({ path: file });
   const picker = job.s.pr3 && /preview\/subject$/.test(job.s.path) ? await tab.evaluate(pickerCheck) : null;
   const plant = /preview\/subject$/.test(job.s.path) && job.s.q.view !== 'empty' ? await tab.evaluate(deletePlant) : null;
-  await ctx.close();
   const ring = job.s.pr4 === 'consent' ? await keyRing(tab) : null;
   for (const h of held) h.abort().catch(() => {});
+  await ctx.close();
   return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring };
 }
 
