@@ -1,27 +1,43 @@
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 import { useTranslation, Locale } from '@/lib/i18n';
-import { ChatPages, Flame, QuizCheck, SparkBook, Trophy, UploadCloud } from '@/components/illustrations';
+import { keepDotWithBefore, keepLastTwo } from '@/lib/separator';
+import {
+  ClayArrow,
+  ClayBrandMark,
+  ClayFeatureAnswers,
+  ClayFeatureQuiz,
+  ClayFeatureStreak,
+  ClayFeatureSummary,
+  ClayStepAnswer,
+  ClayStepAsk,
+  ClayStepUpload,
+} from '@/components/clay/ClayIcons';
 import { HeroDemo } from '@/components/landing/HeroDemo';
 import { Reveal } from '@/components/landing/Reveal';
-import { Parallax } from '@/components/landing/Parallax';
 
 /**
- * THE LANDING, AS THE SHOWPIECE (Part C, 2026-09-25; docs/design/VISUAL_LANGUAGE.md).
+ * THE LANDING, AS THE SHOWPIECE (Part C, 2026-09-25; docs/design/VISUAL_LANGUAGE.md),
+ * IN CLAY (design "C", PR 2: the owner-approved artboard Landing.dc.html,
+ * 2026-11-04).
  *
- * Five sections, each one idea: the hero shows the product WORKING (the
- * question writes itself, the answer sweeps in, the sources appear, the study
- * kit pops), three steps with an illustration each, four things you get,
- * Arabic-first with English beside it, and one last invitation. Sections
- * rise as they enter the viewport (`Reveal`), the hero's shapes drift with
- * the scroll on a desk (`Parallax`), and every one of those motions has its
- * base state as its final state, so with reduced motion the page is simply
- * there. No images, no library: inline SVG and CSS transforms, for a
- * mid-range phone.
+ * Five sections, each one idea: the hero shows the product WORKING in the
+ * dark answer card (the question writes itself, the answer sweeps in, the
+ * sources appear, the study kit pops), three steps with a clay picture each,
+ * four things you get as clay tiles, Arabic-first with English beside it in
+ * one card, and one last invitation on a dark card. Sections rise as they
+ * enter the viewport (`Reveal`), and every motion has its base state as its
+ * final state, so with reduced motion the page is simply there. No images,
+ * no library: inline SVG and CSS. The artboard draws a plain page, so the
+ * hero's grid lines and its three drifting shapes are gone (and Parallax
+ * with them).
  *
  * Everything #108 and #109 measured about the fold still holds: the answer
  * card sits between the words and the buttons on a phone, and the two buttons
  * stay side by side.
+ *
+ * WEB ONLY. The app never shows this page: the middleware sends the app's
+ * request for it to the dashboard (Apple 3.1.1(a)), so its "free" lines stay
+ * here.
  */
 export default async function LandingPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
@@ -29,146 +45,146 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
   const isRtl = locale === 'ar';
   const dir = isRtl ? 'rtl' : 'ltr';
   const L = t.landing;
+  const mark = isRtl ? '؟' : '?';
 
   // ONE picture per card, and it is the card's meaning (review 2026-09-25,
-  // #122): a summary is a book that sparks, a quiz is a checklist, an answer
-  // with its source is pages that talk, a streak is a flame.
+  // #122): a summary is a page, a quiz is a checklist, an answer with its
+  // source is a page that talks, a streak is a flame.
   const features = [
-    { art: <SparkBook size={72} />, ...L.features[0] },
-    { art: <QuizCheck size={72} />, ...L.features[1] },
-    { art: <ChatPages size={72} />, ...L.features[2] },
-    { art: <Flame size={72} />, ...L.features[3] },
+    { Art: ClayFeatureSummary, ...L.features[0] },
+    { Art: ClayFeatureQuiz, ...L.features[1] },
+    { Art: ClayFeatureAnswers, ...L.features[2] },
+    { Art: ClayFeatureStreak, ...L.features[3] },
   ];
-  // The steps are upload, ask, get the answer: a cloud, pages that talk, a book
-  // that sparks. The first version had the book on upload and the cloud on ask.
-  const stepArt = [<UploadCloud key="a" size={72} />, <ChatPages key="b" size={72} />, <SparkBook key="c" size={72} />];
-  const stepTint = ['bg-mint-subtle text-mint', 'bg-sky-subtle text-sky', 'bg-violet-subtle text-violet'];
+  // The steps are upload, ask, get the answer: a cloud, a bubble, a page with a tick.
+  const stepArt = [
+    { key: 'upload-cloud', art: <ClayStepUpload /> },
+    { key: 'ask-bubble', art: <ClayStepAsk mark={mark} /> },
+    { key: 'answer-page', art: <ClayStepAnswer /> },
+  ];
+
+  const eyebrow = 'text-[0.8125rem] font-bold text-accent';
+  const h2 = 'mt-1 text-[1.75rem] font-extrabold leading-tight text-foreground sm:text-4xl lg:text-5xl';
 
   return (
-    <>
-      <Parallax />
-
+    // Every line on the landing is balanced (text-wrap is inherited), so no
+    // heading or card ends on a word alone; the design-c render asserts it.
+    <div data-kf-landing className="[text-wrap:balance]">
       {/* 1. HERO */}
-      <section className="relative overflow-hidden border-b border-border bg-background pt-10 pb-24 lg:pt-20 lg:pb-32">
-        <div
-          className="absolute inset-0 z-0 opacity-[0.35]"
-          style={{ backgroundImage: 'linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)', backgroundSize: '4rem 4rem' }}
-        />
-        {/* Three floating shapes at three depths. 0.08 gold is #109's measured
-            ceiling under text; the tints are used at the same opacity. */}
-        <div aria-hidden="true" data-depth="0.12" className="hero-float pointer-events-none absolute z-0" style={{ top: '-7rem', insetInlineEnd: '-7rem', width: '26rem', height: '26rem', opacity: 0.08, background: 'radial-gradient(circle, var(--primary) 0%, transparent 70%)' }} />
-        <div aria-hidden="true" data-depth="0.22" className="hero-float hero-float-2 pointer-events-none absolute z-0" style={{ bottom: '-9rem', insetInlineStart: '-9rem', width: '22rem', height: '22rem', opacity: 0.08, background: 'radial-gradient(circle, var(--violet) 0%, transparent 70%)' }} />
-        <div aria-hidden="true" data-depth="0.3" className="hero-float hero-float-3 pointer-events-none absolute z-0 hidden lg:block" style={{ top: '40%', insetInlineStart: '38%', width: '14rem', height: '14rem', opacity: 0.08, background: 'radial-gradient(circle, var(--mint) 0%, transparent 70%)' }} />
-
-        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-x-16 gap-y-6 px-6 lg:grid-cols-2 lg:gap-y-10">
-          <div className={`text-center lg:col-start-1 lg:row-start-1 ${isRtl ? 'lg:text-right' : 'lg:text-left'}`} dir={dir}>
-            <div className="rise mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-muted-foreground sm:mb-6">
+      <section className="pt-3.5 pb-[1.875rem] lg:pt-16 lg:pb-24">
+        <div className="mx-auto grid max-w-7xl items-center gap-x-16 gap-y-4 px-[1.125rem] md:px-6 lg:grid-cols-2 lg:gap-y-8">
+          <div className={`flex flex-col items-start gap-4 text-start lg:col-start-1 lg:row-start-1 ${isRtl ? 'lg:text-right' : 'lg:text-left'}`} dir={dir}>
+            <span className="rise kf-pill inline-flex h-[2.125rem] items-center gap-2 rounded-full px-3.5 text-[0.8125rem] font-semibold text-foreground">
               <span className="h-2 w-2 rounded-full bg-mint" />
-              {t.hero.badge}
-            </div>
-            <h1 className="rise rise-1 mb-5 text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-7xl">
-              {t.hero.title}
-            </h1>
-            <p className="rise rise-2 mx-auto max-w-2xl text-lg text-muted-foreground lg:mx-0">{t.hero.hook}</p>
+              {keepDotWithBefore(t.hero.badge)}
+            </span>
+            <h1 className="rise rise-1 text-[2.375rem] font-extrabold leading-[1.2] text-foreground sm:text-5xl lg:text-6xl">{t.hero.title}</h1>
+            <p className="rise rise-2 text-[1.0625rem] font-medium text-muted-foreground lg:text-lg">{t.hero.hook}</p>
           </div>
 
-          <div className="rise rise-2 mx-auto w-full max-w-lg lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:max-w-none">
+          <div className="rise rise-2 w-full lg:col-start-2 lg:row-start-1 lg:row-span-2">
             <HeroDemo
               rtl={isRtl}
               copy={{ question: t.answer.question, body: t.answer.body, files: t.answer.files, summaryReady: L.kitSummary, quizReady: L.kitQuiz }}
             />
           </div>
 
-          <div className={`rise rise-3 flex flex-col items-center lg:col-start-1 lg:row-start-2 ${isRtl ? 'lg:items-end' : 'lg:items-start'}`}>
-            <div className={`flex w-full flex-wrap items-center justify-center gap-3 text-sm font-medium sm:gap-4 ${isRtl ? 'lg:justify-end' : 'lg:justify-start'}`}>
-              <Link href={`/${locale}/signup`} className="pressable liftable whitespace-nowrap rounded-xl bg-primary px-5 py-4 text-center text-primary-foreground transition-colors hover:bg-primary-hover sm:px-8">
+          <div className="rise rise-3 mt-1 flex flex-col gap-3 lg:col-start-1 lg:row-start-2" dir={dir}>
+            <div className="flex gap-2.5">
+              <Link href={`/${locale}/signup`} className="kf-gold inline-flex min-h-[3.375rem] flex-1 items-center justify-center gap-2 rounded-full px-4 text-base font-extrabold lg:flex-none lg:px-8">
                 {t.hero.cta1}
+                <ClayArrow className="rtl:-scale-x-100" />
               </Link>
-              <Link href="#how-it-works" className="pressable whitespace-nowrap rounded-xl border border-border bg-surface px-5 py-4 text-center text-foreground transition-colors hover:border-primary sm:px-8">
+              <Link href="#how-it-works" className="kf-pill inline-flex min-h-[3.375rem] flex-1 items-center justify-center rounded-full px-4 text-base font-bold text-foreground lg:flex-none lg:px-8">
                 {t.hero.cta2}
               </Link>
             </div>
-            <p className={`mt-4 text-center text-xs text-muted-foreground ${isRtl ? 'lg:text-right' : 'lg:text-left'}`}>{t.hero.disclaimer}</p>
+            <p className={`text-center text-[0.8125rem] font-medium text-muted-foreground ${isRtl ? 'lg:text-right' : 'lg:text-left'}`}>{keepDotWithBefore(t.hero.disclaimer)}</p>
           </div>
         </div>
       </section>
 
-      {/* 2. HOW IT WORKS: three steps, an illustration each. */}
-      <section id="how-it-works" className="scroll-mt-16 border-b border-border bg-surface py-20 md:scroll-mt-20 lg:py-28">
-        <div className="mx-auto max-w-7xl px-6">
-          <Reveal className="mb-12 text-center">
-            <p className="text-xs font-semibold uppercase text-accent">{L.howEyebrow}</p>
-            <h2 className="mt-2 text-3xl font-bold sm:text-4xl lg:text-5xl">{t.howItWorks.title}</h2>
+      {/* 2. HOW IT WORKS: three steps, a clay picture each. */}
+      <section id="how-it-works" className="scroll-mt-20 py-[1.625rem] lg:py-20">
+        <div className="mx-auto max-w-7xl px-[1.125rem] md:px-6" dir={dir}>
+          <Reveal className="mb-3.5">
+            <p className={eyebrow}>{L.howEyebrow}</p>
+            <h2 className={h2}>{t.howItWorks.title}</h2>
           </Reveal>
-          <ol className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <ol className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
             {t.howItWorks.steps.map((step, idx) => (
-              <Reveal key={idx} as="li" delay={(idx + 1) as 1 | 2 | 3} className="liftable rounded-2xl border border-border bg-raised p-7 shadow-card">
-                <div className="flex items-start justify-between gap-4" dir={dir}>
-                  <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold ${stepTint[idx]}`}>{idx + 1}</span>
-                  {stepArt[idx]}
+              <Reveal key={idx} as="li" delay={(idx + 1) as 1 | 2 | 3} className="kf-card flex items-center gap-3.5 rounded-3xl p-4">
+                <span className="shrink-0" data-art={stepArt[idx].key}>{stepArt[idx].art}</span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="flex items-center gap-2 text-[1.0625rem] font-extrabold text-foreground">
+                    <span className="kf-gold-sm inline-flex h-[1.625rem] w-[1.625rem] shrink-0 items-center justify-center rounded-full text-[0.8125rem]">{idx + 1}</span>
+                    {step.title}
+                  </h3>
+                  <p className="mt-1 text-sm font-medium leading-[1.55] text-muted-foreground">{step.desc}</p>
                 </div>
-                <h3 className="mt-5 text-xl font-semibold sm:text-2xl" dir={dir}>{step.title}</h3>
-                <p className="mt-2 text-muted-foreground" dir={dir}>{step.desc}</p>
               </Reveal>
             ))}
           </ol>
         </div>
       </section>
 
-      {/* 3. WHAT YOU GET: four tiles. */}
-      <section className="border-b border-border bg-background py-20 lg:py-28">
-        <div className="mx-auto max-w-7xl px-6">
-          <Reveal className="mb-12 text-center">
-            <p className="text-xs font-semibold uppercase text-accent">{L.featuresEyebrow}</p>
-            <h2 className="mt-2 text-3xl font-bold sm:text-4xl lg:text-5xl">{L.featuresTitle}</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">{L.featuresDesc}</p>
+      {/* 3. WHAT YOU GET: four clay tiles. */}
+      <section className="py-[1.625rem] lg:py-20">
+        <div className="mx-auto max-w-7xl px-[1.125rem] md:px-6" dir={dir}>
+          <Reveal className="mb-3.5">
+            <p className={eyebrow}>{L.featuresEyebrow}</p>
+            <h2 className={h2}>{L.featuresTitle}</h2>
+            <p className="mt-3.5 max-w-2xl text-[0.9375rem] font-medium leading-[1.6] text-muted-foreground">{L.featuresDesc}</p>
           </Reveal>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {features.map((f, i) => (
-              <Reveal key={f.title} delay={(i + 1) as 1 | 2 | 3 | 4} className="liftable flex flex-col rounded-2xl border border-border bg-surface p-6">
-                <div className="flex items-start" dir={dir}>{f.art}</div>
-                <h3 className="mt-5 text-lg font-semibold" dir={dir}>{f.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground" dir={dir}>{f.desc}</p>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
+            {features.map(({ Art, title, desc }, i) => (
+              <Reveal key={title} delay={(i + 1) as 1 | 2 | 3 | 4} className="kf-card flex flex-col gap-1 rounded-[1.375rem] p-3.5">
+                <Art />
+                {/* 15 pt in Arabic (the artboard); 14 pt in English, whose longer
+                    first words ("Summaries") would otherwise stand alone in a
+                    143 pt column. */}
+                <h3 className={`mt-1.5 font-extrabold leading-[1.35] text-foreground ${isRtl ? 'text-[0.9375rem]' : 'text-sm'}`}>{title}</h3>
+                <p className="text-[0.8125rem] font-medium leading-[1.45] text-muted-foreground">{desc}</p>
               </Reveal>
             ))}
           </div>
         </div>
       </section>
 
-      {/* 4. ARABIC FIRST: the same product in both scripts, side by side. */}
-      <section className="border-b border-border bg-surface py-20 lg:py-28">
-        <div className="mx-auto grid max-w-7xl items-center gap-10 px-6 lg:grid-cols-2">
+      {/* 4. ARABIC FIRST: the same product in both scripts, in one card. Each
+          pair reads in its own direction: the question at its start, the
+          answer at its end. */}
+      <section className="py-[1.625rem] lg:py-20">
+        <div className="mx-auto grid max-w-7xl items-center gap-3.5 px-[1.125rem] md:px-6 lg:grid-cols-2 lg:gap-10" dir={dir}>
           <Reveal>
-            <p className="text-xs font-semibold uppercase text-accent" dir={dir}>{L.bilingualEyebrow}</p>
-            <h2 className="mt-2 text-3xl font-bold sm:text-4xl lg:text-5xl" dir={dir}>{L.bilingualTitle}</h2>
-            <p className="mt-4 max-w-xl text-muted-foreground" dir={dir}>{L.bilingualDesc}</p>
+            <p className={eyebrow}>{L.bilingualEyebrow}</p>
+            <h2 className={h2}>{L.bilingualTitle}</h2>
+            <p className="mt-3.5 max-w-xl text-[0.9375rem] font-medium leading-[1.6] text-muted-foreground">{L.bilingualDesc}</p>
           </Reveal>
-          <Reveal delay={2} className="grid gap-4">
-            <div className="liftable rounded-2xl border border-border bg-background p-5 shadow-soft" dir="rtl" lang="ar">
-              <div className="flex justify-end"><span className="rounded-2xl bg-primary px-4 py-2 text-sm text-primary-foreground">{L.sampleArQ}</span></div>
-              <div className="mt-3 max-w-[85%] rounded-2xl border border-border bg-surface p-3 text-sm text-foreground">{L.sampleArA}</div>
+          <Reveal delay={2} className="kf-card flex flex-col gap-2.5 rounded-3xl p-4">
+            <div className="flex flex-col gap-2.5" dir="rtl" lang="ar">
+              <p className="kf-gold self-start rounded-[1.125rem] rounded-ee-md px-3.5 py-2.5 text-sm font-bold">{L.sampleArQ}</p>
+              <p className="self-end max-w-[88%] rounded-[1.125rem] rounded-es-md bg-raised px-3.5 py-2.5 text-sm font-medium leading-[1.55] text-foreground">{L.sampleArA}</p>
             </div>
-            <div className="liftable rounded-2xl border border-border bg-background p-5 shadow-soft" dir="ltr" lang="en">
-              <div className="flex justify-end"><span className="rounded-2xl bg-primary px-4 py-2 text-sm text-primary-foreground">{L.sampleEnQ}</span></div>
-              <div className="mt-3 max-w-[85%] rounded-2xl border border-border bg-surface p-3 text-sm text-foreground">{L.sampleEnA}</div>
+            <div className="mt-1.5 flex flex-col gap-2.5" dir="ltr" lang="en">
+              <p className="kf-gold self-start rounded-[1.125rem] rounded-ee-md px-3.5 py-2.5 text-sm font-bold">{L.sampleEnQ}</p>
+              <p className="self-end max-w-[88%] rounded-[1.125rem] rounded-es-md bg-raised px-3.5 py-2.5 text-sm font-medium leading-[1.55] text-foreground">{L.sampleEnA}</p>
             </div>
           </Reveal>
         </div>
       </section>
 
-      {/* 5. CTA */}
-      <section className="relative overflow-hidden border-b border-border bg-raised py-24 lg:py-32">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0" style={{ opacity: 0.08, background: 'radial-gradient(60% 80% at 50% 45%, var(--primary) 0%, transparent 70%)' }} />
-        <Reveal className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-6 text-center">
-          <Trophy size={112} />
-          <h2 className="mt-6 text-3xl font-bold sm:text-4xl lg:text-5xl">{t.cta.title}</h2>
-          <Link href={`/${locale}/signup`} className="pressable liftable mt-8 inline-flex items-center gap-2 rounded-xl bg-primary px-10 py-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover">
+      {/* 5. CTA, on the dark card. */}
+      <section className="px-[1.125rem] pt-4 md:px-6 lg:pt-10">
+        <Reveal className="kf-ask mx-auto flex max-w-3xl flex-col items-center gap-3.5 rounded-[1.875rem] px-5 py-7 text-center lg:py-14">
+          <ClayBrandMark />
+          <h2 className="text-[1.625rem] font-extrabold text-[color:var(--clay-ask-fg)] lg:text-4xl">{keepLastTwo(t.cta.title)}</h2>
+          <Link href={`/${locale}/signup`} className="kf-gold inline-flex min-h-[3.375rem] items-center justify-center rounded-full px-[1.875rem] text-base font-extrabold">
             {t.cta.button}
-            <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />
           </Link>
-          <p className="mt-6 text-xs text-muted-foreground">{t.cta.note}</p>
+          <p className="text-[0.8125rem] font-medium text-[color:var(--clay-ask-muted)]">{keepDotWithBefore(t.cta.note)}</p>
         </Reveal>
       </section>
-    </>
+    </div>
   );
 }

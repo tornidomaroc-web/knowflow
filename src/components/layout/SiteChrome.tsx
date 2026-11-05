@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SiteFooter } from '@/components/layout/SiteFooter';
+import { ClayDefs } from '@/components/clay/ClayIcons';
 import { useTranslation, type Locale } from '@/lib/i18n';
 
 /**
@@ -25,7 +26,12 @@ export function SiteChrome({ locale, showPricing, children }: { locale: Locale; 
     // `min-h-screen` lives HERE and nowhere below it. Each page used to carry
     // its own, which under a header and a footer would have guaranteed a scroll
     // on every short page — the Refund policy is four paragraphs long.
-    <div className="flex min-h-screen flex-col font-sans selection:bg-primary selection:text-primary-foreground">
+    // `kf-site` (design "C", PR 2): the clay SURFACE classes work under it, and
+    // nothing else of the signed-in app's clay (globals.css). The gradients the
+    // clay icons point at are defined once here, as DashboardShell does for
+    // the signed-in screens; the two never share a page.
+    <div className="kf-site flex min-h-screen flex-col font-sans selection:bg-primary selection:text-primary-foreground">
+      <ClayDefs />
       <SiteHeader
         locale={locale}
         showPricing={showPricing}

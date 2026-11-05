@@ -4,12 +4,11 @@ import { useState, use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { cn } from '@/lib/utils';
-import { buttonVariants } from '@/components/ui';
 import { GoogleButton } from '@/components/auth/GoogleButton';
 import { GoogleAccountHint } from '@/components/auth/GoogleAccountHint';
 import { AppleButton } from '@/components/auth/AppleButton';
-import { ChatPages } from '@/components/illustrations';
+import { BrandIcon } from '@/components/brand/BrandIcon';
+import { ClayDefs } from '@/components/clay/ClayIcons';
 import { APPLE_SIGNIN_ENABLED } from '@/lib/auth/providers';
 import { googleSignInAllowed } from '@/lib/platform';
 import { usePlatform } from '@/components/platform/PlatformProvider';
@@ -64,102 +63,99 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
   };
 
   return (
-    <div className="relative flex min-h-screen overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
-      {/* The landing's depth, quietly (review #122, defect 7): two tinted shapes
-          behind the form at #109's 0.08, and the page rises in like every
-          other screen. The form itself is unchanged in what it asks. */}
-      <div aria-hidden="true" className="hero-float pointer-events-none absolute z-0" style={{ top: '-8rem', insetInlineEnd: '-8rem', width: '24rem', height: '24rem', opacity: 0.08, background: 'radial-gradient(circle, var(--primary) 0%, transparent 70%)' }} />
-      <div aria-hidden="true" className="hero-float hero-float-2 pointer-events-none absolute z-0" style={{ bottom: '-8rem', insetInlineStart: '-8rem', width: '20rem', height: '20rem', opacity: 0.08, background: 'radial-gradient(circle, var(--violet) 0%, transparent 70%)' }} />
-      <div className="relative z-10 flex w-full items-center justify-center bg-surface/0 p-6 sm:p-8">
-        <form onSubmit={handleLogin} className="w-full max-w-sm space-y-6 text-start">
-          {/* #103: the product name at every width. The gold panel carried it at lg and up and is gone. */}
-          {/* #105: it links to the landing. These pages had no other way back. */}
-          <div className="rise mb-8 flex flex-col items-center text-center">
-            <ChatPages size={88} className="mb-3" />
-            <h1 className="text-4xl font-bold tracking-tight">
-              <Link href={`/${locale}`} className="kf-hit rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
+    // Design "C", PR 2 (the owner-approved artboard Login.dc.html): the real
+    // app icon as a dark tile, the title, the provider button and the "or"
+    // (web only), then ONE clay card holding the fields, the forgot link and
+    // the gold button; the way to sign up under it. What the page does is
+    // unchanged: the same handler, strings, notices, errors and redirect.
+    <div className="kf-site flex min-h-screen justify-center bg-background" dir={isRtl ? 'rtl' : 'ltr'}>
+      <ClayDefs />
+      <form onSubmit={handleLogin} className="flex w-full max-w-sm flex-col gap-3.5 px-5 pb-7 pt-10 text-start">
+        {/* #105: the icon links to the landing, the way back these pages had no
+            other way to. It names the product for a screen reader (#103). */}
+        <div className="rise flex flex-col items-center gap-3 text-center">
+          <Link href={`/${locale}`} aria-label={t.nav.home} className="rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <BrandIcon size={84} radius={24} />
+          </Link>
+          <h1 className="rise rise-1 mt-1 text-[1.875rem] font-extrabold leading-tight text-foreground">{t.auth.loginTitle}</h1>
+          <p className="rise rise-1 text-base font-medium text-muted-foreground">{t.auth.loginSubtitle}</p>
+        </div>
+
+        {error && <div className="rounded-2xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
+
+        {notice && (
+          <div className="rounded-2xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm text-foreground">
+            {notice.text}
+            {notice.link && (
+              <Link href={notice.link.href} className="kf-hit mt-1 block w-fit font-medium text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {notice.link.label}
               </Link>
-            </h1>
+            )}
           </div>
-          <h2 className="rise rise-1 text-3xl font-semibold tracking-tight">{t.auth.loginTitle}</h2>
-          <p className="rise rise-1 mb-8 text-sm text-muted-foreground">{t.auth.loginSubtitle}</p>
+        )}
 
-          {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
-
-          {notice && (
-            <div className="rounded-xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm text-foreground">
-              {notice.text}
-              {notice.link && (
-                <Link href={notice.link.href} className="kf-hit mt-1 block w-fit font-medium text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  {notice.link.label}
-                </Link>
-              )}
-            </div>
-          )}
-
-          {/*
-            ABOVE the email fields, not below them, and the placement is a
-            judgement about a phone rather than about symmetry. This form is two
-            text inputs deep on a small screen with a keyboard covering half of
-            it. A student who has a Google account is one tap from being signed
-            in, and burying that under the thing it replaces means scrolling past
-            a form they were never going to fill in. The email path stays exactly
-            where it was for everyone who already has a password here.
-          */}
+        {/*
+          ABOVE the email fields, not below them, and the placement is a
+          judgement about a phone rather than about symmetry. This form is two
+          text inputs deep on a small screen with a keyboard covering half of
+          it. A student who has a Google account is one tap from being signed
+          in, and burying that under the thing it replaces means scrolling past
+          a form they were never going to fill in. The email path stays exactly
+          where it was for everyone who already has a password here.
+        */}
+        <div className="mt-2 flex flex-col gap-3.5 empty:hidden">
           <GoogleButton label={t.auth.googleLogin} errorLabel={t.auth.googleFailed} />
           {/* Apple guideline 4.8: Apple's own sign-in beside Google, with the same
               weight. Shown only once the provider is enabled (#119, #121):
               NEXT_PUBLIC_APPLE_SIGNIN=enabled, set by the owner after the console
-              steps, and the button appears on the next build. */}
+              steps, and the button appears on the next build. Off today: Sign in
+              with Apple ships natively in 1.1. */}
           {APPLE_SIGNIN_ENABLED && <AppleButton label={t.auth.appleLogin} errorLabel={t.auth.appleFailed} />}
+        </div>
 
-          {providerShown && (
-            <div className="flex items-center gap-3" aria-hidden="true">
-              <span className="h-px flex-1 bg-border" />
-              <span className="text-xs text-muted-foreground">{t.auth.orDivider}</span>
-              <span className="h-px flex-1 bg-border" />
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <AuthField
-              label={t.auth.email}
-              type="email"
-              name="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <PasswordField
-              label={t.auth.password}
-              showLabel={t.auth.showPassword}
-              name="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+        {providerShown && (
+          <div className="my-1 flex items-center gap-3" aria-hidden="true">
+            <span className="h-0.5 flex-1 rounded-full bg-border" />
+            <span className="text-sm font-semibold text-muted-foreground">{t.auth.orDivider}</span>
+            <span className="h-0.5 flex-1 rounded-full bg-border" />
           </div>
+        )}
 
-          <button type="submit" disabled={loading} className={cn(buttonVariants({ variant: 'primary' }), 'mt-6 w-full')}>
+        <div className="kf-card flex flex-col gap-3 rounded-[1.75rem] p-[1.125rem]">
+          <AuthField
+            variant="clay"
+            label={t.auth.email}
+            type="email"
+            name="email"
+            dir="ltr"
+            autoComplete="username"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <PasswordField
+            variant="clay"
+            label={t.auth.password}
+            showLabel={t.auth.showPassword}
+            name="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <Link href={`/${locale}/forgot-password`} className="inline-flex min-h-[2.75rem] items-center self-start text-sm font-semibold text-accent transition-colors hover:text-accent-hover">
+            {t.auth.forgotLink}
+          </Link>
+          <button type="submit" disabled={loading} className="pressable kf-gold flex min-h-[3.375rem] w-full items-center justify-center rounded-full px-4 text-[1.0625rem] font-extrabold transition-colors disabled:opacity-60">
             {loading ? t.auth.loggingIn : t.auth.loginButton}
           </button>
+        </div>
 
-          <div className="text-center">
-            <Link href={`/${locale}/forgot-password`} className="kf-hit text-sm text-muted-foreground transition-colors hover:text-primary">
-              {t.auth.forgotLink}
-            </Link>
-          </div>
-          <GoogleAccountHint text={t.auth.googleAccountHint} forgotLabel={t.auth.forgotLink} forgotHref={`/${locale}/forgot-password`} />
-          <div className="mt-6 text-center">
-            <Link href={`/${locale}/signup`} className="kf-hit text-sm text-muted-foreground transition-colors hover:text-primary">
-              {t.auth.noAccount}
-            </Link>
-          </div>
-        </form>
-      </div>
+        <GoogleAccountHint text={t.auth.googleAccountHint} forgotLabel={t.auth.forgotLink} forgotHref={`/${locale}/forgot-password`} />
+        <Link href={`/${locale}/signup`} className="inline-flex min-h-[2.75rem] items-center self-center text-[0.9375rem] font-semibold text-foreground transition-colors hover:text-accent">
+          {t.auth.noAccount}
+        </Link>
+      </form>
     </div>
   );
 }

@@ -1,16 +1,20 @@
 name: design-c
 
-# Design "C" (the clay mix), PR 1: the before and after of the token change,
-# the home and the tab bar, IN ONE RUN. Builds the PR's base (main) and this
-# commit, serves both on the runner (3001 before, 3000 after), and
-# scripts/design-c/render.mjs drives the runner image's own Chrome over the
-# design preview routes, the landing and the app's sign-in: 390 x 844 pt at
-# 2x, full page, Arabic and English, light and dark, the same static
-# per-weight Rubik files on both sides (asserted), animations ended
-# (asserted). Every AFTER render is audited (contrast, control edges, 44 pt
-# targets, Arabic shaping, wording, shadows, no backdrop-filter); a finding
-# fails the run. The contrast table of every text and ground token pair is
-# regenerated and must equal the committed docs/design/design-c/contrast.md.
+# Design "C" (the clay mix): the before and after of a design PR, IN ONE RUN.
+# PR 1 was the tokens, the home and the tab bar; PR 2 is the landing, sign-in
+# and sign-up, Settings' two choices and the subject header. Builds the PR's
+# base (main) and this commit, serves both on the runner (3001 before, 3000
+# after), and scripts/design-c/render.mjs drives the runner image's own
+# Chrome over the pages and the design preview routes: 390 x 844 pt at 2x
+# (the landing also at 1280 x 800), full page, Arabic and English, light,
+# dark and the default theme, the same static per-weight Rubik files on both
+# sides (asserted), animations ended (asserted). Every AFTER render is
+# audited (contrast, control edges, 44 pt targets, Arabic shaping, no line of
+# one word and no line starting with a separator, the app's gates: no Apple
+# or Google button and no plan, price, upgrade or free word; shadows, no
+# backdrop-filter); a finding fails the run. The contrast table of every text
+# and ground token pair is regenerated and must equal the committed
+# docs/design/design-c/contrast.md.
 #
 # NO SECRET. The Supabase values are placeholders pointing at a closed local
 # port: the preview routes make no Supabase call, and the middleware's
@@ -39,7 +43,7 @@ jobs:
   before-after:
     name: Before and after, same fonts, audited (no secrets)
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 55
     env:
       NEXT_TELEMETRY_DISABLED: '1'
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321

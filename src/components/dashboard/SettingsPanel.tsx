@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { ChevronRight, FileText, LifeBuoy, ShieldCheck, SlidersHorizontal, Sparkles, Trophy, UserRound } from 'lucide-react';
+import { ChevronRight, FileText, LifeBuoy, ShieldCheck, Sparkles, Trophy, UserRound } from 'lucide-react';
 import { Badge, Card, buttonVariants } from '@/components/ui';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
-import { ENDONYM, locales, switchLocaleHref, type Locale } from '@/lib/i18n';
+import { ClaySliders } from '@/components/clay/ClayIcons';
+import { LanguageSegment } from '@/components/dashboard/LanguageSegment';
+import type { Locale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 export interface SettingsPanelLabels {
@@ -85,7 +87,10 @@ export function SettingsPanel({
 
   return (
     <div>
-      <div className="max-w-3xl space-y-6">
+      {/* Every line of Settings is balanced (design "C", PR 2; text-wrap is
+          inherited), so no card ends on a word alone: the design-c render
+          asserts it. */}
+      <div className="max-w-3xl space-y-6 [text-wrap:balance]">
         <header>
           <h1 className="kf-title text-2xl font-bold text-foreground md:text-3xl">{labels.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{labels.subtitle}</p>
@@ -153,38 +158,22 @@ export function SettingsPanel({
         </Card>
         )}
 
-        {/* ── Preferences ── */}
+        {/* ── Preferences (design "C", PR 2, Prefs.dc.html): the clay sliders and
+            the section's name, then each choice as two equal options in a
+            pressed-in well, the chosen one a gold clay pill. Same storage as
+            before: the language is the path (LanguageSegment), the theme the
+            kf-theme cookie (ThemeToggle). ── */}
         <Card className="p-5">
-          <SectionLabel icon={SlidersHorizontal} tint="bg-violet-subtle text-violet">{labels.preferences}</SectionLabel>
-          <div className="mt-2 divide-y divide-border">
+          <h2 className="flex items-center gap-2.5 text-[1.0625rem] font-extrabold text-foreground">
+            <ClaySliders className="section-icon shrink-0" />
+            {labels.preferences}
+          </h2>
+          <div className="mt-4 space-y-4">
             <PreferenceRow label={labels.language}>
-              {/* The locale is the path, so each option is a LINK to this page in
-                  that language; the middleware remembers whichever is followed
-                  (register #83). `lang` on each so a screen reader says it right.
-                  Plain `<a>`s, not `<Link>`s: a switch must reach the middleware
-                  as a page load, never as a prefetch or a cached payload (#136). */}
-              <div role="group" aria-label={labels.language} className="inline-flex w-full rounded-xl border border-border bg-raised p-1 sm:w-auto">
-                {locales.map((l) => {
-                  const selected = l === locale;
-                  return (
-                    <a
-                      key={l}
-                      href={selected ? pathname : switchLocaleHref(locale, pathname)}
-                      lang={l}
-                      aria-current={selected ? 'true' : undefined}
-                      className={cn(
-                        'inline-flex h-11 min-w-[6rem] flex-1 items-center justify-center rounded-lg px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                        selected ? 'bg-surface text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground',
-                      )}
-                    >
-                      {ENDONYM[l]}
-                    </a>
-                  );
-                })}
-              </div>
+              <LanguageSegment locale={locale} pathname={pathname} label={labels.language} />
             </PreferenceRow>
             <PreferenceRow label={labels.appearance}>
-              <ThemeToggle labels={{ appearance: labels.appearance, dark: labels.themeDark, light: labels.themeLight }} className="w-full sm:w-auto" />
+              <ThemeToggle labels={{ appearance: labels.appearance, dark: labels.themeDark, light: labels.themeLight }} />
             </PreferenceRow>
           </div>
         </Card>
@@ -229,9 +218,11 @@ function SectionLabel({ children, icon: Icon, tint }: { children: ReactNode; ico
 }
 
 function PreferenceRow({ label, children }: { label: string; children: ReactNode }) {
+  // The name above its control at every width (Prefs.dc.html); the control
+  // spans the card, its two options equal.
   return (
-    <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-      <span className="text-sm font-medium text-foreground">{label}</span>
+    <div className="flex flex-col gap-2">
+      <span className="text-sm font-bold text-foreground">{label}</span>
       {children}
     </div>
   );

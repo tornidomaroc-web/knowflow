@@ -46,7 +46,7 @@ const GROUNDS = [
   ['page', '--background'], ['card', '--surface'], ['raised tile', '--raised'], ['muted fill', '--muted'], ['field', '--input'],
   ['ask card', '--clay-ask'], ['streak card', '--clay-streak'], ['gold fill', '--accent'], ['danger fill', '--danger'],
   ['gold tint on card', '--accent-subtle', '--surface'], ['gold tint on page', '--accent-subtle', '--background'], ['gold tint on a well', '--primary-subtle', '--clay-well'],
-  ['danger tint', '--danger-subtle'], ['well', '--clay-well'],
+  ['danger tint', '--danger-subtle'], ['well', '--clay-well'], ['answer bubble', '--clay-ask-bubble'], ['answer chip', '--clay-ask-chip'],
   ...['mint', 'sky', 'coral', 'violet'].flatMap((t) => [[t + ' tint on page', '--' + t + '-subtle', '--background'], [t + ' tint on card', '--' + t + '-subtle', '--surface']]),
 ];
 // Foregrounds: [name, token, bar].
@@ -54,7 +54,7 @@ const TEXT = [
   ['ink', '--foreground'], ['muted text', '--muted-foreground'], ['faint text', '--faint'], ['gold text', '--accent-text'], ['gold text (primary)', '--primary-text'],
   ['success', '--success'], ['danger', '--danger'], ['warning', '--warning'],
   ['ink on gold', '--accent-foreground'], ['ink on gold (primary)', '--primary-foreground'], ['on danger fill', '--danger-foreground'],
-  ['ask card text', '--clay-ask-fg'], ['ask card line', '--clay-ask-muted'], ['streak card line', '--clay-streak-muted'],
+  ['ask card text', '--clay-ask-fg'], ['ask card line', '--clay-ask-muted'], ['streak card line', '--clay-streak-muted'], ['answer ink', '--clay-ask-ink'],
 ];
 const NONTEXT = [['gold edge', '--accent-edge'], ['control edge', '--control-border'], ['focus ring', '--ring'], ['mint icon', '--mint'], ['sky icon', '--sky'], ['coral icon', '--coral'], ['violet icon', '--violet'], ['chevron', '--chevron']];
 
@@ -72,6 +72,13 @@ for (const t of ['--foreground', '--clay-streak-muted']) USED.push([t, '--clay-s
 for (const t of ['--accent-edge', '--control-border', '--ring']) for (const g of ORDINARY) USED.push([t, g, null, 3]);
 for (const t of ['--mint', '--sky', '--coral', '--violet', '--chevron']) for (const g of ['--surface', '--raised']) USED.push([t, g, null, 3]);
 USED.push(['--muted-foreground', '--clay-well', null, 3]); // the switch's off bead on its well
+// PR 2 (Login.dc.html, Prefs.dc.html, Landing.dc.html): text typed into a
+// sign-in field and the unchosen option of a segmented control sit on the
+// well; the chosen option's gold edge sits on it too; the answer card's
+// cream bubble and its source chips carry ink in both themes.
+for (const t of ['--foreground', '--muted-foreground']) USED.push([t, '--clay-well', null, 4.5]);
+USED.push(['--accent-edge', '--clay-well', null, 3]);
+for (const g of ['--clay-ask-bubble', '--clay-ask-chip']) USED.push(['--clay-ask-ink', g, null, 4.5]);
 // The supporting tints carry TEXT too (the landing's numbered steps, step badges): each on its own tint, over the page and a card.
 for (const t of ['mint', 'sky', 'coral', 'violet']) for (const g of ['--background', '--surface']) USED.push(['--' + t, '--' + t + '-subtle', g, 4.5]);
 

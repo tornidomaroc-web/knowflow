@@ -4,16 +4,16 @@ import { useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { cn } from '@/lib/utils';
-import { buttonVariants } from '@/components/ui';
 import { GoogleButton } from '@/components/auth/GoogleButton';
 import { AppleButton } from '@/components/auth/AppleButton';
-import { SparkBook } from '@/components/illustrations';
+import { BrandIcon } from '@/components/brand/BrandIcon';
+import { ClayDefs } from '@/components/clay/ClayIcons';
 import { APPLE_SIGNIN_ENABLED } from '@/lib/auth/providers';
 import { googleSignInAllowed, purchaseLinksAllowed } from '@/lib/platform';
 import { usePlatform } from '@/components/platform/PlatformProvider';
 import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
+import { keepDotWithBefore } from '@/lib/separator';
 
 export default function SignupPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = use(params);
@@ -107,115 +107,119 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
   };
 
   return (
-    <div className="relative flex min-h-screen overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
-      {/* The landing's depth, quietly (review #122, defect 7): two tinted shapes
-          behind the form at #109's 0.08, and the page rises in like every
-          other screen. The form itself is unchanged in what it asks. */}
-      <div aria-hidden="true" className="hero-float pointer-events-none absolute z-0" style={{ top: '-8rem', insetInlineEnd: '-8rem', width: '24rem', height: '24rem', opacity: 0.08, background: 'radial-gradient(circle, var(--primary) 0%, transparent 70%)' }} />
-      <div aria-hidden="true" className="hero-float hero-float-2 pointer-events-none absolute z-0" style={{ bottom: '-8rem', insetInlineStart: '-8rem', width: '20rem', height: '20rem', opacity: 0.08, background: 'radial-gradient(circle, var(--mint) 0%, transparent 70%)' }} />
-      <div className="relative z-10 flex w-full items-center justify-center bg-surface/0 p-6 sm:p-8">
-        <form onSubmit={handleSignup} className="w-full max-w-sm space-y-6 text-start">
-          {/* #103: the product name at every width. The gold panel carried it at lg and up and is gone. */}
-          {/* #105: it links to the landing. These pages had no other way back. */}
-          <div className="rise mb-8 flex flex-col items-center text-center">
-            <SparkBook size={88} className="mb-3" />
-            <h1 className="text-4xl font-bold tracking-tight">
-              <Link href={`/${locale}`} className="kf-hit rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
-              </Link>
-            </h1>
-          </div>
-          <h2 className="rise rise-1 text-3xl font-semibold tracking-tight">{t.auth.signupTitle}</h2>
-          <p className="mb-8 text-sm text-muted-foreground">
+    // Design "C", PR 2, in the sign-in page's clay (Login.dc.html): the real app
+    // icon as a dark tile, the title, the provider button and the "or" (web
+    // only), ONE clay card with the four fields and the gold button, the way
+    // back to sign in under it. What the page does is unchanged: the same
+    // handler, profile write, strings, notices, errors and redirect.
+    <div className="kf-site flex min-h-screen justify-center bg-background" dir={isRtl ? 'rtl' : 'ltr'}>
+      <ClayDefs />
+      <form onSubmit={handleSignup} className="flex w-full max-w-sm flex-col gap-3.5 px-5 pb-7 pt-10 text-start">
+        {/* #105: the icon links to the landing, the way back these pages had no
+            other way to. It names the product for a screen reader (#103). */}
+        <div className="rise flex flex-col items-center gap-3 text-center">
+          <Link href={`/${locale}`} aria-label={t.nav.home} className="rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <BrandIcon size={84} radius={24} />
+          </Link>
+          <h1 className="rise rise-1 mt-1 text-[1.875rem] font-extrabold leading-tight text-foreground">{t.auth.signupTitle}</h1>
+          <p className="rise rise-1 text-base font-medium text-muted-foreground">
             {t.auth.signupSubtitle}
             {/* #105: the free-plan line, reusing the landing's approved `cta.note`
                 in both languages. Nothing on signup said it was free before. */}
             {/* Step Wording-1: web only. Inside the app no plan is named. */}
-            {purchaseLinksAllowed(platform) ? <span className="mt-1 block">{t.cta.note}</span> : null}
+            {purchaseLinksAllowed(platform) ? <span className="mt-1 block text-sm">{keepDotWithBefore(t.cta.note)}</span> : null}
           </p>
+        </div>
 
-          {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
+        {error && <div className="rounded-2xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
 
-          {notice && (
-            <div className="rounded-xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm">
-              <p className="font-medium text-foreground">{t.auth.checkInboxTitle}</p>
-              <p className="mt-1 text-muted-foreground">{notice}</p>
-            </div>
-          )}
+        {notice && (
+          <div className="rounded-2xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm">
+            <p className="font-medium text-foreground">{t.auth.checkInboxTitle}</p>
+            <p className="mt-1 text-muted-foreground">{notice}</p>
+          </div>
+        )}
 
-          {/*
-            "Continue with Google" here, "Sign in with Google" on /login, and the
-            difference is not cosmetic. On /login the person is asserting they
-            already have an account, so "sign in" is what they are doing. Here
-            the outcome is genuinely ambiguous and we know exactly why: GoTrue
-            either creates an account or links this identity onto an existing
-            user with the same address, and register #74 is the case where that
-            existing user is unconfirmed and loses their password to it.
-            "Sign up with Google" would be a plain lie to that person, who is not
-            signing up. "Continue" is the only word true of every outcome.
-          */}
+        {/*
+          "Continue with Google" here, "Sign in with Google" on /login, and the
+          difference is not cosmetic. On /login the person is asserting they
+          already have an account, so "sign in" is what they are doing. Here
+          the outcome is genuinely ambiguous and we know exactly why: GoTrue
+          either creates an account or links this identity onto an existing
+          user with the same address, and register #74 is the case where that
+          existing user is unconfirmed and loses their password to it.
+          "Sign up with Google" would be a plain lie to that person, who is not
+          signing up. "Continue" is the only word true of every outcome.
+        */}
+        <div className="mt-2 flex flex-col gap-3.5 empty:hidden">
           <GoogleButton label={t.auth.googleSignup} errorLabel={t.auth.googleFailed} />
           {/* Apple guideline 4.8: Apple's own sign-in beside Google, with the same
               weight. Shown only once the provider is enabled (#119, #121):
               NEXT_PUBLIC_APPLE_SIGNIN=enabled, set by the owner after the console
-              steps, and the button appears on the next build. */}
+              steps, and the button appears on the next build. Off today: Sign in
+              with Apple ships natively in 1.1. */}
           {APPLE_SIGNIN_ENABLED && <AppleButton label={t.auth.appleSignup} errorLabel={t.auth.appleFailed} />}
+        </div>
 
-          {providerShown && (
-            <div className="flex items-center gap-3" aria-hidden="true">
-              <span className="h-px flex-1 bg-border" />
-              <span className="text-xs text-muted-foreground">{t.auth.orDivider}</span>
-              <span className="h-px flex-1 bg-border" />
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <AuthField
-              label={t.auth.name}
-              type="text"
-              name="name"
-              autoComplete="name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-            />
-            <AuthField
-              label={t.auth.email}
-              type="email"
-              name="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <PasswordField
-              label={t.auth.password}
-              showLabel={t.auth.showPassword}
-              name="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <PasswordField
-              label={t.auth.confirmPassword}
-              showLabel={t.auth.showPassword}
-              name="confirm-password"
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
+        {providerShown && (
+          <div className="my-1 flex items-center gap-3" aria-hidden="true">
+            <span className="h-0.5 flex-1 rounded-full bg-border" />
+            <span className="text-sm font-semibold text-muted-foreground">{t.auth.orDivider}</span>
+            <span className="h-0.5 flex-1 rounded-full bg-border" />
           </div>
+        )}
 
-          <button type="submit" disabled={loading} className={cn(buttonVariants({ variant: 'primary' }), 'mt-6 w-full')}>
+        <div className="kf-card flex flex-col gap-3 rounded-[1.75rem] p-[1.125rem]">
+          <AuthField
+            variant="clay"
+            label={t.auth.name}
+            type="text"
+            name="name"
+            autoComplete="name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
+          />
+          <AuthField
+            variant="clay"
+            label={t.auth.email}
+            type="email"
+            name="email"
+            dir="ltr"
+            autoComplete="username"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <PasswordField
+            variant="clay"
+            label={t.auth.password}
+            showLabel={t.auth.showPassword}
+            name="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <PasswordField
+            variant="clay"
+            label={t.auth.confirmPassword}
+            showLabel={t.auth.showPassword}
+            name="confirm-password"
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+          <button type="submit" disabled={loading} className="pressable kf-gold mt-1 flex min-h-[3.375rem] w-full items-center justify-center rounded-full px-4 text-[1.0625rem] font-extrabold transition-colors disabled:opacity-60">
             {loading ? t.auth.creating : t.auth.createBtn}
           </button>
+        </div>
 
-          <div className="mt-6 text-center">
-            <Link href={`/${locale}/login`} className="kf-hit text-sm text-muted-foreground transition-colors hover:text-primary">
-              {t.auth.hasAccount}
-            </Link>
+        <div className="flex flex-col items-center text-center">
+          <Link href={`/${locale}/login`} className="inline-flex min-h-[2.75rem] items-center text-[0.9375rem] font-semibold text-foreground transition-colors hover:text-accent">
+            {t.auth.hasAccount}
+          </Link>
             {/* #105: moved here from under the password fields, unreworded, as ruled. It is a note for a returning student, beside the sign-in line. It is still shown to everyone, so it still reveals nothing about any address. */}
             {/*
               Register #77. A repeat signup on an address that is registered but
@@ -242,18 +246,17 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
               open on this path. So the line is shown to everyone and reveals
               nothing about anyone.
             */}
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               {t.auth.signupRepeatPassword}{' '}
               <Link
                 href={`/${locale}/forgot-password`}
-                className="underline transition-colors hover:text-primary"
+                className="font-medium text-foreground underline underline-offset-2 transition-colors hover:text-accent"
               >
                 {t.auth.signupRepeatPasswordLink}
               </Link>
             </p>
-          </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }

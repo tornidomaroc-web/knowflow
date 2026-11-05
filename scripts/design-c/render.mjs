@@ -1,5 +1,8 @@
 /**
- * DESIGN "C", PR 1: THE BEFORE AND AFTER, IN ONE RUN (.github/workflows/design-c.yml).
+ * DESIGN "C": THE BEFORE AND AFTER, IN ONE RUN (.github/workflows/design-c.yml).
+ * PR 1 was the tokens, the home and the tab bar; PR 2 (the owner-approved
+ * artboards Landing.dc.html, Login.dc.html, Prefs.dc.html) is the landing,
+ * sign-in and sign-up, Settings' two choices and the subject header.
  *
  * Two builds serve side by side on the runner: BEFORE is the PR's base
  * (main), AFTER is this commit. Both are `next start` of a `next build` with
@@ -20,20 +23,26 @@
  * state, VISUAL_LANGUAGE.md rule 5), any finite animation still present is
  * finished, and the run fails if one is still running at the shot.
  *
- * WHAT IS SHOT, 390 x 844 pt at 2x, the whole page:
- *   - home: the app (?platform=native, the app's user agent), zero and full
- *     data, Arabic and English, light and dark; the web shell's home, full;
- *     and the DEFAULT (no theme asked, no cookie), which must be dark before
- *     and light after;
- *   - the regression screens the token change reaches: subjects, a subject,
- *     ask, settings (app, Arabic and English, light and dark);
- *   - the landing and the app's sign-in, which the new default reaches first.
+ * WHAT IS SHOT (PR 2), 390 x 844 pt at 2x unless named, the whole page,
+ * Arabic and English, light and dark:
+ *   - the landing on the web at 390 and at 1280 x 800 (1x, a desk), and the
+ *     app's request for it, which the middleware answers with the sign-in
+ *     page (the landing has no app twin: Apple 3.1.1(a));
+ *   - sign-in and sign-up, on the web and in the app;
+ *   - Settings in the app and on the web; a subject in the app;
+ *   - the full home in the app (PR 1's screen, as a regression, with its
+ *     homeChecks) and the web's About page (it shares the site header and
+ *     footer this PR restyles);
+ *   - the DEFAULT (no theme asked, no cookie) of the landing, the app's
+ *     sign-in and the app's Settings, which must be light on both sides.
  * Each AFTER render is audited in the page (scripts/redesign-built/audit.mjs:
- * text contrast, control edges, 44 pt targets on the app's screens, Arabic
- * shaping, the app's wording rule, the shadow budget, no filter or
- * backdrop-filter), and every home render also by homeChecks() below (the
- * owner's six home points of 2026-11-04, measured in the page). A finding on
- * AFTER fails the run; BEFORE is reported.
+ * text contrast, control edges, 44 pt targets on every phone-width screen,
+ * Arabic shaping, the shadow budget, no filter or backdrop-filter); every
+ * page's text blocks by lineChecks() (no line of one word, no line that
+ * starts with a separator); every app render by appChecks() (no Apple and no
+ * Google button) and the app's wording rule (no plan, price, upgrade or free
+ * word); the home by homeChecks(). A finding on AFTER fails the run; BEFORE
+ * is reported.
  *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
@@ -76,23 +85,46 @@ const PIN = `${fontCss}\nhtml { --font-rubik: '${FAMILY}' !important; }`;
 
 const SAFARI = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';
 const APP = `${SAFARI} KnowFlowApp/1`;
+const DESK = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+const PHONE = { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
+const DESKTOP = { width: 1280, height: 800, deviceScaleFactor: 1, isMobile: false, hasTouch: false };
 
+// `native`: the app's user agent, so the app's gates apply (appChecks and the
+// wording rule). `targets`: the 44 pt rule applies (every phone-width page).
 const SCREENS = [];
-const add = (key, path, q, ua, opts = {}) => SCREENS.push({ key, path, q, ua, ...opts });
-add('home', 'preview/student-home', { platform: 'native' }, APP, { app: true });
-add('home-full', 'preview/student-home', { platform: 'native', state: 'full' }, APP, { app: true });
-add('home-web', 'preview/student-home', { platform: 'web', state: 'full' }, SAFARI, { app: true });
-add('subjects', 'preview/subjects', { platform: 'native' }, APP, { app: true });
-add('subject', 'preview/subject', { platform: 'native' }, APP, { app: true });
-add('ask', 'preview/ask', { platform: 'native' }, APP, { app: true });
-add('settings', 'preview/settings', { platform: 'native' }, APP, { app: true });
-add('landing', '', {}, SAFARI, { app: false });
-add('login', 'login', {}, APP, { app: false });
+const add = (key, path, q, ua, opts = {}) => SCREENS.push({ key, path, q, ua, view: PHONE, targets: true, native: ua === APP, ...opts });
+add('landing', '', {}, SAFARI);
+add('landing-desk', '', {}, DESK, { view: DESKTOP, targets: false });
+add('landing-app', '', {}, APP, { lands: 'login' });
+add('login-web', 'login', {}, SAFARI);
+add('login-app', 'login', {}, APP);
+add('signup-web', 'signup', {}, SAFARI);
+add('signup-app', 'signup', {}, APP);
+add('settings-app', 'preview/settings', { platform: 'native' }, APP);
+add('settings-web', 'preview/settings', { platform: 'web' }, SAFARI);
+add('subject-app', 'preview/subject', { platform: 'native' }, APP);
+add('home-full', 'preview/student-home', { platform: 'native', state: 'full' }, APP);
+// About's own copy is outside this PR; its lines are read in the header and
+// footer it shares with the landing, which this PR restyles.
+add('about-web', 'about', {}, SAFARI, { lineScope: 'header, footer' });
+const byKey = (k) => SCREENS.find((x) => x.key === k);
+
+// KNOWN, NAMED AND REPORTED, NOT FAILED: a finding in a part of a screen this
+// PR may not touch. Each is printed and written to the report under `known`,
+// with its reason; nothing else is let through.
+const KNOWN = [
+  {
+    screen: /-subject-app$/,
+    finding: /^lines: one word alone \("Summarize"\) in div "Summarize this material"$/,
+    why: "the Summary section's own button (src/components/summary/SummarySection.tsx), off limits in PR 2; three words in a 158 pt half-row cannot avoid a word alone. For PR 3 with the material cards.",
+  },
+];
 
 const JOBS = [];
 for (const locale of ['ar', 'en']) for (const theme of ['light', 'dark']) for (const s of SCREENS) JOBS.push({ locale, theme, s, name: `${locale}-${theme}-${s.key}` });
-// The default: no ?theme=, no cookie (a fresh browser context per job).
-for (const locale of ['ar', 'en']) JOBS.push({ locale, theme: null, s: SCREENS[1], name: `${locale}-default-home-full` });
+// The default: no ?theme=, no cookie (a fresh browser context per job). Light
+// on both sides since PR 1 (main has had it since #299).
+for (const locale of ['ar', 'en']) for (const k of ['landing', 'login-app', 'settings-app']) JOBS.push({ locale, theme: null, s: byKey(k), name: `${locale}-default-${k}` });
 
 /**
  * THE HOME'S LAYOUT, ASSERTED (the owner's review of PR #299, 2026-11-04).
@@ -249,6 +281,84 @@ function homeChecks() {
   return out;
 }
 
+/**
+ * EVERY TEXT BLOCK OF THE PAGE (PR 2, the owner's rule of 2026-11-04 for the
+ * home, now on every screen): no line of one word when the block wraps, and
+ * no line that starts with a separator, judged by the logical first word and
+ * by the visual leading word (RTL aware). The same rule as homeChecks() 7.
+ * A student's own text (a subject or file name, `[data-username]`) is not
+ * read: three words of a name at the large title's size cannot always avoid
+ * a word alone, and the page does not choose them. Self-contained: it runs
+ * in the page; `scope` limits it to the elements a selector names.
+ */
+function lineChecks(scope) {
+  const out = [];
+  for (const root of scope ? [...document.querySelectorAll(scope)] : [document.body]) out.push(...linesIn(root));
+  return out;
+  function linesIn(root) {
+  const out = [];
+  const SEP = /^[·•]/;
+  const blocks = new Map();
+  const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+    if (!n.data.trim()) continue;
+    const el = n.parentElement;
+    if (!el || el.closest('svg, script, style, noscript, .sr-only, [aria-hidden="true"], [hidden], [data-username]')) continue;
+    let b = el;
+    while (b !== root && getComputedStyle(b).display.startsWith('inline')) b = b.parentElement;
+    blocks.set(b, [...(blocks.get(b) || []), n]);
+  }
+  for (const [b, nodes] of blocks) {
+    const words = [];
+    for (const n of nodes) {
+      const re = /\S+/g;
+      for (let m = re.exec(n.data); m; m = re.exec(n.data)) {
+        const range = document.createRange();
+        range.setStart(n, m.index);
+        range.setEnd(n, m.index + m[0].length);
+        const rc = range.getClientRects()[0];
+        if (rc && rc.width > 0) words.push({ w: m[0], top: rc.top, bottom: rc.bottom, left: rc.left, right: rc.right, mid: (rc.top + rc.bottom) / 2 });
+      }
+    }
+    const lines = [];
+    for (const w of words) {
+      const line = lines.find((l) => w.mid >= l.top && w.mid <= l.bottom);
+      if (line) { line.words.push(w); line.top = Math.min(line.top, w.top); line.bottom = Math.max(line.bottom, w.bottom); }
+      else lines.push({ top: w.top, bottom: w.bottom, words: [w] });
+    }
+    const rtl = getComputedStyle(b).direction === 'rtl';
+    const name = `${b.tagName.toLowerCase()} "${b.textContent.trim().replace(/\s+/g, ' ').slice(0, 40)}"`;
+    if (lines.length > 1) for (const l of lines) if (l.words.length === 1) out.push(`one word alone ("${l.words[0].w}") in ${name}`);
+    for (const l of lines) {
+      const visual = [...l.words].sort((a, c) => (rtl ? c.right - a.right : a.left - c.left))[0];
+      if (SEP.test(l.words[0].w) || SEP.test(visual.w)) out.push(`a line starts with a separator in ${name}`);
+    }
+  }
+  return out;
+  }
+}
+
+/**
+ * THE APP'S GATES, IN THE PAGE (every render with the app's user agent): no
+ * Sign in with Apple button (it ships natively in 1.1) and no Google button
+ * (Google refuses OAuth in an embedded web view; the platform gate hides it).
+ * A control is any visible button or link; its name is its text or label.
+ * The wording rule (no plan, price, upgrade or free word) is kfWording() over
+ * the page's visible text, applied by the caller.
+ */
+function appChecks() {
+  const out = { apple: [], google: [] };
+  for (const el of document.querySelectorAll('button, a[href], [role="button"]')) {
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    if (r.width < 1 || r.height < 1 || cs.visibility === 'hidden') continue;
+    const name = `${el.textContent || ''} ${el.getAttribute('aria-label') || ''}`.trim();
+    if (/\bapple\b/i.test(name)) out.apple.push(name.slice(0, 60));
+    if (/\bgoogle\b/i.test(name)) out.google.push(name.slice(0, 60));
+  }
+  return out;
+}
+
 const browser = await puppeteer.launch({ executablePath: process.env.CHROME || 'google-chrome', args: ['--no-sandbox', '--hide-scrollbars', '--font-render-hinting=none'] });
 mkdirSync(join(out, 'before'), { recursive: true });
 mkdirSync(join(out, 'after'), { recursive: true });
@@ -260,7 +370,7 @@ async function shoot(side, job) {
   const ctx = await browser.createBrowserContext();
   const tab = await ctx.newPage();
   await tab.setUserAgent(job.s.ua);
-  await tab.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await tab.setViewport(job.s.view);
   await tab.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await tab.setRequestInterception(true);
   tab.on('request', (r) => {
@@ -271,7 +381,11 @@ async function shoot(side, job) {
     }
     r.continue();
   });
-  const q = new URLSearchParams({ ...job.s.q, ...(job.theme ? { theme: job.theme } : {}) }).toString();
+  // A page reached through a redirect (the app's request for the landing)
+  // loses its query on the way, so its theme is asked with the cookie the
+  // ?theme= link would have written.
+  if (job.theme && job.s.lands) await tab.setCookie({ name: 'kf-theme', value: job.theme, url: SIDES[side] });
+  const q = new URLSearchParams({ ...job.s.q, ...(job.theme && !job.s.lands ? { theme: job.theme } : {}) }).toString();
   const url = `${SIDES[side]}/${job.locale}${job.s.path ? '/' + job.s.path : ''}${q ? '?' + q : ''}`;
   const res = await tab.goto(url, { waitUntil: 'networkidle0', timeout: 90000 });
   await tab.addStyleTag({ content: PIN });
@@ -297,19 +411,22 @@ async function shoot(side, job) {
     return { running: document.getAnimations().filter((a) => a.playState === 'running').map((a) => a.animationName || a.id || 'anonymous'), paused };
   });
   const theme = await tab.evaluate(() => document.documentElement.getAttribute('data-theme'));
+  const landed = new URL(tab.url()).pathname;
   const a = await tab.evaluate(audit);
   const home = job.s.key.startsWith('home') ? await tab.evaluate(homeChecks) : [];
+  const lines = job.s.key.startsWith('home') ? [] : await tab.evaluate(lineChecks, job.s.lineScope || null);
+  const gate = job.s.native ? await tab.evaluate(appChecks) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
   // as the document, fixed bars sit at the page's real bottom.
   const file = join(out, side, `${job.name}.png`);
   const tall = await tab.evaluate(() => Math.ceil(document.documentElement.scrollHeight));
-  await tab.setViewport({ width: 390, height: Math.max(844, tall), deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await tab.setViewport({ ...job.s.view, height: Math.max(job.s.view.height, tall) });
   await tab.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await tab.screenshot({ path: file });
   await ctx.close();
-  return { url, status: res.status(), fonts, anim, theme, a, home };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate };
 }
 
 for (const job of JOBS) {
@@ -322,22 +439,35 @@ for (const job of JOBS) {
       ...(r.fonts.weightsLoaded.join(',') === WEIGHTS.join(',') ? [] : [`static Rubik weights loaded ${r.fonts.weightsLoaded.join(',')}`]),
       ...(r.fonts.body.includes(FAMILY) ? [] : [`body font is ${r.fonts.body}`]),
       ...(r.anim.running.length ? [`animations still running: ${r.anim.running.join(', ')}`] : []),
-      ...(job.theme === null ? (r.theme === (side === 'after' ? 'light' : 'dark') ? [] : [`default theme is ${r.theme} on ${side}`]) : (r.theme === job.theme ? [] : [`theme is ${r.theme}, asked ${job.theme}`])),
+      ...(job.theme === null ? (r.theme === 'light' ? [] : [`default theme is ${r.theme} on ${side}`]) : (r.theme === job.theme ? [] : [`theme is ${r.theme}, asked ${job.theme}`])),
+      ...(job.s.lands && r.landed !== `/${job.locale}/${job.s.lands}` ? [`the app's request landed on ${r.landed}, want /${job.locale}/${job.s.lands}`] : []),
       ...r.a.text.filter((t) => !t.ok).map((t) => `text ${t.got}:1 < ${t.need}:1 ${t.el}`),
       ...r.a.controls.filter((c) => !c.ok).map((c) => `control ${c.got}:1 < 3:1 ${c.el}`),
-      ...(job.s.app ? r.a.targets.filter((t) => !t.ok).map((t) => `target ${t.w} x ${t.h} < 44 x 44 ${t.el}`) : []),
+      ...(job.s.targets ? r.a.targets.filter((t) => !t.ok).map((t) => `target ${t.w} x ${t.h} < 44 x 44 ${t.el}`) : []),
       ...(job.locale === 'ar' ? r.a.shaping.filter((s) => !s.ok).map((s) => `shaping not joined ${s.el}`) : []),
       ...(r.a.cost.maxLayers > 3 ? [`${r.a.cost.maxLayers} shadow layers on ${r.a.cost.heaviest}`] : []),
       ...r.a.cost.filters.map((f) => `filter or backdrop-filter on ${f}`),
-      ...(job.s.app && job.s.q.platform === 'native' && words.length ? [`wording ${JSON.stringify(words)}`] : []),
+      ...(job.s.native && words.length ? [`wording ${JSON.stringify(words)}`] : []),
+      ...(r.gate ? [...r.gate.apple.map((n) => `app: an Apple button "${n}"`), ...r.gate.google.map((n) => `app: a Google button "${n}"`)] : []),
       ...r.home.map((h) => `home layout: ${h}`),
+      ...r.lines.map((l) => `lines: ${l}`),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
+    const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
+    bad.splice(0, bad.length, ...bad.filter((b) => !known.includes(b)));
     if (side === 'after') failures += bad.length;
     const tmin = Math.min(...r.a.text.map((t) => t.got));
-    row.sides[side] = { url: r.url, theme: r.theme, findings: bad, textWorst: Number(tmin.toFixed(2)), text: r.a.text.length, targets: r.a.targets.length, fonts: r.fonts.loaded.length, pausedAnimations: r.anim.paused, shadowsMax: r.a.cost.maxLayers };
+    row.sides[side] = {
+      url: r.url, landed: r.landed, theme: r.theme, findings: bad,
+      known: known.map((b) => ({ finding: b, why: KNOWN.find((k) => k.finding.test(b)).why })), textWorst: Number(tmin.toFixed(2)), text: r.a.text.length, targets: r.a.targets.length, fonts: r.fonts.loaded.length, pausedAnimations: r.anim.paused, shadowsMax: r.a.cost.maxLayers,
+      // Every app render states its three gates, measured, so the report says
+      // them even when they pass: no Apple button, no Google button, and no
+      // plan, price, upgrade or free word.
+      ...(job.s.native ? { app: { appleButtons: r.gate.apple.length, googleButtons: r.gate.google.length, purchaseWords: words } } : {}),
+    };
     console.log(`${side === 'after' && bad.length ? 'FAIL' : 'ok  '} ${side.padEnd(6)} ${job.name}: theme ${r.theme}, ${r.fonts.loaded.length} static faces, text worst ${tmin.toFixed(2)}:1, ${bad.length} finding(s)`);
     for (const b of bad) console.log(`       ${side}: ${b}`);
+    for (const b of known) console.log(`       ${side}: known (not failed): ${b}`);
   }
   results.push(row);
 }

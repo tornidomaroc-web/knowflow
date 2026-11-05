@@ -40,6 +40,10 @@ WHAT IS WRITTEN, AND THE GEOMETRY BEHIND IT. The ring's outer edge sits at
                                   downsample a 192 themselves.
   src/app/_brand/app-icon-mark.png (512, RGBA)
                                   the faded mark the Open Graph card embeds.
+  src/app/_brand/app-icon-256.png (256, opaque)
+                                  the master resized, the icon tile the site
+                                  header (40 pt) and the sign-in pages (84 pt,
+                                  3x) show (design "C", PR 2).
 
 The derived PNGs are deterministic for a given Pillow version; --check is what
 a reviewer runs to prove no asset was edited by hand.
@@ -176,6 +180,7 @@ def build():
     out[os.path.join(WEB, 'icon.png')] = png_bytes(master.resize((192, 192), Image.LANCZOS))
     out[os.path.join(WEB, 'apple-icon.png')] = png_bytes(master.resize((180, 180), Image.LANCZOS))
     out[os.path.join(WEB, '_brand', 'app-icon-mark.png')] = png_bytes(faded_mark(master, 512, fade))
+    out[os.path.join(WEB, '_brand', 'app-icon-256.png')] = png_bytes(master.resize((256, 256), Image.LANCZOS))
     return out, bg
 
 

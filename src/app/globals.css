@@ -93,6 +93,10 @@
   --clay-ask-muted: #dcd2c2;
   --clay-streak: #fff4dc;
   --clay-streak-muted: #5e5446;
+  /* PR 2: the cream answer bubble and its source chips inside the dark card, the same in both themes (Landing.dc.html). */
+  --clay-ask-bubble: #fffcf6;
+  --clay-ask-chip: #f3ebdd;
+  --clay-ask-ink: #1a1611;
   --ring-track: #ede3d2;
   --ring-green: #6fa77f;
   --chevron: #8a7e6d;
@@ -389,6 +393,10 @@ body { background-color: var(--background); color: var(--foreground); }
   --clay-ask-muted: #dcd2c2;
   --clay-streak: #3a2e18;
   --clay-streak-muted: #d2c5ae;
+  /* PR 2: the cream answer bubble and its source chips inside the dark card, the same in both themes (Landing.dc.html). */
+  --clay-ask-bubble: #fffcf6;
+  --clay-ask-chip: #f3ebdd;
+  --clay-ask-ink: #1a1611;
   --ring-track: #3a3127;
   --ring-green: #7dbe85;
   --chevron: #8f826f;
@@ -484,6 +492,10 @@ body { background-color: var(--background); color: var(--foreground); }
   --clay-ask-muted: #dcd2c2;
   --clay-streak: #fff4dc;
   --clay-streak-muted: #5e5446;
+  /* PR 2: the cream answer bubble and its source chips inside the dark card, the same in both themes (Landing.dc.html). */
+  --clay-ask-bubble: #fffcf6;
+  --clay-ask-chip: #f3ebdd;
+  --clay-ask-ink: #1a1611;
   --ring-track: #ede3d2;
   --ring-green: #6fa77f;
   --chevron: #8a7e6d;
@@ -560,7 +572,7 @@ body { background-color: var(--background); color: var(--foreground); }
 @media (min-width: 768px) { .kf-clay .kf-title { font-size: 2.25rem; line-height: 2.75rem; } }
 
 /* Cards (<Card> and the hand-written ones carry `kf-card`). */
-.kf-clay .kf-card {
+:is(.kf-clay, .kf-site) .kf-card {
   border-width: 0;
   border-radius: 1.5rem;
   background-color: var(--surface);
@@ -573,19 +585,19 @@ body { background-color: var(--background); color: var(--foreground); }
 .kf-clay .kf-row { border-radius: 1.375rem; background-color: var(--surface); box-shadow: var(--clay-row); }
 
 /* Inner tiles (stat meters, steps, quota cells): a small clay lump. */
-.kf-clay .kf-tile {
+:is(.kf-clay, .kf-site) .kf-tile {
   border-radius: 1.125rem;
   background-color: var(--raised);
   background-image: none;
   box-shadow: var(--clay-tile);
 }
 /* Wells (a note, a track, a field): pressed in. */
-.kf-clay .kf-well {
+:is(.kf-clay, .kf-site) .kf-well {
   background-color: var(--clay-well);
   box-shadow: inset 0 3px 7px -2px var(--clay-well-shade), inset 0 -1px 0 var(--clay-hi);
 }
 /* Icon chips: the tint, a rim. */
-.kf-clay .kf-chip { border-radius: 0.875rem; box-shadow: var(--clay-tile); }
+:is(.kf-clay, .kf-site) .kf-chip { border-radius: 0.875rem; box-shadow: var(--clay-tile); }
 
 /* Buttons: every buttonVariants() control carries `pressable` (Button.tsx is
    untouched). Every one at least 44 pt tall, the small size included (36 px).
@@ -607,18 +619,18 @@ body { background-color: var(--background); color: var(--foreground); }
 }
 
 /* The gold clay pill and the small count pill (spec: the streak count). */
-.kf-clay .kf-gold { background-color: var(--accent); color: var(--accent-foreground); box-shadow: var(--clay-gold); }
-.kf-clay .kf-gold-sm { background-color: var(--accent); color: var(--accent-foreground); box-shadow: var(--clay-gold-sm); }
+:is(.kf-clay, .kf-site) .kf-gold { background-color: var(--accent); color: var(--accent-foreground); box-shadow: var(--clay-gold); }
+:is(.kf-clay, .kf-site) .kf-gold-sm { background-color: var(--accent); color: var(--accent-foreground); box-shadow: var(--clay-gold-sm); }
 /* A surface pill (the header's "new subject", the menu button). */
-.kf-clay .kf-pill { background-color: var(--surface); box-shadow: var(--clay-pill); }
-.kf-clay .kf-button { background-color: var(--surface); box-shadow: var(--clay-button); }
+:is(.kf-clay, .kf-site) .kf-pill { background-color: var(--surface); box-shadow: var(--clay-pill); }
+:is(.kf-clay, .kf-site) .kf-button { background-color: var(--surface); box-shadow: var(--clay-button); }
 /* The greeting's avatar (the student's initial, the way to Settings): a gold clay coin,
    the same gradient as the clay icons' gold, ink text. */
 .kf-clay .kf-avatar { background-color: var(--accent); background-image: radial-gradient(circle at 35% 28%, #ffe7a6 0%, #ebae35 55%, #b57a12 100%); color: var(--accent-foreground); box-shadow: var(--clay-gold-sm); }
 
 /* The home's dark ask card (dark in both themes, a step lighter in dark). */
-.kf-clay .kf-ask { background-color: var(--clay-ask); color: var(--clay-ask-fg); box-shadow: var(--clay-card-ask); }
-.kf-clay .kf-ask .kf-gold { box-shadow: var(--clay-gold-ask); }
+:is(.kf-clay, .kf-site) .kf-ask { background-color: var(--clay-ask); color: var(--clay-ask-fg); box-shadow: var(--clay-card-ask); }
+:is(.kf-clay, .kf-site) .kf-ask .kf-gold { box-shadow: var(--clay-gold-ask); }
 /* The streak card's warm tint. */
 .kf-clay .kf-streak { background-color: var(--clay-streak); box-shadow: var(--clay-card-streak); }
 /* Progress tracks (the subject bar): pressed in. */
@@ -634,25 +646,6 @@ body { background-color: var(--background); color: var(--foreground); }
 
 /* The student's chat bubble: gold clay, ink text. */
 .kf-clay .kf-bubble-user { background-image: none; box-shadow: var(--clay-gold); }
-
-/* Segmented controls (the language group, the theme radiogroup): a sunken
-   track with a control boundary, the chosen option a raised gold-edged pill,
-   so the state is not carried by fill alone (WCAG 1.4.11). */
-.kf-clay [role="group"].bg-raised,
-.kf-clay [role="radiogroup"].bg-raised {
-  border-radius: 1rem; border-color: var(--control-border);
-  background-color: var(--clay-well);
-  box-shadow: inset 0 3px 7px -2px var(--clay-well-shade);
-}
-.kf-clay [role="group"].bg-raised > a,
-.kf-clay [role="radiogroup"].bg-raised > button { border-radius: 0.75rem; border: 1.5px solid transparent; min-height: 2.75rem; }
-.kf-clay [role="group"].bg-raised > .bg-surface,
-.kf-clay [role="radiogroup"].bg-raised > .bg-surface {
-  border-color: var(--accent-edge);
-  background-image: none;
-  background-color: var(--surface);
-  box-shadow: var(--clay-pill);
-}
 
 /* The switch: a bounded sunken track; the thumb IS the state, a bead that
    holds 3:1 on its track in both positions (off: --muted-foreground on the
@@ -715,4 +708,53 @@ body { background-color: var(--background); color: var(--foreground); }
   width: max(100%, 44px);
   height: max(100%, 44px);
   transform: translate(-50%, -50%);
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   DESIGN "C", PR 2: THE PUBLIC PAGES AND SETTINGS' TWO CHOICES (the
+   owner-approved artboards Landing.dc.html, Login.dc.html, Prefs.dc.html,
+   2026-11-04).
+
+   SCOPE. `.kf-site` sits on the public site's shell (SiteChrome) and on the
+   sign-in and sign-up pages. It takes ONLY the clay surface classes above
+   (card, tile, well, chip, gold, pill, button, the dark card); none of the
+   signed-in app's behavioural rules (inputs, pressable, the old segmented
+   group), so a public page changes only where it asks for a clay class.
+
+   TWO EDGES THE ARTBOARDS DO NOT DRAW, ON PURPOSE. A sign-in field and a
+   segmented track are drawn as a borderless well; on the card that well
+   measures 1.2:1, under the 3:1 a control's boundary needs (WCAG 1.4.11),
+   and the chosen gold pill measures 1.5:1 on its well. So the field and the
+   track keep a 1 px control edge and the chosen pill a gold edge, as the
+   signed-in app's controls already do; the render audit measures all three.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* The sign-in fields: pressed into the card, 52 pt tall, 16 pt text. */
+.kf-field {
+  border: 1px solid var(--control-border);
+  background-color: var(--clay-well);
+  box-shadow: inset 0 3px 6px -1px var(--clay-well-shade), inset 0 -1px 0 var(--clay-hi);
+}
+.kf-field:focus { outline: none; border-color: var(--accent-edge); box-shadow: inset 0 3px 6px -1px var(--clay-well-shade), 0 0 0 2px var(--ring); }
+
+/* The answer inside the dark card: a cream bubble and its source chips, the
+   same in both themes (the gold question bubble is `kf-gold`). */
+.kf-ask .kf-ask-bubble { background-color: var(--clay-ask-bubble); color: var(--clay-ask-ink); box-shadow: inset 0 -3px 6px rgba(110, 80, 35, 0.10), inset 0 3px 5px rgba(255, 255, 255, 0.95); }
+.kf-ask .kf-ask-chip { background-color: var(--clay-ask-chip); color: var(--clay-ask-ink); }
+
+/* Settings' language and appearance: two equal options in a pressed-in well;
+   the chosen one is a gold clay pill with a gold edge. */
+.kf-seg {
+  border: 1px solid var(--control-border);
+  background-color: var(--clay-well);
+  box-shadow: inset 0 3px 6px -2px var(--clay-well-shade), inset 0 -1px 0 var(--clay-hi);
+}
+.kf-seg-opt { border: 1.5px solid transparent; color: var(--muted-foreground); }
+.kf-seg-opt:hover { color: var(--foreground); }
+.kf-seg-opt[aria-checked="true"] {
+  border-color: var(--accent-edge);
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+  font-weight: 800;
+  box-shadow: var(--clay-tab-active);
 }

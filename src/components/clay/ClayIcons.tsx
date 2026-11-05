@@ -67,7 +67,7 @@ export const ClayFile = (p: P) => (
 /**
  * The three-step card's picture: an open clay book (two blue pages on a
  * gold spine) with a gold spark above it. Replaces the outline SparkBook on
- * the home only; the landing, sign-up and subject header keep theirs.
+ * the home (PR 1) and the subject header (PR 2).
  */
 export const ClaySparkBook = (p: P) => (
   <svg {...base(p, 64, 64, '0 0 64 64')}>
@@ -257,6 +257,163 @@ export const ClayArrow = (p: P) => (
   <svg {...base(p, 18, 18, '0 0 24 24')} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
     <path d="M5 12h14" />
     <path d="M13 6l6 6-6 6" />
+  </svg>
+);
+
+/* ── Design "C", PR 2: the landing, the sign-in pages and Settings, drawn from
+   the owner-approved artboards (Landing.dc.html, Login.dc.html,
+   Prefs.dc.html, 2026-11-04): their shapes and stops, our components. The
+   theme-following pieces read `line` (ink in light, cream in dark). ── */
+
+/** Step 1, upload: a green cloud with an ink arrow up, on its soft shadow. */
+export const ClayStepUpload = (p: P) => (
+  <svg {...base(p, 56, 52, '0 0 56 52')}>
+    <ellipse cx="28" cy="48" rx="18" ry="3" fill="#4C8F5C" fillOpacity="0.2" />
+    <path d="M14 36a10 10 0 0 1 2-19.8A13 13 0 0 1 41 14a9 9 0 0 1 1 22z" fill={G('green')} />
+    <path d="M28 40V22M21.5 28.5L28 22l6.5 6.5" fill="none" stroke="#1A1611" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/** Step 2, ask: a gold speech bubble with the question mark of the page's language. */
+export const ClayStepAsk = ({ mark = '؟', ...p }: P & { mark?: string }) => (
+  <svg {...base(p, 56, 52, '0 0 56 52')}>
+    <ellipse cx="28" cy="48" rx="18" ry="3" fill="#B57A12" fillOpacity="0.2" />
+    <path d="M10 8h30a7 7 0 0 1 7 7v15a7 7 0 0 1-7 7H24l-9 8v-8h-5a7 7 0 0 1-7-7V15a7 7 0 0 1 7-7z" fill={G('gold')} />
+    <ellipse cx="16" cy="13" rx="6" ry="2" fill="#FFFFFF" fillOpacity="0.55" />
+    <text x="25" y="29" textAnchor="middle" fontFamily="inherit" fontSize="17" fontWeight="800" fill="#1A1611">{mark}</text>
+  </svg>
+);
+
+/** Step 3, the answer: a cream page with a gold title line and a blue tick coin. */
+export const ClayStepAnswer = (p: P) => (
+  <svg {...base(p, 56, 52, '0 0 56 52')}>
+    <ellipse cx="28" cy="48" rx="18" ry="3" fill="#5A83BE" fillOpacity="0.2" />
+    <rect x="11" y="5" width="30" height="38" rx="8" fill={G('cream')} />
+    <rect x="17" y="14" width="14" height="4" rx="2" fill={G('gold')} />
+    <rect x="17" y="22" width="18" height="3.5" rx="1.75" fill="#BFB29D" />
+    <rect x="17" y="29" width="12" height="3.5" rx="1.75" fill="#BFB29D" />
+    <circle cx="41" cy="36" r="10" fill={G('blue')} />
+    <path d="M36.5 36.2l3 3 5.8-6" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/** "A summary to read on a break": a peach page with white lines. */
+export const ClayFeatureSummary = (p: P) => (
+  <svg {...base(p, 48, 46, '0 0 48 46')}>
+    <rect x="8" y="4" width="30" height="36" rx="8" fill={G('peach')} />
+    <rect x="14" y="13" width="18" height="4" rx="2" fill="#FFFFFF" fillOpacity="0.85" />
+    <rect x="14" y="21" width="14" height="3.5" rx="1.75" fill="#FFFFFF" fillOpacity="0.6" />
+    <rect x="14" y="28" width="10" height="3.5" rx="1.75" fill="#FFFFFF" fillOpacity="0.6" />
+    <ellipse cx="14" cy="8" rx="4" ry="1.4" fill="#FFFFFF" fillOpacity="0.55" />
+  </svg>
+);
+
+/** "Quizzes that review you": a green checklist with a gold tick coin. */
+export const ClayFeatureQuiz = (p: P) => (
+  <svg {...base(p, 48, 46, '0 0 48 46')}>
+    <rect x="7" y="4" width="32" height="36" rx="8" fill={G('green')} />
+    <circle cx="16" cy="15" r="3.5" fill="#FFFFFF" />
+    <rect x="22" y="13" width="12" height="4" rx="2" fill="#FFFFFF" fillOpacity="0.85" />
+    <circle cx="16" cy="27" r="3.5" fill="#FFFFFF" fillOpacity="0.6" />
+    <rect x="22" y="25" width="12" height="4" rx="2" fill="#FFFFFF" fillOpacity="0.6" />
+    <circle cx="38" cy="36" r="8" fill={G('gold')} />
+    <path d="M34.5 36l2.5 2.5 4.5-5" fill="none" stroke="#1A1611" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/** "Answers with their source": a cream page and a blue bubble that talks. */
+export const ClayFeatureAnswers = (p: P) => (
+  <svg {...base(p, 48, 46, '0 0 48 46')}>
+    <rect x="5" y="6" width="24" height="31" rx="7" fill={G('cream')} />
+    <rect x="10" y="14" width="12" height="3.5" rx="1.75" fill={G('gold')} />
+    <rect x="10" y="21" width="14" height="3" rx="1.5" fill="#BFB29D" />
+    <path d="M26 18h14a6 6 0 0 1 6 6v7a6 6 0 0 1-6 6h-5l-5 4v-4h-4a6 6 0 0 1-6-6v-7a6 6 0 0 1 6-6z" fill={G('blue')} />
+    <circle cx="29" cy="27.5" r="1.6" fill="#FFFFFF" />
+    <circle cx="34" cy="27.5" r="1.6" fill="#FFFFFF" />
+    <circle cx="39" cy="27.5" r="1.6" fill="#FFFFFF" />
+  </svg>
+);
+
+/** "A streak that keeps you going": the lit flame with its gold core. */
+export const ClayFeatureStreak = (p: P) => (
+  <svg {...base(p, 48, 46, '-4 -2 48 46')}>
+    <path d="M20 2c3 7 13 11 13 22a13 13 0 0 1-26 0c0-7 4-10 6-15 1.4 4 3.8 5.6 3.8 5.6S15 8 20 2z" fill={G('flame')} />
+    <path d="M20 20c2 4 6 6 6 10.5a6 6 0 0 1-12 0c0-3.5 3.5-6 6-10.5z" fill={G('gold')} />
+    <ellipse cx="14" cy="19" rx="2.2" ry="4.4" transform="rotate(-20 14 19)" fill="#FFFFFF" fillOpacity="0.5" />
+  </svg>
+);
+
+/** The landing's last card: the brand's ring and page, drawn (the header and
+ *  the sign-in pages show the real icon file instead). */
+export const ClayBrandMark = (p: P) => (
+  <svg {...base(p, 72, 72, '0 0 72 72')}>
+    <circle cx="36" cy="36" r="27" fill="none" stroke={G('gold')} strokeWidth="9" />
+    <rect x="24" y="20" width="24" height="31" rx="7" fill={G('cream')} />
+    <rect x="29" y="27" width="11" height="3.5" rx="1.75" fill="#EBAE35" />
+    <rect x="29" y="34" width="14" height="3" rx="1.5" fill="#BFB29D" />
+    <rect x="29" y="40" width="9" height="3" rx="1.5" fill="#BFB29D" />
+  </svg>
+);
+
+/** A source chip's file: a small clay page, peach or blue. */
+export const ClayChipFile = ({ tone = 'peach', ...p }: P & { tone?: 'peach' | 'blue' }) => (
+  <svg {...base(p, 14, 14, '0 0 14 14')}>
+    <rect x="2" y="1" width="10" height="12" rx="2.5" fill={G(tone)} />
+  </svg>
+);
+
+/** The site header's menu: two ink bars and a short gold one. */
+export const ClayMenu = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 26 26')}>
+    <rect x="3" y="6" width="20" height="3.6" rx="1.8" fill={G('line')} />
+    <rect x="3" y="11.2" width="20" height="3.6" rx="1.8" fill={G('line')} />
+    <rect x="3" y="16.4" width="12" height="3.6" rx="1.8" fill={G('gold')} />
+  </svg>
+);
+
+/** The site header's close: the menu's two bars crossed. */
+export const ClayClose = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 26 26')}>
+    <rect x="3" y="11.2" width="20" height="3.6" rx="1.8" transform="rotate(45 13 13)" fill={G('line')} />
+    <rect x="3" y="11.2" width="20" height="3.6" rx="1.8" transform="rotate(-45 13 13)" fill={G('gold')} />
+  </svg>
+);
+
+/** Dark: a filled moon. `fill` defaults to the theme-following ink. */
+export const ClayMoon = ({ fill, ...p }: P & { fill?: string }) => (
+  <svg {...base(p, 22, 22, '0 0 24 24')}>
+    <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill={fill ?? G('line')} />
+  </svg>
+);
+
+/** Light: a cream sun, its rim and rays in the text colour around it. */
+export const ClaySun = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 24 24')}>
+    <circle cx="12" cy="12" r="5" fill="#FFF4DC" stroke="currentColor" strokeWidth="1.6" />
+    <path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+/** Settings' preferences: a violet tile with three sliders and two gold knobs. */
+export const ClaySliders = (p: P) => (
+  <svg {...base(p, 36, 36, '0 0 36 36')}>
+    <rect x="3" y="3" width="30" height="30" rx="10" fill={G('violet')} />
+    <rect x="9" y="11" width="18" height="3.5" rx="1.75" fill="#FFFFFF" />
+    <rect x="9" y="17" width="18" height="3.5" rx="1.75" fill="#FFFFFF" fillOpacity="0.75" />
+    <rect x="9" y="23" width="18" height="3.5" rx="1.75" fill="#FFFFFF" fillOpacity="0.55" />
+    <circle cx="22" cy="12.75" r="3.2" fill={G('gold')} />
+    <circle cx="13" cy="18.75" r="3.2" fill={G('gold')} />
+  </svg>
+);
+
+/** A subject's summaries: a blue page with white lines (the subject header). */
+export const ClaySummary = (p: P) => (
+  <svg {...base(p, 26, 26, '0 0 26 26')}>
+    <rect x="4" y="2.5" width="18" height="21" rx="4.5" fill={G('blue')} />
+    <rect x="8" y="7.5" width="10" height="2.6" rx="1.3" fill="#FFFFFF" fillOpacity="0.85" />
+    <rect x="8" y="12" width="8" height="2.2" rx="1.1" fill="#FFFFFF" fillOpacity="0.6" />
+    <rect x="8" y="16.2" width="6" height="2.2" rx="1.1" fill="#FFFFFF" fillOpacity="0.6" />
+    <ellipse cx="8.5" cy="4.6" rx="3" ry="1" fill="#FFFFFF" fillOpacity="0.55" />
   </svg>
 );
 
