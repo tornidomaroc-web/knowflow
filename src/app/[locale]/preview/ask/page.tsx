@@ -162,12 +162,13 @@ export default async function AskPreview({
       {
         role: 'assistant',
         content: LONG[safeLocale].answer,
-        // G2: a single page, a range, a slide and a file with no known page.
+        // G2: a single page, a page range, a slide, a slide range and a file with no known page.
         citations: [
           chem(1, 'o1', summaryFile, 0.92, [12, 12, 'page']),
           chem(2, 'o2', 'reactions-cheatsheet-v3.pdf', 0.86, [3, 4, 'page']),
           chem(3, 'o3', ar ? 'محاضرة Reactions (2).pptx' : 'Lecture التفاعلات (2).pptx', 0.81, [5, 5, 'slide']),
-          chem(4, 'o4', ar ? 'ملاحظات المحاضرة السابعة.docx' : 'Lecture 7 notes.docx', 0.78),
+          chem(4, 'o4', ar ? 'شرائح المحاضرة الثامنة.pptx' : 'Lecture 8 slides.pptx', 0.79, [7, 8, 'slide']),
+          chem(5, 'o5', ar ? 'ملاحظات المحاضرة السابعة.docx' : 'Lecture 7 notes.docx', 0.78),
         ],
       },
       { role: 'user', content: LONG[safeLocale].otherQuestion },

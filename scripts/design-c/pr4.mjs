@@ -36,6 +36,10 @@ export function pr4Screens(add, { APP, SAFARI, DESK, DESKTOP }, root) {
     add(`quiz-result-${p}`, 'preview/subject', { platform: pf }, ua, { pr4: 'study', act: 'quiz-result', shot: 'todo' });
     add(`consent-${p}`, 'preview/ai-consent', {}, ua, { pr4: 'consent' });
   }
+  // G2: the first answer alone with its five pills (a page, a page range, a
+  // slide, a slide range, a file with no known page), shot as the card so
+  // every label can be read.
+  add('ask-sources-app', 'preview/ask', { platform: 'native', view: 'app' }, APP, { pr4: 'ask', act: 'converse', shot: 'sources' });
   add('ask-zero-app', 'preview/ask', { platform: 'native', view: 'zero' }, APP, { pr4: 'ask' });
   add('ask-noanswer-app', 'preview/ask', { platform: 'native', view: 'noanswer' }, APP, { pr4: 'ask' });
   // A desk: the history column beside the opened long conversation.
@@ -115,6 +119,11 @@ export async function pr4Act(tab, job, LONG) {
       // Done when the k-th answer's sources are drawn (they are drawn only
       // once the answer has stopped streaming).
       await tab.waitForFunction((n) => [...document.querySelectorAll('p')].filter((p) => /^(المصادر|Sources)$/.test(p.textContent.trim())).length >= n, { timeout: 20000 }, k);
+    }
+    // G2: the first answer's column (its card, the "Sources" line and the pills) is the shot.
+    if (job.s.shot === 'sources') {
+      const ok = await tab.evaluate(() => { const a = document.querySelector('[data-kf-bubble="answer"]'); if (a) a.parentElement.setAttribute('data-kf-shot', 'sources'); return !!a; });
+      if (!ok) return { act, error: 'no answer card to shoot' };
     }
     return { act };
   }

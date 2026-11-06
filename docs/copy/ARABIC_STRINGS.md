@@ -542,7 +542,7 @@ file is not read by the app.
 | `dashboard.agent.sourcePage` | ص {n} | p. {n} |
 | `dashboard.agent.sourcePages` | ص {from}-{to} | pp. {from}-{to} |
 | `dashboard.agent.sourceSlide` | شريحة {n} | slide {n} |
-| `dashboard.agent.sourceSlides` | الشرائح {from}-{to} | slides {from}-{to} |
+| `dashboard.agent.sourceSlides` | شرائح {from}-{to} | slides {from}-{to} |
 | `dashboard.agent.chatWith` | تسأل عن | Asking about |
 | `dashboard.agent.startTyping` | كل جواب يأتي من ملفات هذه المادة. | Every answer comes from this subject's own materials. |
 | `dashboard.agent.emptyTitle` | ما الذي يحيّرك اليوم؟ | What do you want to understand? |

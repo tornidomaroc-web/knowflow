@@ -22,7 +22,7 @@
  *     "C" PR 3 added dashboard.upload.fromDevice and fromDeviceDesc; 429 after
  *     its review added dashboard.subjects.nothingToSummarise; 433 after G2
  *     added dashboard.agent.sourcePage, sourcePages, sourceSlide and
- *     sourceSlides, drafts until the owner approves them).
+ *     sourceSlides, approved in app v7).
  *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
  *     ruling that removed it. Its rows stay in the batch files, which are the
  *     owner's approved record and are never edited; they are read and checked

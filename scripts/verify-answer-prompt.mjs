@@ -146,7 +146,8 @@ for (const [label, row] of bad) need(knownPages(row) === null && pageLabel(row, 
 const labels = (dict) => four.map((c) => pageLabel(c, dict.dashboard.agent));
 need(JSON.stringify(labels(en)) === JSON.stringify(['p. 12', 'pp. 3-4', 'slide 5', null]), `English pill labels: ${JSON.stringify(labels(en))}`);
 need(JSON.stringify(labels(ar)) === JSON.stringify(['ص 12', 'ص 3-4', 'شريحة 5', null]), `Arabic pill labels: ${JSON.stringify(labels(ar))}`);
-need(pageLabel(P('d.pptx', '', 5, 6, 'slide'), ar.dashboard.agent) === 'الشرائح 5-6', 'Arabic slide range: الشرائح 5-6');
+need(pageLabel(P('d.pptx', '', 5, 6, 'slide'), ar.dashboard.agent) === 'شرائح 5-6', 'Arabic slide range: شرائح 5-6 (approved app v7)');
+need(pageLabel(P('d.pptx', '', 5, 6, 'slide'), en.dashboard.agent) === 'slides 5-6', 'English slide range: slides 5-6');
 need(!labels(ar).concat(labels(en)).join('').match(/[٠-٩۰-۹]/), 'Western digits only');
 
 // ── 3. the route ────────────────────────────────────────────────────────────
