@@ -27,6 +27,12 @@ interface MessageBubbleProps {
   sourcesLabel?: string;
   /** G2: the words of a pill's page or slide label; without them no label is drawn. */
   pageLabels?: PageLabelStrings;
+  /**
+   * The locale's reading direction (the layout's <html dir> rule). The pill row
+   * stays dir="ltr" (#124); only the page label's edge follows it: under the
+   * name's right edge in Arabic, its left edge in English.
+   */
+  readingDir?: 'ltr' | 'rtl';
 }
 
 /**
@@ -46,7 +52,7 @@ interface MessageBubbleProps {
  * item: a loose item holds its paragraphs between newline nodes too. The
  * student's own bubble keeps `pre-wrap`: what they typed is shown as typed.
  */
-export function MessageBubble({ role, content, isStreaming, citations, sourceHref, sourcesLabel, pageLabels }: MessageBubbleProps) {
+export function MessageBubble({ role, content, isStreaming, citations, sourceHref, sourcesLabel, pageLabels, readingDir = 'ltr' }: MessageBubbleProps) {
   const isUser = role === 'user';
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -109,7 +115,8 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
                 // G2: the page or slide, only when it is known (never a guess).
                 // #307 review (2026-11-06): the name takes line 1 at the pill's
                 // full width, balanced so no line is a lone word; the label sits
-                // on line 2 under it, smaller and muted, at the same start edge,
+                // on line 2 under it, smaller and muted, at the edge where the
+                // locale's reading starts (right in Arabic, left in English),
                 // with no separator. Its own run (dir="auto": "ص 12" reads right
                 // to left) with the range in a left-to-right isolate, so "3-4"
                 // never shows as "4-3" after an Arabic word. A source with no
@@ -125,7 +132,7 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
                   <>
                     <ClayChipFile tone={i % 2 ? 'blue' : 'peach'} />
                     {page ? (
-                      <span className="flex min-w-0 flex-col items-start py-1.5 leading-tight">
+                      <span className={`flex min-w-0 flex-col ${readingDir === 'rtl' ? 'items-end' : 'items-start'} py-1.5 leading-tight`}>
                         {name}
                         <span
                           data-kf-source-page=""

@@ -892,7 +892,7 @@ for (const job of JOBS) {
       // What reviewChecks() read on this page.
       review: { ...r.review.measured, ...(r.plant ? { deletePlant: { cards: r.plant.cards, caught: r.plant.caught } } : {}) },
       // What pr4Checks() read, and how much of the thread the page was grown by.
-      ...(r.pr4 ? { pr4: { ...r.pr4.measured, act: job.s.act || null, grownBy: r.hidden || 0, ...(r.ring ? { tabRing: r.ring } : {}), ...(r.labelPlant ? { pageLabelPlant: { labels: r.labelPlant.labels, wrapCaught: r.labelPlant.wrapCaught, clipCaught: r.labelPlant.clipCaught, ranges: r.labelPlant.ranges, orderCaught: r.labelPlant.orderCaught, names: r.labelPlant.names, oneWordCaught: r.labelPlant.oneWordCaught, pills: r.labelPlant.pills, bulletCaught: r.labelPlant.bulletCaught } } : {}) } } : {}),
+      ...(r.pr4 ? { pr4: { ...r.pr4.measured, act: job.s.act || null, grownBy: r.hidden || 0, ...(r.ring ? { tabRing: r.ring } : {}), ...(r.labelPlant ? { pageLabelPlant: { labels: r.labelPlant.labels, wrapCaught: r.labelPlant.wrapCaught, clipCaught: r.labelPlant.clipCaught, ranges: r.labelPlant.ranges, orderCaught: r.labelPlant.orderCaught, names: r.labelPlant.names, oneWordCaught: r.labelPlant.oneWordCaught, pills: r.labelPlant.pills, bulletCaught: r.labelPlant.bulletCaught, edges: r.labelPlant.edges, edgeCaught: r.labelPlant.edgeCaught } } : {}) } } : {}),
       protectedPhrasesRead: r.phrases.read,
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no

@@ -212,6 +212,11 @@ export async function pr4Act(tab, job, LONG) {
  *          hyphen or dash ("reactions-cheatsheet-" / "v3" on bfe04a2);
  *      (c) no "•" or "·" anywhere in a pill (bfe04a2's separator sat on the
  *          wrong side in Arabic; the label now has its own line).
+ *      The owner's decision on 129235f (2026-11-06) adds:
+ *      (d) the label sits where the locale's reading starts: in Arabic
+ *          (<html dir="rtl">) its right edge within 2 px of the name block's
+ *          right edge, in English its left edge within 2 px of the name's
+ *          left edge (129235f put the Arabic label on the left).
  */
 export function pr4Checks(kind, act) {
   const findings = [];
@@ -357,6 +362,7 @@ export function pr4Checks(kind, act) {
     const g2 = window.g2Rules();
     measured.ranges = g2.ranges;
     measured.nameLines = g2.nameLines;
+    measured.labelEdgeGaps = g2.edgeGaps;
     for (const f of g2.findings) findings.push(f);
   }
   // 5. The device run's own selectors.
@@ -439,16 +445,24 @@ export function pageLabelPlant() {
   const dots = pills.map((p) => p.appendChild(Object.assign(document.createElement('span'), { textContent: ' •' })));
   let dotted;
   try { dotted = window.g2Rules(); } finally { for (const d of dots) d.remove(); }
+  // (d) each label pushed to the edge where reading ENDS (129235f's Arabic shape).
+  const side = document.createElement('style');
+  side.textContent = 'html[dir="rtl"] [data-kf-source-page] { align-self: flex-start !important; } html:not([dir="rtl"]) [data-kf-source-page] { align-self: flex-end !important; }';
+  document.head.appendChild(side);
+  let flipped;
+  try { flipped = window.g2Rules(); } finally { side.remove(); }
   const after = window.g2Rules();
   const blind = (n > 0 && (wrap.wraps !== n || clip.clipped !== n))
     || order.reversed !== ranges.length || narrow.badNames !== narrow.names || dotted.dotted !== pills.length
+    || flipped.offEdge !== flipped.edges
     || after.findings.length !== before.findings.length;
   return {
     labels: n, wrapCaught: wrap.wraps, clipCaught: clip.clipped,
     ranges: ranges.length, orderCaught: order.reversed,
     names: narrow.names, oneWordCaught: narrow.badNames,
     pills: pills.length, bulletCaught: dotted.dotted,
-    finding: blind ? `the page-label check is blind: ${n} label(s), forced wrap flagged ${wrap.wraps}, forced clip flagged ${clip.clipped}; ${ranges.length} range(s), reversed flagged ${order.reversed}; ${narrow.names} name(s), one-word lines flagged ${narrow.badNames}; ${pills.length} pill(s), "•" flagged ${dotted.dotted}; ${before.findings.length} finding(s) before forcing, ${after.findings.length} after restoring` : null,
+    edges: flipped.edges, edgeCaught: flipped.offEdge,
+    finding: blind ? `the page-label check is blind: ${n} label(s), forced wrap flagged ${wrap.wraps}, forced clip flagged ${clip.clipped}; ${ranges.length} range(s), reversed flagged ${order.reversed}; ${narrow.names} name(s), one-word lines flagged ${narrow.badNames}; ${pills.length} pill(s), "•" flagged ${dotted.dotted}; ${flipped.edges} label edge(s), flipped flagged ${flipped.offEdge}; ${before.findings.length} finding(s) before forcing, ${after.findings.length} after restoring` : null,
   };
 }
 
@@ -515,7 +529,20 @@ export function g2Rules() {
   for (const p of [...document.querySelectorAll('[data-kf-source], .flex.flex-wrap[dir="ltr"] > a')].filter(vis)) {
     if (/[•·]/.test(p.textContent || '')) { dotted++; findings.push(`a "•" in a source pill: "${short(p.textContent)}"`); }
   }
-  return { findings, reversed, ranges, names, badNames, nameLines, dotted };
+  // (d)
+  let edges = 0, offEdge = 0;
+  const edgeGaps = [];
+  const rtl = document.documentElement.dir === 'rtl';
+  for (const l of [...document.querySelectorAll('[data-kf-source-page]')].filter(vis)) {
+    const nm = l.parentElement && l.parentElement.querySelector('[data-kf-source-name]');
+    if (!nm) continue;
+    edges++;
+    const L = l.getBoundingClientRect(), N = nm.getBoundingClientRect();
+    const gap = rtl ? Math.abs(L.right - N.right) : Math.abs(L.left - N.left);
+    edgeGaps.push(Math.round(gap * 10) / 10);
+    if (gap > 2) { offEdge++; findings.push(`a page label is ${gap.toFixed(1)} px off the name's ${rtl ? 'right' : 'left'} edge (the reading start): "${short(l.textContent)}"`); }
+  }
+  return { findings, reversed, ranges, names, badNames, nameLines, dotted, edges, offEdge, edgeGaps };
 }
 
 /** The protected phrases, read from src/lib/keep-together.ts (one list). */
