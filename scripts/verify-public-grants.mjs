@@ -412,7 +412,50 @@ await allowed('A UPDATEs the documents row (/api/ingest, /api/summarize, rename,
   check("B's UPDATE of A's page counts matches no row (RLS), and A's 12/3 stand", res.error === null && res.data.length === 0 && still === '12/3', res.error ? res.error.message : `${res.data.length} rows; stored ${still}`);
 }
 await allowed('A INSERTs chunks (the ingestion service, forwarded JWT)', () => asA.from('chunks').insert([{ document_id: doc.id, kb_id: kb.id, chunk_index: 0, content: 'c0' }, { document_id: doc.id, kb_id: kb.id, chunk_index: 1, content: 'c1' }]).select('id'), (d) => d.length === 2);
-await allowed('A DELETEs chunks (the ingestion service, before re-embedding)', () => asA.from('chunks').delete().eq('document_id', doc.id).select('id'), (d) => d.length === 2);
+// 20261106 (G2): chunks.page_start / page_end / page_kind.
+{
+  const MIG = 'supabase/migrations/20261106_chunks_pages.sql';
+  const migText = readFileSync(resolvePath(ROOT, MIG), 'utf8');
+  let rerun = null;
+  try { psqlAs('postgres', migText); } catch (e) { rerun = String(e.stderr || e.message).split('\n')[0]; }
+  // The file's own VERIFY query (the lines after "-- select c.column_name"),
+  // uncommented, and the checks text it says to expect, compared as written.
+  const lines = migText.split(/\r?\n/);
+  const q0 = lines.findIndex((l) => l.startsWith('-- select c.column_name'));
+  const q1 = lines.findIndex((l, i) => i > q0 && l.trim() === '--');
+  const verifySql = lines.slice(q0, q1).map((l) => l.replace(/^-- ?/, '')).join('\n');
+  const want = lines.filter((l) => /^--   chunks_page_/.test(l)).map((l) => l.replace(/^--   /, '').replace(/;$/, '')).join('; ');
+  const rows = admin(verifySql).trim().split(/\r?\n/).map((l) => l.split('|'));
+  const shape = rows.map((r) => `${r[0]} ${r[1]} ${r[2]} ${r[3] || 'NULL'} ${r[5]}`).join(', ');
+  check(`${MIG} runs a second time without error`, rerun === null, rerun ?? 'ok', true);
+  check(`${MIG}'s VERIFY query returns the three columns it promises`, shape === 'page_end integer YES NULL 0, page_kind text YES NULL 0, page_start integer YES NULL 0', shape, true);
+  check(`${MIG}'s VERIFY checks text is exactly the expected text written in the file`, rows.length === 3 && rows.every((r) => r[4] === want), rows[0]?.[4] ?? '(no rows)', true);
+  // The ingestion service's insert (_persist), as the uploading student, and the Ask route's read (by chunk id).
+  const paged = await allowed('A INSERTs chunks with a page, a page range and a slide (the ingestion service, forwarded JWT)',
+    () => asA.from('chunks').insert([
+      { document_id: doc.id, kb_id: kb.id, chunk_index: 2, content: 'c2', page_start: 12, page_end: 12, page_kind: 'page' },
+      { document_id: doc.id, kb_id: kb.id, chunk_index: 3, content: 'c3', page_start: 3, page_end: 4, page_kind: 'page' },
+      { document_id: doc.id, kb_id: kb.id, chunk_index: 4, content: 'c4', page_start: 5, page_end: 5, page_kind: 'slide' },
+    ]).select('id'), (d) => d.length === 3);
+  await allowed('A reads the page columns of their chunks by id (src/app/api/agent/route.ts, chunkPages)',
+    () => asA.from('chunks').select('id, page_start, page_end, page_kind').in('id', paged.map((x) => x.id)).order('page_start'),
+    (d) => JSON.stringify(d.map((x) => [x.page_start, x.page_end, x.page_kind])) === '[[3,4,"page"],[5,5,"slide"],[12,12,"page"]]');
+  for (const [label, row] of [
+    ['page_start 0', { page_start: 0, page_end: 1, page_kind: 'page' }],
+    ['page_end before page_start', { page_start: 4, page_end: 3, page_kind: 'page' }],
+    ["page_kind 'sheet'", { page_start: 1, page_end: 1, page_kind: 'sheet' }],
+    ['a page with no kind', { page_start: 1, page_end: 1 }],
+    ['a kind with no page', { page_kind: 'slide' }],
+  ]) {
+    const res = await asA.from('chunks').insert({ document_id: doc.id, kb_id: kb.id, chunk_index: 9, content: 'x', ...row });
+    check(`A inserts a chunk with ${label}: refused by a check (23514)`, res.error?.code === '23514', res.error ? `${res.error.code} ${res.error.message}` : 'no error');
+  }
+  const B = '0000000b-0000-4000-8000-000000000137';
+  const asB = clientFor(tokenFor(B));
+  const res = await asB.from('chunks').select('id, page_start').in('id', paged.map((x) => x.id));
+  check("B reads none of A's chunk pages (RLS: Users can read own chunks)", res.error === null && res.data.length === 0, res.error ? res.error.message : `${res.data.length} rows`);
+}
+await allowed('A DELETEs chunks (the ingestion service, before re-embedding; the two above and the three G2 rows)', () => asA.from('chunks').delete().eq('document_id', doc.id).select('id'), (d) => d.length === 5);
 const conv = await allowed('A INSERTs a conversations row (/api/agent)', () => asA.from('conversations').insert({ kb_id: kb.id, user_id: A }).select('id').single(), (d) => !!d?.id);
 await allowed('A INSERTs a messages row (/api/agent)', () => asA.from('messages').insert({ conversation_id: conv.id, role: 'user', content: 'q' }).select('id'), (d) => d.length === 1);
 const quiz = await allowed('A INSERTs a quizzes row (/api/quiz/generate)', () => asA.from('quizzes').insert({ document_id: doc.id }).select('id').single(), (d) => !!d?.id);

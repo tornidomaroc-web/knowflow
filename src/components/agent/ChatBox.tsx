@@ -250,6 +250,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
             citations={m.citations}
             sourceHref={(c) => `/${safeLocale}/dashboard/knowledge/${kbId}#material-${c.document_id}`}
             sourcesLabel={t.dashboard.agent.sources}
+            pageLabels={t.dashboard.agent}
             isStreaming={isLoading && m.role === 'assistant' && i === messages.length - 1}
           />
         ))}

@@ -1,3 +1,4 @@
+import bisect
 import hmac
 import os
 import re
@@ -15,6 +16,7 @@ from pdfminer.converter import PDFPageAggregator
 from pdfminer.layout import LTChar, LTContainer
 from pdfminer.pdfinterp import PDFPageInterpreter, PDFResourceManager
 from pdfminer.pdfpage import PDFPage
+from postgrest.exceptions import APIError
 from pydantic import BaseModel
 from supabase import acreate_client, AsyncClient, AsyncClientOptions
 
@@ -235,6 +237,83 @@ def _chunk_text(text: str, chunk_tokens: int = CHUNK_TOKENS, overlap: int = CHUN
     return chunks
 
 
+# G2: page and slide numbers for each chunk. The chunks are cut exactly as
+# before (_chunk_text, token windows over the whole text); each one is then
+# given the pages its own text lies on, read from the converted text itself:
+#   * a PDF: MarkItDown's PDF text puts a form feed (U+000C) between pages, so
+#     page N is the N-th form-feed-separated segment. Used only when the
+#     segments match pdfminer's own page count (_pdf_page_counts), so a PDF
+#     whose text came out another way gets no numbers rather than wrong ones;
+#   * a .pptx: MarkItDown writes "<!-- Slide number: N -->" before each
+#     slide, so a chunk's slides are the markers its text lies after.
+# Every other file, and anything that does not match, stays NULL: the app
+# then shows the file name alone, as today.
+PAGE_COLUMNS = ("page_start", "page_end", "page_kind")
+_SLIDE_MARK = re.compile(r"<!-- Slide number: (\d+) -->")
+
+
+class PageLayout(NamedTuple):
+    starts: list[int]  # character offset where each page or slide begins, ascending
+    numbers: list[int]  # its number (1-based page, or the slide's own number)
+    kind: str  # "page" or "slide"
+
+
+def _page_layout(text: str, pages: "PageCounts | None", filename: str | None) -> PageLayout | None:
+    """Where each page (PDF) or slide (.pptx) begins in `text`, or None."""
+    if pages is not None and pages.total > 0:
+        segments = text.split("\f")
+        # A trailing form feed leaves an empty last segment, not a page.
+        if len(segments) == pages.total + 1 and not segments[-1].strip():
+            segments = segments[:-1]
+        if len(segments) != pages.total:
+            return None
+        starts, at = [], 0
+        for seg in segments:
+            starts.append(at)
+            at += len(seg) + 1
+        return PageLayout(starts, list(range(1, pages.total + 1)), "page")
+    if (filename or "").lower().endswith(".pptx"):
+        marks = list(_SLIDE_MARK.finditer(text))
+        if marks:
+            return PageLayout([m.start() for m in marks], [int(m.group(1)) for m in marks], "slide")
+    return None
+
+
+def _assign_pages(text: str, chunks: list[dict], layout: PageLayout | None) -> None:
+    """Give each chunk page_start, page_end and page_kind (all None when unknown).
+
+    The chunk's span in `text` comes from the same token list _chunk_text cut
+    (tiktoken's decode_with_offsets gives each token's character offset); its
+    first and last non-space characters name its first and last page.
+    """
+    for c in chunks:
+        c["page_start"] = c["page_end"] = c["page_kind"] = None
+    if layout is None or not chunks:
+        return
+    tokens = ENCODER.encode(text)
+    _, offsets = ENCODER.decode_with_offsets(tokens)
+    step = CHUNK_TOKENS - CHUNK_OVERLAP
+
+    def page_at(pos: int) -> int | None:
+        i = bisect.bisect_right(layout.starts, pos) - 1
+        return layout.numbers[i] if i >= 0 else None
+
+    for c in chunks:
+        t0 = c["chunk_index"] * step
+        t1 = t0 + c["token_count"]
+        a = offsets[t0] if t0 < len(offsets) else len(text)
+        b = offsets[t1] if t1 < len(offsets) else len(text)
+        span = text[a:b]
+        lead = len(span) - len(span.lstrip())
+        trail = len(span.rstrip())
+        if trail <= lead:
+            continue
+        first, last = page_at(a + lead), page_at(a + trail - 1)
+        if first is None or last is None or last < first:
+            continue
+        c["page_start"], c["page_end"], c["page_kind"] = first, last, layout.kind
+
+
 async def _embed(texts: list[str], input_type: Literal["query", "document"]) -> list[list[float]]:
     # Provider dispatch (PIVOT_PLAN.md §4): one branch, no registry/ABC. Voyage is
     # the only provisioned path today; bge_m3 is a documented stub.
@@ -356,6 +435,9 @@ async def _persist(
     """
     await sb.table("chunks").delete().eq("document_id", document_id).execute()
 
+    # G2: the page columns are written only when some chunk has a page, so
+    # every other file inserts exactly the rows it always did.
+    with_pages = any(c.get("page_kind") for c in chunks)
     rows = [
         {
             "document_id": document_id,
@@ -364,11 +446,26 @@ async def _persist(
             "content": c["content"],
             "token_count": c["token_count"],
             "embedding": c["embedding"],
+            **({k: c.get(k) for k in PAGE_COLUMNS} if with_pages else {}),
         }
         for c in chunks
     ]
     for i in range(0, len(rows), CHUNK_INSERT_BATCH):
-        await sb.table("chunks").insert(rows[i : i + CHUNK_INSERT_BATCH]).execute()
+        batch = rows[i : i + CHUNK_INSERT_BATCH]
+        try:
+            await sb.table("chunks").insert(batch).execute()
+        except APIError as e:
+            # Railway deploys this service on every push to main, so it can run
+            # before the owner adds the page columns. PostgREST then refuses the
+            # unknown columns (PGRST204) and inserts nothing; the batch is sent
+            # again without them, and so is every later batch. The upload is
+            # what it was before G2, with no page numbers.
+            if not with_pages or getattr(e, "code", None) not in ("PGRST204", "42703"):
+                raise
+            print(f"chunk page columns refused ({e.code}); storing chunks without pages for {document_id}", flush=True)
+            with_pages = False
+            rows = [{k: v for k, v in r.items() if k not in PAGE_COLUMNS} for r in rows]
+            await sb.table("chunks").insert(rows[i : i + CHUNK_INSERT_BATCH]).execute()
 
     # The terminal status write. This service owns it now: once the ack leaves
     # here the row is already `ready`, so a caller that times out waiting for the
@@ -538,6 +635,7 @@ async def ingest(
         # A file whose pages hold nothing but page numbers has no text: no
         # chunks, nothing sent to Voyage, chunk_count 0.
         chunks = [] if _has_no_text(markdown_text, pages) else _chunk_text(markdown_text)
+        _assign_pages(markdown_text, chunks, _page_layout(markdown_text, pages, file.filename))
         if chunks:
             embeddings = await _embed([c["content"] for c in chunks], input_type="document")
             if len(embeddings) != len(chunks):

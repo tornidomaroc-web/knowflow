@@ -533,6 +533,12 @@ export const en = {
     agent: {
       // Step Redesign-2: over the source pills under an answer.
       sources: "Sources",
+      // G2, DRAFTS for the owner (docs/copy-drafts/g2_citation_pages.md): the
+      // page or slide on a source pill. {n} {from} {to} are Western digits.
+      sourcePage: "p. {n}",
+      sourcePages: "pp. {from}-{to}",
+      sourceSlide: "slide {n}",
+      sourceSlides: "slides {from}-{to}",
       chatWith: "Asking about",
       startTyping: "Every answer comes from this subject's own materials.",
       emptyTitle: "What do you want to understand?",

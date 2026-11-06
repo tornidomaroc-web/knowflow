@@ -2,8 +2,9 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import { FileName } from '@/components/ui/FileName';
 import { ClayChipFile } from '@/components/clay/ClayIcons';
+import { pageLabel, type ChunkPages, type PageLabelStrings } from '@/lib/citation-pages';
 
-export interface Citation {
+export interface Citation extends ChunkPages {
   index: number;
   document_id: string;
   chunk_id: string;
@@ -24,6 +25,8 @@ interface MessageBubbleProps {
   sourceHref?: (c: Citation) => string;
   /** The heading over the source pills ("Sources" / "المصادر"). */
   sourcesLabel?: string;
+  /** G2: the words of a pill's page or slide label; without them no label is drawn. */
+  pageLabels?: PageLabelStrings;
 }
 
 /**
@@ -43,7 +46,7 @@ interface MessageBubbleProps {
  * item: a loose item holds its paragraphs between newline nodes too. The
  * student's own bubble keeps `pre-wrap`: what they typed is shown as typed.
  */
-export function MessageBubble({ role, content, isStreaming, citations, sourceHref, sourcesLabel }: MessageBubbleProps) {
+export function MessageBubble({ role, content, isStreaming, citations, sourceHref, sourcesLabel, pageLabels }: MessageBubbleProps) {
   const isUser = role === 'user';
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -103,15 +106,26 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
                 both languages, and FileName keeps the name one unit. */}
             <div className="flex flex-wrap gap-2 px-1" dir="ltr">
               {citations.map((c, i) => {
+                // G2: the page or slide, only when it is known (never a guess).
+                // Its own isolated run (dir="auto": "ص 12" reads right to left
+                // inside the ltr row), never wrapped and never shrunk, so the
+                // name gives way first; design-c's render check reads it.
+                const page = pageLabels ? pageLabel(c, pageLabels) : null;
                 const body = (
                   <>
                     <ClayChipFile tone={i % 2 ? 'blue' : 'peach'} />
                     <span>
                       [{c.index}] <FileName name={c.filename} inline withoutExtension />
                     </span>
+                    {page && (
+                      <span data-kf-source-page="" dir="auto" className="shrink-0 whitespace-nowrap text-muted-foreground">
+                        <span aria-hidden="true">· </span>
+                        {page}
+                      </span>
+                    )}
                   </>
                 );
-                const title = `${c.filename} · ${(c.similarity * 100).toFixed(0)}% match`;
+                const title = `${c.filename}${page ? ` · ${page}` : ''} · ${(c.similarity * 100).toFixed(0)}% match`;
                 // With a destination the pill is a link to the material.
                 return sourceHref ? (
                   <Link key={c.chunk_id} href={sourceHref(c)} title={title} data-kf-source="" className="kf-pill inline-flex min-h-[2.75rem] items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

@@ -24,9 +24,10 @@ export function pr4Screens(add, { APP, SAFARI, DESK, DESKTOP }, root) {
     const p = pf === 'native' ? 'app' : 'web';
     add(`ask-empty-${p}`, 'preview/ask', { platform: pf, view: 'app' }, ua, { pr4: 'ask' });
     add(`ask-long-${p}`, 'preview/ask', { platform: pf, view: 'app' }, ua, { pr4: 'ask', act: 'converse', grow: true });
-    // History: AFTER opens the phone's drawer over the long conversation;
-    // main has no history with data, so its history view (the empty list).
-    add(`ask-history-${p}`, 'preview/ask', { platform: pf, view: 'app', open: 'c2', drawer: '1' }, ua, { pr4: 'ask', beforeQ: { platform: pf, view: 'history' } });
+    // History: the phone's drawer over the long conversation. BOTH sides now
+    // (owner, 2026-11-06): main has had view=app, open and drawer since #305,
+    // so BEFORE is the same screen, not main's empty history view.
+    add(`ask-history-${p}`, 'preview/ask', { platform: pf, view: 'app', open: 'c2', drawer: '1' }, ua, { pr4: 'ask' });
     add(`study-idle-${p}`, 'preview/subject', { platform: pf }, ua, { pr4: 'study', act: 'none', shot: 'todo' });
     add(`summary-loading-${p}`, 'preview/subject', { platform: pf }, ua, { pr4: 'study', act: 'summary-loading', shot: 'todo' });
     add(`summary-error-${p}`, 'preview/subject', { platform: pf }, ua, { pr4: 'study', act: 'summary-error', shot: 'todo' });
@@ -38,7 +39,7 @@ export function pr4Screens(add, { APP, SAFARI, DESK, DESKTOP }, root) {
   add('ask-zero-app', 'preview/ask', { platform: 'native', view: 'zero' }, APP, { pr4: 'ask' });
   add('ask-noanswer-app', 'preview/ask', { platform: 'native', view: 'noanswer' }, APP, { pr4: 'ask' });
   // A desk: the history column beside the opened long conversation.
-  add('ask-history-desk', 'preview/ask', { platform: 'web', view: 'app', open: 'c2' }, DESK, { view: DESKTOP, targets: false, pr4: 'ask', grow: true, beforeQ: { platform: 'web', view: 'history' } });
+  add('ask-history-desk', 'preview/ask', { platform: 'web', view: 'app', open: 'c2' }, DESK, { view: DESKTOP, targets: false, pr4: 'ask', grow: true });
   return LONG;
 }
 
@@ -76,7 +77,8 @@ export function pr4Mock(job, LONG, r, held) {
     const msg = JSON.parse(r.postData() || '{}').message || '';
     const first = msg === L.question;
     const files = LONG.sources[job.locale];
-    const cites = (first ? files : files.slice(0, 2)).map(([f, s], i) => ({ index: i + 1, document_id: `o${i + 1}`, chunk_id: `o${i + 1}-${first ? 'a' : 'b'}`, filename: f, similarity: s }));
+    // G2: each source carries its page ([start, end, kind]) or null, as the route sends it.
+    const cites = (first ? files : files.slice(0, 2)).map(([f, s, p], i) => ({ index: i + 1, document_id: `o${i + 1}`, chunk_id: `o${i + 1}-${first ? 'a' : 'b'}`, filename: f, similarity: s, page_start: p ? p[0] : null, page_end: p ? p[1] : null, page_kind: p ? p[2] : null }));
     return r.respond({
       status: 200,
       contentType: 'text/plain; charset=utf-8',
@@ -185,6 +187,12 @@ export async function pr4Act(tab, job, LONG) {
  *      (keyRing(), after the shot, proves Tab still draws one).
  * phraseChecks() (every screen) is the fourth: a protected phrase
  * (src/lib/keep-together.ts) never spans two lines.
+ * G2 (page numbers in citations) adds, proven blind-free by pageLabelPlant()
+ * on every Ask screen after the shot:
+ *   9. a source pill's page label ([data-kf-source-page], "p. 12", "ص 3-4",
+ *      "slide 5") sits on ONE line and wholly inside its pill; and where an
+ *      answer has source pills, at least one of them carries a label (the
+ *      preview's sources have a page, a range, a slide and a NULL).
  */
 export function pr4Checks(kind, act) {
   const findings = [];
@@ -304,6 +312,29 @@ export function pr4Checks(kind, act) {
     measured.sheetFocus = a ? (a === dlg ? 'the dialog' : label(a)) : null;
     if (a && a !== dlg && dlg.contains(a) && a.matches(':focus-visible')) findings.push(`a freshly opened sheet shows a focus ring on ${label(a)}`);
   }
+  // 9. G2: page labels, one line, inside their pill (the same rule as pageLabelPlant()).
+  if (kind === 'ask') {
+    const pills = [...document.querySelectorAll('[data-kf-source], .flex.flex-wrap[dir="ltr"] > a')].filter(vis);
+    const labels = [...document.querySelectorAll('[data-kf-source-page]')].filter(vis);
+    measured.pageLabels = labels.length;
+    measured.pageLabelTexts = labels.map((l) => (l.textContent || '').replace(/\s+/g, ' ').trim());
+    measured.unlabelledSources = pills.filter((p) => !p.querySelector('[data-kf-source-page]')).length;
+    for (const l of labels) {
+      const pill = l.closest('[data-kf-source], .kf-pill');
+      const P = pill.getBoundingClientRect(), L = l.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(l);
+      const lines = [];
+      for (const r of range.getClientRects()) {
+        if (!(r.width > 0 && r.height > 0)) continue;
+        const mid = (r.top + r.bottom) / 2;
+        if (!lines.some((x) => mid >= x.top && mid <= x.bottom)) lines.push({ top: r.top, bottom: r.bottom });
+      }
+      if (lines.length > 1) findings.push(`a page label wraps onto ${lines.length} lines: "${txt(l)}" in ${label(pill)}`);
+      if (L.left < P.left - 1 || L.right > P.right + 1 || L.top < P.top - 1 || L.bottom > P.bottom + 1 || l.scrollWidth > l.clientWidth + 1) findings.push(`a page label is clipped by its pill: "${txt(l)}" (${L.left.toFixed(0)}-${L.right.toFixed(0)} in ${P.left.toFixed(0)}-${P.right.toFixed(0)})`);
+    }
+    if (pills.length && !labels.length) findings.push(`${pills.length} source pill(s) and no page label on any (G2)`);
+  }
   // 5. The device run's own selectors.
   if (kind === 'study') {
     if (act === 'none' && document.querySelector('[data-kf-shot="done"]')) {
@@ -322,6 +353,52 @@ export function pr4Checks(kind, act) {
     if (!d || names.length !== 2 || !d.querySelector('[data-kf-consent=accept]')) findings.push(`device run: the consent sheet must name Anthropic and Voyage AI and carry its accept button (${names.join(', ')})`);
   }
   return { findings, measured };
+}
+
+/**
+ * G2, CHECK 9'S FORCED WRONG CASES (run AFTER the shot on every Ask screen).
+ * Self-contained. With a style tag it makes every page label (a) wrap, by
+ * giving it a 2-character box that may break, and (b) clipped, by narrowing
+ * its pill below the label's width with the overflow hidden; each time it
+ * applies check 9's own rule, and the tag is removed. Every label must be
+ * flagged both times; one that is not makes the check blind, which fails the
+ * run. A screen with no label reports labels 0 and no finding.
+ */
+export function pageLabelPlant() {
+  const read = () => {
+    let wraps = 0, clipped = 0;
+    const labels = [...document.querySelectorAll('[data-kf-source-page]')].filter((l) => l.getBoundingClientRect().width > 0);
+    for (const l of labels) {
+      const pill = l.closest('[data-kf-source], .kf-pill');
+      const P = pill.getBoundingClientRect(), L = l.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(l);
+      const lines = [];
+      for (const r of range.getClientRects()) {
+        if (!(r.width > 0 && r.height > 0)) continue;
+        const mid = (r.top + r.bottom) / 2;
+        if (!lines.some((x) => mid >= x.top && mid <= x.bottom)) lines.push({ top: r.top, bottom: r.bottom });
+      }
+      if (lines.length > 1) wraps++;
+      if (L.left < P.left - 1 || L.right > P.right + 1 || L.top < P.top - 1 || L.bottom > P.bottom + 1 || l.scrollWidth > l.clientWidth + 1) clipped++;
+    }
+    return { labels: labels.length, wraps, clipped };
+  };
+  const force = (css) => {
+    const tag = document.createElement('style');
+    tag.textContent = css;
+    document.head.appendChild(tag);
+    try { return read(); } finally { tag.remove(); }
+  };
+  const clean = read();
+  const wrap = force('[data-kf-source-page] { white-space: normal !important; width: 2ch !important; overflow-wrap: anywhere !important; }');
+  const clip = force('[data-kf-source], .flex.flex-wrap[dir="ltr"] > a { max-width: 4.5rem !important; overflow: hidden !important; }');
+  const n = clean.labels;
+  const blind = n > 0 && (wrap.wraps !== n || clip.clipped !== n);
+  return {
+    labels: n, wrapCaught: wrap.wraps, clipCaught: clip.clipped,
+    finding: blind ? `the page-label check is blind: ${n} label(s), forced wrap flagged ${wrap.wraps}, forced clip flagged ${clip.clipped}` : null,
+  };
 }
 
 /** The protected phrases, read from src/lib/keep-together.ts (one list). */

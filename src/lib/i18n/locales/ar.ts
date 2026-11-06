@@ -500,6 +500,11 @@ export const ar: Translation = {
     agent: {
       // Step Redesign-2, agent draft for the owner (docs/copy-drafts/redesign_v1.md).
       sources: "المصادر",
+      // G2, agent DRAFTS for the owner (docs/copy-drafts/g2_citation_pages.md).
+      sourcePage: "ص {n}",
+      sourcePages: "ص {from}-{to}",
+      sourceSlide: "شريحة {n}",
+      sourceSlides: "الشرائح {from}-{to}",
       chatWith: "تسأل عن",
       startTyping: "كل جواب يأتي من ملفات هذه المادة.",
       emptyTitle: "ما الذي يحيّرك اليوم؟",

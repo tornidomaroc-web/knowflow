@@ -12,8 +12,9 @@
     "otherQuestion": "هل يمكنك قولها بالعربية في جملة واحدة؟",
     "otherAnswer": "الإضافة تفتح الرابطة الثنائية وتضيف ذرتين، أما الاستبدال فيبدّل ذرة بأخرى ويبقي بقية الجزيء."
   },
+  "_sources": "Each source is [file name, similarity, page]: page is [start, end, kind] (G2: a single page, a range, a slide) or null (a file with no known page, as every chunk stored before G2).",
   "sources": {
-    "ar": [["ملخص الكيمياء العضوية - الفصل 7.pdf", 0.92], ["reactions-cheatsheet-v3.pdf", 0.86], ["محاضرة Reactions (2).pptx", 0.81]],
-    "en": [["Organic Chemistry summary - Chapter 7.pdf", 0.92], ["reactions-cheatsheet-v3.pdf", 0.86], ["Lecture التفاعلات (2).pptx", 0.81]]
+    "ar": [["ملخص الكيمياء العضوية - الفصل 7.pdf", 0.92, [12, 12, "page"]], ["reactions-cheatsheet-v3.pdf", 0.86, [3, 4, "page"]], ["محاضرة Reactions (2).pptx", 0.81, [5, 5, "slide"]], ["ملاحظات المحاضرة السابعة.docx", 0.78, null]],
+    "en": [["Organic Chemistry summary - Chapter 7.pdf", 0.92, [12, 12, "page"]], ["reactions-cheatsheet-v3.pdf", 0.86, [3, 4, "page"]], ["Lecture التفاعلات (2).pptx", 0.81, [5, 5, "slide"]], ["Lecture 7 notes.docx", 0.78, null]]
   }
 }

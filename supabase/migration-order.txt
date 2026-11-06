@@ -102,3 +102,9 @@
 # `apply`: plain DDL on public.documents, re-runnable (if not exists, drop
 # constraint if exists before add).
 20261103_documents_page_counts.sql  apply
+# 20261106 is the schema half of G2 (page or slide numbers in citations):
+# chunks gets page_start, page_end (integers) and page_kind ('page' | 'slide'),
+# nullable, with four named checks. No function, policy or grant change.
+# `apply`: plain DDL on public.chunks, re-runnable (if not exists, drop
+# constraint if exists before add).
+20261106_chunks_pages.sql  apply

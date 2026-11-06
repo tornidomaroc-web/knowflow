@@ -150,7 +150,11 @@ export default async function AskPreview({
     { id: 'c4', kb_id: 'k4', created_at: day(1), knowledge_bases: { name: kbs[3].name } },
     { id: 'c5', kb_id: 'k1', created_at: new Date(Date.UTC(2026, 9, 28, 18, 0)).toISOString(), knowledge_bases: { name: kbs[0].name } },
   ]
-  const chem = (i: number, id: string, f: string, sim: number) => ({ index: i, document_id: id, chunk_id: `${id}-${i}`, filename: f, similarity: sim })
+  // G2: a source's page, as the route sends it: [start, end, kind], or none.
+  const chem = (i: number, id: string, f: string, sim: number, p?: [number, number, 'page' | 'slide']) => ({
+    index: i, document_id: id, chunk_id: `${id}-${i}`, filename: f, similarity: sim,
+    page_start: p ? p[0] : null, page_end: p ? p[1] : null, page_kind: p ? p[2] : null,
+  })
   const summaryFile = ar ? 'ملخص الكيمياء العضوية - الفصل 7.pdf' : 'Organic Chemistry summary - Chapter 7.pdf'
   const historyMessages = {
     c2: [
@@ -158,14 +162,16 @@ export default async function AskPreview({
       {
         role: 'assistant',
         content: LONG[safeLocale].answer,
+        // G2: a single page, a range, a slide and a file with no known page.
         citations: [
-          chem(1, 'o1', summaryFile, 0.92),
-          chem(2, 'o2', 'reactions-cheatsheet-v3.pdf', 0.86),
-          chem(3, 'o3', ar ? 'محاضرة Reactions (2).pptx' : 'Lecture التفاعلات (2).pptx', 0.81),
+          chem(1, 'o1', summaryFile, 0.92, [12, 12, 'page']),
+          chem(2, 'o2', 'reactions-cheatsheet-v3.pdf', 0.86, [3, 4, 'page']),
+          chem(3, 'o3', ar ? 'محاضرة Reactions (2).pptx' : 'Lecture التفاعلات (2).pptx', 0.81, [5, 5, 'slide']),
+          chem(4, 'o4', ar ? 'ملاحظات المحاضرة السابعة.docx' : 'Lecture 7 notes.docx', 0.78),
         ],
       },
       { role: 'user', content: LONG[safeLocale].otherQuestion },
-      { role: 'assistant', content: LONG[safeLocale].otherAnswer, citations: [chem(1, 'o1', summaryFile, 0.9), chem(2, 'o2', 'reactions-cheatsheet-v3.pdf', 0.83)] },
+      { role: 'assistant', content: LONG[safeLocale].otherAnswer, citations: [chem(1, 'o1', summaryFile, 0.9, [12, 12, 'page']), chem(2, 'o2', 'reactions-cheatsheet-v3.pdf', 0.83, [3, 4, 'page'])] },
     ],
     c1: conversation,
   }
