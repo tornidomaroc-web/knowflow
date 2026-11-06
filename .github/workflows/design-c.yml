@@ -62,12 +62,21 @@ jobs:
           persist-credentials: false
           path: after
 
+      # before_ref is a workflow_dispatch input: it reaches the shell only
+      # through env, and only a plain branch, tag or SHA is passed on (the
+      # step's output); every later use reads that output, never the input.
+      - name: The BEFORE ref is a plain branch, tag or commit (never shell text)
+        id: before
+        env:
+          BEFORE_REF: ${{ github.event.pull_request.base.sha || inputs.before_ref || 'main' }}
+        run: node after/scripts/design-c/check-before-ref.mjs
+
       - name: Check out the base (main)
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           path: before
-          ref: ${{ github.event.pull_request.base.sha || inputs.before_ref || 'main' }}
+          ref: ${{ steps.before.outputs.ref }}
 
       - name: The contrast table is current and has no failure
         working-directory: after
@@ -115,9 +124,11 @@ jobs:
       - name: Side by side
         if: ${{ !cancelled() }}
         working-directory: after
+        env:
+          BEFORE_LABEL: ${{ github.event.pull_request && 'main' || steps.before.outputs.ref }}
         run: |
           python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
-          BEFORE_LABEL="${{ github.event.pull_request && 'main' || inputs.before_ref || 'main' }}" python3 scripts/design-c/compose.py "$RUNNER_TEMP/design-c"
+          python3 scripts/design-c/compose.py "$RUNNER_TEMP/design-c"
           cp "$RUNNER_TEMP/contrast.md" "$RUNNER_TEMP/design-c/contrast.md"
 
       - name: Server logs

@@ -543,7 +543,7 @@ export const en = {
       sendHintOther: "Ctrl + Enter to send",
       send: "Send",
       connectionError: "Connection error.",
-      newConversation: "+ New Conversation",
+      newConversation: "New Conversation",
       noHistory: "No history yet.",
       history: "History"
     },

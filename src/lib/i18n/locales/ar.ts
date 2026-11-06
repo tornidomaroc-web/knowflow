@@ -508,7 +508,7 @@ export const ar: Translation = {
       sendHintOther: "Ctrl + Enter للإرسال",
       send: "أرسل",
       connectionError: "انقطع الاتصال. حاول مرة أخرى.",
-      newConversation: "+ محادثة جديدة",
+      newConversation: "محادثة جديدة",
       noHistory: "لا محادثات بعد.",
       history: "محادثاتك"
     },

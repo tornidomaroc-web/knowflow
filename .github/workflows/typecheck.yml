@@ -248,6 +248,9 @@ jobs:
       - name: Verify the seven review points of 2026-09-25 stay fixed (register #122)
         run: node --experimental-strip-types scripts/verify-production-review-2.mjs
 
+      - name: Verify design-c's before_ref guard and the signed-in login's one retry (offline)
+        run: node scripts/verify-ci-guards.mjs
+
       # Register #123: the owner's approved Arabic microcopy batches (docs/copy/
       # ARABIC_STRINGS_*_v*.md) hold in ar.ts, and the key set, every placeholder
       # and Western digits are unchanged. A new batch file is picked up with no edit here.

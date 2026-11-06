@@ -8,9 +8,6 @@ import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { UserName } from '@/components/ui/UserName';
 import { ClayChat, ClayPlus } from '@/components/clay/ClayIcons';
 
-/** The label without a leading or trailing typed "+" (the clay plus is drawn instead). */
-const withoutTypedPlus = (label: string) => label.replace(/^\s*\+\s*|\s*\+\s*$/g, '');
-
 interface Conversation {
   id: string;
   kb_id: string;
@@ -38,12 +35,10 @@ export function ConversationSidebar({ activeId, onSelect, onNew, conversations }
       <div className="p-3">
         <button onClick={onNew} className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'w-full rounded-full')}>
           {/* The owner's review of #305: the clay plus at the start, as on the
-              home's "new subject" pill, in both languages. The approved words
-              (agent.newConversation) carry a typed "+", which drew at the end
-              of the Arabic label; it is dropped here, at render, and the
-              dictionary is left as approved. */}
+              home's "new subject" pill, in both languages. The words carry no
+              typed "+" since app v6 (owner, 2026-11-06). */}
           <ClayPlus width={20} height={20} className="shrink-0" />
-          <span>{withoutTypedPlus(t.dashboard.agent.newConversation)}</span>
+          <span>{t.dashboard.agent.newConversation}</span>
         </button>
       </div>
       <div className="flex-1 space-y-2 overflow-y-auto px-3 pb-3 pt-1">

@@ -1,6 +1,6 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-11-05 by `scripts/export-arabic-strings.mjs` from
+Generated 2026-11-06 by `scripts/export-arabic-strings.mjs` from
 `src/lib/i18n/locales/ar.ts` and `en.ts`. **429 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
@@ -547,7 +547,7 @@ file is not read by the app.
 | `dashboard.agent.sendHintOther` | Ctrl + Enter للإرسال | Ctrl + Enter to send |
 | `dashboard.agent.send` | أرسل | Send |
 | `dashboard.agent.connectionError` | انقطع الاتصال. حاول مرة أخرى. | Connection error. |
-| `dashboard.agent.newConversation` | + محادثة جديدة | + New Conversation |
+| `dashboard.agent.newConversation` | محادثة جديدة | New Conversation |
 | `dashboard.agent.noHistory` | لا محادثات بعد. | No history yet. |
 | `dashboard.agent.history` | محادثاتك | History |
 
