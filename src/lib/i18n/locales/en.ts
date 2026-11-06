@@ -533,6 +533,12 @@ export const en = {
     agent: {
       // Step Redesign-2: over the source pills under an answer.
       sources: "Sources",
+      // G2, approved by the owner 2026-11-06 (docs/copy/ARABIC_STRINGS_app_v7.md):
+      // the page or slide on a source pill. {n} {from} {to} are Western digits.
+      sourcePage: "p. {n}",
+      sourcePages: "pp. {from}-{to}",
+      sourceSlide: "slide {n}",
+      sourceSlides: "slides {from}-{to}",
       chatWith: "Asking about",
       startTyping: "Every answer comes from this subject's own materials.",
       emptyTitle: "What do you want to understand?",

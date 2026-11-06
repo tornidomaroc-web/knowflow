@@ -54,6 +54,9 @@ export type Database = {
           embedding: string | null
           id: string
           kb_id: string
+          page_end: number | null
+          page_kind: string | null
+          page_start: number | null
           token_count: number | null
         }
         Insert: {
@@ -64,6 +67,9 @@ export type Database = {
           embedding?: string | null
           id?: string
           kb_id: string
+          page_end?: number | null
+          page_kind?: string | null
+          page_start?: number | null
           token_count?: number | null
         }
         Update: {
@@ -74,6 +80,9 @@ export type Database = {
           embedding?: string | null
           id?: string
           kb_id?: string
+          page_end?: number | null
+          page_kind?: string | null
+          page_start?: number | null
           token_count?: number | null
         }
         Relationships: [

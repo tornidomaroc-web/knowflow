@@ -135,6 +135,12 @@ jobs:
       # fails unless the 26th is refused with a 429 before any model call. A
       # Free control (10, then a 429) keeps a harness that refuses nothing, or
       # everything, from passing.
+      # G2 and G4: the answer prompt names a passage's page only from its label
+      # (never invented, nothing when NULL) and keeps the file's own terms; the
+      # real /api/agent answers with and WITHOUT the page columns (before the migration).
+      - name: Verify the answer prompt's page labels and the file's own terms (G2, G4)
+        run: node --experimental-strip-types scripts/verify-answer-prompt.mjs
+
       - name: Verify Pro stops at 25 questions a day, in one conversation too (register #80(b))
         run: node --experimental-strip-types scripts/verify-pro-question-cap.mjs
 

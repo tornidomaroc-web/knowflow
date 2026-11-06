@@ -2,8 +2,9 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import { FileName } from '@/components/ui/FileName';
 import { ClayChipFile } from '@/components/clay/ClayIcons';
+import { isolatedPageLabel, pageLabelParts, type ChunkPages, type PageLabelStrings } from '@/lib/citation-pages';
 
-export interface Citation {
+export interface Citation extends ChunkPages {
   index: number;
   document_id: string;
   chunk_id: string;
@@ -24,6 +25,14 @@ interface MessageBubbleProps {
   sourceHref?: (c: Citation) => string;
   /** The heading over the source pills ("Sources" / "المصادر"). */
   sourcesLabel?: string;
+  /** G2: the words of a pill's page or slide label; without them no label is drawn. */
+  pageLabels?: PageLabelStrings;
+  /**
+   * The locale's reading direction (the layout's <html dir> rule). The pill row
+   * stays dir="ltr" (#124); only the page label's edge follows it: under the
+   * name's right edge in Arabic, its left edge in English.
+   */
+  readingDir?: 'ltr' | 'rtl';
 }
 
 /**
@@ -43,7 +52,7 @@ interface MessageBubbleProps {
  * item: a loose item holds its paragraphs between newline nodes too. The
  * student's own bubble keeps `pre-wrap`: what they typed is shown as typed.
  */
-export function MessageBubble({ role, content, isStreaming, citations, sourceHref, sourcesLabel }: MessageBubbleProps) {
+export function MessageBubble({ role, content, isStreaming, citations, sourceHref, sourcesLabel, pageLabels, readingDir = 'ltr' }: MessageBubbleProps) {
   const isUser = role === 'user';
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -103,15 +112,47 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
                 both languages, and FileName keeps the name one unit. */}
             <div className="flex flex-wrap gap-2 px-1" dir="ltr">
               {citations.map((c, i) => {
+                // G2: the page or slide, only when it is known (never a guess).
+                // #307 review (2026-11-06): the name takes line 1 at the pill's
+                // full width, balanced so no line is a lone word; the label sits
+                // on line 2 under it, smaller and muted, at the edge where the
+                // locale's reading starts (right in Arabic, left in English),
+                // with no separator. Its own run (dir="auto": "ص 12" reads right
+                // to left) with the range in a left-to-right isolate, so "3-4"
+                // never shows as "4-3" after an Arabic word. A source with no
+                // page keeps the one-line pill as before. design-c's check 9
+                // reads all of it (pr4.mjs).
+                const page = pageLabels ? pageLabelParts(c, pageLabels) : null;
+                const name = (
+                  <span data-kf-source-name="" className="[text-wrap:balance]">
+                    [{c.index}] <FileName name={c.filename} inline withoutExtension />
+                  </span>
+                );
                 const body = (
                   <>
                     <ClayChipFile tone={i % 2 ? 'blue' : 'peach'} />
-                    <span>
-                      [{c.index}] <FileName name={c.filename} inline withoutExtension />
-                    </span>
+                    {page ? (
+                      <span className={`flex min-w-0 flex-col ${readingDir === 'rtl' ? 'items-end' : 'items-start'} py-1.5 leading-tight`}>
+                        {name}
+                        <span
+                          data-kf-source-page=""
+                          data-kf-page-from={page.range ? page.from : undefined}
+                          data-kf-page-to={page.range ? page.to : undefined}
+                          dir="auto"
+                          className="whitespace-nowrap text-[0.917em] font-medium text-muted-foreground"
+                        >
+                          {page.before}
+                          {page.range && <bdi dir="ltr">{page.range}</bdi>}
+                          {page.after}
+                        </span>
+                      </span>
+                    ) : (
+                      name
+                    )}
                   </>
                 );
-                const title = `${c.filename} · ${(c.similarity * 100).toFixed(0)}% match`;
+                const pageText = pageLabels ? isolatedPageLabel(c, pageLabels) : null;
+                const title = `${c.filename}${pageText ? ` · ${pageText}` : ''} · ${(c.similarity * 100).toFixed(0)}% match`;
                 // With a destination the pill is a link to the material.
                 return sourceHref ? (
                   <Link key={c.chunk_id} href={sourceHref(c)} title={title} data-kf-source="" className="kf-pill inline-flex min-h-[2.75rem] items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

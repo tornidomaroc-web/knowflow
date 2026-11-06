@@ -113,7 +113,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { kfWording } from '../lib/app-wording.mjs';
 import { audit } from '../redesign-built/audit.mjs';
-import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing } from './pr4.mjs';
+import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing, pageLabelPlant, g2Rules } from './pr4.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -813,6 +813,8 @@ async function shoot(side, job) {
   const pr3 = job.s.pr3 ? await tab.evaluate(pr3Checks) : null;
   // reviewChecks() and deletePlant() call deleteOffset() in the page, so it is defined there first.
   await tab.evaluate(`window.deleteOffset = ${deleteOffset.toString()}`);
+  // pr4Checks() and pageLabelPlant() call g2Rules() (check 9 (a)-(c)) in the page.
+  await tab.evaluate(`window.g2Rules = ${g2Rules.toString()}`);
   const review = await tab.evaluate(reviewChecks);
   const pr4 = job.s.pr4 ? await tab.evaluate(pr4Checks, job.s.pr4, job.s.act || null) : null;
   const phrases = await tab.evaluate(phraseChecks, KEEP);
@@ -834,9 +836,11 @@ async function shoot(side, job) {
   const picker = job.s.pr3 && /preview\/subject$/.test(job.s.path) ? await tab.evaluate(pickerCheck) : null;
   const plant = /preview\/subject$/.test(job.s.path) && job.s.q.view !== 'empty' ? await tab.evaluate(deletePlant) : null;
   const ring = job.s.pr4 === 'consent' ? await keyRing(tab) : null;
+  // G2: check 9's forced wrong cases, after the shot (pr4.mjs, pageLabelPlant).
+  const labelPlant = job.s.pr4 === 'ask' ? await tab.evaluate(pageLabelPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant };
 }
 
 for (const job of JOBS) {
@@ -871,6 +875,7 @@ for (const job of JOBS) {
       ...(r.pr4 ? r.pr4.findings.map((f) => `pr4: ${f}`) : []),
       ...r.phrases.findings.map((f) => `pr4: ${f}`),
       ...(r.ring && !r.ring.ok ? [`pr4: Tab on the open sheet draws no focus ring (${JSON.stringify(r.ring)})`] : []),
+      ...(side === 'after' && r.labelPlant?.finding ? [`g2: ${r.labelPlant.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -887,7 +892,7 @@ for (const job of JOBS) {
       // What reviewChecks() read on this page.
       review: { ...r.review.measured, ...(r.plant ? { deletePlant: { cards: r.plant.cards, caught: r.plant.caught } } : {}) },
       // What pr4Checks() read, and how much of the thread the page was grown by.
-      ...(r.pr4 ? { pr4: { ...r.pr4.measured, act: job.s.act || null, grownBy: r.hidden || 0, ...(r.ring ? { tabRing: r.ring } : {}) } } : {}),
+      ...(r.pr4 ? { pr4: { ...r.pr4.measured, act: job.s.act || null, grownBy: r.hidden || 0, ...(r.ring ? { tabRing: r.ring } : {}), ...(r.labelPlant ? { pageLabelPlant: { labels: r.labelPlant.labels, wrapCaught: r.labelPlant.wrapCaught, clipCaught: r.labelPlant.clipCaught, ranges: r.labelPlant.ranges, orderCaught: r.labelPlant.orderCaught, names: r.labelPlant.names, oneWordCaught: r.labelPlant.oneWordCaught, pills: r.labelPlant.pills, bulletCaught: r.labelPlant.bulletCaught, edges: r.labelPlant.edges, edgeCaught: r.labelPlant.edgeCaught } } : {}) } } : {}),
       protectedPhrasesRead: r.phrases.read,
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no

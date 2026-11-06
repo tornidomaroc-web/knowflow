@@ -9,6 +9,8 @@ import { platformFromRequest } from '@/lib/platform';
 import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
 import { embedQuery } from '@/lib/ingestion';
 import { recordStudyEvent } from '@/lib/study-events';
+import { SYSTEM_INSTRUCTIONS, buildContextBlock, buildUserTurn } from '@/lib/answer-prompt';
+import { knownPages, type KnownPages, type PageKind } from '@/lib/citation-pages';
 import {
   USD_PER_INPUT_TOKEN,
   USD_PER_OUTPUT_TOKEN,
@@ -31,15 +33,40 @@ interface Citation {
   chunk_id: string;
   filename: string;
   similarity: number;
+  // G2: the chunk's page or slide, null when not known (src/lib/citation-pages.ts).
+  page_start: number | null;
+  page_end: number | null;
+  page_kind: PageKind | null;
 }
 
-const SYSTEM_INSTRUCTIONS = `You are KnowFlow, an intelligent assistant that answers questions strictly from the retrieved knowledge-base passages provided in the user message.
-
-Rules:
-- Always answer in the same language the user used (Arabic or English).
-- Cite the passages you use with bracketed numbers like [1], [2] that match the numbered passages in the context.
-- If the answer is not present in the passages, say so clearly. Do not fabricate.
-- Be concise. Prefer short, direct answers over long ones.`;
+/**
+ * G2: the page columns of the retrieved chunks, by id. match_chunks is not
+ * redefined (supabase/migrations/20261106_chunks_pages.sql says why); this
+ * second select runs under the same "Users can read own chunks" policy.
+ * BEST EFFORT: before the columns exist, or on any error, it returns an empty
+ * map and every citation and passage simply has no page, as before G2.
+ */
+async function chunkPages(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: string[]
+): Promise<Map<string, KnownPages>> {
+  const out = new Map<string, KnownPages>();
+  if (!ids.length) return out;
+  try {
+    const { data, error } = await supabase.from('chunks').select('id, page_start, page_end, page_kind').in('id', ids);
+    if (error) {
+      console.warn(`[chunk-pages] page columns not read (${error.code ?? 'error'}); answering without pages`);
+      return out;
+    }
+    for (const row of data ?? []) {
+      const p = knownPages(row);
+      if (p) out.set(row.id, p);
+    }
+  } catch (e) {
+    console.warn('[chunk-pages] page columns not read; answering without pages:', e);
+  }
+  return out;
+}
 
 const MATCH_COUNT = 8;
 
@@ -201,19 +228,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const citations: Citation[] = chunks.map((c, i) => ({
+    const pages = await chunkPages(supabase, chunks.map((c) => c.id));
+    const paged = chunks.map((c) => {
+      const p = pages.get(c.id);
+      return { ...c, page_start: p?.start ?? null, page_end: p?.end ?? null, page_kind: p?.kind ?? null };
+    });
+
+    const citations: Citation[] = paged.map((c, i) => ({
       index: i + 1,
       document_id: c.document_id,
       chunk_id: c.id,
       filename: c.filename,
       similarity: c.similarity,
+      page_start: c.page_start,
+      page_end: c.page_end,
+      page_kind: c.page_kind,
     }));
 
-    const contextBlock = chunks.length
-      ? chunks
-          .map((c, i) => `[${i + 1}] (${c.filename})\n${c.content}`)
-          .join('\n\n---\n\n')
-      : '(no relevant passages found)';
+    // G2: "[1] (file, p. 12)" when the page is known, "[1] (file)" as before when not.
+    const contextBlock = buildContextBlock(paged);
 
     // 2. Conversation bookkeeping.
     let convoId = conversation_id;
@@ -272,8 +305,9 @@ export async function POST(request: Request) {
     // THE `cache_control` MARKER THAT USED TO SIT ON SYSTEM_INSTRUCTIONS IS GONE,
     // AND IT IS NOT COMING BACK ON THIS MODEL. It read
     // `cache_control: { type: 'ephemeral' }` and cached NOTHING: Haiku 4.5's
-    // minimum cacheable prefix is 4,096 tokens and SYSTEM_INSTRUCTIONS is 482
-    // characters, roughly 110 tokens. Below the minimum the API does not error -
+    // minimum cacheable prefix is 4,096 tokens and SYSTEM_INSTRUCTIONS was 482
+    // characters, roughly 110 tokens (1,137 characters, roughly 280 tokens,
+    // since G2 and G4 added three rules: still far below the minimum). Below the minimum the API does not error -
     // it returns `cache_creation_input_tokens: 0` and moves on, so the marker
     // bought nothing while reading as though caching were handled.
     //
@@ -286,7 +320,7 @@ export async function POST(request: Request) {
     // worst-case question, where caching 1,200 tokens of history would save about
     // a tenth of a cent. Padding the system prompt to 4,096 tokens to qualify
     // would mean paying a 1.25x cache WRITE to store filler.
-    const userTurn = `Retrieved passages:\n\n${contextBlock}\n\n---\n\nQuestion: ${message}`;
+    const userTurn = buildUserTurn(contextBlock, message);
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
 
