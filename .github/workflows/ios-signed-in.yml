@@ -247,6 +247,14 @@ jobs:
       # tokens here, replaced inside the app from the launch environment. Every
       # later step is a navigation or a scroll, each followed by the probe and a
       # screenshot. `l` is the locale the page is on.
+      # ONE bounded retry (after runs 41900798085 and 42119005079 lost their sign-in
+      # to WebKit code=-1200 on the submit, the button back to "Sign In" after
+      # 77-108 s): if the button returns to its first label, enabled, after it
+      # was busy, and the dashboard was not reached, the login step fills and
+      # submits ONCE more, never twice; 180 s covers both. sessionStorage
+      # kfLoginRetry = 0 | 1 | 1 failed; the home reading carries it
+      # ("/en/dashboard retry=0") and the sign-in assert line prints it.
+      # Proof, offline: scripts/verify-ci-guards.mjs.
       # The pre-clear steps: App Review twice left the reviewer account with the
       # AI permission given (run 40266099159; read in the database 2026-10-28),
       # and then the quiz opened no sheet. If Settings reads "on" before the
@@ -264,8 +272,8 @@ jobs:
           cat > "$RUNNER_TEMP/steps.json" <<'JSON'
           [
             {"name":"google-hint","wait":500,"js":"(function(){var h=document.querySelector('[data-kf-google-hint]');if(!h){return 'no hint'}var a=h.querySelector('a');var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]'),f=e&&e.form,b=f&&f.querySelector('button[type=submit]');var fld=function(x){if(!x){return null}var r=x.getBoundingClientRect();return {type:x.type,clay:x.classList.contains('kf-field'),h:Math.round(r.height),fs:parseFloat(getComputedStyle(x).fontSize)}};var br=b?b.getBoundingClientRect():null;var lay={email:fld(e),password:fld(p),submit:b?{gold:b.classList.contains('kf-gold'),bg:getComputedStyle(b).backgroundColor,h:Math.round(br.height),w:Math.round(br.width)}:null};return (h.innerText||'').replace(/\\s+/g,' ').trim()+' | '+(a?a.getAttribute('href'):'no link')+' || '+JSON.stringify(lay)})()"},
-            {"name":"login","until":"/(en|ar)/dashboard$","timeout":60000,"wait":3000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);var f=e.form;if(!f){return 'no form'}setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted'})()"},
-            {"name":"home","wait":3000,"js":"(function(){window.scrollTo(0,0);return location.pathname})()"},
+            {"name":"login","until":"/(en|ar)/dashboard$","timeout":180000,"wait":3000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}var f=e.form;if(!f){return 'no form'}var K=function(v){try{sessionStorage.setItem('kfLoginRetry',v)}catch(x){}};var D=function(s){if(s.arrived){return 'done'}if(!s.busySeen||!s.reset){return 'wait'}return s.retries<1?'retry':'fail'};var btn=function(){return f.querySelector('button[type=submit]')};var b0=btn(),label=b0?(b0.innerText||'').trim():'';var go=function(){set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100)};var st={retries:0,busySeen:false};K('0');go();var iv=setInterval(function(){var b=btn(),t=b?(b.innerText||'').trim():'';var reset=!!b&&!b.disabled&&t===label;if(!reset){st.busySeen=true}var d=D({arrived:/^\\/(en|ar)\\/dashboard$/.test(location.pathname),busySeen:st.busySeen,reset:reset,retries:st.retries});if(d==='retry'){st.retries=1;st.busySeen=false;K('1');go()}else if(d==='fail'){K('1 failed');clearInterval(iv)}else if(d==='done'){clearInterval(iv)}},500);return 'submitted'})()"},
+            {"name":"home","wait":3000,"js":"(function(){window.scrollTo(0,0);var r='?';try{r=sessionStorage.getItem('kfLoginRetry')||'?'}catch(x){}return location.pathname+' retry='+r})()"},
             {"name":"home-bottom","wait":1500,"js":"(function(){window.scrollTo(0,document.body.scrollHeight);return 'scrolled '+document.body.scrollHeight})()"},
             {"name":"pre-clear-settings","until":"/dashboard/settings$","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings link'}a.click();return 'clicked Settings'})()"},
             {"name":"pre-clear","wait":5000,"js":"(function(){var c=document.querySelector('[data-kf-consent-state]');if(!c){return 'pre-clear: no consent card'}var s=c.getAttribute('data-kf-consent-state');if(s==='off'){return 'pre-clear: already off'}if(s!=='on'){return 'pre-clear: unknown state '+s}var b=document.querySelector('[data-kf-consent=withdraw]');if(!b){return 'pre-clear: was on, no withdraw button'}b.click();return 'pre-clear: was on, clicked withdraw'})()"},
@@ -387,7 +395,7 @@ jobs:
           need(by.get("login", {}).get("result") == "submitted", f"the login form was filled and submitted: {by.get('login', {}).get('result')}")
           H = P("home")
           need(re.search(r"/(en|ar)/dashboard$", url(H)), f"the dashboard opened after sign-in: {H.get('href')}")
-          need(H.get("signedIn") is True, f"...signed in (the Settings link is in the chrome): {H.get('signedIn')}")
+          need(H.get("signedIn") is True, f"...signed in (the Settings link is in the chrome): {H.get('signedIn')} ({by.get('home', {}).get('result')})")
           S = P("subject")
           need(re.search(r"/dashboard/knowledge/[0-9a-f-]{36}$", url(S)), f"a subject opened: {S.get('href')}")
           need("photosynthesis" in (S.get("text", "") or "").lower(), f"...and it lists the seeded material: {S.get('text', '')[:120]}")
