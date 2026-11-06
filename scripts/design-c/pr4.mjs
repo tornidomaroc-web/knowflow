@@ -202,6 +202,16 @@ export async function pr4Act(tab, job, LONG) {
  *      "slide 5") sits on ONE line and wholly inside its pill; and where an
  *      answer has source pills, at least one of them carries a label (the
  *      preview's sources have a page, a range, a slide and a NULL).
+ *      The #307 review (2026-11-06, on bfe04a2's renders) adds, each proven
+ *      to fail on a forced wrong case by pageLabelPlant():
+ *      (a) a range ([data-kf-page-from] / [data-kf-page-to]) shows its two
+ *          numbers in the English order, the first LEFT of the second, in
+ *          both locales (bfe04a2 drew "ص 3-4" as "4-3": bidi rule W2);
+ *      (b) a pill name ([data-kf-source-name]) that wraps has no line of one
+ *          word ("[n]" is not a word) and no line that starts or ends with a
+ *          hyphen or dash ("reactions-cheatsheet-" / "v3" on bfe04a2);
+ *      (c) no "•" or "·" anywhere in a pill (bfe04a2's separator sat on the
+ *          wrong side in Arabic; the label now has its own line).
  */
 export function pr4Checks(kind, act) {
   const findings = [];
@@ -343,6 +353,11 @@ export function pr4Checks(kind, act) {
       if (L.left < P.left - 1 || L.right > P.right + 1 || L.top < P.top - 1 || L.bottom > P.bottom + 1 || l.scrollWidth > l.clientWidth + 1) findings.push(`a page label is clipped by its pill: "${txt(l)}" (${L.left.toFixed(0)}-${L.right.toFixed(0)} in ${P.left.toFixed(0)}-${P.right.toFixed(0)})`);
     }
     if (pills.length && !labels.length) findings.push(`${pills.length} source pill(s) and no page label on any (G2)`);
+    // (a)-(c): g2Rules(), defined in the page by render.mjs first (one copy, shared with pageLabelPlant()).
+    const g2 = window.g2Rules();
+    measured.ranges = g2.ranges;
+    measured.nameLines = g2.nameLines;
+    for (const f of g2.findings) findings.push(f);
   }
   // 5. The device run's own selectors.
   if (kind === 'study') {
@@ -368,7 +383,7 @@ export function pr4Checks(kind, act) {
  * G2, CHECK 9'S FORCED WRONG CASES (run AFTER the shot on every Ask screen).
  * Self-contained. With a style tag it makes every page label (a) wrap, by
  * giving it a 2-character box that may break, and (b) clipped, by narrowing
- * its pill below the label's width with the overflow hidden; each time it
+ * its pill (2rem) below the label's width with the overflow hidden; each time it
  * applies check 9's own rule, and the tag is removed. Every label must be
  * flagged both times; one that is not makes the check blind, which fails the
  * run. A screen with no label reports labels 0 and no finding.
@@ -401,13 +416,106 @@ export function pageLabelPlant() {
   };
   const clean = read();
   const wrap = force('[data-kf-source-page] { white-space: normal !important; width: 2ch !important; overflow-wrap: anywhere !important; }');
-  const clip = force('[data-kf-source], .flex.flex-wrap[dir="ltr"] > a { max-width: 4.5rem !important; overflow: hidden !important; }');
+  // 2rem, not bfe04a2's 4.5rem: with the label on its own line under the name, a 4.5rem pill still holds it.
+  const clip = force('[data-kf-source], .flex.flex-wrap[dir="ltr"] > a { max-width: 2rem !important; overflow: hidden !important; }');
   const n = clean.labels;
-  const blind = n > 0 && (wrap.wraps !== n || clip.clipped !== n);
+  // (a) bfe04a2's shape on every range: the isolate removed and an Arabic word
+  //     before the numbers ("ص 3-4" as plain text, dir="auto"), which the bidi
+  //     algorithm draws "4-3"; restored after the read.
+  const ranges = [...document.querySelectorAll('[data-kf-page-from][data-kf-page-to]')].filter((l) => l.getBoundingClientRect().width > 0);
+  const before = window.g2Rules();
+  const saved = ranges.map((l) => [l, [...l.childNodes], l.getAttribute('dir')]);
+  for (const l of ranges) { l.setAttribute('dir', 'auto'); l.textContent = `ص ${l.dataset.kfPageFrom}-${l.dataset.kfPageTo}`; }
+  let order;
+  try { order = window.g2Rules(); } finally { for (const [l, kids, dir] of saved) { l.replaceChildren(...kids); if (dir === null) l.removeAttribute('dir'); else l.setAttribute('dir', dir); } }
+  // (b) every name forced to its narrowest box: each word on a line of its own.
+  const tag = document.createElement('style');
+  tag.textContent = '[data-kf-source-name] { width: min-content !important; }';
+  document.head.appendChild(tag);
+  let narrow;
+  try { narrow = window.g2Rules(); } finally { tag.remove(); }
+  // (c) a "•" appended to every pill.
+  const pills = [...document.querySelectorAll('[data-kf-source], .flex.flex-wrap[dir="ltr"] > a')].filter((p) => p.getBoundingClientRect().width > 0);
+  const dots = pills.map((p) => p.appendChild(Object.assign(document.createElement('span'), { textContent: ' •' })));
+  let dotted;
+  try { dotted = window.g2Rules(); } finally { for (const d of dots) d.remove(); }
+  const after = window.g2Rules();
+  const blind = (n > 0 && (wrap.wraps !== n || clip.clipped !== n))
+    || order.reversed !== ranges.length || narrow.badNames !== narrow.names || dotted.dotted !== pills.length
+    || after.findings.length !== before.findings.length;
   return {
     labels: n, wrapCaught: wrap.wraps, clipCaught: clip.clipped,
-    finding: blind ? `the page-label check is blind: ${n} label(s), forced wrap flagged ${wrap.wraps}, forced clip flagged ${clip.clipped}` : null,
+    ranges: ranges.length, orderCaught: order.reversed,
+    names: narrow.names, oneWordCaught: narrow.badNames,
+    pills: pills.length, bulletCaught: dotted.dotted,
+    finding: blind ? `the page-label check is blind: ${n} label(s), forced wrap flagged ${wrap.wraps}, forced clip flagged ${clip.clipped}; ${ranges.length} range(s), reversed flagged ${order.reversed}; ${narrow.names} name(s), one-word lines flagged ${narrow.badNames}; ${pills.length} pill(s), "•" flagged ${dotted.dotted}; ${before.findings.length} finding(s) before forcing, ${after.findings.length} after restoring` : null,
   };
+}
+
+/**
+ * Check 9 (a)-(c), IN THE PAGE (render.mjs defines it as window.g2Rules before
+ * pr4Checks() and pageLabelPlant() run). Returns the findings and the counts
+ * the forced cases compare against.
+ *   (a) each range's two numbers: the first's left edge left of the second's;
+ *   (b) each pill name, its characters grouped into visual lines: when it
+ *       wraps, every line has two words or more ("[n]" not counted) and no
+ *       line starts or ends with a hyphen or dash;
+ *   (c) no "•" or "·" in any pill's text.
+ */
+export function g2Rules() {
+  const findings = [];
+  const vis = (el) => el.getBoundingClientRect().width > 0;
+  const short = (s) => s.replace(/\s+/g, ' ').trim().slice(0, 40);
+  const charRect = (node, i) => {
+    const r = document.createRange();
+    r.setStart(node, i);
+    r.setEnd(node, i + 1);
+    return [...r.getClientRects()].find((x) => x.width > 0 && x.height > 0) || null;
+  };
+  // (a)
+  let reversed = 0;
+  const ranges = [];
+  for (const l of [...document.querySelectorAll('[data-kf-page-from][data-kf-page-to]')].filter(vis)) {
+    const from = l.dataset.kfPageFrom, to = l.dataset.kfPageTo, want = `${from}-${to}`;
+    let a = null, b = null;
+    const tw = document.createTreeWalker(l, NodeFilter.SHOW_TEXT);
+    for (let n = tw.nextNode(); n && !a; n = tw.nextNode()) {
+      const at = n.data.indexOf(want);
+      if (at >= 0) { a = charRect(n, at); b = charRect(n, at + from.length + 1); }
+    }
+    const ok = !!(a && b) && a.left < b.left;
+    ranges.push(`${short(l.textContent)}: ${a && b ? (ok ? `${from} left of ${to}` : `${to} left of ${from}`) : 'numbers not found'}`);
+    if (!ok) { reversed++; findings.push(`a page range reads backwards on screen: "${short(l.textContent)}" shows ${to} before ${from}`); }
+  }
+  // (b)
+  let names = 0, badNames = 0;
+  const nameLines = [];
+  for (const el of [...document.querySelectorAll('[data-kf-source-name]')].filter(vis)) {
+    names++;
+    const lines = [];
+    const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+      for (let i = 0; i < n.data.length; i++) {
+        const rc = charRect(n, i);
+        if (!rc) { if (lines.length) lines[lines.length - 1].s += n.data[i]; continue; }
+        const mid = (rc.top + rc.bottom) / 2;
+        let line = lines.find((x) => mid >= x.top && mid <= x.bottom);
+        if (!line) { line = { top: rc.top, bottom: rc.bottom, s: '' }; lines.push(line); }
+        line.s += n.data[i];
+      }
+    }
+    const texts = lines.sort((x, y) => x.top - y.top).map((x) => x.s.replace(/\s+/g, ' ').trim());
+    nameLines.push(texts.join(' / '));
+    if (texts.length < 2) continue;
+    const bad = texts.filter((t) => t.split(' ').filter((w) => w && !/^\[\d+\]$/.test(w)).length < 2 || /^[-‐‑–—]|[-‐‑–—]$/.test(t));
+    if (bad.length) { badNames++; findings.push(`a source name wraps badly: ${texts.map((t) => `"${t}"`).join(' / ')}`); }
+  }
+  // (c)
+  let dotted = 0;
+  for (const p of [...document.querySelectorAll('[data-kf-source], .flex.flex-wrap[dir="ltr"] > a')].filter(vis)) {
+    if (/[•·]/.test(p.textContent || '')) { dotted++; findings.push(`a "•" in a source pill: "${short(p.textContent)}"`); }
+  }
+  return { findings, reversed, ranges, names, badNames, nameLines, dotted };
 }
 
 /** The protected phrases, read from src/lib/keep-together.ts (one list). */

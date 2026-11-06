@@ -2,7 +2,7 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import { FileName } from '@/components/ui/FileName';
 import { ClayChipFile } from '@/components/clay/ClayIcons';
-import { pageLabel, type ChunkPages, type PageLabelStrings } from '@/lib/citation-pages';
+import { isolatedPageLabel, pageLabelParts, type ChunkPages, type PageLabelStrings } from '@/lib/citation-pages';
 
 export interface Citation extends ChunkPages {
   index: number;
@@ -107,25 +107,45 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
             <div className="flex flex-wrap gap-2 px-1" dir="ltr">
               {citations.map((c, i) => {
                 // G2: the page or slide, only when it is known (never a guess).
-                // Its own isolated run (dir="auto": "ص 12" reads right to left
-                // inside the ltr row), never wrapped and never shrunk, so the
-                // name gives way first; design-c's render check reads it.
-                const page = pageLabels ? pageLabel(c, pageLabels) : null;
+                // #307 review (2026-11-06): the name takes line 1 at the pill's
+                // full width, balanced so no line is a lone word; the label sits
+                // on line 2 under it, smaller and muted, at the same start edge,
+                // with no separator. Its own run (dir="auto": "ص 12" reads right
+                // to left) with the range in a left-to-right isolate, so "3-4"
+                // never shows as "4-3" after an Arabic word. A source with no
+                // page keeps the one-line pill as before. design-c's check 9
+                // reads all of it (pr4.mjs).
+                const page = pageLabels ? pageLabelParts(c, pageLabels) : null;
+                const name = (
+                  <span data-kf-source-name="" className="[text-wrap:balance]">
+                    [{c.index}] <FileName name={c.filename} inline withoutExtension />
+                  </span>
+                );
                 const body = (
                   <>
                     <ClayChipFile tone={i % 2 ? 'blue' : 'peach'} />
-                    <span>
-                      [{c.index}] <FileName name={c.filename} inline withoutExtension />
-                    </span>
-                    {page && (
-                      <span data-kf-source-page="" dir="auto" className="shrink-0 whitespace-nowrap text-muted-foreground">
-                        <span aria-hidden="true">· </span>
-                        {page}
+                    {page ? (
+                      <span className="flex min-w-0 flex-col items-start py-1.5 leading-tight">
+                        {name}
+                        <span
+                          data-kf-source-page=""
+                          data-kf-page-from={page.range ? page.from : undefined}
+                          data-kf-page-to={page.range ? page.to : undefined}
+                          dir="auto"
+                          className="whitespace-nowrap text-[0.917em] font-medium text-muted-foreground"
+                        >
+                          {page.before}
+                          {page.range && <bdi dir="ltr">{page.range}</bdi>}
+                          {page.after}
+                        </span>
                       </span>
+                    ) : (
+                      name
                     )}
                   </>
                 );
-                const title = `${c.filename}${page ? ` · ${page}` : ''} · ${(c.similarity * 100).toFixed(0)}% match`;
+                const pageText = pageLabels ? isolatedPageLabel(c, pageLabels) : null;
+                const title = `${c.filename}${pageText ? ` · ${pageText}` : ''} · ${(c.similarity * 100).toFixed(0)}% match`;
                 // With a destination the pill is a link to the material.
                 return sourceHref ? (
                   <Link key={c.chunk_id} href={sourceHref(c)} title={title} data-kf-source="" className="kf-pill inline-flex min-h-[2.75rem] items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

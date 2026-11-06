@@ -54,6 +54,45 @@ export function pageLabel(c: ChunkPages | null | undefined, s: PageLabelStrings)
   return tpl.replace('{n}', String(p.start)).replace('{from}', String(p.start)).replace('{to}', String(p.end));
 }
 
+/**
+ * The pill's label in pieces, so the screen can isolate a range: `before` and
+ * `after` are the template's words, `range` is "{from}-{to}" ("3-4") or null
+ * for a single page or slide. Joined, the pieces are exactly pageLabel().
+ *
+ * Why (#307 review, 2026-11-06): after an Arabic letter the Unicode bidi
+ * algorithm turns the digits into Arabic numbers (rule W2), the hyphen between
+ * them stops joining them (W4 joins European numbers only), and "ص 3-4" shows
+ * as "4-3". A left-to-right isolate around the range alone keeps 3-4 in both
+ * languages; the approved strings are unchanged.
+ */
+export interface PageLabelParts {
+  before: string;
+  range: string | null;
+  after: string;
+  from: number;
+  to: number;
+}
+
+export function pageLabelParts(c: ChunkPages | null | undefined, s: PageLabelStrings): PageLabelParts | null {
+  const p = knownPages(c);
+  if (!p) return null;
+  const one = p.start === p.end;
+  const tpl = p.kind === 'slide' ? (one ? s.sourceSlide : s.sourceSlides) : one ? s.sourcePage : s.sourcePages;
+  const at = one ? -1 : tpl.indexOf('{from}-{to}');
+  if (at < 0) {
+    const text = tpl.replace('{n}', String(p.start)).replace('{from}', String(p.start)).replace('{to}', String(p.end));
+    return { before: text, range: null, after: '', from: p.start, to: p.end };
+  }
+  return { before: tpl.slice(0, at), range: `${p.start}-${p.end}`, after: tpl.slice(at + '{from}-{to}'.length), from: p.start, to: p.end };
+}
+
+/** pageLabel() for plain text that may sit in either direction (a title): the range inside LRI ... PDI. */
+export function isolatedPageLabel(c: ChunkPages | null | undefined, s: PageLabelStrings): string | null {
+  const q = pageLabelParts(c, s);
+  if (!q) return null;
+  return q.range ? `${q.before}⁦${q.range}⁩${q.after}` : q.before;
+}
+
 /** The label the MODEL sees in its context, in English whatever the answer's language. */
 export function contextPageLabel(c: ChunkPages | null | undefined): string | null {
   return pageLabel(c, { sourcePage: 'p. {n}', sourcePages: 'pp. {from}-{to}', sourceSlide: 'slide {n}', sourceSlides: 'slides {from}-{to}' });

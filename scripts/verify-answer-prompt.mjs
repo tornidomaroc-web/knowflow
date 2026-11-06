@@ -102,7 +102,7 @@ Date.now = () => (clock += 3000);
 
 const imp = (p) => import(pathToFileURL(resolvePath(ROOT, p)).href);
 const { SYSTEM_INSTRUCTIONS, buildContextBlock, buildUserTurn, passageLabel } = await imp('src/lib/answer-prompt.ts');
-const { knownPages, pageLabel } = await imp('src/lib/citation-pages.ts');
+const { knownPages, pageLabel, pageLabelParts, isolatedPageLabel } = await imp('src/lib/citation-pages.ts');
 const { en } = await imp('src/lib/i18n/locales/en.ts');
 const { ar } = await imp('src/lib/i18n/locales/ar.ts');
 
@@ -149,6 +149,15 @@ need(JSON.stringify(labels(ar)) === JSON.stringify(['ص 12', 'ص 3-4', 'شريح
 need(pageLabel(P('d.pptx', '', 5, 6, 'slide'), ar.dashboard.agent) === 'شرائح 5-6', 'Arabic slide range: شرائح 5-6 (approved app v7)');
 need(pageLabel(P('d.pptx', '', 5, 6, 'slide'), en.dashboard.agent) === 'slides 5-6', 'English slide range: slides 5-6');
 need(!labels(ar).concat(labels(en)).join('').match(/[٠-٩۰-۹]/), 'Western digits only');
+// #307 review: the pill draws the range in its own left-to-right isolate; the pieces join to the approved words.
+const joined = (q) => (q ? q.before + (q.range ?? '') + q.after : null);
+for (const dict of [en, ar]) {
+  const cases = [...four, P('d.pptx', '', 5, 6, 'slide'), P('e.pptx', '', 7, 7, 'slide')];
+  need(cases.every((c) => joined(pageLabelParts(c, dict.dashboard.agent)) === pageLabel(c, dict.dashboard.agent)), `${dict === en ? 'English' : 'Arabic'}: the label's pieces join to pageLabel() exactly`);
+}
+need(JSON.stringify(pageLabelParts(P('c.pdf', '', 3, 4, 'page'), ar.dashboard.agent)) === JSON.stringify({ before: 'ص ', range: '3-4', after: '', from: 3, to: 4 }), 'Arabic page range in pieces: "ص " + isolate "3-4"');
+need(pageLabelParts(P('c.pdf', '', 12, 12, 'page'), ar.dashboard.agent)?.range === null, 'a single page has no range to isolate');
+need(isolatedPageLabel(P('d.pptx', '', 7, 8, 'slide'), ar.dashboard.agent) === 'شرائح ⁦7-8⁩', 'the title text: the range inside LRI ... PDI');
 
 // ── 3. the route ────────────────────────────────────────────────────────────
 const { POST } = await imp('src/app/api/agent/route.ts');
