@@ -13,7 +13,7 @@ from fastapi import FastAPI, UploadFile, File, Form, Header, HTTPException, Body
 from fastapi.responses import JSONResponse
 from markitdown import MarkItDown
 from pdfminer.converter import PDFPageAggregator
-from pdfminer.layout import LTChar, LTContainer
+from pdfminer.layout import LAParams, LTChar, LTContainer, LTText, LTTextBox, LTTextLine
 from pdfminer.pdfinterp import PDFPageInterpreter, PDFResourceManager
 from pdfminer.pdfpage import PDFPage
 from postgrest.exceptions import APIError
@@ -199,6 +199,303 @@ def _pdf_page_counts(path: str) -> PageCounts | None:
     except Exception as e:  # noqa: BLE001 - a measure, never a reason to fail an upload
         print(f"page count failed: {type(e).__name__}", flush=True)
         return None
+
+
+# Arabic PDFs: pdfminer writes each line's characters in the order the PDF
+# draws them, left to right (visual order), so an Arabic line came out
+# reversed ("تنتج جزيئة" stored as "ةئيزج جتنت"). _pdf_logical_text redoes
+# MarkItDown's own pdfminer pass and turns every line that holds an Arabic or
+# Hebrew letter back into reading order; every other line is written exactly
+# as before. It is used only when the same pass, left unturned, reproduces
+# MarkItDown's text byte for byte, so it can never change anything else.
+_RTL = ("R", "AL")
+_MIRROR = str.maketrans("()[]{}<>«»", ")(][}{><»«")
+_BRACKETS = {")": "(", "]": "[", "}": "{"}
+
+
+def _has_rtl(text: str) -> bool:
+    return any(unicodedata.bidirectional(ch) in _RTL for ch in text)
+
+
+def _unit_class(unit: str) -> str:
+    """R for an Arabic or Hebrew glyph, L for a Latin letter or a digit, N else."""
+    for ch in unit:
+        c = unicodedata.bidirectional(ch)
+        if c in _RTL:
+            return "R"
+        if c in ("L", "EN", "AN"):
+            return "L"
+    return "N"
+
+
+def _is_letter(unit: str) -> bool:
+    """A left-to-right letter (Latin and the like), not a digit."""
+    return any(unicodedata.bidirectional(ch) == "L" for ch in unit)
+
+
+def _joins_digits(gap: list[str]) -> bool:
+    """Whether the neutrals between two numbers keep them one number.
+
+    Unicode bidi (UAX #9, W2 and W4): a number after an Arabic letter is an
+    Arabic number, and two of them stay one only across a single comma, full
+    stop, colon or slash ("3.5", "1,000", "3/4"). Across a hyphen they are two,
+    and a browser draws the Arabic "3-4" as "4-3" (WeasyPrint does).
+    """
+    text = "".join(gap)
+    return text == "" or (len(text) == 1 and unicodedata.bidirectional(text) == "CS")
+
+
+def _balanced(text: str) -> bool:
+    stack = []
+    for ch in text:
+        if ch in "([{":
+            stack.append(ch)
+        elif ch in _BRACKETS:
+            if not stack or stack.pop() != _BRACKETS[ch]:
+                return False
+    return not stack
+
+
+def _rtl_span(units: list[str], classes: list[str]) -> tuple[str, str]:
+    """A right-to-left stretch, given in visual order: (as read, brackets mirrored).
+
+    Left-to-right runs keep their order: Latin words with the neutrals between
+    them ("ATP", "Robert Hooke"), a number ("1665", "3.5"), and a number that
+    follows a Latin word in the same run ("ATP-3"). Everything else is right
+    to left. The runs are put back in reading order and each right-to-left run
+    is reversed unit by unit, so a ligature's text ("لا", already in reading
+    order) stays whole.
+    """
+    runs: list[tuple[bool, list[str]]] = []
+    i, n = 0, len(units)
+    while i < n:
+        if classes[i] == "L":
+            j = last = i
+            seen_letter = _is_letter(units[i])
+            while j < n and classes[j] != "R":
+                if classes[j] == "L" and j > last:
+                    if _is_letter(units[j]):
+                        if not _is_letter(units[last]) and not seen_letter and j > last + 1:
+                            break  # a number, a space, a Latin word: two runs
+                        seen_letter = True
+                    elif not seen_letter and not _joins_digits(units[last + 1:j]):
+                        break
+                    last = j
+                j += 1
+            runs.append((True, units[i:last + 1]))
+            i = last + 1
+        else:
+            j = i
+            while j < n and classes[j] != "L":
+                j += 1
+            runs.append((False, units[i:j][::-1]))
+            i = j
+    runs.reverse()
+    plain = "".join("".join(u) for _, u in runs)
+    mirrored = "".join("".join(u) if ltr else "".join(u).translate(_MIRROR) for ltr, u in runs)
+    return plain, mirrored
+
+
+def _visual_to_logical(units: list[str]) -> str:
+    """One line's glyph texts, left to right as drawn, in reading order.
+
+    A line with at least as many right-to-left glyphs as Latin letters reads
+    right to left as a whole. Otherwise it reads left to right and only each
+    stretch from a right-to-left glyph to the last one before the next Latin
+    letter is turned. Brackets are mirrored only when the plain result leaves
+    them unbalanced and mirroring balances them: some generators map a
+    bracket glyph to the character it means, others to the shape drawn.
+    """
+    classes = [_unit_class(u) for u in units]
+    is_letter = _is_letter
+    rtl = classes.count("R")
+    ltr = sum(1 for u, c in zip(units, classes) if c == "L" and is_letter(u))
+    if rtl == 0:
+        return "".join(units)
+    if rtl >= ltr:
+        spans = [(True, units, classes)]
+    else:
+        spans, i, n = [], 0, len(units)
+        while i < n:
+            if classes[i] != "R":
+                spans.append((False, [units[i]], None))
+                i += 1
+                continue
+            j = last = i
+            while j < n and not (classes[j] == "L" and is_letter(units[j])):
+                if classes[j] == "R":
+                    last = j
+                j += 1
+            spans.append((True, units[i:last + 1], classes[i:last + 1]))
+            i = last + 1
+    plain, mirrored = [], []
+    for turned, us, cs in spans:
+        if turned:
+            p, m = _rtl_span(us, cs)
+        else:
+            p = m = "".join(us)
+        plain.append(p)
+        mirrored.append(m)
+    p, m = "".join(plain), "".join(mirrored)
+    return m if not _balanced(p) and _balanced(m) else p
+
+
+def _line_units(line: LTTextLine) -> list[str]:
+    """The line's glyph texts, left to right, without its closing newline.
+
+    A combining mark (a haraka) is joined to the glyph it sits over, so it
+    stays after its letter when the line is turned.
+    """
+    items = [c for c in line if isinstance(c, LTText)]
+    if items and items[-1].get_text() == "\n":
+        items = items[:-1]
+    units: list[str] = []
+    prev: LTChar | None = None
+    pending = ""  # marks drawn before the glyph they sit over
+    for idx, c in enumerate(items):
+        t = c.get_text()
+        if isinstance(c, LTChar) and t and all(unicodedata.category(ch) == "Mn" for ch in t):
+            mid = (c.x0 + c.x1) / 2
+            nxt = next((o for o in items[idx + 1:] if isinstance(o, LTChar)), None)
+            over_prev = prev is not None and prev.x0 <= mid <= prev.x1
+            over_next = nxt is not None and nxt.x0 <= mid <= nxt.x1
+            if over_next and not over_prev:
+                pending += t
+            elif units:
+                units[-1] += t
+            else:
+                pending += t
+            continue
+        units.append(t + pending)
+        pending = ""
+        if isinstance(c, LTChar):
+            prev = c
+    if pending:
+        units.append(pending)
+    return units
+
+
+def _same_row(a: LTTextLine, b: LTTextLine) -> tuple[bool, float]:
+    """Whether b continues a on the same baseline, touching it on the right."""
+    h = max(a.height, b.height, 1.0)
+    gap = b.x0 - a.x1
+    same = abs(a.y0 - b.y0) <= 0.2 * h and abs(a.y1 - b.y1) <= 0.2 * h and -0.5 <= gap <= 0.25 * h
+    return same, gap / h
+
+
+def _pdf_logical_text(path: str) -> tuple[str, str]:
+    """(raw, logical): pdfminer.high_level.extract_text's output for `path`, and
+    the same with every right-to-left line in reading order.
+
+    The walk is TextConverter.receive_layout's (pdfminer 20260107) with the
+    default LAParams, as MarkItDown calls it: each text line's characters,
+    a newline after each text box, a form feed after each page. For the
+    logical text, lines on one baseline whose edges touch (a generator that
+    draws the digits or Latin words of an Arabic line as runs of their own)
+    are joined first, when one of them holds a right-to-left letter.
+    """
+    rsrc = PDFResourceManager(caching=True)
+    device = PDFPageAggregator(rsrc, laparams=LAParams())
+    interpreter = PDFPageInterpreter(rsrc, device)
+    raw: list[str] = []
+    out: list[str] = []
+    with open(path, "rb") as fp:
+        for page in PDFPage.get_pages(fp, caching=True):
+            interpreter.process_page(page)
+            pieces: list = []
+
+            def render(item) -> None:
+                if isinstance(item, LTTextLine):
+                    pieces.append(item)
+                elif isinstance(item, LTContainer):
+                    for child in item:
+                        render(child)
+                elif isinstance(item, LTText):
+                    pieces.append(item.get_text())
+                if isinstance(item, LTTextBox):
+                    pieces.append("\n")
+
+            render(device.get_result())
+            pieces.append("\f")
+
+            i = 0
+            while i < len(pieces):
+                p = pieces[i]
+                if isinstance(p, str):
+                    raw.append(p)
+                    out.append(p)
+                    i += 1
+                    continue
+                # A row: this line, then lines that continue it, with only box
+                # newlines between them.
+                row, gaps, skipped, j = [p], [], [], i + 1
+                while True:
+                    k = j
+                    while k < len(pieces) and pieces[k] == "\n":
+                        k += 1
+                    if k < len(pieces) and isinstance(pieces[k], LTTextLine):
+                        same, gap = _same_row(row[-1], pieces[k])
+                        if same:
+                            skipped.append(pieces[j:k])
+                            gaps.append(gap)
+                            row.append(pieces[k])
+                            j = k + 1
+                            continue
+                    break
+                if not any(_has_rtl(ln.get_text()) for ln in row):
+                    # No right-to-left letter: written exactly as pdfminer does.
+                    raw.append(p.get_text())
+                    out.append(p.get_text())
+                    i += 1
+                    continue
+                for n_, ln in enumerate(row):
+                    raw.append(ln.get_text())
+                    if n_ < len(row) - 1:
+                        raw.extend(skipped[n_])
+                units: list[str] = []
+                for n_, ln in enumerate(row):
+                    part = _line_units(ln)
+                    if len(row) > 1 and not _has_rtl("".join(part)):
+                        # A run drawn on its own ("3-4", "ATP"): drawn in its
+                        # own reading order, so it moves as one piece.
+                        part = ["".join(part)] if part else part
+                    if n_ and units and part and gaps[n_ - 1] > 0.15 \
+                            and not units[-1].endswith(" ") and not part[0].startswith(" "):
+                        units.append(" ")
+                    units.extend(part)
+                out.append(_visual_to_logical(units) + "\n")
+                i = j
+    return "".join(raw), "".join(out)
+
+
+def _markitdown_pdf_post(text: str) -> str:
+    """What MarkItDown 0.1.5 does to pdfminer's text before handing it back."""
+    from markitdown.converters._pdf_converter import _merge_partial_numbering_lines
+
+    text = _merge_partial_numbering_lines(text)
+    text = "\n".join(line.rstrip() for line in re.split(r"\r?\n", text))
+    return re.sub(r"\n{3,}", "\n\n", text)
+
+
+def _pdf_in_reading_order(path: str, markdown_text: str) -> str:
+    """MarkItDown's text of a PDF, with right-to-left lines in reading order.
+
+    A PDF without a right-to-left letter is returned untouched, with no second
+    pass. Otherwise the logical text replaces MarkItDown's only when the
+    unturned pass equals it byte for byte; a PDF MarkItDown read another way
+    (its form-style table path) keeps MarkItDown's text, as before. Never raises.
+    """
+    if not _has_rtl(markdown_text):
+        return markdown_text
+    try:
+        raw, logical = _pdf_logical_text(path)
+        if _markitdown_pdf_post(raw) != markdown_text:
+            print("rtl order: kept MarkItDown's text (passes differ)", flush=True)
+            return markdown_text
+        return _markitdown_pdf_post(logical)
+    except Exception as e:  # noqa: BLE001 - a better order, never a reason to fail an upload
+        print(f"rtl order failed: {type(e).__name__}", flush=True)
+        return markdown_text
 
 
 def _has_no_text(markdown_text: str, pages: PageCounts | None) -> bool:
@@ -554,8 +851,10 @@ def _convert_to_markdown(file: UploadFile) -> tuple[str, PageCounts | None]:
             shutil.copyfileobj(file.file, buffer)
         md = MarkItDown()
         result = md.convert(tmp_path)
-        pages = _pdf_page_counts(tmp_path) if _is_pdf(tmp_path) else None
-        return result.text_content or "", pages
+        text = result.text_content or ""
+        if _is_pdf(tmp_path):
+            return _pdf_in_reading_order(tmp_path, text), _pdf_page_counts(tmp_path)
+        return text, None
     finally:
         if os.path.exists(tmp_path):
             try:
