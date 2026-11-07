@@ -44,8 +44,27 @@ export function pr4Screens(add, { APP, SAFARI, DESK, DESKTOP }, root) {
   add('ask-noanswer-app', 'preview/ask', { platform: 'native', view: 'noanswer' }, APP, { pr4: 'ask' });
   // A desk: the history column beside the opened long conversation.
   add('ask-history-desk', 'preview/ask', { platform: 'web', view: 'app', open: 'c2' }, DESK, { view: DESKTOP, targets: false, pr4: 'ask', grow: true });
+  // Finding (b), 2026-11-07: an ARABIC answer (in both locales, as a student
+  // who asks in Arabic gets it) holding a short Latin group and a long one,
+  // with two sourced pills, at 390 in the app and at 1280 on a desk. Main
+  // draws the same words (the answer comes from LATIN below, in the browser),
+  // so BEFORE shows what check 10 catches there.
+  add('ask-latin-app', 'preview/ask', { platform: 'native', view: 'app' }, APP, { pr4: 'ask', act: 'latin', grow: true });
+  add('ask-latin-desk', 'preview/ask', { platform: 'web', view: 'app' }, DESK, { view: DESKTOP, targets: false, pr4: 'ask', act: 'latin', grow: true });
   return LONG;
 }
+
+/**
+ * Finding (b)'s answer: the owner's iPhone showed "(Aerobic Respiration)" split
+ * over two lines with a lone, mirrored bracket on each. The long group is
+ * longer than a phone line, so it must wrap, and still keep its brackets.
+ */
+export const LATIN = {
+  question: 'أين يحدث التنفس الهوائي وكم جزيئة ATP ينتج؟',
+  answer: 'يحدث التنفس الهوائي (Aerobic Respiration) داخل الميتوكوندريا، وتنتج جزيئة الغلوكوز الواحدة فيه نحو 30 إلى 32 جزيئة ATP [1].\n\n'
+    + 'وتنتج معظم هذه الجزيئات في المرحلة الأخيرة (Oxidative phosphorylation across the inner mitochondrial membrane) كما في ملفك [2].',
+  sources: [['الأحياء - الفصل 4.pdf', 0.9, [3, 4, 'page']], ['cell-respiration-notes.pdf', 0.84, [7, 7, 'page']]],
+};
 
 const QUIZ = {
   ar: [
@@ -79,6 +98,15 @@ export function pr4Mock(job, LONG, r, held) {
   if (u.pathname === '/api/agent') {
     const L = LONG[job.locale];
     const msg = JSON.parse(r.postData() || '{}').message || '';
+    if (msg === LATIN.question) {
+      const cites = LATIN.sources.map(([f, s, p], i) => ({ index: i + 1, document_id: `l${i + 1}`, chunk_id: `l${i + 1}`, filename: f, similarity: s, page_start: p[0], page_end: p[1], page_kind: p[2] }));
+      return r.respond({
+        status: 200,
+        contentType: 'text/plain; charset=utf-8',
+        headers: { 'X-Conversation-Id': 'proof-conversation', 'X-Citations': Buffer.from(JSON.stringify(cites)).toString('base64') },
+        body: LATIN.answer,
+      }), true;
+    }
     const first = msg === L.question;
     const files = LONG.sources[job.locale];
     // G2: each source carries its page ([start, end, kind]) or null, as the route sends it.
@@ -105,9 +133,9 @@ export function pr4Mock(job, LONG, r, held) {
 /** The interaction, through the real controls, before the shot. */
 export async function pr4Act(tab, job, LONG) {
   const act = job.s.act;
-  if (act === 'converse') {
+  if (act === 'converse' || act === 'latin') {
     const L = LONG[job.locale];
-    for (const [k, q] of [[1, L.question], [2, L.otherQuestion]]) {
+    for (const [k, q] of act === 'latin' ? [[1, LATIN.question]] : [[1, L.question], [2, L.otherQuestion]]) {
       await tab.evaluate((text) => {
         const t = document.querySelector('[data-kf-composer] textarea');
         const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
@@ -217,6 +245,10 @@ export async function pr4Act(tab, job, LONG) {
  *          (<html dir="rtl">) its right edge within 2 px of the name block's
  *          right edge, in English its left edge within 2 px of the name's
  *          left edge (129235f put the Arabic label on the left).
+ * Finding (b) of 2026-11-07 adds, proven blind-free by latinPlant():
+ *  10. latinRules(): in a right-to-left answer, a bracketed Latin group's
+ *      brackets belong to its Latin text, a short one sits on one line, and
+ *      none runs out of its card (the ask-latin-* screens hold one of each).
  */
 export function pr4Checks(kind, act) {
   const findings = [];
@@ -364,6 +396,11 @@ export function pr4Checks(kind, act) {
     measured.nameLines = g2.nameLines;
     measured.labelEdgeGaps = g2.edgeGaps;
     for (const f of g2.findings) findings.push(f);
+    // 10. Finding (b): bracketed Latin groups in a right-to-left answer (latinRules(), defined in the page by render.mjs).
+    const lat = window.latinRules();
+    measured.latinGroups = lat.groups;
+    if (act === 'latin' && lat.groups.length < 2) findings.push(`the Latin-group answer shows ${lat.groups.length} group(s), want 2 (check 10 would be blind)`);
+    for (const f of lat.findings) findings.push(f);
   }
   // 5. The device run's own selectors.
   if (kind === 'study') {
@@ -543,6 +580,101 @@ export function g2Rules() {
     if (gap > 2) { offEdge++; findings.push(`a page label is ${gap.toFixed(1)} px off the name's ${rtl ? 'right' : 'left'} edge (the reading start): "${short(l.textContent)}"`); }
   }
   return { findings, reversed, ranges, names, badNames, nameLines, dotted, edges, offEdge, edgeGaps };
+}
+
+/**
+ * CHECK 10, IN THE PAGE (finding (b), 2026-11-07; render.mjs defines it as
+ * window.latinRules). In every answer card that reads right to left, each
+ * bracketed group whose inside has a Latin letter and no Arabic letter, no
+ * bracket and no "[n]" (the rule of src/lib/latin-groups.ts, re-read from the
+ * TEXT, so main's plain text is read the same way):
+ *   (a) its "(" is on the line of its first letter and LEFT of it, and its
+ *       ")" on the line of its last letter and RIGHT of it: the brackets
+ *       belong to the Latin text. On main they belong to the Arabic and are
+ *       drawn mirrored; unsplit that still LOOKS right, but a line break
+ *       inside the group leaves "inner)" / "(mitochondrial", a lone bracket
+ *       facing the wrong way on each line (the iPhone's shape);
+ *   (b) a group of at most 30 characters inside its brackets is on ONE line;
+ *   (c) no character of a group lies outside its card (check 1 also reads
+ *       the card's sideways scroll).
+ */
+export function latinRules() {
+  const findings = [];
+  const groups = [];
+  const RTL = /[֐-ࣿיִ-﷿ﹰ-﻿]/, LAT = /[A-Za-zÀ-ɏ]/;
+  const charRect = (node, i) => {
+    const r = document.createRange();
+    r.setStart(node, i);
+    r.setEnd(node, i + 1);
+    return [...r.getClientRects()].find((x) => x.width > 0 && x.height > 0) || null;
+  };
+  const sameLine = (a, b) => !!(a && b) && Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2) < Math.min(a.height, b.height) / 2;
+  for (const card of document.querySelectorAll('[data-kf-bubble="answer"]')) {
+    if (!(card.getBoundingClientRect().width > 0) || !card.matches(':dir(rtl)')) continue;
+    const C = card.getBoundingClientRect();
+    for (const block of card.querySelectorAll('p, li, h1, h2, h3')) {
+      if (block.querySelector('p, li')) continue;
+      const nodes = [];
+      let text = '';
+      const tw = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+      for (let n = tw.nextNode(); n; n = tw.nextNode()) { nodes.push({ n, start: text.length }); text += n.data; }
+      const at = (i) => { let k = nodes.length - 1; while (k > 0 && nodes[k].start > i) k--; return charRect(nodes[k].n, i - nodes[k].start); };
+      for (const m of text.matchAll(/\(([^()[\]\n]+)\)/g)) {
+        const inner = m[1];
+        if (!LAT.test(inner) || RTL.test(inner)) continue;
+        const i0 = m.index, i1 = m.index + m[0].length - 1;
+        const first = i0 + 1 + (inner.length - inner.trimStart().length), last = i1 - 1 - (inner.length - inner.trimEnd().length);
+        const open = at(i0), close = at(i1), a = at(first), z = at(last);
+        const rects = [];
+        for (let i = i0; i <= i1; i++) { const r = at(i); if (r) rects.push(r); }
+        const lines = [];
+        for (const r of rects) if (!lines.some((l) => sameLine(l, r))) lines.push(r);
+        const short = inner.length <= 30;
+        const g = { text: m[0], short, lines: lines.length, ok: true };
+        const openOk = sameLine(open, a) && open.right <= a.left + 1;
+        const closeOk = sameLine(close, z) && close.left >= z.right - 1;
+        if (!openOk || !closeOk) {
+          g.ok = false;
+          g.bracket = true;
+          findings.push(`the brackets of "${m[0].slice(0, 40)}" belong to the Arabic, not to the Latin text (drawn mirrored; a line break inside leaves a lone bracket on each line): ${openOk ? '' : `"(" is ${sameLine(open, a) ? 'right of' : 'not on the line of'} "${text[first]}"`}${!openOk && !closeOk ? ', ' : ''}${closeOk ? '' : `")" is ${sameLine(close, z) ? 'left of' : 'not on the line of'} "${text[last]}"`}`);
+        }
+        if (short && lines.length > 1) { g.ok = false; g.split = true; findings.push(`a short Latin group splits across ${lines.length} lines: "${m[0]}"`); }
+        if (rects.some((r) => r.left < C.left - 1 || r.right > C.right + 1)) { g.ok = false; g.clipped = true; findings.push(`a Latin group runs out of its card: "${m[0].slice(0, 40)}"`); }
+        groups.push(g);
+      }
+    }
+  }
+  return { findings, groups };
+}
+
+/**
+ * CHECK 10'S FORCED WRONG CASES (run AFTER the shot on every Ask screen with
+ * a group). (a) main's shape: every isolate unwrapped back to plain text, so
+ * the bidi algorithm gives the brackets to the Arabic, as on the iPhone;
+ * every group must be flagged. (b) every short group forced into its
+ * narrowest box, a word per line; every short group must be flagged as
+ * split. Each is undone after its read. A check that misses one is blind.
+ */
+export function latinPlant() {
+  const isolates = [...document.querySelectorAll('[data-kf-latin-group]')].filter((x) => x.getBoundingClientRect().width > 0);
+  const before = window.latinRules();
+  const swaps = isolates.map((b) => { const t = document.createTextNode(b.textContent); b.replaceWith(t); return [t, b]; });
+  let plain;
+  try { plain = window.latinRules(); } finally { for (const [t, b] of swaps) t.replaceWith(b); }
+  const tag = document.createElement('style');
+  tag.textContent = '[data-kf-latin-group="short"] { width: min-content !important; }';
+  document.head.appendChild(tag);
+  let narrow;
+  try { narrow = window.latinRules(); } finally { tag.remove(); }
+  const after = window.latinRules();
+  const shorts = isolates.filter((b) => b.dataset.kfLatinGroup === 'short').length;
+  const mirroredCaught = plain.groups.filter((g) => g.bracket).length;
+  const splitCaught = narrow.groups.filter((g) => g.split).length;
+  const blind = mirroredCaught !== isolates.length || splitCaught !== shorts || after.findings.length !== before.findings.length;
+  return {
+    isolates: isolates.length, mirroredCaught, shorts, splitCaught,
+    finding: blind ? `the Latin-group check is blind: ${isolates.length} isolate(s), unwrapped flagged ${mirroredCaught}; ${shorts} short, forced split flagged ${splitCaught}; ${before.findings.length} finding(s) before forcing, ${after.findings.length} after` : null,
+  };
 }
 
 /** The protected phrases, read from src/lib/keep-together.ts (one list). */

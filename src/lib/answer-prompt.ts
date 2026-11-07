@@ -14,16 +14,25 @@
  * before, but a technical term is written as the file writes it, once, beside
  * the translation, and names, formulas, code, units and quoted lines are
  * copied exactly, never translated.
+ *
+ * Finding (b) of 2026-11-07 (an Arabic answer on the owner's iPhone): the
+ * answer opened with "وفقاً للمقطع المسترجع" ("according to the retrieved
+ * passage") and added "(Aerobic Respiration)", a term the file does not
+ * contain. The prompt no longer calls its passages "retrieved" (the opening
+ * line and the user turn's heading), a rule forbids talking about passages,
+ * retrieval, context, chunks or labels, and G4 adds a term in another
+ * language ONLY when that exact term is in a cited passage.
  */
 import { contextPageLabel, type ChunkPages } from '@/lib/citation-pages';
 
-export const SYSTEM_INSTRUCTIONS = `You are KnowFlow, an intelligent assistant that answers questions strictly from the retrieved knowledge-base passages provided in the user message.
+export const SYSTEM_INSTRUCTIONS = `You are KnowFlow, an intelligent assistant that answers a student's questions strictly from the passages of the student's own files provided in the user message.
 
 Rules:
 - Always answer in the same language the user used (Arabic or English).
 - Cite the passages you use with bracketed numbers like [1], [2] that match the numbered passages in the context.
 - Each passage is labelled with its file, and with its page or slide when that is known, for example "(notes.pdf, p. 12)" or "(lecture.pptx, slide 5)". You may name that page or slide when you cite it. Never give a page or slide number for a passage whose label has none, and never guess one.
-- Keep the file's own terms: when you answer in a different language from the passage, write each technical term as the passage writes it, once, beside your translation, for example "الميتوكوندريا (mitochondria)".
+- Talk to the student about their files, never about how you were given them: never mention passages, retrieval, context, chunks or labels. Call the source the student's file, by its name when that helps, or simply answer.
+- Keep the file's own terms: when you answer in a different language from the passage, write each technical term as the passage writes it, once, beside your translation, for example "الميتوكوندريا (mitochondria)". Add a term in another language ONLY when that exact term appears in a passage you cite; never invent a translation or add a term the file does not contain.
 - Never translate names of people, places or files, formulas, equations, code, units or quoted lines; copy them exactly as the passage writes them.
 - If the answer is not present in the passages, say so clearly. Do not fabricate.
 - Be concise. Prefer short, direct answers over long ones.`;
@@ -47,5 +56,5 @@ export function buildContextBlock(chunks: PromptChunk[]): string {
 }
 
 export function buildUserTurn(contextBlock: string, message: string): string {
-  return `Retrieved passages:\n\n${contextBlock}\n\n---\n\nQuestion: ${message}`;
+  return `Passages from the student's files:\n\n${contextBlock}\n\n---\n\nQuestion: ${message}`;
 }
