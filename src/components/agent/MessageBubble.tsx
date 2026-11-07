@@ -2,6 +2,7 @@ import { Children, type ReactNode } from 'react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import { readsRightToLeft, splitLatinGroups } from '@/lib/latin-groups';
+import { keepMarkersWithBefore, leadingMarkers } from '@/lib/separator';
 import { FileName } from '@/components/ui/FileName';
 import { ClayChipFile } from '@/components/clay/ClayIcons';
 import { isolatedPageLabel, pageLabelParts, type ChunkPages, type PageLabelStrings } from '@/lib/citation-pages';
@@ -62,30 +63,59 @@ interface MessageBubbleProps {
  * (src/lib/latin-groups.ts). Only text children are touched: citation markers
  * "[1]" are plain text outside any group, and `code` and the source pills
  * never pass through here.
+ *
+ * The review of PR #310 (2026-11-07): in EVERY answer, either direction, a
+ * citation marker "[1]" / "[1][2]" and its punctuation never start a line
+ * (keepMarkersWithBefore, src/lib/separator.ts): it stays with the word
+ * before it. After a short Latin group the marker joins the group's closing
+ * bracket inside the group's one box, so the two move to the next line
+ * together. design-c's check 11 (pr4.mjs, markerLines) reads it.
  */
-function isolateLatin(children: ReactNode): ReactNode {
+const SHORT_BOX = 'inline-block max-w-full whitespace-normal [overflow-wrap:anywhere]';
+
+function answerText(children: ReactNode, rtl: boolean): ReactNode {
   return Children.map(children, (child) => {
     if (typeof child !== 'string') return child;
-    const pieces = splitLatinGroups(child);
-    if (pieces.length === 1 && typeof pieces[0] === 'string') return child;
-    return pieces.map((p, i) =>
-      typeof p === 'string' ? p : (
+    const pieces = rtl ? splitLatinGroups(child) : [child];
+    if (pieces.length === 1 && typeof pieces[0] === 'string') return keepMarkersWithBefore(child);
+    const out: ReactNode[] = [];
+    for (let i = 0; i < pieces.length; i++) {
+      const p = pieces[i];
+      if (typeof p === 'string') {
+        if (p) out.push(keepMarkersWithBefore(p));
+        continue;
+      }
+      const next = pieces[i + 1];
+      const lead = p.short && typeof next === 'string' ? leadingMarkers(next) : null;
+      if (lead) {
+        out.push(
+          <span key={i} data-kf-latin-group="short" className={SHORT_BOX}>
+            <bdi dir="ltr">{p.group}</bdi>
+            {` ${keepMarkersWithBefore(lead.markers)}`}
+          </span>,
+        );
+        pieces[i + 1] = lead.rest;
+        continue;
+      }
+      out.push(
         <bdi
           key={i}
           dir="ltr"
           data-kf-latin-group={p.short ? 'short' : 'long'}
-          className={p.short ? 'inline-block max-w-full whitespace-normal [overflow-wrap:anywhere]' : '[overflow-wrap:anywhere]'}
+          className={p.short ? SHORT_BOX : '[overflow-wrap:anywhere]'}
         >
           {p.group}
-        </bdi>
-      ),
-    );
+        </bdi>,
+      );
+    }
+    return out;
   });
 }
 
 export function MessageBubble({ role, content, isStreaming, citations, sourceHref, sourcesLabel, pageLabels, readingDir = 'ltr' }: MessageBubbleProps) {
   const isUser = role === 'user';
-  const iso = !isUser && readsRightToLeft(content) ? isolateLatin : (c: ReactNode) => c;
+  const rtl = readsRightToLeft(content);
+  const iso = isUser ? (c: ReactNode) => c : (c: ReactNode) => answerText(c, rtl);
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`flex max-w-[85%] flex-col gap-2 md:max-w-[75%] ${isUser ? 'items-end' : 'items-start'}`}>

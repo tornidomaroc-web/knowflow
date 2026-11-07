@@ -160,6 +160,19 @@ need(groups('انظر [1] و(2) و(ص 3) و(الفصل Two) و[ATP]').length ===
 need(splitLatinGroups('أ (ATP) ب (NADH) ج').map((p) => (typeof p === 'string' ? p : p.group)).join('') === 'أ (ATP) ب (NADH) ج', 'the pieces join back to the text exactly');
 need(readsRightToLeft('  1. الميتوكوندريا (mitochondria)') && !readsRightToLeft('ATP هو') && !readsRightToLeft('123'), 'the answer reads right to left exactly when its first strong letter is Arabic');
 
+// The review of PR #310: a citation marker never starts a line (src/lib/separator.ts, used by MessageBubble).
+const { keepMarkersWithBefore, leadingMarkers } = await imp('src/lib/separator.ts');
+const NB = ' ', WJ = '⁠';
+need(keepMarkersWithBefore('ينتج نحو 32 جزيئة ATP [1].') === `ينتج نحو 32 جزيئة ATP${NB}[1]${WJ}.`, 'a marker after a space is glued to the word before, and its full stop to it');
+need(keepMarkersWithBefore('دورة كريبس [1][2]، ثم') === `دورة كريبس${NB}[1]${WJ}[2]${WJ}، ثم`, 'two markers together stay together, and the Arabic comma after them');
+need(keepMarkersWithBefore('see the notes[3]') === `see the notes${WJ}[3]` && keepMarkersWithBefore('[1] أول') === '[1] أول', 'a marker touching a word is joined to it; a marker opening the text is left as it is');
+need(keepMarkersWithBefore('سطر\n[1]') === 'سطر\n[1]' && keepMarkersWithBefore('[ATP] و [x]') === '[ATP] و [x]', 'a newline before a marker and square brackets that are not a marker are left alone');
+need(keepMarkersWithBefore('المصدر [١]') === `المصدر${NB}[١]`, 'Arabic-Indic digits are a marker too');
+need(keepMarkersWithBefore('ATP [1][2]، و').replace(/ /g, ' ').replace(/⁠/g, '') === 'ATP [1][2]، و', 'the glue only turns a space into a no-break space and adds invisible joiners: the text reads back unchanged');
+need(JSON.stringify(leadingMarkers(' [1][2]، ثم')) === JSON.stringify({ markers: '[1][2]،', rest: ' ثم' }) && leadingMarkers(' و [1]') === null, 'the markers right after a short group are taken into its box; anything else is not');
+const bubble = readFileSync(resolvePath(ROOT, 'src/components/agent/MessageBubble.tsx'), 'utf8');
+need(bubble.includes('isUser ? (c: ReactNode) => c : (c: ReactNode) => answerText(c, rtl)') && bubble.includes('keepMarkersWithBefore(child)'), "MessageBubble glues markers in every answer (either direction), never in the student's own bubble");
+
 // ── 2. the page rule ────────────────────────────────────────────────────────
 const bad = [
   ['page_start 0', { page_start: 0, page_end: 1, page_kind: 'page' }], ['end before start', { page_start: 4, page_end: 3, page_kind: 'page' }],
