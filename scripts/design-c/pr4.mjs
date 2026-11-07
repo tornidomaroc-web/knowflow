@@ -16,7 +16,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-export function pr4Screens(add, { APP, SAFARI, DESK, DESKTOP }, root) {
+export function pr4Screens(add, { APP, SAFARI, DESK, DESKTOP, PHONE }, root) {
   const LONG = JSON.parse(readFileSync(join(root, 'src', 'app', '[locale]', 'preview', 'ask', 'long.json'), 'utf8'));
   // Ask. `view=app` is AFTER's real screen (KBSelector); main does not know it
   // and renders its default (the ChatBox card), which is the same ChatBox.
@@ -44,8 +44,42 @@ export function pr4Screens(add, { APP, SAFARI, DESK, DESKTOP }, root) {
   add('ask-noanswer-app', 'preview/ask', { platform: 'native', view: 'noanswer' }, APP, { pr4: 'ask' });
   // A desk: the history column beside the opened long conversation.
   add('ask-history-desk', 'preview/ask', { platform: 'web', view: 'app', open: 'c2' }, DESK, { view: DESKTOP, targets: false, pr4: 'ask', grow: true });
+  // Finding (b), 2026-11-07: an ARABIC answer (in both locales, as a student
+  // who asks in Arabic gets it) holding a short Latin group and a long one,
+  // with two sourced pills, at 390 in the app and at 1280 on a desk. Main
+  // draws the same words (the answer comes from LATIN below, in the browser),
+  // so BEFORE shows what check 10 catches there.
+  add('ask-latin-app', 'preview/ask', { platform: 'native', view: 'app' }, APP, { pr4: 'ask', act: 'latin', grow: true });
+  add('ask-latin-desk', 'preview/ask', { platform: 'web', view: 'app' }, DESK, { view: DESKTOP, targets: false, pr4: 'ask', act: 'latin', grow: true });
+  // The review of PR #310: a LONG Arabic answer with a marker after a short
+  // group, after a long group, two markers together and markers before "،"
+  // and ".", at 390 and at 320 (the narrowest phone): check 11 (no line holds
+  // only a marker) and nothing runs out of the card.
+  add('ask-latin-long-app', 'preview/ask', { platform: 'native', view: 'app' }, APP, { pr4: 'ask', act: 'latin-long', grow: true });
+  add('ask-latin-long-320', 'preview/ask', { platform: 'native', view: 'app' }, APP, { view: { ...PHONE, width: 320 }, pr4: 'ask', act: 'latin-long', grow: true });
   return LONG;
 }
+
+/**
+ * Finding (b)'s answer: the owner's iPhone showed "(Aerobic Respiration)" split
+ * over two lines with a lone, mirrored bracket on each. The long group is
+ * longer than a phone line, so it must wrap, and still keep its brackets.
+ */
+export const LATIN = {
+  question: 'أين يحدث التنفس الهوائي وكم جزيئة ATP ينتج؟',
+  answer: 'يحدث التنفس الهوائي (Aerobic Respiration) داخل الميتوكوندريا، وتنتج جزيئة الغلوكوز الواحدة فيه نحو 30 إلى 32 جزيئة ATP [1].\n\n'
+    + 'وتنتج معظم هذه الجزيئات في المرحلة الأخيرة (Oxidative phosphorylation across the inner mitochondrial membrane) كما في ملفك [2].',
+  sources: [['الأحياء - الفصل 4.pdf', 0.9, [3, 4, 'page']], ['cell-respiration-notes.pdf', 0.84, [7, 7, 'page']]],
+};
+
+/** The review of PR #310: a long answer whose markers follow every kind of word. */
+export const LATIN_LONG = {
+  question: 'اشرح مراحل التنفس الخلوي باختصار.',
+  answer: 'يحدث التنفس الخلوي في ثلاث مراحل متتالية داخل الخلية، وتبدأ بتحلل الغلوكوز في السيتوبلازم (Glycolysis) [1]، ثم تنتقل نواتجه إلى الميتوكوندريا حيث تدخل دورة كريبس (Krebs cycle) [1][2].\n\n'
+    + 'وفي المرحلة الأخيرة تنتقل الإلكترونات عبر سلسلة من البروتينات في الغشاء الداخلي (Electron transport chain along the inner membrane) [2]، فيضخ ذلك البروتونات ويكوّن فرقاً في التركيز يستعمله إنزيم (ATP synthase) [3] لصنع معظم جزيئات الطاقة.\n\n'
+    + 'وإذا غاب الأكسجين يتوقف هذا المسار وتلجأ الخلية إلى التخمر، فلا تنتج إلا جزيئتين من ATP لكل جزيئة غلوكوز [1][3].',
+  sources: [['الأحياء - الفصل 4.pdf', 0.9, [3, 4, 'page']], ['cell-respiration-notes.pdf', 0.84, [7, 7, 'page']], ['ملخص الطاقة.pdf', 0.8, [2, 2, 'page']]],
+};
 
 const QUIZ = {
   ar: [
@@ -79,6 +113,16 @@ export function pr4Mock(job, LONG, r, held) {
   if (u.pathname === '/api/agent') {
     const L = LONG[job.locale];
     const msg = JSON.parse(r.postData() || '{}').message || '';
+    const fx = [LATIN, LATIN_LONG].find((x) => x.question === msg);
+    if (fx) {
+      const cites = fx.sources.map(([f, s, p], i) => ({ index: i + 1, document_id: `l${i + 1}`, chunk_id: `l${i + 1}`, filename: f, similarity: s, page_start: p[0], page_end: p[1], page_kind: p[2] }));
+      return r.respond({
+        status: 200,
+        contentType: 'text/plain; charset=utf-8',
+        headers: { 'X-Conversation-Id': 'proof-conversation', 'X-Citations': Buffer.from(JSON.stringify(cites)).toString('base64') },
+        body: fx.answer,
+      }), true;
+    }
     const first = msg === L.question;
     const files = LONG.sources[job.locale];
     // G2: each source carries its page ([start, end, kind]) or null, as the route sends it.
@@ -105,9 +149,9 @@ export function pr4Mock(job, LONG, r, held) {
 /** The interaction, through the real controls, before the shot. */
 export async function pr4Act(tab, job, LONG) {
   const act = job.s.act;
-  if (act === 'converse') {
+  if (act === 'converse' || act === 'latin' || act === 'latin-long') {
     const L = LONG[job.locale];
-    for (const [k, q] of [[1, L.question], [2, L.otherQuestion]]) {
+    for (const [k, q] of act === 'latin' ? [[1, LATIN.question]] : act === 'latin-long' ? [[1, LATIN_LONG.question]] : [[1, L.question], [2, L.otherQuestion]]) {
       await tab.evaluate((text) => {
         const t = document.querySelector('[data-kf-composer] textarea');
         const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
@@ -217,6 +261,14 @@ export async function pr4Act(tab, job, LONG) {
  *          (<html dir="rtl">) its right edge within 2 px of the name block's
  *          right edge, in English its left edge within 2 px of the name's
  *          left edge (129235f put the Arabic label on the left).
+ * Finding (b) of 2026-11-07 adds, proven blind-free by latinPlant():
+ *  10. latinRules(): in a right-to-left answer, a bracketed Latin group's
+ *      brackets belong to its Latin text, a short one sits on one line, and
+ *      none runs out of its card (the ask-latin-* screens hold one of each).
+ * The review of PR #310 (2026-11-07) adds, proven blind-free by markerPlant():
+ *  11. markerLines(): no line of an answer card, in either direction, holds
+ *      only citation markers ("[1]", "[1][2]") and the punctuation after
+ *      them, and no character of an answer lies outside its card.
  */
 export function pr4Checks(kind, act) {
   const findings = [];
@@ -364,6 +416,16 @@ export function pr4Checks(kind, act) {
     measured.nameLines = g2.nameLines;
     measured.labelEdgeGaps = g2.edgeGaps;
     for (const f of g2.findings) findings.push(f);
+    // 10. Finding (b): bracketed Latin groups in a right-to-left answer (latinRules(), defined in the page by render.mjs).
+    const lat = window.latinRules();
+    measured.latinGroups = lat.groups;
+    if (act === 'latin' && lat.groups.length < 2) findings.push(`the Latin-group answer shows ${lat.groups.length} group(s), want 2 (check 10 would be blind)`);
+    if (act === 'latin-long' && lat.groups.length < 4) findings.push(`the long Latin-group answer shows ${lat.groups.length} group(s), want 4 (check 10 would be blind)`);
+    for (const f of lat.findings) findings.push(f);
+    // 11. The review of PR #310: no line of an answer holds only citation markers (markerLines(), defined in the page by render.mjs).
+    const mk = window.markerLines();
+    measured.markerLines = mk.cards;
+    for (const f of mk.findings) findings.push(f);
   }
   // 5. The device run's own selectors.
   if (kind === 'study') {
@@ -543,6 +605,215 @@ export function g2Rules() {
     if (gap > 2) { offEdge++; findings.push(`a page label is ${gap.toFixed(1)} px off the name's ${rtl ? 'right' : 'left'} edge (the reading start): "${short(l.textContent)}"`); }
   }
   return { findings, reversed, ranges, names, badNames, nameLines, dotted, edges, offEdge, edgeGaps };
+}
+
+/**
+ * CHECK 10, IN THE PAGE (finding (b), 2026-11-07; render.mjs defines it as
+ * window.latinRules). In every answer card that reads right to left, each
+ * bracketed group whose inside has a Latin letter and no Arabic letter, no
+ * bracket and no "[n]" (the rule of src/lib/latin-groups.ts, re-read from the
+ * TEXT, so main's plain text is read the same way):
+ *   (a) its "(" is on the line of its first letter and LEFT of it, and its
+ *       ")" on the line of its last letter and RIGHT of it: the brackets
+ *       belong to the Latin text. On main they belong to the Arabic and are
+ *       drawn mirrored; unsplit that still LOOKS right, but a line break
+ *       inside the group leaves "inner)" / "(mitochondrial", a lone bracket
+ *       facing the wrong way on each line (the iPhone's shape);
+ *   (b) a group of at most 30 characters inside its brackets is on ONE line;
+ *   (c) no character of a group lies outside its card (check 1 also reads
+ *       the card's sideways scroll).
+ */
+export function latinRules() {
+  const findings = [];
+  const groups = [];
+  const RTL = /[֐-ࣿיִ-﷿ﹰ-﻿]/, LAT = /[A-Za-zÀ-ɏ]/;
+  const charRect = (node, i) => {
+    const r = document.createRange();
+    r.setStart(node, i);
+    r.setEnd(node, i + 1);
+    return [...r.getClientRects()].find((x) => x.width > 0 && x.height > 0) || null;
+  };
+  const sameLine = (a, b) => !!(a && b) && Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2) < Math.min(a.height, b.height) / 2;
+  for (const card of document.querySelectorAll('[data-kf-bubble="answer"]')) {
+    if (!(card.getBoundingClientRect().width > 0) || !card.matches(':dir(rtl)')) continue;
+    const C = card.getBoundingClientRect();
+    for (const block of card.querySelectorAll('p, li, h1, h2, h3')) {
+      if (block.querySelector('p, li')) continue;
+      const nodes = [];
+      let text = '';
+      const tw = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+      for (let n = tw.nextNode(); n; n = tw.nextNode()) { nodes.push({ n, start: text.length }); text += n.data; }
+      const at = (i) => { let k = nodes.length - 1; while (k > 0 && nodes[k].start > i) k--; return charRect(nodes[k].n, i - nodes[k].start); };
+      for (const m of text.matchAll(/\(([^()[\]\n]+)\)/g)) {
+        const inner = m[1];
+        if (!LAT.test(inner) || RTL.test(inner)) continue;
+        const i0 = m.index, i1 = m.index + m[0].length - 1;
+        const first = i0 + 1 + (inner.length - inner.trimStart().length), last = i1 - 1 - (inner.length - inner.trimEnd().length);
+        const open = at(i0), close = at(i1), a = at(first), z = at(last);
+        const rects = [];
+        for (let i = i0; i <= i1; i++) { const r = at(i); if (r) rects.push(r); }
+        const lines = [];
+        for (const r of rects) if (!lines.some((l) => sameLine(l, r))) lines.push(r);
+        const short = inner.length <= 30;
+        const g = { text: m[0], short, lines: lines.length, ok: true };
+        const openOk = sameLine(open, a) && open.right <= a.left + 1;
+        const closeOk = sameLine(close, z) && close.left >= z.right - 1;
+        if (!openOk || !closeOk) {
+          g.ok = false;
+          g.bracket = true;
+          findings.push(`the brackets of "${m[0].slice(0, 40)}" belong to the Arabic, not to the Latin text (drawn mirrored; a line break inside leaves a lone bracket on each line): ${openOk ? '' : `"(" is ${sameLine(open, a) ? 'right of' : 'not on the line of'} "${text[first]}"`}${!openOk && !closeOk ? ', ' : ''}${closeOk ? '' : `")" is ${sameLine(close, z) ? 'left of' : 'not on the line of'} "${text[last]}"`}`);
+        }
+        if (short && lines.length > 1) { g.ok = false; g.split = true; findings.push(`a short Latin group splits across ${lines.length} lines: "${m[0]}"`); }
+        if (rects.some((r) => r.left < C.left - 1 || r.right > C.right + 1)) { g.ok = false; g.clipped = true; findings.push(`a Latin group runs out of its card: "${m[0].slice(0, 40)}"`); }
+        groups.push(g);
+      }
+    }
+  }
+  return { findings, groups };
+}
+
+/**
+ * CHECK 10'S FORCED WRONG CASES (run AFTER the shot on every Ask screen with
+ * a group). (a) main's shape: every isolate unwrapped back to plain text, so
+ * the bidi algorithm gives the brackets to the Arabic, as on the iPhone;
+ * every group must be flagged. (b) every short group forced into its
+ * narrowest box, a word per line; every short group must be flagged as
+ * split. Each is undone after its read. A check that misses one is blind.
+ */
+export function latinPlant() {
+  const isolates = [...document.querySelectorAll('[data-kf-latin-group]')].filter((x) => x.getBoundingClientRect().width > 0);
+  const before = window.latinRules();
+  const swaps = isolates.map((b) => { const t = document.createTextNode(b.textContent); b.replaceWith(t); return [t, b]; });
+  let plain;
+  try { plain = window.latinRules(); } finally { for (const [t, b] of swaps) t.replaceWith(b); }
+  const tag = document.createElement('style');
+  tag.textContent = '[data-kf-latin-group="short"] { width: min-content !important; }';
+  document.head.appendChild(tag);
+  let narrow;
+  try { narrow = window.latinRules(); } finally { tag.remove(); }
+  const after = window.latinRules();
+  const shorts = isolates.filter((b) => b.dataset.kfLatinGroup === 'short').length;
+  const mirroredCaught = plain.groups.filter((g) => g.bracket).length;
+  const splitCaught = narrow.groups.filter((g) => g.split).length;
+  const blind = mirroredCaught !== isolates.length || splitCaught !== shorts || after.findings.length !== before.findings.length;
+  return {
+    isolates: isolates.length, mirroredCaught, shorts, splitCaught,
+    finding: blind ? `the Latin-group check is blind: ${isolates.length} isolate(s), unwrapped flagged ${mirroredCaught}; ${shorts} short, forced split flagged ${splitCaught}; ${before.findings.length} finding(s) before forcing, ${after.findings.length} after` : null,
+  };
+}
+
+/**
+ * CHECK 11, IN THE PAGE (the review of PR #310, 2026-11-07; render.mjs
+ * defines it as window.markerLines). Every answer card, either direction,
+ * every text block: its characters grouped into the lines they are drawn on
+ * (by each character's own box), then
+ *   (a) no line consists only of citation markers "[1]" / "[1][2]" and the
+ *       punctuation right after them (94195ab drew "[1]." alone on the last
+ *       line of the first paragraph at 390 px; the owner rejects a line
+ *       holding only a marker);
+ *   (b) no character lies outside the card (a glued marker or a short group
+ *       with its marker must still wrap inside the card at 320 px).
+ */
+export function markerLines() {
+  const findings = [];
+  const cards = [];
+  const ONLY = /^(?:\[[0-9\u0660-\u0669]+\][.,;:!?\u060C\u061B\u061F]*)+$/;
+  for (const card of document.querySelectorAll('[data-kf-bubble="answer"]')) {
+    if (!(card.getBoundingClientRect().width > 0)) continue;
+    const C = card.getBoundingClientRect();
+    const c = { lines: 0, markers: 0, markerOnly: 0, outside: 0 };
+    for (const block of card.querySelectorAll('p, li, h1, h2, h3')) {
+      if (block.querySelector('p, li')) continue;
+      const lines = [];
+      const tw = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+      for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+        for (let i = 0; i < n.data.length; i++) {
+          if (/[\s\u2060]/.test(n.data[i])) continue;
+          const r = document.createRange();
+          r.setStart(n, i);
+          r.setEnd(n, i + 1);
+          const x = [...r.getClientRects()].find((q) => q.width > 0 && q.height > 0);
+          if (!x) continue;
+          if (x.left < C.left - 1 || x.right > C.right + 1) c.outside++;
+          const mid = (x.top + x.bottom) / 2;
+          let line = lines.find((l) => mid > l.top && mid < l.bottom);
+          if (!line) lines.push((line = { top: x.top, bottom: x.bottom, text: '' }));
+          line.text += n.data[i];
+        }
+      }
+      c.lines += lines.length;
+      for (const l of lines) {
+        c.markers += (l.text.match(/\[[0-9\u0660-\u0669]+\]/g) || []).length;
+        if (ONLY.test(l.text)) { c.markerOnly++; findings.push(`a line of an answer holds only a citation marker: "${l.text}"`); }
+      }
+    }
+    if (c.outside) findings.push(`${c.outside} character(s) of an answer lie outside its card`);
+    cards.push(c);
+  }
+  return { findings, cards };
+}
+
+/**
+ * CHECK 11'S FORCED CASES (run AFTER the shot on every Ask screen).
+ *  (a) 94195ab's shape: the glue undone (every no-break space a space, every
+ *      word joiner gone, a short group's box with its marker split back into
+ *      the group's own box and plain text), then read: what check 11 says of
+ *      the head this PR fixes. Reported, not required (it depends on width).
+ *  (b) blindness: in every answer card with a marker, its last marker (and
+ *      punctuation) forced onto a line of its own; every such card must be
+ *      flagged. Each is undone after its read.
+ */
+export function markerPlant() {
+  const MK = /\[[0-9\u0660-\u0669]+\](?:\u2060?[.,;:!?\u060C\u061B\u061F])*/g;
+  const isOnly = (f) => f.startsWith('a line of an answer holds only');
+  const before = window.markerLines();
+  // (a)
+  const undo = [];
+  for (const w of document.querySelectorAll('[data-kf-bubble="answer"] span[data-kf-latin-group]')) {
+    const b = w.querySelector('bdi');
+    if (!b) continue;
+    const box = document.createElement('bdi');
+    box.setAttribute('dir', 'ltr');
+    box.className = w.className;
+    box.dataset.kfLatinGroup = 'short';
+    box.textContent = b.textContent;
+    const tail = document.createTextNode(w.textContent.slice(b.textContent.length));
+    w.replaceWith(box, tail);
+    undo.push(() => { box.replaceWith(w); tail.remove(); });
+  }
+  const texts = [];
+  for (const card of document.querySelectorAll('[data-kf-bubble="answer"]')) {
+    const tw = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
+    for (let n = tw.nextNode(); n; n = tw.nextNode()) if (/[\u00a0\u2060]/.test(n.data)) { texts.push([n, n.data]); n.data = n.data.replace(/\u00a0/g, ' ').replace(/\u2060/g, ''); }
+  }
+  let unglued;
+  try { unglued = window.markerLines(); } finally { for (const [n, d] of texts) n.data = d; for (const u of undo.reverse()) u(); }
+  // (b)
+  const forced = [];
+  for (const card of document.querySelectorAll('[data-kf-bubble="answer"]')) {
+    if (!(card.getBoundingClientRect().width > 0)) continue;
+    let last = null;
+    const tw = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
+    for (let n = tw.nextNode(); n; n = tw.nextNode()) for (const m of n.data.matchAll(MK)) last = [n, m.index, m[0].length];
+    if (!last) continue;
+    const r = document.createRange();
+    r.setStart(last[0], last[1]);
+    r.setEnd(last[0], last[1] + last[2]);
+    const s = document.createElement('span');
+    s.style.display = 'block';
+    r.surroundContents(s);
+    forced.push(s);
+  }
+  let alone;
+  try { alone = window.markerLines(); } finally { for (const s of forced) { const p = s.parentNode; s.replaceWith(...s.childNodes); p.normalize(); } }
+  const after = window.markerLines();
+  const caught = alone.findings.filter(isOnly).length - before.findings.filter(isOnly).length;
+  const blind = caught < forced.length || after.findings.length !== before.findings.length;
+  return {
+    cards: forced.length, caught,
+    unglued: unglued.findings.filter(isOnly),
+    finding: blind ? `the marker-line check is blind: ${forced.length} marker(s) forced alone, ${caught} flagged; ${before.findings.length} finding(s) before forcing, ${after.findings.length} after` : null,
+  };
 }
 
 /** The protected phrases, read from src/lib/keep-together.ts (one list). */

@@ -113,7 +113,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { kfWording } from '../lib/app-wording.mjs';
 import { audit } from '../redesign-built/audit.mjs';
-import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing, pageLabelPlant, g2Rules } from './pr4.mjs';
+import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing, pageLabelPlant, g2Rules, latinRules, latinPlant, markerLines, markerPlant } from './pr4.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -178,7 +178,7 @@ add('subject-app-empty', 'preview/subject', { platform: 'native', view: 'empty' 
 add('subject-web', 'preview/subject', { platform: 'web' }, SAFARI, { pr3: true });
 add('subject-web-empty', 'preview/subject', { platform: 'web', view: 'empty' }, SAFARI, { pr3: true });
 for (const k of ['settings-app', 'settings-web', 'subject-app']) byKeyEarly(k).pr3 = true;
-const LONG = pr4Screens(add, { APP, SAFARI, DESK, DESKTOP }, resolve('.'));
+const LONG = pr4Screens(add, { APP, SAFARI, DESK, DESKTOP, PHONE }, resolve('.'));
 const KEEP = keepTogetherList(resolve('.'));
 const byKey = (k) => SCREENS.find((x) => x.key === k);
 function byKeyEarly(k) { return SCREENS.find((x) => x.key === k); }
@@ -815,6 +815,10 @@ async function shoot(side, job) {
   await tab.evaluate(`window.deleteOffset = ${deleteOffset.toString()}`);
   // pr4Checks() and pageLabelPlant() call g2Rules() (check 9 (a)-(c)) in the page.
   await tab.evaluate(`window.g2Rules = ${g2Rules.toString()}`);
+  // Check 10 (finding (b)): pr4Checks() and latinPlant() call latinRules() in the page.
+  await tab.evaluate(`window.latinRules = ${latinRules.toString()}`);
+  // Check 11 (the review of PR #310): pr4Checks() and markerPlant() call markerLines() in the page.
+  await tab.evaluate(`window.markerLines = ${markerLines.toString()}`);
   const review = await tab.evaluate(reviewChecks);
   const pr4 = job.s.pr4 ? await tab.evaluate(pr4Checks, job.s.pr4, job.s.act || null) : null;
   const phrases = await tab.evaluate(phraseChecks, KEEP);
@@ -838,9 +842,13 @@ async function shoot(side, job) {
   const ring = job.s.pr4 === 'consent' ? await keyRing(tab) : null;
   // G2: check 9's forced wrong cases, after the shot (pr4.mjs, pageLabelPlant).
   const labelPlant = job.s.pr4 === 'ask' ? await tab.evaluate(pageLabelPlant) : null;
+  // Finding (b): check 10's forced wrong cases, after the shot (pr4.mjs, latinPlant).
+  const latin = job.s.pr4 === 'ask' ? await tab.evaluate(latinPlant) : null;
+  // The review of PR #310: check 11's forced cases, after the shot (pr4.mjs, markerPlant).
+  const markers = job.s.pr4 === 'ask' ? await tab.evaluate(markerPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers };
 }
 
 for (const job of JOBS) {
@@ -876,6 +884,8 @@ for (const job of JOBS) {
       ...r.phrases.findings.map((f) => `pr4: ${f}`),
       ...(r.ring && !r.ring.ok ? [`pr4: Tab on the open sheet draws no focus ring (${JSON.stringify(r.ring)})`] : []),
       ...(side === 'after' && r.labelPlant?.finding ? [`g2: ${r.labelPlant.finding}`] : []),
+      ...(side === 'after' && r.latin?.finding ? [`latin: ${r.latin.finding}`] : []),
+      ...(side === 'after' && r.markers?.finding ? [`markers: ${r.markers.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -892,7 +902,7 @@ for (const job of JOBS) {
       // What reviewChecks() read on this page.
       review: { ...r.review.measured, ...(r.plant ? { deletePlant: { cards: r.plant.cards, caught: r.plant.caught } } : {}) },
       // What pr4Checks() read, and how much of the thread the page was grown by.
-      ...(r.pr4 ? { pr4: { ...r.pr4.measured, act: job.s.act || null, grownBy: r.hidden || 0, ...(r.ring ? { tabRing: r.ring } : {}), ...(r.labelPlant ? { pageLabelPlant: { labels: r.labelPlant.labels, wrapCaught: r.labelPlant.wrapCaught, clipCaught: r.labelPlant.clipCaught, ranges: r.labelPlant.ranges, orderCaught: r.labelPlant.orderCaught, names: r.labelPlant.names, oneWordCaught: r.labelPlant.oneWordCaught, pills: r.labelPlant.pills, bulletCaught: r.labelPlant.bulletCaught, edges: r.labelPlant.edges, edgeCaught: r.labelPlant.edgeCaught } } : {}) } } : {}),
+      ...(r.pr4 ? { pr4: { ...r.pr4.measured, act: job.s.act || null, grownBy: r.hidden || 0, ...(r.ring ? { tabRing: r.ring } : {}), ...(r.labelPlant ? { pageLabelPlant: { labels: r.labelPlant.labels, wrapCaught: r.labelPlant.wrapCaught, clipCaught: r.labelPlant.clipCaught, ranges: r.labelPlant.ranges, orderCaught: r.labelPlant.orderCaught, names: r.labelPlant.names, oneWordCaught: r.labelPlant.oneWordCaught, pills: r.labelPlant.pills, bulletCaught: r.labelPlant.bulletCaught, edges: r.labelPlant.edges, edgeCaught: r.labelPlant.edgeCaught } } : {}), ...(r.latin && r.latin.isolates ? { latinPlant: { isolates: r.latin.isolates, mirroredCaught: r.latin.mirroredCaught, shorts: r.latin.shorts, splitCaught: r.latin.splitCaught } } : {}), ...(r.markers && r.markers.cards ? { markerPlant: { cards: r.markers.cards, caught: r.markers.caught, unglued: r.markers.unglued } } : {}) } } : {}),
       protectedPhrasesRead: r.phrases.read,
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no
@@ -902,6 +912,8 @@ for (const job of JOBS) {
     console.log(`${side === 'after' && bad.length ? 'FAIL' : 'ok  '} ${side.padEnd(6)} ${job.name}: theme ${r.theme}, ${r.fonts.loaded.length} static faces, text worst ${tmin.toFixed(2)}:1, ${bad.length} finding(s)`);
     for (const b of bad) console.log(`       ${side}: ${b}`);
     for (const b of known) console.log(`       ${side}: known (not failed): ${b}`);
+    // Check 11 on the glue undone (94195ab's shape), printed, not failed: the head this PR fixes.
+    if (side === 'after' && r.markers?.unglued?.length) for (const u of r.markers.unglued) console.log(`       glue undone (94195ab): ${u}`);
   }
   results.push(row);
 }

@@ -1,5 +1,8 @@
+import { Children, type ReactNode } from 'react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
+import { readsRightToLeft, splitLatinGroups } from '@/lib/latin-groups';
+import { keepMarkersWithBefore, leadingMarkers } from '@/lib/separator';
 import { FileName } from '@/components/ui/FileName';
 import { ClayChipFile } from '@/components/clay/ClayIcons';
 import { isolatedPageLabel, pageLabelParts, type ChunkPages, type PageLabelStrings } from '@/lib/citation-pages';
@@ -52,8 +55,67 @@ interface MessageBubbleProps {
  * item: a loose item holds its paragraphs between newline nodes too. The
  * student's own bubble keeps `pre-wrap`: what they typed is shown as typed.
  */
+/**
+ * Finding (b), 2026-11-07: in an answer that reads right to left, each
+ * bracketed Latin group in the text ("(Aerobic Respiration)") becomes its own
+ * left-to-right isolate, so its brackets are never mirrored or left alone at
+ * a line's edge; a short one is one unbreakable piece no wider than the line
+ * (src/lib/latin-groups.ts). Only text children are touched: citation markers
+ * "[1]" are plain text outside any group, and `code` and the source pills
+ * never pass through here.
+ *
+ * The review of PR #310 (2026-11-07): in EVERY answer, either direction, a
+ * citation marker "[1]" / "[1][2]" and its punctuation never start a line
+ * (keepMarkersWithBefore, src/lib/separator.ts): it stays with the word
+ * before it. After a short Latin group the marker joins the group's closing
+ * bracket inside the group's one box, so the two move to the next line
+ * together. design-c's check 11 (pr4.mjs, markerLines) reads it.
+ */
+const SHORT_BOX = 'inline-block max-w-full whitespace-normal [overflow-wrap:anywhere]';
+
+function answerText(children: ReactNode, rtl: boolean): ReactNode {
+  return Children.map(children, (child) => {
+    if (typeof child !== 'string') return child;
+    const pieces = rtl ? splitLatinGroups(child) : [child];
+    if (pieces.length === 1 && typeof pieces[0] === 'string') return keepMarkersWithBefore(child);
+    const out: ReactNode[] = [];
+    for (let i = 0; i < pieces.length; i++) {
+      const p = pieces[i];
+      if (typeof p === 'string') {
+        if (p) out.push(keepMarkersWithBefore(p));
+        continue;
+      }
+      const next = pieces[i + 1];
+      const lead = p.short && typeof next === 'string' ? leadingMarkers(next) : null;
+      if (lead) {
+        out.push(
+          <span key={i} data-kf-latin-group="short" className={SHORT_BOX}>
+            <bdi dir="ltr">{p.group}</bdi>
+            {` ${keepMarkersWithBefore(lead.markers)}`}
+          </span>,
+        );
+        pieces[i + 1] = lead.rest;
+        continue;
+      }
+      out.push(
+        <bdi
+          key={i}
+          dir="ltr"
+          data-kf-latin-group={p.short ? 'short' : 'long'}
+          className={p.short ? SHORT_BOX : '[overflow-wrap:anywhere]'}
+        >
+          {p.group}
+        </bdi>,
+      );
+    }
+    return out;
+  });
+}
+
 export function MessageBubble({ role, content, isStreaming, citations, sourceHref, sourcesLabel, pageLabels, readingDir = 'ltr' }: MessageBubbleProps) {
   const isUser = role === 'user';
+  const rtl = readsRightToLeft(content);
+  const iso = isUser ? (c: ReactNode) => c : (c: ReactNode) => answerText(c, rtl);
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`flex max-w-[85%] flex-col gap-2 md:max-w-[75%] ${isUser ? 'items-end' : 'items-start'}`}>
@@ -77,11 +139,12 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
               the gold user bubble and the surface assistant bubble. */}
           <ReactMarkdown
             components={{
-              p: ({ children }) => <p className={`mb-2 last:mb-0 ${isUser ? '' : 'whitespace-pre-line'}`}>{children}</p>,
-              strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+              p: ({ children }) => <p className={`mb-2 last:mb-0 ${isUser ? '' : 'whitespace-pre-line'}`}>{iso(children)}</p>,
+              strong: ({ children }) => <strong className="font-semibold">{iso(children)}</strong>,
+              em: ({ children }) => <em>{iso(children)}</em>,
               ul: ({ children }) => <ul className="mb-2 list-inside list-disc space-y-1">{children}</ul>,
               ol: ({ children }) => <ol className="mb-2 list-inside list-decimal space-y-1">{children}</ol>,
-              li: ({ children }) => <li className="text-sm">{children}</li>,
+              li: ({ children }) => <li className="text-sm">{iso(children)}</li>,
               // `font-mono` DROPPED, not remapped. Tailwind's stock mono stack is
               // Latin-only, and this span holds arbitrary model output — in an
               // Arabic-first product that is frequently Arabic, which would render
@@ -92,9 +155,9 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
               code: ({ children }) => (
                 <code className="rounded bg-muted px-1 py-0.5 text-xs">{children}</code>
               ),
-              h1: ({ children }) => <h1 className="mb-2 text-lg font-bold">{children}</h1>,
-              h2: ({ children }) => <h2 className="mb-2 text-base font-bold">{children}</h2>,
-              h3: ({ children }) => <h3 className="mb-1 text-sm font-bold">{children}</h3>,
+              h1: ({ children }) => <h1 className="mb-2 text-lg font-bold">{iso(children)}</h1>,
+              h2: ({ children }) => <h2 className="mb-2 text-base font-bold">{iso(children)}</h2>,
+              h3: ({ children }) => <h3 className="mb-1 text-sm font-bold">{iso(children)}</h3>,
             }}
           >
             {content}

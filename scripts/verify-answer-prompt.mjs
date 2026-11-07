@@ -121,6 +121,21 @@ const RULES = [
 ];
 for (const [re, what] of RULES) need(re.test(SYSTEM_INSTRUCTIONS), `system rules: ${what}`);
 
+// Finding (b), 2026-11-07: no talk of passages or retrieval, and no foreign term the file does not hold.
+const NEW_RULES = [
+  [/never mention passages, retrieval, context, chunks or labels/, '(b) never mention passages, retrieval, context, chunks or labels'],
+  [/Call the source the student's file, by its name when that helps, or simply answer\./, '(b) the source is the student\'s file, by name when useful'],
+  [/Add a term in another language ONLY when that exact term appears in a passage you cite; never invent a translation or add a term the file does not contain\./, '(b) G4 narrowed: a foreign term only when that exact term is in a cited passage'],
+];
+for (const [re, what] of NEW_RULES) need(re.test(SYSTEM_INSTRUCTIONS), `system rules: ${what}`);
+// The words the model echoed ("المقطع المسترجع", the retrieved passage) are gone from everything it reads.
+need(!/retriev/i.test(SYSTEM_INSTRUCTIONS.replace(/never mention passages, retrieval,/, '')), '(b) the system rules call nothing "retrieved" (only the rule that forbids the word names it)');
+need(!/retriev/i.test(buildUserTurn('CTX', 'q')), '(b) the user turn calls nothing "retrieved"');
+// The narrowed G4 keeps its example only because it fits: an English passage's own term beside the Arabic.
+need(/"الميتوكوندريا \(mitochondria\)"/.test(SYSTEM_INSTRUCTIONS) && /when you answer in a different language from the passage/.test(SYSTEM_INSTRUCTIONS), 'G4 example kept, under "a different language from the passage"');
+// Small: the rules grow by a bounded amount (measured in characters; the report gives the token estimate).
+need(SYSTEM_INSTRUCTIONS.length <= 1700, `the system rules stay small: ${SYSTEM_INSTRUCTIONS.length} characters (was 1137)`);
+
 const P = (filename, content, s, e, k) => ({ filename, content, page_start: s, page_end: e, page_kind: k });
 const four = [P('sum.pdf', 'A', 12, 12, 'page'), P('cheat.pdf', 'B', 3, 4, 'page'), P('deck.pptx', 'C', 5, 5, 'slide'), P('notes.docx', 'D', null, null, null)];
 need(JSON.stringify(four.map(passageLabel)) === JSON.stringify(['(sum.pdf, p. 12)', '(cheat.pdf, pp. 3-4)', '(deck.pptx, slide 5)', '(notes.docx)']),
@@ -129,11 +144,34 @@ need(passageLabel(P('deck.pptx', 'x', 5, 6, 'slide')) === '(deck.pptx, slides 5-
 
 // Byte-for-byte what the route built before G2 (8ac7948, route.ts), for chunks without pages.
 const old = (chunks) => chunks.length ? chunks.map((c, i) => `[${i + 1}] (${c.filename})\n${c.content}`).join('\n\n---\n\n') : '(no relevant passages found)';
-const oldTurn = (ctx, m) => `Retrieved passages:\n\n${ctx}\n\n---\n\nQuestion: ${m}`;
+// Finding (b): only the heading changed ("Retrieved passages:" became "Passages from the student's files:").
+const oldTurn = (ctx, m) => `Passages from the student's files:\n\n${ctx}\n\n---\n\nQuestion: ${m}`;
 const plain = [{ filename: 'a.pdf', content: 'one' }, { filename: 'ملف.docx', content: 'اثنان' }];
 need(buildContextBlock(plain) === old(plain), 'a context of chunks with no page is byte-identical to the pre-G2 context');
 need(buildContextBlock([]) === old([]), 'no passages: "(no relevant passages found)", as before');
-need(buildUserTurn('CTX', 'سؤال') === oldTurn('CTX', 'سؤال'), 'the user turn is byte-identical to the pre-G2 template');
+need(buildUserTurn('CTX', 'سؤال') === oldTurn('CTX', 'سؤال'), 'the user turn is the pre-G2 template with only its heading renamed');
+
+// Finding (b), rendering: which bracketed groups the answer card isolates (src/lib/latin-groups.ts).
+const { splitLatinGroups, readsRightToLeft, SHORT_GROUP } = await imp('src/lib/latin-groups.ts');
+const groups = (s) => splitLatinGroups(s).filter((p) => typeof p !== 'string');
+need(JSON.stringify(groups('التنفس الهوائي (Aerobic Respiration) يحدث [1].')) === JSON.stringify([{ group: '(Aerobic Respiration)', short: true }]), 'a short Latin group is found, brackets included, marked short');
+need(groups(`المرحلة (${'x'.repeat(SHORT_GROUP + 1)})`)[0]?.short === false && groups(`المرحلة (${'x'.repeat(SHORT_GROUP)})`)[0]?.short === true, `the short cap is ${SHORT_GROUP} characters inside the brackets`);
+need(groups('انظر [1] و(2) و(ص 3) و(الفصل Two) و[ATP]').length === 0, 'no group from a citation, digits only, an Arabic group, a mixed group or square brackets');
+need(splitLatinGroups('أ (ATP) ب (NADH) ج').map((p) => (typeof p === 'string' ? p : p.group)).join('') === 'أ (ATP) ب (NADH) ج', 'the pieces join back to the text exactly');
+need(readsRightToLeft('  1. الميتوكوندريا (mitochondria)') && !readsRightToLeft('ATP هو') && !readsRightToLeft('123'), 'the answer reads right to left exactly when its first strong letter is Arabic');
+
+// The review of PR #310: a citation marker never starts a line (src/lib/separator.ts, used by MessageBubble).
+const { keepMarkersWithBefore, leadingMarkers } = await imp('src/lib/separator.ts');
+const NB = ' ', WJ = '⁠';
+need(keepMarkersWithBefore('ينتج نحو 32 جزيئة ATP [1].') === `ينتج نحو 32 جزيئة ATP${NB}[1]${WJ}.`, 'a marker after a space is glued to the word before, and its full stop to it');
+need(keepMarkersWithBefore('دورة كريبس [1][2]، ثم') === `دورة كريبس${NB}[1]${WJ}[2]${WJ}، ثم`, 'two markers together stay together, and the Arabic comma after them');
+need(keepMarkersWithBefore('see the notes[3]') === `see the notes${WJ}[3]` && keepMarkersWithBefore('[1] أول') === '[1] أول', 'a marker touching a word is joined to it; a marker opening the text is left as it is');
+need(keepMarkersWithBefore('سطر\n[1]') === 'سطر\n[1]' && keepMarkersWithBefore('[ATP] و [x]') === '[ATP] و [x]', 'a newline before a marker and square brackets that are not a marker are left alone');
+need(keepMarkersWithBefore('المصدر [١]') === `المصدر${NB}[١]`, 'Arabic-Indic digits are a marker too');
+need(keepMarkersWithBefore('ATP [1][2]، و').replace(/ /g, ' ').replace(/⁠/g, '') === 'ATP [1][2]، و', 'the glue only turns a space into a no-break space and adds invisible joiners: the text reads back unchanged');
+need(JSON.stringify(leadingMarkers(' [1][2]، ثم')) === JSON.stringify({ markers: '[1][2]،', rest: ' ثم' }) && leadingMarkers(' و [1]') === null, 'the markers right after a short group are taken into its box; anything else is not');
+const bubble = readFileSync(resolvePath(ROOT, 'src/components/agent/MessageBubble.tsx'), 'utf8');
+need(bubble.includes('isUser ? (c: ReactNode) => c : (c: ReactNode) => answerText(c, rtl)') && bubble.includes('keepMarkersWithBefore(child)'), "MessageBubble glues markers in every answer (either direction), never in the student's own bubble");
 
 // ── 2. the page rule ────────────────────────────────────────────────────────
 const bad = [
