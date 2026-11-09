@@ -47,7 +47,7 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }))
 }
 
-type State = 'zero' | 'full'
+type State = 'zero' | 'one' | 'full'
 
 export default async function StudentHomePreview({
   params,
@@ -83,8 +83,12 @@ export default async function StudentHomePreview({
   // `?platform=native` shows the home as the app renders it (no Upgrade link),
   // the same switch the settings preview has; the store screenshots use it.
   const platform = resolvePlatform(rawPlatform)
-  const state: State = rawState === 'full' ? 'full' : 'zero'
+  // Activation fix 1: `?state=one` is the account both real students reached,
+  // one subject and no file, so step 2 leads into that subject.
+  const state: State = rawState === 'full' ? 'full' : rawState === 'one' ? 'one' : 'zero'
   const full = state === 'full'
+  const one = state === 'one'
+  const ONE_ID = '3f2b8c1e-9a4d-4e6b-8c7a-1d2e3f4a5b6c'
   // `?theme=` is now honoured by the boot script on <html> (`src/lib/theme.ts`),
   // which also writes the cookie, so this page no longer sets the attribute
   // itself; it only keeps the value in its own links.
@@ -118,11 +122,15 @@ export default async function StudentHomePreview({
         { id: 's3', name: safeLocale === 'ar' ? 'الإحصاء' : 'Statistics' },
         { id: 's4', name: safeLocale === 'ar' ? 'تاريخ الفلسفة' : 'History of Philosophy' },
       ]
-    : [])
+    : one
+      ? [{ id: ONE_ID, name: safeLocale === 'ar' ? 'الأحياء' : 'Biology' }]
+      : [])
   const subjects: SubjectProgress[] = progress.subjects
   const counts = full
     ? { subjects: 4, materials: rows.length, conversations: 61 }
-    : { subjects: 0, materials: 0, conversations: 0 }
+    : one
+      ? { subjects: 1, materials: 0, conversations: 0, newestSubjectId: ONE_ID }
+      : { subjects: 0, materials: 0, conversations: 0 }
 
   const recentActivity: ActivityItem[] = full
     ? [

@@ -9,6 +9,7 @@ import { useTranslation, Locale, resolveLocale } from '@/lib/i18n';
 import { purchaseLinksAllowed } from '@/lib/platform';
 import { usePlatform } from '@/components/platform/PlatformProvider';
 import { KB_LANGUAGES, type KbLanguage } from '@/types';
+import { subjectCreatedPath } from '@/lib/subject-create';
 
 // 16 px below md, 20 px line kept: iOS zooms into a field under 16 px on
 // focus and the zoom stays (Guideline 4.0; see AuthField.tsx).
@@ -78,20 +79,26 @@ export default function NewKnowledgeBasePage({
       return;
     }
 
-    const { error: insertError } = await supabase
+    // The insert returns the new row's id, so the student lands INSIDE the
+    // subject, on the upload tile (activation fix 1). The same policy that
+    // lets the student insert the row (`for all using (auth.uid() = user_id)`)
+    // lets them read it back; with no id the list is the fallback.
+    const { data: created, error: insertError } = await supabase
       .from('knowledge_bases')
       .insert({
         user_id: user.id,
         name,
         description,
         language
-      });
+      })
+      .select('id')
+      .single();
 
     if (insertError) {
       setError(insertError.message);
       setLoading(false);
     } else {
-      router.push(`/${safeLocale}/dashboard/knowledge`);
+      router.push(subjectCreatedPath(safeLocale, created?.id));
     }
   };
 
