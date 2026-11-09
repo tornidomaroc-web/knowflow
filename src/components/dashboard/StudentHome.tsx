@@ -24,6 +24,7 @@ import {
 } from '@/components/clay/ClayIcons';
 import { RecentActivity, type ActivityItem, type RecentActivityLabels } from './RecentActivity';
 import { UserName } from '@/components/ui/UserName';
+import { homeStepsFirst } from '@/lib/home-order';
 
 interface StudentHomeStat {
   label: string;
@@ -202,6 +203,67 @@ export function StudentHome({
   const whatIcon = [<ClayFile key="f" />, <ClayQuiz key="q" />, <ClayAnswer key="a" mark={mark} />];
   const stepIcon = [<ClayNewSubject key="n" width={30} height={28} />, <ClayUploadGlyph key="u" />, <ClayQuestionGlyph key="q" mark={mark} />];
   const meterTone = ['accent', 'green'] as const;
+  // Activation fix 2 (`@/lib/home-order`): no material yet, so the steps card
+  // leads and the Ask card follows. Only the order and each card's rise step
+  // change; every element, class and line is otherwise the one rendered
+  // below, so a home with a material renders exactly as before.
+  const stepsFirst = homeStepsFirst(onboarding);
+
+  // ── Ask: the dark card, the gold pill, the gold ring and bubble. ──
+  const askCard = (
+    <Link
+      href={askHref}
+      className={`kf-ask pressable rise ${stepsFirst ? 'rise-2' : 'rise-1'} group flex items-center gap-2 rounded-[1.75rem] px-[1.125rem] py-[1.375rem]`}
+    >
+      {/* The text has the width (the owner's review, 2026-11-04: the English
+          title broke after "Ask your", the Arabic line left "الجواب." alone):
+          a 76 pt picture and an 8 pt gap, and both lines balanced. The
+          design-c render asserts no line of one word. */}
+      <div className="min-w-0 flex-1">
+        <p data-kf-ask-title className="text-[1.4375rem] font-extrabold leading-tight [text-wrap:balance]">{labels.askTitle}</p>
+        <p data-kf-ask-desc className="mt-1.5 text-[0.9375rem] leading-normal text-[color:var(--clay-ask-muted)] [text-wrap:balance]">{labels.askDesc}</p>
+        <span className="kf-gold mt-4 inline-flex min-h-[2.875rem] items-center gap-2 whitespace-nowrap rounded-full px-5 text-[0.9375rem] font-bold">
+          {labels.askTitle}
+          <ClayArrow className="rtl:-scale-x-100" />
+        </span>
+      </div>
+      <ClayAskArt mark={mark} width={76} height={76} className="shrink-0" />
+    </Link>
+  );
+
+  // ── The path: present at zero, gone once all three are done. ──
+  const pathCard = stepsLeft > 0 && (
+    <section className={`kf-card rise ${stepsFirst ? 'rise-1' : 'rise-3'} p-5`}>
+      <div className="flex items-center gap-4">
+        <ClaySparkBook className="shrink-0" />
+        <h2 className="min-w-0 text-base font-extrabold text-foreground">{labels.startTitle}</h2>
+      </div>
+      <ol className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+        {onboarding.map((step, i) => {
+          const tile = ['bg-mint-subtle', 'bg-sky-subtle', 'bg-violet-subtle'][i] ?? 'bg-accent-subtle';
+          return (
+            <li key={step.key}>
+              <Link
+                href={step.href}
+                className="kf-tile pressable liftable group flex h-full items-center gap-3 p-4 sm:flex-col sm:items-start"
+              >
+                <span className={`kf-chip inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${step.done ? 'bg-accent-subtle' : tile}`}>
+                  {step.done ? <ClayCheck /> : stepIcon[i]}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-foreground">
+                    <span className="me-1.5 text-faint">{i + 1}.</span>
+                    {step.title}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">{step.desc}</span>
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
 
   return (
     <div>
@@ -252,25 +314,9 @@ export function StudentHome({
           )}
         </header>
 
-        {/* ── Ask: the dark card, the gold pill, the gold ring and bubble. ── */}
-        <Link
-          href={askHref}
-          className="kf-ask pressable rise rise-1 group flex items-center gap-2 rounded-[1.75rem] px-[1.125rem] py-[1.375rem]"
-        >
-          {/* The text has the width (the owner's review, 2026-11-04: the English
-              title broke after "Ask your", the Arabic line left "الجواب." alone):
-              a 76 pt picture and an 8 pt gap, and both lines balanced. The
-              design-c render asserts no line of one word. */}
-          <div className="min-w-0 flex-1">
-            <p data-kf-ask-title className="text-[1.4375rem] font-extrabold leading-tight [text-wrap:balance]">{labels.askTitle}</p>
-            <p data-kf-ask-desc className="mt-1.5 text-[0.9375rem] leading-normal text-[color:var(--clay-ask-muted)] [text-wrap:balance]">{labels.askDesc}</p>
-            <span className="kf-gold mt-4 inline-flex min-h-[2.875rem] items-center gap-2 whitespace-nowrap rounded-full px-5 text-[0.9375rem] font-bold">
-              {labels.askTitle}
-              <ClayArrow className="rtl:-scale-x-100" />
-            </span>
-          </div>
-          <ClayAskArt mark={mark} width={76} height={76} className="shrink-0" />
-        </Link>
+        {/* ── Activation fix 2: with no material yet, the three steps come
+            first and the Ask card follows them (`homeStepsFirst`). ── */}
+        {stepsFirst ? <>{pathCard}{askCard}</> : askCard}
 
         {/* ── The two-up row: ONE structure for both cards (the owner's review,
             2026-11-04): the same padding, a 56 x 52 icon box, a title row 26 pt
@@ -374,39 +420,9 @@ export function StudentHome({
           </section>
         )}
 
-        {/* ── The path: present at zero, gone once all three are done. ── */}
-        {stepsLeft > 0 && (
-          <section className="kf-card rise rise-3 p-5">
-            <div className="flex items-center gap-4">
-              <ClaySparkBook className="shrink-0" />
-              <h2 className="min-w-0 text-base font-extrabold text-foreground">{labels.startTitle}</h2>
-            </div>
-            <ol className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-              {onboarding.map((step, i) => {
-                const tile = ['bg-mint-subtle', 'bg-sky-subtle', 'bg-violet-subtle'][i] ?? 'bg-accent-subtle';
-                return (
-                  <li key={step.key}>
-                    <Link
-                      href={step.href}
-                      className="kf-tile pressable liftable group flex h-full items-center gap-3 p-4 sm:flex-col sm:items-start"
-                    >
-                      <span className={`kf-chip inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${step.done ? 'bg-accent-subtle' : tile}`}>
-                        {step.done ? <ClayCheck /> : stepIcon[i]}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-bold text-foreground">
-                          <span className="me-1.5 text-faint">{i + 1}.</span>
-                          {step.title}
-                        </span>
-                        <span className="mt-0.5 block text-xs text-muted-foreground">{step.desc}</span>
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
-        )}
+        {/* ── The path: present at zero, gone once all three are done. Here
+            once a material exists; at the top before that (above). ── */}
+        {!stepsFirst && pathCard}
 
         {/* ── The subjects: a header with two links, then clay rows. ── */}
         <section className="rise rise-4 space-y-3">

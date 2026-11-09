@@ -278,6 +278,11 @@ jobs:
       - name: Verify a new subject opens on its upload tile, and step 2 leads there (activation fix 1)
         run: node --experimental-strip-types scripts/verify-activation-1.mjs
 
+      # Activation fix 2 (2026-11-09 audit, cause #4): with no material the three
+      # steps lead the home and the Ask card follows; with one, today's order.
+      - name: Verify the three steps lead the home until the first material, then today's order (activation fix 2)
+        run: node --experimental-strip-types scripts/verify-activation-2.mjs
+
       # #295 follow-up: /api/ingest never stores a file name holding U+0000 (22P05).
       - name: Verify the upload route removes U+0000 from the stored file name, and nothing else
         run: node --experimental-strip-types scripts/verify-upload-filename-nul.mjs

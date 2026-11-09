@@ -110,6 +110,14 @@
  * 390 x 844 viewport, above the tab bar; firstViewPlant() pushes the tile
  * 900 px down and the check must flag it, or the run fails.
  *
+ * ACTIVATION FIX 2 puts the three steps first on a home with no material. On
+ * the app's homes with no subject and with one subject and no file,
+ * stepsViewCheck() asserts the steps card's title and the next step (step 1,
+ * then step 2) lie wholly in the first 390 x 844 viewport above the tab bar;
+ * it reads main by structure too, so BEFORE reports where they were.
+ * stepsViewPlant() pushes the card 900 px down and must be flagged. The
+ * full-data home is also shot on the web at 1280 (home-full-desk).
+ *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
  *      http://127.0.0.1:3000), CHROME, PUPPETEER_DIR, FONT_DIR (the
@@ -201,6 +209,12 @@ add('new-subject-desk', 'preview/new-subject', { platform: 'web' }, DESK, { view
 add('subject-new-app', 'preview/subject', { platform: 'native', view: 'new' }, APP, { pr3: true, firstView: true });
 add('subject-new-desk', 'preview/subject', { platform: 'web', view: 'new' }, DESK, { view: DESKTOP, targets: false, pr3: true });
 byKeyEarly('subject-app-empty').firstView = true;
+// Activation fix 2: the full-data home on the web too, and on the app's homes
+// with no material the steps title and the next step in the first view
+// (`stepsView` is the next step's index: 0 with no subject, 1 with one).
+add('home-full-desk', 'preview/student-home', { platform: 'web', state: 'full' }, DESK, { view: DESKTOP, targets: false });
+byKeyEarly('home-empty').stepsView = 0;
+byKeyEarly('home-one').stepsView = 1;
 const LONG = pr4Screens(add, { APP, SAFARI, DESK, DESKTOP, PHONE }, resolve('.'));
 const KEEP = keepTogetherList(resolve('.'));
 const byKey = (k) => SCREENS.find((x) => x.key === k);
@@ -795,6 +809,57 @@ function firstViewPlant() {
 }
 
 /**
+ * ACTIVATION FIX 2: THE THREE STEPS IN THE FIRST VIEWPORT (the app's home with
+ * no material, run at 390 x 844, scrolled to the top, before the page is
+ * grown). The steps card's title and the step that is next (`next`: 0 = step
+ * 1 with no subject, 1 = step 2 with a subject) must lie wholly inside the
+ * viewport and above the tab bar. Found by structure, not by a marker, so the
+ * same reading runs on main: the home's section that holds the steps list.
+ * Self-contained: serialised into the page.
+ */
+function stepsViewCheck(next) {
+  window.scrollTo(0, 0);
+  const home = document.querySelector('[data-kf-home]') || document.querySelector('main div.max-w-6xl');
+  const card = home && [...home.querySelectorAll('section')].find((s) => s.querySelector(':scope > ol'));
+  const title = card?.querySelector('h2');
+  const step = card?.querySelectorAll(':scope > ol > li')[next];
+  if (!card || !title || !step) return { title: null, step: null, finding: `steps view: no steps card, title or step ${next + 1}` };
+  const H = window.innerHeight, W = window.innerWidth;
+  let limit = H;
+  for (const el of document.body.querySelectorAll('*')) {
+    const cs = getComputedStyle(el);
+    if (cs.position !== 'fixed' || cs.pointerEvents === 'none') continue;
+    const b = el.getBoundingClientRect();
+    if (b.width < 1 || b.height < 1 || b.top < H / 2 || b.top >= H) continue;
+    limit = Math.min(limit, b.top);
+  }
+  const box = (el) => { const r = el.getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), inside: r.top >= 0 && r.bottom <= limit + 0.5 && r.left >= -0.5 && r.right <= W + 0.5 && r.height > 0 }; };
+  const t = box(title), s = box(step);
+  const out = { title: { top: t.top, bottom: t.bottom }, step: { n: next + 1, top: s.top, bottom: s.bottom }, limit: Math.round(limit), viewport: `${W} x ${H}` };
+  const bad = [...(t.inside ? [] : [`the steps title (top ${t.top}, bottom ${t.bottom})`]), ...(s.inside ? [] : [`step ${next + 1} (top ${s.top}, bottom ${s.bottom})`])];
+  return { ...out, finding: bad.length ? `steps view: ${bad.join(' and ')} not fully inside the first ${W} x ${H} viewport above the tab bar (usable bottom ${out.limit})` : null };
+}
+
+/**
+ * ITS FORCED WRONG CASE: the steps card pushed 900 px down by a style tag,
+ * measured with the same function, then the tag removed. It must be flagged,
+ * or the check is blind and the run fails.
+ */
+function stepsViewPlant(next) {
+  const home = document.querySelector('[data-kf-home]') || document.querySelector('main div.max-w-6xl');
+  const card = home && [...home.querySelectorAll('section')].find((s) => s.querySelector(':scope > ol'));
+  if (!card) return { caught: false, forced: null, finding: 'the steps-view check is blind: no steps card to push' };
+  card.setAttribute('data-kf-plant-steps', '');
+  const tag = document.createElement('style');
+  tag.textContent = '[data-kf-plant-steps] { margin-top: 900px !important; }';
+  document.head.appendChild(tag);
+  let forced;
+  try { forced = stepsViewCheck(next); } finally { tag.remove(); card.removeAttribute('data-kf-plant-steps'); }
+  window.scrollTo(0, 0);
+  return { caught: !!forced.finding, forced: { title: forced.title, step: forced.step }, finding: forced.finding ? null : `the steps-view check is blind: the card pushed down 900 px was not flagged (${JSON.stringify(forced)})` };
+}
+
+/**
  * THE APP'S GATES, IN THE PAGE (every render with the app's user agent): no
  * Sign in with Apple button (it ships natively in 1.1) and no Google button
  * (Google refuses OAuth in an embedded web view; the platform gate hides it).
@@ -895,6 +960,11 @@ async function shoot(side, job) {
   // firstViewPlant() calls firstViewCheck() in the page, so it is defined there first.
   if (job.s.firstView) await tab.evaluate(`window.firstViewCheck = ${firstViewCheck.toString()}`);
   const firstPlant = job.s.firstView ? await tab.evaluate(firstViewPlant) : null;
+  // Activation fix 2: the steps in the first view, and its forced case.
+  const hasSteps = typeof job.s.stepsView === 'number';
+  if (hasSteps) await tab.evaluate(`window.stepsViewCheck = ${stepsViewCheck.toString()}`);
+  const stepsView = hasSteps ? await tab.evaluate(stepsViewCheck, job.s.stepsView) : null;
+  const stepsPlant = hasSteps ? await tab.evaluate(stepsViewPlant, job.s.stepsView) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -922,7 +992,7 @@ async function shoot(side, job) {
   const markers = job.s.pr4 === 'ask' ? await tab.evaluate(markerPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, firstView, firstPlant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, firstView, firstPlant, stepsView, stepsPlant };
 }
 
 for (const job of JOBS) {
@@ -963,6 +1033,9 @@ for (const job of JOBS) {
       // Activation fix 1: the tile in the first viewport, and its forced case on AFTER.
       ...(r.firstView?.finding ? [`activation: ${r.firstView.finding}`] : []),
       ...(side === 'after' && r.firstPlant?.finding ? [`activation: ${r.firstPlant.finding}`] : []),
+      // Activation fix 2: the steps in the first view, and its forced case on AFTER.
+      ...(r.stepsView?.finding ? [`activation: ${r.stepsView.finding}`] : []),
+      ...(side === 'after' && r.stepsPlant?.finding ? [`activation: ${r.stepsPlant.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -983,6 +1056,7 @@ for (const job of JOBS) {
       protectedPhrasesRead: r.phrases.read,
       // Activation fix 1: where the upload tile sat in the first viewport, and the forced case.
       ...(r.firstView ? { firstView: { tile: r.firstView.tile, forced: r.firstPlant?.forced ?? null, forcedCaught: r.firstPlant?.caught ?? null } } : {}),
+      ...(r.stepsView ? { stepsView: { title: r.stepsView.title, step: r.stepsView.step, limit: r.stepsView.limit, forced: r.stepsPlant?.forced ?? null, forcedCaught: r.stepsPlant?.caught ?? null } } : {}),
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no
       // plan, price, upgrade or free word.
