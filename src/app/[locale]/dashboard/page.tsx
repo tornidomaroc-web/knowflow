@@ -149,6 +149,9 @@ export default async function DashboardPage({
           // which is true of a failed or no-text one too.
           materials: docsCount ?? 0,
           conversations: convosCount ?? 0,
+          // Activation fix 1: the newest subject, from the rows loaded above
+          // (ordered newest first); no extra query.
+          newestSubjectId: subjectRows.data?.[0]?.id ?? null,
         })}
         labels={buildHomeLabels({
           home: t.dashboard.home,

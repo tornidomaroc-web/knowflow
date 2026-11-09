@@ -49,8 +49,11 @@ export default async function SubjectPreview({
   // `?platform=native` renders the app's structure (the upload button, no top bar).
   // Step Redesign-3: `?view=empty` a subject with no files (the drawn empty
   // state); `?view=quizempty` the first card's quiz panel on its drawn "no
-  // quiz from this file" state.
+  // quiz from this file" state. Activation fix 1: `?view=new` the page a
+  // just-created subject opens on, a short name, no description, no file.
   const { platform: rawPlatform, view } = await searchParams
+  const fresh = view === 'new'
+  const noFiles = view === 'empty' || fresh
   const platform = resolvePlatform(rawPlatform)
 
   const materials: { id: string; filename: string; type: string; status: string; added: string; summary: boolean; quiz: boolean; chunk_count?: number; embedding_status?: string }[] = [
@@ -69,7 +72,7 @@ export default async function SubjectPreview({
     { id: 'd6', filename: ar ? 'ملاحظات المحاضرة الخامسة عن مرونة الطلب الدخلية والتقاطعية وأثرها على السوق - النسخة النهائية 12.pdf' : 'Lecture 5 notes on income and cross elasticity of demand in markets - final version 12.pdf', type: 'pdf', status: 'ready', added: '2026-09-25T12:00:00Z', summary: true, quiz: true },
     { id: 'd7', filename: ar ? 'ملخص Chapter 3 (1).pdf' : 'Summary الفصل 3 (1).pdf', type: 'pdf', status: 'ready', added: '2026-09-25T13:00:00Z', summary: false, quiz: false },
   ]
-  const stats = view === 'empty' ? emptyStats() : { ...emptyStats(), materials: 8, ready: 5, processing: 1, failed: 1, summarised: 3, quizzed: 3 }
+  const stats = noFiles ? emptyStats() : { ...emptyStats(), materials: 8, ready: 5, processing: 1, failed: 1, summarised: 3, quizzed: 3 }
   const renameLabels = t.dashboard.kbDetail.renameMaterial
   const deleteLabels = withSupportEmail(t.dashboard.kbDetail.deleteMaterial)
   // #123 batch 2: a summary already generated and cut short, so the partial
@@ -120,8 +123,8 @@ export default async function SubjectPreview({
       >
         <div className="mx-auto max-w-4xl space-y-6 [text-wrap:balance]">
           <SubjectHeader
-            name={ar ? 'مبادئ الاقتصاد الجزئي' : 'Microeconomics'}
-            description={ar ? 'الفصل الأول، د. العلوي' : 'Semester 1, Dr. Alaoui'}
+            name={fresh ? (ar ? 'الأحياء' : 'Biology') : ar ? 'مبادئ الاقتصاد الجزئي' : 'Microeconomics'}
+            description={fresh ? null : ar ? 'الفصل الأول، د. العلوي' : 'Semester 1, Dr. Alaoui'}
             stats={stats}
             askHref="#"
             labels={{
@@ -135,7 +138,7 @@ export default async function SubjectPreview({
           <DropZone kbId="00000000-0000-0000-0000-000000000000" />
           <section className="space-y-3">
             <h2 className="text-xs font-semibold uppercase text-muted-foreground">{t.dashboard.kbDetail.documents}</h2>
-            {view === 'empty' ? <NoMaterials text={t.dashboard.kbDetail.noDocuments} /> : (
+            {noFiles ? <NoMaterials text={t.dashboard.kbDetail.noDocuments} /> : (
             <div className="space-y-3">
               {materials.map((m) => (
                 <MaterialCard

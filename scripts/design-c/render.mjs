@@ -102,6 +102,14 @@
  * page does not choose (an answer, a question, a quiz item, a summary) is
  * not read by lineChecks() or tileChecks(), as a student's own name is not.
  *
+ * ACTIVATION FIX 1 (the 2026-11-09 audit) adds the first-run screens the
+ * audit could not render, in the app at 390 and on the web at 1280: the home
+ * with no subject and with one subject and no file, the new-subject form, and
+ * the page a just-created subject opens on. On the app's no-file subject
+ * pages firstViewCheck() asserts the upload tile lies wholly in the first
+ * 390 x 844 viewport, above the tab bar; firstViewPlant() pushes the tile
+ * 900 px down and the check must flag it, or the run fails.
+ *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
  *      http://127.0.0.1:3000), CHROME, PUPPETEER_DIR, FONT_DIR (the
@@ -178,6 +186,21 @@ add('subject-app-empty', 'preview/subject', { platform: 'native', view: 'empty' 
 add('subject-web', 'preview/subject', { platform: 'web' }, SAFARI, { pr3: true });
 add('subject-web-empty', 'preview/subject', { platform: 'web', view: 'empty' }, SAFARI, { pr3: true });
 for (const k of ['settings-app', 'settings-web', 'subject-app']) byKeyEarly(k).pr3 = true;
+// Activation fix 1 (the 2026-11-09 audit): the first-run screens the audit
+// could not render, in the app at 390 and on the web at 1280. The home with
+// no subject and with one subject and no file (step 2 then opens that
+// subject), the new-subject form, and the page a just-created subject opens
+// on. `firstView`: the upload tile fully inside the first 390 x 844 viewport,
+// above the tab bar (firstViewCheck), with its forced case (firstViewPlant).
+add('home-empty', 'preview/student-home', { platform: 'native' }, APP);
+add('home-empty-desk', 'preview/student-home', { platform: 'web' }, DESK, { view: DESKTOP, targets: false });
+add('home-one', 'preview/student-home', { platform: 'native', state: 'one' }, APP);
+add('home-one-desk', 'preview/student-home', { platform: 'web', state: 'one' }, DESK, { view: DESKTOP, targets: false });
+add('new-subject-app', 'preview/new-subject', { platform: 'native' }, APP);
+add('new-subject-desk', 'preview/new-subject', { platform: 'web' }, DESK, { view: DESKTOP, targets: false });
+add('subject-new-app', 'preview/subject', { platform: 'native', view: 'new' }, APP, { pr3: true, firstView: true });
+add('subject-new-desk', 'preview/subject', { platform: 'web', view: 'new' }, DESK, { view: DESKTOP, targets: false, pr3: true });
+byKeyEarly('subject-app-empty').firstView = true;
 const LONG = pr4Screens(add, { APP, SAFARI, DESK, DESKTOP, PHONE }, resolve('.'));
 const KEEP = keepTogetherList(resolve('.'));
 const byKey = (k) => SCREENS.find((x) => x.key === k);
@@ -727,6 +750,51 @@ function pickerCheck() {
 }
 
 /**
+ * ACTIVATION FIX 1: THE UPLOAD TILE IN THE FIRST VIEWPORT (run at the
+ * screen's own size, scrolled to the top, BEFORE the page is grown for the
+ * shot). The tile must lie wholly inside the viewport and above every fixed
+ * bar at the bottom (the app's tab bar), so a student who lands on a new
+ * subject sees it without scrolling. Self-contained: serialised into the page.
+ */
+function firstViewCheck() {
+  window.scrollTo(0, 0);
+  const tile = document.querySelector('[data-kf-upload="tile"]');
+  if (!tile) return { tile: null, finding: 'first view: no upload tile' };
+  const r = tile.getBoundingClientRect();
+  const H = window.innerHeight, W = window.innerWidth;
+  // The lowest edge the content can use: the top of any visible fixed element
+  // that sits in the lower half of the screen (the floating tab bar). The
+  // decorative fade over the bar (`kf-tabfade`, pointer-events none) is not a
+  // bar: what is under it is still seen and tapped.
+  let limit = H;
+  for (const el of document.body.querySelectorAll('*')) {
+    const cs = getComputedStyle(el);
+    if (cs.position !== 'fixed' || cs.pointerEvents === 'none') continue;
+    const b = el.getBoundingClientRect();
+    if (b.width < 1 || b.height < 1 || b.top < H / 2 || b.top >= H) continue;
+    limit = Math.min(limit, b.top);
+  }
+  const box = { top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), right: Math.round(r.right), limit: Math.round(limit), viewport: `${W} x ${H}` };
+  const inside = r.top >= 0 && r.bottom <= limit + 0.5 && r.left >= -0.5 && r.right <= W + 0.5 && r.height > 0;
+  return { tile: box, finding: inside ? null : `first view: the upload tile is not fully inside the first ${W} x ${H} viewport above the tab bar (top ${box.top}, bottom ${box.bottom}, usable bottom ${box.limit})` };
+}
+
+/**
+ * ITS FORCED WRONG CASE: the tile pushed down by a style tag (a margin as
+ * tall as the screen), measured with the same function, then the tag removed.
+ * The check must flag it; if it does not, it is blind, which fails the run.
+ */
+function firstViewPlant() {
+  const tag = document.createElement('style');
+  tag.textContent = '[data-kf-upload="tile"] { margin-top: 900px !important; }';
+  document.head.appendChild(tag);
+  let forced;
+  try { forced = firstViewCheck(); } finally { tag.remove(); }
+  window.scrollTo(0, 0);
+  return { forced: forced.tile, caught: !!forced.finding, finding: forced.finding ? null : `the first-view check is blind: the tile pushed down 900 px was not flagged (${JSON.stringify(forced.tile)})` };
+}
+
+/**
  * THE APP'S GATES, IN THE PAGE (every render with the app's user agent): no
  * Sign in with Apple button (it ships natively in 1.1) and no Google button
  * (Google refuses OAuth in an embedded web view; the platform gate hides it).
@@ -822,6 +890,11 @@ async function shoot(side, job) {
   const review = await tab.evaluate(reviewChecks);
   const pr4 = job.s.pr4 ? await tab.evaluate(pr4Checks, job.s.pr4, job.s.act || null) : null;
   const phrases = await tab.evaluate(phraseChecks, KEEP);
+  // Activation fix 1: measured at the screen's own size, before it is grown.
+  const firstView = job.s.firstView ? await tab.evaluate(firstViewCheck) : null;
+  // firstViewPlant() calls firstViewCheck() in the page, so it is defined there first.
+  if (job.s.firstView) await tab.evaluate(`window.firstViewCheck = ${firstViewCheck.toString()}`);
+  const firstPlant = job.s.firstView ? await tab.evaluate(firstViewPlant) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -838,7 +911,8 @@ async function shoot(side, job) {
   if (card) await card.screenshot({ path: file });
   else await tab.screenshot({ path: file });
   const picker = job.s.pr3 && /preview\/subject$/.test(job.s.path) ? await tab.evaluate(pickerCheck) : null;
-  const plant = /preview\/subject$/.test(job.s.path) && job.s.q.view !== 'empty' ? await tab.evaluate(deletePlant) : null;
+  // A subject with no file (`empty`, and `new`, activation fix 1) has no Delete to force.
+  const plant = /preview\/subject$/.test(job.s.path) && !['empty', 'new'].includes(job.s.q.view) ? await tab.evaluate(deletePlant) : null;
   const ring = job.s.pr4 === 'consent' ? await keyRing(tab) : null;
   // G2: check 9's forced wrong cases, after the shot (pr4.mjs, pageLabelPlant).
   const labelPlant = job.s.pr4 === 'ask' ? await tab.evaluate(pageLabelPlant) : null;
@@ -848,7 +922,7 @@ async function shoot(side, job) {
   const markers = job.s.pr4 === 'ask' ? await tab.evaluate(markerPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, firstView, firstPlant };
 }
 
 for (const job of JOBS) {
@@ -886,6 +960,9 @@ for (const job of JOBS) {
       ...(side === 'after' && r.labelPlant?.finding ? [`g2: ${r.labelPlant.finding}`] : []),
       ...(side === 'after' && r.latin?.finding ? [`latin: ${r.latin.finding}`] : []),
       ...(side === 'after' && r.markers?.finding ? [`markers: ${r.markers.finding}`] : []),
+      // Activation fix 1: the tile in the first viewport, and its forced case on AFTER.
+      ...(r.firstView?.finding ? [`activation: ${r.firstView.finding}`] : []),
+      ...(side === 'after' && r.firstPlant?.finding ? [`activation: ${r.firstPlant.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -904,6 +981,8 @@ for (const job of JOBS) {
       // What pr4Checks() read, and how much of the thread the page was grown by.
       ...(r.pr4 ? { pr4: { ...r.pr4.measured, act: job.s.act || null, grownBy: r.hidden || 0, ...(r.ring ? { tabRing: r.ring } : {}), ...(r.labelPlant ? { pageLabelPlant: { labels: r.labelPlant.labels, wrapCaught: r.labelPlant.wrapCaught, clipCaught: r.labelPlant.clipCaught, ranges: r.labelPlant.ranges, orderCaught: r.labelPlant.orderCaught, names: r.labelPlant.names, oneWordCaught: r.labelPlant.oneWordCaught, pills: r.labelPlant.pills, bulletCaught: r.labelPlant.bulletCaught, edges: r.labelPlant.edges, edgeCaught: r.labelPlant.edgeCaught } } : {}), ...(r.latin && r.latin.isolates ? { latinPlant: { isolates: r.latin.isolates, mirroredCaught: r.latin.mirroredCaught, shorts: r.latin.shorts, splitCaught: r.latin.splitCaught } } : {}), ...(r.markers && r.markers.cards ? { markerPlant: { cards: r.markers.cards, caught: r.markers.caught, unglued: r.markers.unglued } } : {}) } } : {}),
       protectedPhrasesRead: r.phrases.read,
+      // Activation fix 1: where the upload tile sat in the first viewport, and the forced case.
+      ...(r.firstView ? { firstView: { tile: r.firstView.tile, forced: r.firstPlant?.forced ?? null, forcedCaught: r.firstPlant?.caught ?? null } } : {}),
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no
       // plan, price, upgrade or free word.

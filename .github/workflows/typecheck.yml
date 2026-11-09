@@ -273,6 +273,11 @@ jobs:
       - name: Verify a subject name reads in its own direction wherever it is shown (UserName)
         run: node --experimental-strip-types scripts/verify-user-names.mjs
 
+      # Activation fix 1 (2026-11-09 audit): a created subject opens on its own
+      # page, and the home's step 2 opens the newest subject while it has no file.
+      - name: Verify a new subject opens on its upload tile, and step 2 leads there (activation fix 1)
+        run: node --experimental-strip-types scripts/verify-activation-1.mjs
+
       # #295 follow-up: /api/ingest never stores a file name holding U+0000 (22P05).
       - name: Verify the upload route removes U+0000 from the stored file name, and nothing else
         run: node --experimental-strip-types scripts/verify-upload-filename-nul.mjs

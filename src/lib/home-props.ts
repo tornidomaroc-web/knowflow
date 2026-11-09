@@ -9,6 +9,7 @@ import type {
 import type { ActivityItem, RecentActivityLabels } from '@/components/dashboard/RecentActivity'
 import { subjectStats, progressBase, type DocumentRow } from '@/lib/subject-stats'
 import { isAnswerable } from '@/lib/material-text'
+import { isSubjectId, subjectCreatedPath } from '@/lib/subject-create'
 
 /**
  * The label + href assembly for <StudentHome/>, shared by the real dashboard page
@@ -165,12 +166,20 @@ export function buildHrefs(locale: Locale, platform: Platform) {
 export function buildOnboarding(
   home: HomeDict,
   locale: Locale,
-  counts: { subjects: number; materials: number; conversations: number },
+  counts: { subjects: number; materials: number; conversations: number; newestSubjectId?: string | null },
 ): OnboardingStep[] {
   const h = appHrefs(locale)
+  // Activation fix 1: with a subject and no file yet, "Upload your materials"
+  // opens the newest subject, where the upload tile is, not the list. The id
+  // comes from the rows the home already loads (newest first); anything that
+  // is not a subject id keeps the list link.
+  const uploadHref =
+    counts.subjects > 0 && counts.materials === 0 && isSubjectId(counts.newestSubjectId)
+      ? subjectCreatedPath(locale, counts.newestSubjectId)
+      : h.subjectsHref
   return [
     { key: 'subject', title: home.step1Title, desc: home.step1Desc, done: counts.subjects > 0, href: h.newSubjectHref },
-    { key: 'upload', title: home.step2Title, desc: home.step2Desc, done: counts.materials > 0, href: h.subjectsHref },
+    { key: 'upload', title: home.step2Title, desc: home.step2Desc, done: counts.materials > 0, href: uploadHref },
     { key: 'ask', title: home.step3Title, desc: home.step3Desc, done: counts.conversations > 0, href: h.askHref },
   ]
 }
