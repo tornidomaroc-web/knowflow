@@ -134,6 +134,10 @@
  * error state has a visible 44 x 44 control in the first view that opens the
  * picker, with its forced case; upload-refused-* renders main's own error
  * state through a real refused pick, so the check is measured on main too.
+ * Latin groups (after activation 5) add check 15 on EVERY screen: in right-
+ * to-left text, a Latin run of 30 characters or fewer lies on one line and
+ * is drawn in its logical order; a finding fails AFTER only inside a drop
+ * zone or the AI permission sheet, any other is reported (latin-runs.mjs).
  *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
@@ -148,6 +152,7 @@ import { kfWording } from '../lib/app-wording.mjs';
 import { audit } from '../redesign-built/audit.mjs';
 import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing, pageLabelPlant, g2Rules, latinRules, latinPlant, markerLines, markerPlant, orphanLines, orphanPlant } from './pr4.mjs';
 import { activation5Screens, a5Prepare, a5Act, askPathCheck, askPathPlant, dropZoneErrorCheck, dropZoneErrorPlant } from './activation5.mjs';
+import { latinRunsCheck, latinRunsPlant } from './latin-runs.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -1021,6 +1026,10 @@ async function shoot(side, job) {
   if (job.s.askPath) await tab.evaluate(`window.askPathCheck = ${askPathCheck.toString()}`);
   const askPath = job.s.askPath ? await tab.evaluate(askPathCheck) : null;
   const askPlant = job.s.askPath ? await tab.evaluate(askPathPlant) : null;
+  // Check 15, on every screen, measured before check 14's taps: Latin runs whole and in order.
+  await tab.evaluate(`window.latinRunsCheck = ${latinRunsCheck.toString()}`);
+  const runs15 = await tab.evaluate(latinRunsCheck);
+  const runs15Plant = side === 'after' ? await tab.evaluate(latinRunsPlant) : null;
   // The owner's review of #315, check 14: a drop zone error state has a way to pick another file.
   if (job.s.dzError) await tab.evaluate(`window.dropZoneErrorCheck = ${dropZoneErrorCheck.toString()}`);
   const dzError = job.s.dzError ? await tab.evaluate(dropZoneErrorCheck) : null;
@@ -1056,7 +1065,7 @@ async function shoot(side, job) {
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant };
 }
 
 for (const job of JOBS) {
@@ -1107,6 +1116,9 @@ for (const job of JOBS) {
       // The owner's review of #315: check 14, and its forced case on AFTER.
       ...(r.dzError?.finding ? [`activation: ${r.dzError.finding}`] : []),
       ...(side === 'after' && r.dzPlant?.finding ? [`activation: ${r.dzPlant.finding}`] : []),
+      // Check 15: a Latin run split or out of order, inside a drop zone or the AI sheet; and its forced cases.
+      ...r.runs15.findings.filter((f) => f.scope).map((f) => `latin runs (${f.scope}): ${f.text}`),
+      ...(r.runs15Plant?.finding ? [`latin runs: ${r.runs15Plant.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -1130,6 +1142,7 @@ for (const job of JOBS) {
       ...(r.stepsView ? { stepsView: { title: r.stepsView.title, step: r.stepsView.step, limit: r.stepsView.limit, forced: r.stepsPlant?.forced ?? null, forcedCaught: r.stepsPlant?.caught ?? null } } : {}),
       ...(r.crossLink ? { crossLink: r.crossLink } : {}),
       ...(r.askPath ? { askPath: { link: r.askPath.link, forced: r.askPlant?.forced ?? null, forcedCaught: r.askPlant?.caught ?? null } } : {}),
+      latinRuns: { runs: r.runs15.runs, inScope: r.runs15.inScope, isolated: r.runs15.isolated, findingsInScope: r.runs15.findings.filter((f) => f.scope).map((f) => f.text), outsideScope: r.runs15.findings.filter((f) => !f.scope).map((f) => f.text), ...(r.runs15Plant ? { forced: r.runs15Plant } : {}) },
       ...(r.dzError ? { dropZoneError: { zones: r.dzError.zones, controls: r.dzError.controls, finding: r.dzError.finding, forced: r.dzPlant?.forced ?? null, forcedCaught: r.dzPlant?.caught ?? null } } : {}),
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no
@@ -1139,6 +1152,7 @@ for (const job of JOBS) {
     console.log(`${side === 'after' && bad.length ? 'FAIL' : 'ok  '} ${side.padEnd(6)} ${job.name}: theme ${r.theme}, ${r.fonts.loaded.length} static faces, text worst ${tmin.toFixed(2)}:1, ${bad.length} finding(s)`);
     for (const b of bad) console.log(`       ${side}: ${b}`);
     for (const b of known) console.log(`       ${side}: known (not failed): ${b}`);
+    for (const f of r.runs15.findings.filter((x) => !x.scope)) console.log(`       ${side}: latin runs, outside this change (not failed): ${f.text}`);
     // Check 11 on the glue undone (94195ab's shape), printed, not failed: the head this PR fixes.
     if (side === 'after' && r.markers?.unglued?.length) for (const u of r.markers.unglued) console.log(`       glue undone (94195ab): ${u}`);
     if (side === 'after' && r.orphans?.unpretty?.length) for (const u of r.orphans.unpretty) console.log(`       text-wrap: pretty undone (main's rule): ${u}`);

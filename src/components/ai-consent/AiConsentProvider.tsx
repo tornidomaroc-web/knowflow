@@ -7,6 +7,7 @@ import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
 import { ClaySpark } from '@/components/clay/ClayIcons';
 import { keepTogether } from '@/lib/keep-together';
 import { FileName } from '@/components/ui/FileName';
+import { LatinText } from '@/components/ui/LatinText';
 import { ClayUploadFile } from '@/components/clay/ClayIcons';
 import { createClient } from '@/lib/supabase/client';
 import { AI_CONSENT_WITHDRAWN, aiConsentGrant } from '@/lib/ai-consent';
@@ -162,7 +163,7 @@ export function AiConsentProvider({
             data-kf-consent-sheet="open"
             className="max-h-[85dvh] overflow-y-auto px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] [text-wrap:pretty]"
           >
-            <ClaySectionTitle icon={<ClaySpark />} className="[text-wrap:balance]">{keepTogether(labels.title)}</ClaySectionTitle>
+            <ClaySectionTitle icon={<ClaySpark />} className="[text-wrap:balance]"><LatinText text={keepTogether(labels.title)} /></ClaySectionTitle>
             {held && (
               /* Activation 5 (cause #7): the picked file, kept while the
                  student decides. Its name only: nothing of it has left. */
@@ -171,21 +172,21 @@ export function AiConsentProvider({
                 <FileName name={held} className="min-w-0 flex-1 text-sm font-medium text-foreground" />
               </div>
             )}
-            <p className="mt-3 text-sm text-muted-foreground">{keepTogether(labels.intro)}</p>
+            <p className="mt-3 text-sm text-muted-foreground"><LatinText text={keepTogether(labels.intro)} /></p>
             <ul className="mt-3 space-y-2 text-sm text-foreground">
-              <li className="kf-well rounded-2xl px-3.5 py-2.5">{keepTogether(labels.anthropic)}</li>
-              <li className="kf-well rounded-2xl px-3.5 py-2.5">{keepTogether(labels.voyage)}</li>
+              <li className="kf-well rounded-2xl px-3.5 py-2.5"><LatinText text={keepTogether(labels.anthropic)} /></li>
+              <li className="kf-well rounded-2xl px-3.5 py-2.5"><LatinText text={keepTogether(labels.voyage)} /></li>
             </ul>
-            <p className="mt-3 text-sm text-foreground">{keepTogether(labels.notSent)}</p>
+            <p className="mt-3 text-sm text-foreground"><LatinText text={keepTogether(labels.notSent)} /></p>
             <p className="mt-2 text-xs text-muted-foreground">
-              {keepTogether(labels.withdrawHint)}{' '}
+              <LatinText text={keepTogether(labels.withdrawHint)} />{' '}
               <Link href={privacyHref} className="whitespace-nowrap rounded underline hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {labels.privacyLink}
               </Link>
             </p>
             {failed && (
               <p role="alert" className="mt-3 text-sm font-medium text-danger">
-                {labels.saveFailed}
+                <LatinText text={labels.saveFailed} />
               </p>
             )}
             <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">

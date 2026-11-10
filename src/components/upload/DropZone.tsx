@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { usePlatform } from '@/components/platform/PlatformProvider';
 import { ClayUploadFile } from '@/components/clay/ClayIcons';
 import { FileName } from '@/components/ui/FileName';
+import { LatinText } from '@/components/ui/LatinText';
 import type { Document } from '@/types';
 import { Locale, resolveLocale, useTranslation } from '@/lib/i18n';
 import { fileTooLargeMessage, uploadFailureMessage, uploadLimitLabel, uploadRefusalMessage } from '@/lib/limit-messages';
@@ -268,9 +269,9 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
 
       {state === 'error' && (
         <div data-kf-upload-error="" role="alert" className="w-full rounded-3xl border border-danger-border bg-danger-subtle p-6">
-          <p className="text-sm font-medium text-danger">{u.error}</p>
-          <p className="mt-1 text-xs text-danger">{errorMsg}</p>
-          <p className="mt-2 text-xs text-muted-foreground">{u.tryAnother}</p>
+          <p className="text-sm font-medium text-danger"><LatinText text={u.error} /></p>
+          <p className="mt-1 text-xs text-danger">{errorMsg && <LatinText text={errorMsg} />}</p>
+          <p className="mt-2 text-xs text-muted-foreground"><LatinText text={u.tryAnother} /></p>
         </div>
       )}
 
@@ -278,7 +279,7 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
         <>
           {state === 'idle' && notice === 'declined' && (
             <p data-kf-upload-notice="declined" role="status" className="w-full text-start text-sm text-muted-foreground">
-              {t.dashboard.aiConsent.declined}
+              <LatinText text={t.dashboard.aiConsent.declined} />
             </p>
           )}
           <button
@@ -308,7 +309,7 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
             </span>
             <div className="min-w-0 flex-1">
               <FileName name={file.name} className="text-sm font-medium text-foreground" />
-              <p className="text-xs text-muted-foreground">{u.awaitingConsent}</p>
+              <p className="text-xs text-muted-foreground"><LatinText text={u.awaitingConsent} /></p>
             </div>
           </div>
         </div>
@@ -327,11 +328,11 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
               <p className={noText && state === 'ready' ? 'text-xs text-danger' : pagesNoText && state === 'ready' ? 'text-xs text-foreground' : 'text-xs text-muted-foreground'}>
                 {state === 'uploading' && `${u.uploading} ${Math.round(fraction * 100)}%`}
                 {state === 'processing' && (stage === 'reading' ? u.reading : stage === 'preparing' ? u.preparing : u.stillWorking)}
-                {state === 'ready' && (noText
+                {state === 'ready' && <LatinText text={(noText
                   ? t.dashboard.subjectDetail.noTextLine
                   : pagesNoText
                     ? t.dashboard.subjectDetail.someNoTextLine.replace('{n}', String(pagesNoText.n)).replace('{total}', String(pagesNoText.total))
-                    : u.ready)}
+                    : u.ready)} />}
               </p>
             </div>
             <span className="shrink-0 text-xs tabular-nums text-faint">
@@ -350,7 +351,7 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
 
           {warn && (
             <>
-              <p className="mt-2 text-xs text-muted-foreground" data-kf-text-fix="">{t.dashboard.subjectDetail.noTextFix}</p>
+              <p className="mt-2 text-xs text-muted-foreground" data-kf-text-fix=""><LatinText text={t.dashboard.subjectDetail.noTextFix} /></p>
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
@@ -365,9 +366,9 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
 
           {state === 'processing' && (
             <p className="mt-2 text-xs text-muted-foreground">
-              {stage === 'long'
+              <LatinText text={stage === 'long'
                 ? u.leaveNote
-                : u.usuallyAbout.replace('{n}', String(expectedProcessingSeconds(file.size)))}
+                : u.usuallyAbout.replace('{n}', String(expectedProcessingSeconds(file.size)))} />
             </p>
           )}
         </div>

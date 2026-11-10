@@ -50,3 +50,43 @@ export function splitLatinGroups(text: string): Piece[] {
   if (at < text.length) out.push(text.slice(at));
   return out;
 }
+
+/**
+ * BARE LATIN RUNS IN A RIGHT-TO-LEFT SENTENCE (the drop zone and the AI
+ * permission sheet, after activation 5's renders). Not only bracketed groups:
+ * "يقبل KnowFlow ملفات PDF, DOCX, PPTX, XLSX, TXT, MD فقط، وهذا الملف من نوع
+ * .zip." broke the list over two lines (its order scrambled around the
+ * Arabic) and drew ".zip" as "zip."; the declined sentence broke "Voyage" /
+ * "AI.". A run is a Latin word, or a leading "." and a Latin word (".zip"),
+ * then any further Latin words, digits and the separators between them
+ * (space, comma, dot, hyphen, underscore, apostrophe, slash, plus, "&"). It
+ * ends on a letter or a digit, so a sentence's own "." or "،" stays with the
+ * Arabic. A bracketed Latin group is still one piece, brackets included, as
+ * splitLatinGroups() cuts it.
+ *
+ * `short` is the same cap as a bracketed group's: at most SHORT_GROUP
+ * characters (the run's own; a group's inside its brackets). The caller
+ * draws every run as a left-to-right isolate, and a short one on one line.
+ */
+export type Run = string | { run: string; short: boolean };
+
+const RUN = /\.?[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ0-9]*(?:[ ,.\-_'’/+&]+[A-Za-zÀ-ɏ0-9]+)*/g;
+
+export function splitLatinRuns(text: string): Run[] {
+  const out: Run[] = [];
+  const plain = (s: string) => {
+    let at = 0;
+    for (const m of s.matchAll(RUN)) {
+      const start = m.index ?? 0;
+      if (start > at) out.push(s.slice(at, start));
+      out.push({ run: m[0], short: m[0].length <= SHORT_GROUP });
+      at = start + m[0].length;
+    }
+    if (at < s.length) out.push(s.slice(at));
+  };
+  for (const p of splitLatinGroups(text)) {
+    if (typeof p === 'string') plain(p);
+    else out.push({ run: p.group, short: p.short });
+  }
+  return out;
+}
