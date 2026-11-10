@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkConversationLimit, conversationMonthWindow } from '@/lib/limits-server';
 import { enforceLimit } from '@/lib/rate-limit';
-import { resolveLocale, type Locale } from '@/lib/i18n';
+import { resolveLocale, useTranslation as dictionaryFor, type Locale } from '@/lib/i18n';
+import { NO_MATERIAL_REFUSAL, hasAnswerableMaterial } from '@/lib/ask-material';
 import { monthlyConversationMessage } from '@/lib/limit-messages';
 import { platformFromRequest } from '@/lib/platform';
 import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
@@ -149,6 +150,30 @@ export async function POST(request: Request) {
       return new Response(aiConsentRefusalMessage(safeLocale), {
         status: 403,
         headers: { 'Content-Type': 'text/plain', 'X-KF-Refusal': AI_CONSENT_REFUSAL },
+      });
+    }
+
+    // Activation 5 (cause #6): a subject with no file Ask can answer from is
+    // refused HERE, before the daily question counter, the monthly
+    // conversation, the embedding and the model (src/lib/ask-material.ts).
+    // "Answerable" is #129's rule (`isAnswerable`). RLS scopes the read, so a
+    // subject that is not the caller's reads as empty and is refused the same
+    // way. If the read itself fails, the question goes on as before rather
+    // than refusing a student who may well have material.
+    const { data: readyRows, error: readyError } = await supabase
+      .from('documents')
+      .select('status, chunk_count, embedding_status')
+      .eq('kb_id', kb_id)
+      .eq('status', 'ready');
+    if (readyError) {
+      console.error('[ask-material] ready files not read; asking as before:', readyError.message);
+    } else if (!hasAnswerableMaterial(readyRows)) {
+      // text/plain like every refusal here: a chat from before this change
+      // renders the body as the reply. The current chat reads the header and
+      // shows the way to the subject's upload tile instead.
+      return new Response(dictionaryFor(safeLocale).dashboard.home.step2Title, {
+        status: 409,
+        headers: { 'Content-Type': 'text/plain', 'X-KF-Refusal': NO_MATERIAL_REFUSAL },
       });
     }
 

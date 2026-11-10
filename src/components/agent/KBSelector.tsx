@@ -64,7 +64,12 @@ export function KBSelector({ kbs, materials = [], answerableIds, preview }: { kb
   const offered = kbs.filter((k) => answerable.has(k.id));
   const firstAnswerable = () => initialAskSubject(kbs.map((k) => k.id), answerable, null);
   const opened = preview?.open ? preview.conversations.find((c) => c.id === preview.open) : undefined;
-  const [selectedId, setSelectedId] = useState(() => opened?.kb_id ?? initialAskSubject(kbs.map((k) => k.id), answerable, wanted));
+  // Activation 5 (cause #6): a `?kb=` that names one of the student's
+  // subjects with no file to answer from opens THAT subject, on the way to
+  // its upload tile (ChatBox `answerable={false}`), instead of quietly
+  // switching to another subject. It still offers no composer there.
+  const wantedEmpty = wanted && !answerable.has(wanted) && kbs.some((k) => k.id === wanted) ? wanted : null;
+  const [selectedId, setSelectedId] = useState(() => opened?.kb_id ?? wantedEmpty ?? initialAskSubject(kbs.map((k) => k.id), answerable, wanted));
   const [conversations, setConversations] = useState<Conversation[]>(preview?.conversations ?? []);
   const [mountKey, setMountKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(preview?.drawer ?? false);
@@ -183,6 +188,7 @@ export function KBSelector({ kbs, materials = [], answerableIds, preview }: { kb
             materials={materials.filter((m) => m.kb_id === selectedKb.id).map((m) => ({ filename: m.filename, lead: m.lead }))}
             initialConversationId={selection.conversationId}
             initialMessages={selection.messages}
+            answerable={answerable.has(selectedKb.id)}
             onConversationCreated={(id) => { setSelection(s => ({ ...s, conversationId: id })); fetchConversations(); }}
           />
         )}

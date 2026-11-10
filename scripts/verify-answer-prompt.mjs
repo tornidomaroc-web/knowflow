@@ -46,6 +46,8 @@ function chain(table) {
   let result;
   if (table === 'chunks') { S().pageReads++; result = S().pageError ? { data: null, error: S().pageError } : { data: S().pageRows, error: null }; }
   else if (table === 'conversations') result = { data: { id: 'conv-new' }, count: 1, error: null };
+  // Activation 5: the subject holds a ready file with text, so the route's no-material guard lets the question through.
+  else if (table === 'documents') result = { data: [{ status: 'ready', embedding_status: 'ready', chunk_count: 4 }], error: null };
   else result = { data: [], count: 0, error: null };
   const c = new Proxy({}, {
     get(_t, prop) {

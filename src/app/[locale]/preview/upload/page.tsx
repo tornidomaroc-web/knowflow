@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { DropZone } from '@/components/upload/DropZone'
+import { AiConsentProvider } from '@/components/ai-consent/AiConsentProvider'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 
@@ -13,6 +14,12 @@ import { Locale, locales, useTranslation } from '@/lib/i18n'
  * to be sent, which is a production write and a paid embedding call, and the
  * proof (`scripts/verify-upload-progress.mjs`) holds those from the module
  * and the source instead. The kb id is a literal that no upload will reach.
+ *
+ * Activation 5: `?state=` shows ONE drop zone frozen in a state the audit
+ * never rendered, with nothing sent: `processing` (12 s in, no clock),
+ * `failed` (the reply when processing fails), `consent` (the picked file held
+ * under the open permission sheet, which saves nowhere here) and `declined`
+ * (the tile again after "Not now").
  */
 export const metadata: Metadata = {
   title: 'Upload: design preview',
@@ -23,14 +30,26 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }))
 }
 
-export default async function UploadPreview({ params }: { params: Promise<{ locale: string }> }) {
+const STATES = ['processing', 'failed', 'consent', 'declined'] as const
+type State = (typeof STATES)[number]
+
+export default async function UploadPreview({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>
+  searchParams: Promise<{ state?: string }>
+}) {
   if (process.env.VERCEL_ENV === 'production') notFound()
   const { locale } = await params
   if (!locales.includes(locale as Locale)) notFound()
   const safeLocale = locale as Locale
   const t = useTranslation(safeLocale)
+  const raw = (await searchParams).state
+  const state: State | null = STATES.includes(raw as State) ? (raw as State) : null
+  const name = safeLocale === 'ar' ? 'تمارين محلولة - الفصل 3.pdf' : 'Solved exercises - Chapter 3.pdf'
 
-  return (
+  const page = (
     <div className="min-h-screen">
       <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 text-xs">
         <span className="font-semibold text-foreground">upload · preview</span>
@@ -51,6 +70,11 @@ export default async function UploadPreview({ params }: { params: Promise<{ loca
           signOut: t.dashboard.nav.signOut,
         }}
       >
+        {state ? (
+          <div className="mx-auto max-w-4xl space-y-6">
+            <DropZone kbId="00000000-0000-0000-0000-000000000000" previewFile={{ name, size: 1_200_000, state }} />
+          </div>
+        ) : (
         <div className="mx-auto max-w-4xl space-y-6">
           <DropZone kbId="00000000-0000-0000-0000-000000000000" />
           {/* #124: the queued-file row, as it shows once a file is picked. The
@@ -70,7 +94,17 @@ export default async function UploadPreview({ params }: { params: Promise<{ loca
             }}
           />
         </div>
+        )}
       </DashboardShell>
     </div>
+  )
+  // The sheet opens at once over the held file, as it does after a pick; in
+  // preview mode it saves nowhere.
+  return state === 'consent' ? (
+    <AiConsentProvider initialConsented={false} labels={t.dashboard.aiConsent} privacyHref={`/${safeLocale}/privacy`} preview previewHeld={name}>
+      {page}
+    </AiConsentProvider>
+  ) : (
+    page
   )
 }

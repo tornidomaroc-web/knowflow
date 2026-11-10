@@ -93,13 +93,18 @@ export function SubjectChips({
  * it sends them to their subjects, where each card says what to do, and the
  * history drawer stays one tap away.
  */
-export function AskNoAnswerableSubject({ href, labels }: { href: string; labels: { title: string; cta: string } }) {
+export function AskNoAnswerableSubject({ href, labels, kind = 'subjects' }: { href: string; labels: { title: string; desc?: string; cta: string }; kind?: 'subjects' | 'material' }) {
+  // `kind` (activation 5, cause #6): 'material' is ONE subject with no file
+  // Ask can answer from, and the link opens that subject's page, where the
+  // upload tile is; 'subjects' is the list, as before. The design-c render
+  // reads both markers.
   return (
-    <div className="flex flex-1 items-center justify-center p-6">
+    <div data-kf-ask-upload-path={kind} className="flex flex-1 items-center justify-center p-6">
       <div className="flex max-w-sm flex-col items-center text-center">
         <ClayAskArt width={96} height={96} data-kf-clay-art="empty-ask" />
         <p className="mt-4 text-base font-semibold text-foreground">{labels.title}</p>
-        <Link href={href} className={cn(buttonVariants({ variant: 'primary' }), 'mt-4')}>
+        {labels.desc && <p className="mt-1 text-sm text-muted-foreground">{labels.desc}</p>}
+        <Link href={href} data-kf-ask-upload-link="" className={cn(buttonVariants({ variant: 'primary' }), 'mt-4')}>
           <ClayUploadGlyph width={24} height={24} />
           {labels.cta}
         </Link>

@@ -57,7 +57,7 @@ export async function createClient() {
     storage: { from: () => ({ upload: async () => ({ data: {}, error: null }) }) },
   };
 }`;
-const RATE_LIMIT_STUB = `export async function enforceLimit() { return { allowed: true }; }`;
+const RATE_LIMIT_STUB = `export async function enforceLimit() { return { allowed: true }; } export async function enforceUploadLimit() { return { allowed: true }; }`;
 const LIMITS_SERVER_STUB = `export async function checkDocumentLimit() { return { allowed: true, limit: 99, tier: 'free' }; }`;
 const INGESTION_STUB = `export function getServiceUrl() { return 'http://ingestion.invalid'; }
 export async function embedQuery() { return [0]; }`;

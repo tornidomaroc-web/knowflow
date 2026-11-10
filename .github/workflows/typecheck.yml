@@ -291,6 +291,15 @@ jobs:
       - name: Verify the app opens on sign-up on a fresh device and on login after a session, its sign-up says what the app does, the web unchanged (activation fixes 3 and 4)
         run: node --experimental-strip-types scripts/verify-activation-3.mjs
 
+      # Activation fix 5 (audit causes #6, #10, #7), against the REAL /api/agent
+      # and /api/ingest handlers with an in-memory database: asking in a subject
+      # with no file to answer from counts nothing and calls no model; a failed
+      # processing does not use one of the day's uploads, and failed attempts
+      # stop at 5 + 5 a day; the picked file is held through the permission
+      # sheet and released on "Not now". 43 failures on main eec2b18.
+      - name: Verify zero material costs no question, a failed processing costs no upload (bounded), and the picked file survives the permission sheet (activation fix 5)
+        run: node --experimental-strip-types scripts/verify-activation-5.mjs
+
       # #295 follow-up: /api/ingest never stores a file name holding U+0000 (22P05).
       - name: Verify the upload route removes U+0000 from the stored file name, and nothing else
         run: node --experimental-strip-types scripts/verify-upload-filename-nul.mjs

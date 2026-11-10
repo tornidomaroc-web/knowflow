@@ -6,6 +6,8 @@ import { Button, Sheet } from '@/components/ui';
 import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
 import { ClaySpark } from '@/components/clay/ClayIcons';
 import { keepTogether } from '@/lib/keep-together';
+import { FileName } from '@/components/ui/FileName';
+import { ClayUploadFile } from '@/components/clay/ClayIcons';
 import { createClient } from '@/lib/supabase/client';
 import { AI_CONSENT_WITHDRAWN, aiConsentGrant } from '@/lib/ai-consent';
 import type { useTranslation } from '@/lib/i18n';
@@ -18,8 +20,10 @@ interface AiConsentValue {
    * Resolves true when the student has given the permission, asking first
    * with the sheet if they have not. Every client call to a route that sends
    * content to Anthropic or Voyage AI awaits this before the request leaves.
+   * `held` (activation 5, cause #7): the picked file waiting on the answer,
+   * named on the sheet so the student sees it is kept.
    */
-  ensure: () => Promise<boolean>;
+  ensure: (held?: { name: string }) => Promise<boolean>;
   /** Removes the permission from the account; resolves whether it was saved. */
   withdraw: () => Promise<boolean>;
   labels: AiConsentLabels | null;
@@ -71,12 +75,15 @@ export function AiConsentProvider({
   labels,
   privacyHref,
   preview = false,
+  previewHeld,
   children,
 }: {
   initialConsented: boolean;
   labels: AiConsentLabels;
   privacyHref: string;
   preview?: boolean;
+  /** PREVIEW ONLY: the sheet opens holding a picked file of this name. */
+  previewHeld?: string;
   children: ReactNode;
 }) {
   const [consented, setConsented] = useState(initialConsented);
@@ -84,6 +91,8 @@ export function AiConsentProvider({
   const [open, setOpen] = useState(preview && !initialConsented);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Activation 5 (cause #7): the file the open sheet is holding, if any.
+  const [held, setHeld] = useState<string | null>(preview && previewHeld ? previewHeld : null);
   const pending = useRef<((ok: boolean) => void) | null>(null);
 
   const persist = useCallback(
@@ -98,8 +107,9 @@ export function AiConsentProvider({
     resolve?.(ok);
   }, []);
 
-  const ensure = useCallback(() => {
+  const ensure = useCallback((file?: { name: string }) => {
     if (consentedRef.current) return Promise.resolve(true);
+    setHeld(file?.name ?? null);
     return new Promise<boolean>((resolve) => {
       // A second ask while the sheet is up supersedes the first, which is
       // answered "not given" so its caller does not wait forever.
@@ -153,6 +163,14 @@ export function AiConsentProvider({
             className="max-h-[85dvh] overflow-y-auto px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] [text-wrap:pretty]"
           >
             <ClaySectionTitle icon={<ClaySpark />} className="[text-wrap:balance]">{keepTogether(labels.title)}</ClaySectionTitle>
+            {held && (
+              /* Activation 5 (cause #7): the picked file, kept while the
+                 student decides. Its name only: nothing of it has left. */
+              <div data-kf-consent-file="" className="kf-well mt-3 flex items-center gap-3 rounded-2xl px-3.5 py-2.5">
+                <ClayUploadFile width={32} height={32} className="shrink-0" />
+                <FileName name={held} className="min-w-0 flex-1 text-sm font-medium text-foreground" />
+              </div>
+            )}
             <p className="mt-3 text-sm text-muted-foreground">{keepTogether(labels.intro)}</p>
             <ul className="mt-3 space-y-2 text-sm text-foreground">
               <li className="kf-well rounded-2xl px-3.5 py-2.5">{keepTogether(labels.anthropic)}</li>

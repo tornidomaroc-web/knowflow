@@ -76,7 +76,8 @@ function chain(table) {
   };
   const c = new Proxy({}, {
     get(_t, prop) {
-      if (prop === 'then') return (res, rej) => Promise.resolve(result()).then(res, rej);
+      // A list read of documents (the agent's ready-file check, activation 5) gets the doc as a row.
+      if (prop === 'then') return (res, rej) => Promise.resolve(table === 'documents' && op === 'select' ? { data: S().doc ? [S().doc] : [], error: null } : result()).then(res, rej);
       if (prop === 'single' || prop === 'maybeSingle') return async () => result();
       if (prop === 'insert' || prop === 'update' || prop === 'upsert' || prop === 'delete') {
         return () => { op = prop; S().calls.insert++; return c; };
@@ -97,6 +98,11 @@ export async function createClient() {
 
 const RATE_LIMIT_STUB = `
 export async function enforceLimit() {
+  globalThis.__aiConsentStub.calls.limit++;
+  return { allowed: false, status: 429, error: 'limit reached (stub)' };
+}
+// Activation 5: /api/ingest's upload gate, the same counter.
+export async function enforceUploadLimit() {
   globalThis.__aiConsentStub.calls.limit++;
   return { allowed: false, status: 429, error: 'limit reached (stub)' };
 }`;
@@ -285,7 +291,7 @@ const callSites = [
 ];
 for (const [file, request] of callSites) {
   const s = src(file);
-  const gate = s.indexOf('await ensureAiConsent()');
+  const gate = s.indexOf('await ensureAiConsent('); // activation 5: DropZone passes the held file's name
   const req = s.indexOf(request);
   need(gate > 0 && req > 0 && gate < req, `${file}: the sheet is awaited before ${request}`);
   need(/aiConsent\.declined/.test(s), `${file}: a declined sheet shows the declined sentence`);

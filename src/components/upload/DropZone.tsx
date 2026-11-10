@@ -16,6 +16,7 @@ import { fileExtension, isAllowedFileType } from '@/types';
 import { expectedProcessingSeconds, processingFraction, processingStage } from '@/lib/upload-progress';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 import { pagesWithoutText } from '@/lib/material-text';
+import { AWAITING_CONSENT, afterConsent } from '@/lib/upload-consent';
 
 interface DropZoneProps {
   kbId: string;
@@ -26,10 +27,22 @@ interface DropZoneProps {
    * upload. Nothing is sent; the real flow never passes it. `noText` and
    * `pagesNoText` (Option C) start it on that result, as an upload would.
    */
-  previewFile?: { name: string; size: number; noText?: boolean; pagesNoText?: { n: number; total: number } | null };
+  previewFile?: { name: string; size: number; noText?: boolean; pagesNoText?: { n: number; total: number } | null; state?: PreviewState };
 }
 
-type UploadState = 'idle' | 'uploading' | 'processing' | 'ready' | 'error';
+/**
+ * PREVIEW ONLY (activation 5): the states the audit never rendered, frozen.
+ * `processing` stands still at `elapsed` seconds (no clock runs); `failed` is
+ * the reply /api/ingest sends when processing fails (`unconfirmed`);
+ * `consent` holds the file while the permission sheet is open; `declined` is
+ * the tile again after "Not now", with the `declined` sentence.
+ */
+type PreviewState = 'processing' | 'failed' | 'consent' | 'declined';
+const PREVIEW_ELAPSED_MS = 12_000;
+
+// `consent` (activation 5, cause #7): a picked file held while the AI
+// permission sheet is open (src/lib/upload-consent.ts).
+type UploadState = 'idle' | 'consent' | 'uploading' | 'processing' | 'ready' | 'error';
 
 /**
  * THE UPLOAD, WITH SOMETHING MOVING THE WHOLE TIME (register #113).
@@ -55,16 +68,22 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
   const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
   const u = t.dashboard.upload;
-  const [state, setState] = useState<UploadState>(previewFile ? 'ready' : 'idle');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const ps = previewFile?.state;
+  const [state, setState] = useState<UploadState>(
+    !previewFile ? 'idle' : ps === 'processing' ? 'processing' : ps === 'failed' ? 'error' : ps === 'consent' ? 'consent' : ps === 'declined' ? 'idle' : 'ready'
+  );
+  const [errorMsg, setErrorMsg] = useState<string | null>(ps === 'failed' ? uploadRefusalMessage(safeLocale, 'unconfirmed') : null);
+  // Activation 5 (cause #7): "Not now" on the permission sheet. Not a failure:
+  // the tile comes back with the sentence that says nothing was sent.
+  const [notice, setNotice] = useState<'declined' | null>(ps === 'declined' ? 'declined' : null);
   // #128: the file arrived and the service found no text in it.
   const [noText, setNoText] = useState(previewFile?.noText ?? false);
   // Option C: the file arrived and SOME of its pages have no text.
   const [pagesNoText, setPagesNoText] = useState<{ n: number; total: number } | null>(previewFile?.pagesNoText ?? null);
-  const [file, setFile] = useState<{ name: string; size: number } | null>(previewFile ? { name: previewFile.name, size: previewFile.size } : null);
+  const [file, setFile] = useState<{ name: string; size: number } | null>(previewFile && ps !== 'declined' && ps !== 'failed' ? { name: previewFile.name, size: previewFile.size } : null);
   const [sent, setSent] = useState(0);
-  const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [now, setNow] = useState(0);
+  const [startedAt, setStartedAt] = useState<number | null>(ps === 'processing' ? 0 : null);
+  const [now, setNow] = useState(ps === 'processing' ? PREVIEW_ELAPSED_MS : 0);
   // Step Redesign-2. Inside the app the control is ONE primary button that
   // opens the native picker (no drag-and-drop wording on a phone); on the web
   // the zone stays a drop target, and says "tap" rather than "click" on a
@@ -81,14 +100,16 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
     try { setTouch(window.matchMedia('(pointer: coarse)').matches); } catch { /* no matchMedia: a keyboard and a mouse */ }
   }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { ensure: ensureAiConsent } = useAiConsent();
+  const { ensure: ensureAiConsent, consented } = useAiConsent();
 
   // A one-second clock while processing, so the sentence and the bar move.
+  // A preview stands still, so its picture is the same on every render.
+  const frozen = Boolean(previewFile);
   useEffect(() => {
-    if (state !== 'processing') return;
+    if (state !== 'processing' || frozen) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [state]);
+  }, [state, frozen]);
 
   const handleFile = async (picked: File) => {
     // #50: refused here, before anything is sent. This check, the line under the
@@ -108,15 +129,25 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
     }
 
     // Apple 5.1.2(i): the file's text goes to Voyage AI through the ingestion
-    // service, so the permission is asked before a byte leaves. Declined,
-    // nothing is uploaded and the drop zone says why.
-    if (!(await ensureAiConsent())) {
-      setErrorMsg(t.dashboard.aiConsent.declined);
-      setState('error');
+    // service, so the permission is asked before a byte leaves.
+    // Activation 5 (cause #7): the picked file is HELD and shown while the
+    // sheet is open; "I agree" goes on with this same file, "Not now" sends
+    // nothing and releases it (src/lib/upload-consent.ts).
+    setNotice(null);
+    setErrorMsg(null);
+    if (!consented) {
+      setFile({ name: picked.name, size: picked.size });
+      setState('consent');
+    }
+    const step = afterConsent(picked, await ensureAiConsent({ name: picked.name }));
+    if (!step.send) {
+      setFile(null);
+      setNotice(step.notice);
+      setState(step.state);
       return;
     }
 
-    setFile({ name: picked.name, size: picked.size });
+    setFile({ name: step.send.name, size: step.send.size });
     setNoText(false);
     setPagesNoText(null);
     setSent(0);
@@ -124,7 +155,7 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
     setState('uploading');
 
     const formData = new FormData();
-    formData.append('file', picked);
+    formData.append('file', step.send);
     formData.append('kb_id', kbId);
     formData.append('locale', safeLocale);
 
@@ -192,7 +223,7 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
 
   const busy = state === 'uploading' || state === 'processing';
   const warn = state === 'ready' && (noText || pagesNoText !== null);
-  const elapsedMs = startedAt ? now - startedAt : 0;
+  const elapsedMs = startedAt !== null ? now - startedAt : 0;
   const stage = file ? processingStage(elapsedMs, file.size) : 'reading';
   const fraction = state === 'uploading' && file
     ? (file.size ? sent / file.size : 1)
@@ -202,14 +233,14 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
 
   return (
     <div
-      onClick={() => !busy && state !== 'idle' && !buttonFirst && fileInputRef.current?.click()}
+      onClick={() => !busy && state !== 'idle' && state !== 'consent' && !buttonFirst && fileInputRef.current?.click()}
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
       aria-busy={busy}
       // Design "C", PR 3: no dashed edge. Idle is the tile alone; a running or
       // finished upload sits in a pressed-in well; a refusal keeps a solid red
       // edge, because there the edge is the message (as the delete card's).
-      className={`relative flex flex-col items-center justify-center gap-3 rounded-3xl text-center transition-colors ${
+      className={`relative flex flex-col items-center justify-center gap-3 rounded-3xl text-center transition-colors [text-wrap:balance] ${
         state === 'idle'
           ? 'p-0'
           : state === 'error'
@@ -217,10 +248,28 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
             : 'kf-well p-6'
       }`}
     >
-      <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.docx,.pptx,.xlsx,.txt,.md" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+      {/* Activation 5 (cause #7): the input is emptied as soon as the file is
+          read, so picking the SAME file again (after "Not now", or after a
+          refusal) fires a change and is handled. It used to do nothing. */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".pdf,.docx,.pptx,.xlsx,.txt,.md"
+        onChange={(e) => {
+          const picked = e.target.files?.[0];
+          e.target.value = '';
+          if (picked) handleFile(picked);
+        }}
+      />
 
       {state === 'idle' && (
         <>
+          {notice === 'declined' && (
+            <p data-kf-upload-notice="declined" role="status" className="w-full text-start text-sm text-muted-foreground">
+              {t.dashboard.aiConsent.declined}
+            </p>
+          )}
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
@@ -238,6 +287,20 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
           {!buttonFirst && <p className="text-sm font-medium text-foreground">{touch ? u.dropHereTouch : u.dropHere}</p>}
           <TypesLines label={u.typesLabel} size={u.sizeLine.replace('{limit}', uploadLimitLabel(safeLocale))} />
         </>
+      )}
+
+      {state === 'consent' && file && (
+        <div data-kf-upload-held="" className="w-full max-w-md text-start" role="status" aria-live="polite">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-primary">
+              <FileText className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <FileName name={file.name} className="text-sm font-medium text-foreground" />
+              <p className="text-xs text-muted-foreground">{AWAITING_CONSENT[safeLocale]}</p>
+            </div>
+          </div>
+        </div>
       )}
 
       {(busy || state === 'ready') && file && (

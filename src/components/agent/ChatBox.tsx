@@ -8,8 +8,11 @@ import { MessageBubble, Citation } from './MessageBubble';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { askSuggestions, type MaterialForSuggestion } from '@/lib/ask-suggestions';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
-import { ClayAnswer, ClayAskArt, ClayBook, ClayQuiz, ClaySend, ClaySpark, ClaySummary } from '@/components/clay/ClayIcons';
+import Link from 'next/link';
+import { ClayAnswer, ClayAskArt, ClayBook, ClayQuiz, ClaySend, ClaySpark, ClaySummary, ClayUploadGlyph } from '@/components/clay/ClayIcons';
 import { UserName } from '@/components/ui/UserName';
+import { NO_MATERIAL_REFUSAL, subjectUploadHref } from '@/lib/ask-material';
+import { AskNoAnswerableSubject } from './SubjectChips';
 
 interface Message {
   id: string;
@@ -29,6 +32,13 @@ interface ChatBoxProps {
    *  without sources (the design preview passes them, Step Redesign-3). */
   initialMessages?: { role: string; content: string; citations?: Citation[] }[] | null;
   onConversationCreated?: (id: string) => void;
+  /**
+   * Activation 5 (cause #6): false when the subject holds no file Ask can
+   * answer from (#129's rule). The chat then offers the way to the subject's
+   * upload tile instead of a composer, so no question is typed into it. The
+   * route refuses such a question on its own as well (`no_material`).
+   */
+  answerable?: boolean;
 }
 
 /**
@@ -105,7 +115,7 @@ function isolated(q: string, subject: string) {
 }
 const TRAILING = /^[.,!?\u060C\u061F\u00BB\u201D:;]+/;
 
-export function ChatBox({ kbId, kbName, materials = [], initialConversationId, initialMessages, onConversationCreated }: ChatBoxProps) {
+export function ChatBox({ kbId, kbName, materials = [], initialConversationId, initialMessages, onConversationCreated, answerable = true }: ChatBoxProps) {
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
@@ -116,6 +126,14 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(initialConversationId ?? null);
+  // Activation 5 (cause #6): starts from the page's reading of the subject and
+  // turns on if the route answers `no_material` (the last file was deleted in
+  // another tab, or failed, after this page loaded).
+  const [noMaterial, setNoMaterial] = useState(!answerable);
+  const uploadPath = {
+    href: subjectUploadHref(safeLocale, kbId),
+    labels: { title: t.dashboard.home.step2Title, desc: t.dashboard.home.step2Desc, cta: t.dashboard.upload.uploadButton },
+  };
   const scrollRef = useRef<HTMLDivElement>(null);
   // The keyboard hint is shown only where a keyboard is likely (md and up, via
   // CSS) and names the modifier the platform has (review #122, defect 5):
@@ -161,6 +179,16 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
       // SSE stream loop / decodeCitations / header reads below. Falls back to the
       // generic string only when the body is empty; genuine network/stream
       // failures still land in catch and keep the friendly fallback.
+      // Activation 5 (cause #6): the subject has no file to answer from. The
+      // question was not counted and nothing was sent on; it is taken back
+      // off the screen and the way to the upload tile shows instead.
+      if (res.status === 409 && res.headers.get('X-KF-Refusal') === NO_MATERIAL_REFUSAL) {
+        setMessages(prev => prev.filter(m => m.id !== userMsg.id));
+        setNoMaterial(true);
+        setIsLoading(false);
+        return;
+      }
+
       if (!res.ok) {
         const body = (await res.text()).trim();
         setMessages(prev => [...prev, {
@@ -255,7 +283,10 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
             isStreaming={isLoading && m.role === 'assistant' && i === messages.length - 1}
           />
         ))}
-        {messages.length === 0 && (
+        {messages.length === 0 && noMaterial && (
+          <AskNoAnswerableSubject kind="material" href={uploadPath.href} labels={uploadPath.labels} />
+        )}
+        {messages.length === 0 && !noMaterial && (
           /* Register #85 (SIGNED_IN_FEATURES.md 2.3): a first screen with
              something to press. Built here from names only; nothing is sent
              until a suggestion is pressed, and then it is the student's own
@@ -308,6 +339,19 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
       {/* Step Redesign-3: the composer is the last row of a column whose height
           the page fixes, so it stays put at the bottom while the conversation
           above it scrolls (`sticky` keeps it there should the column ever grow). */}
+      {/* Activation 5 (cause #6): no composer in a subject with no file to
+          answer from. Over an old conversation the way to the upload tile
+          takes the composer's row; on an empty one it is the well above. */}
+      {noMaterial && messages.length > 0 && (
+        <div data-kf-ask-upload-path="material-row" className="sticky bottom-0 flex shrink-0 items-center gap-3 bg-surface p-3 pb-6 md:p-4">
+          <p className="min-w-0 flex-1 text-sm font-semibold text-foreground">{uploadPath.labels.title}</p>
+          <Link href={uploadPath.href} data-kf-ask-upload-link="" className={cn(buttonVariants({ variant: 'primary' }), 'shrink-0')}>
+            <ClayUploadGlyph width={24} height={24} />
+            {uploadPath.labels.cta}
+          </Link>
+        </div>
+      )}
+      {!noMaterial && (
       <div data-kf-composer="" className="sticky bottom-0 shrink-0 bg-surface p-3 pb-6 md:p-4">
         <div className="kf-composer flex items-end gap-2 rounded-2xl border border-control-border bg-background p-2 focus-within:border-primary">
           <textarea
@@ -335,6 +379,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
           </p>
         )}
       </div>
+      )}
     </div>
   );
 }
