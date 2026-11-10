@@ -173,7 +173,7 @@ export const ar: Translation = {
       invalidCredentials: "البريد أو كلمة المرور غير صحيحة.",
       emailNotConfirmed: "لم تؤكد بريدك بعد. افتح رابط التأكيد ثم ادخل.",
       weakPassword: "كلمة المرور ضعيفة. اختر كلمة أطول.",
-      samePassword: "اختر كلمة مرور جديدة.",
+      samePassword: "هذه كلمة مرورك الحالية. اختر غيرها.",
       invalidEmail: "هذا البريد غير صالح. تحقق منه.",
       emailRateLimit: "تعذّر إرسال الرسالة. حاول بعد دقائق.",
       requestRateLimit: "محاولات كثيرة. حاول بعد دقائق.",

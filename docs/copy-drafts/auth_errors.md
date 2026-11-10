@@ -28,7 +28,7 @@ The English message text is never read.
 | `invalid_credentials`, `AuthInvalidCredentialsError` | sign-in | `invalidCredentials` | The email or password is incorrect. | البريد أو كلمة المرور غير صحيحة. |
 | `email_not_confirmed` | sign-in | `emailNotConfirmed` | Your email is not confirmed yet. Open the confirmation link, then sign in. | لم تؤكد بريدك بعد. افتح رابط التأكيد ثم ادخل. |
 | `weak_password`, `AuthWeakPasswordError` | sign-up, new password | `weakPassword` | Weak password. Choose a longer one. | كلمة المرور ضعيفة. اختر كلمة أطول. |
-| `same_password` | new password | `samePassword` | Choose a new password. | اختر كلمة مرور جديدة. |
+| `same_password` | new password | `samePassword` | That is your current password. Choose another. | هذه كلمة مرورك الحالية. اختر غيرها. |
 | `email_address_invalid` | sign-up | `invalidEmail` | This email is not valid. Check it. | هذا البريد غير صالح. تحقق منه. |
 | `over_email_send_rate_limit` | sign-up | `emailRateLimit` | Could not send the email. Try again in a few minutes. | تعذّر إرسال الرسالة. حاول بعد دقائق. |
 | `over_request_rate_limit`, or any 429 | all three | `requestRateLimit` | Too many attempts. Try again in a few minutes. | محاولات كثيرة. حاول بعد دقائق. |

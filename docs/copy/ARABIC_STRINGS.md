@@ -188,7 +188,7 @@ file is not read by the app.
 | `auth.errors.invalidCredentials` | البريد أو كلمة المرور غير صحيحة. | The email or password is incorrect. |
 | `auth.errors.emailNotConfirmed` | لم تؤكد بريدك بعد. افتح رابط التأكيد ثم ادخل. | Your email is not confirmed yet. Open the confirmation link, then sign in. |
 | `auth.errors.weakPassword` | كلمة المرور ضعيفة. اختر كلمة أطول. | Weak password. Choose a longer one. |
-| `auth.errors.samePassword` | اختر كلمة مرور جديدة. | Choose a new password. |
+| `auth.errors.samePassword` | هذه كلمة مرورك الحالية. اختر غيرها. | That is your current password. Choose another. |
 | `auth.errors.invalidEmail` | هذا البريد غير صالح. تحقق منه. | This email is not valid. Check it. |
 | `auth.errors.emailRateLimit` | تعذّر إرسال الرسالة. حاول بعد دقائق. | Could not send the email. Try again in a few minutes. |
 | `auth.errors.requestRateLimit` | محاولات كثيرة. حاول بعد دقائق. | Too many attempts. Try again in a few minutes. |

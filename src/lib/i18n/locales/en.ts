@@ -184,7 +184,7 @@ export const en = {
       invalidCredentials: "The email or password is incorrect.",
       emailNotConfirmed: "Your email is not confirmed yet. Open the confirmation link, then sign in.",
       weakPassword: "Weak password. Choose a longer one.",
-      samePassword: "Choose a new password.",
+      samePassword: "That is your current password. Choose another.",
       invalidEmail: "This email is not valid. Check it.",
       emailRateLimit: "Could not send the email. Try again in a few minutes.",
       requestRateLimit: "Too many attempts. Try again in a few minutes.",

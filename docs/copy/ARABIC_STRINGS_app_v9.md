@@ -1,11 +1,11 @@
 # Arabic copy, app v9: auth errors in the page's language, and the app's line after sign-up (#317)
 
-Approved by the owner on 2026-11-10 for PR #317, as SHORTER copy that replaces the drafts in `docs/copy-drafts/auth_errors.md` (now marked shipped). The English twins were approved with them:
+Approved by the owner on 2026-11-10 for PR #317, as SHORTER copy that replaces the drafts in `docs/copy-drafts/auth_errors.md` (now marked shipped). `auth.errors.samePassword` was approved in a second wording the same day: the first ("اختر كلمة مرور جديدة." / "Choose a new password.") repeated the page's subtitle and did not say why the password was refused. The English twins were approved with them:
 
 - `auth.errors.invalidCredentials`: The email or password is incorrect.
 - `auth.errors.emailNotConfirmed`: Your email is not confirmed yet. Open the confirmation link, then sign in.
 - `auth.errors.weakPassword`: Weak password. Choose a longer one.
-- `auth.errors.samePassword`: Choose a new password.
+- `auth.errors.samePassword`: That is your current password. Choose another.
 - `auth.errors.invalidEmail`: This email is not valid. Check it.
 - `auth.errors.emailRateLimit`: Could not send the email. Try again in a few minutes.
 - `auth.errors.requestRateLimit`: Too many attempts. Try again in a few minutes.
@@ -20,7 +20,7 @@ Approved by the owner on 2026-11-10 for PR #317, as SHORTER copy that replaces t
 | `auth.errors.invalidCredentials` | البريد أو كلمة المرور غير صحيحة. | (new key) |
 | `auth.errors.emailNotConfirmed` | لم تؤكد بريدك بعد. افتح رابط التأكيد ثم ادخل. | (new key) |
 | `auth.errors.weakPassword` | كلمة المرور ضعيفة. اختر كلمة أطول. | (new key) |
-| `auth.errors.samePassword` | اختر كلمة مرور جديدة. | (new key) |
+| `auth.errors.samePassword` | هذه كلمة مرورك الحالية. اختر غيرها. | (new key) |
 | `auth.errors.invalidEmail` | هذا البريد غير صالح. تحقق منه. | (new key) |
 | `auth.errors.emailRateLimit` | تعذّر إرسال الرسالة. حاول بعد دقائق. | (new key) |
 | `auth.errors.requestRateLimit` | محاولات كثيرة. حاول بعد دقائق. | (new key) |
