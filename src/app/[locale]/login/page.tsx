@@ -15,6 +15,7 @@ import { usePlatform } from '@/components/platform/PlatformProvider';
 import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
 import { isAuthErrorFragment, loginNotice } from '@/lib/auth/login-notice';
+import { authErrorMessage } from '@/lib/auth/auth-error';
 
 export default function LoginPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = use(params);
@@ -55,7 +56,8 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
     setError(null);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setError(error.message);
+      // Audit cause #8: our sentence in the page's language, by code (src/lib/auth/auth-error.ts), never GoTrue's English.
+      setError(authErrorMessage(error, 'login', t));
       setLoading(false);
     } else {
       router.push(`/${locale}/dashboard`);
@@ -81,7 +83,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
           <p className="rise rise-1 text-base font-medium text-muted-foreground">{t.auth.loginSubtitle}</p>
         </div>
 
-        {error && <div className="rounded-2xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
+        {error && <div className="rounded-2xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger [text-wrap:balance]">{error}</div>}
 
         {notice && (
           <div className="rounded-2xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm text-foreground">

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
 import { PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
+import { authErrorMessage } from '@/lib/auth/auth-error';
 
 /**
  * Where /api/auth/callback sends a RECOVERY landing.
@@ -43,7 +44,8 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ locale
     setError(null);
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) {
-      setError(updateError.message);
+      // Audit cause #8: our sentence in the page's language, by code (src/lib/auth/auth-error.ts), never GoTrue's English.
+      setError(authErrorMessage(updateError, 'reset', t));
       setLoading(false);
       return;
     }
@@ -61,9 +63,19 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ locale
         <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6 text-start">
           {/* #103: the product name at every width. The gold panel carried it at lg and up and is gone. */}
           {/* #105: it links to the landing. These pages had no other way back. */}
+          {/* 44 x 44 BOXES, NOT ONLY HIT AREAS (#317): design-c measures each control's own
+              box, which .kf-hit's ::after does not grow. Every change below grows that box
+              and leaves every line box the same height, so nothing moves:
+              - the two links are inline, and vertical padding on an inline box never
+                changes the line it sits in (KnowFlow 43 -> 47, the forgot link 17 -> 45);
+              - the cancel button is inline-block in a line box: 16 px more on top and
+                8 px more below (20 -> 44), paid back by its margins (24 + 20 = 8 + 44 - 8),
+                so its text stays 24 px under the margin box's top, where it was.
+              The forgot link's box reaches 12.5 px above its line and the cancel box
+              8 px below its own, inside the 24 px between them: no overlap. */}
           <div className="mb-10 text-center">
             <h1 className="text-4xl font-bold tracking-tight">
-              <Link href={`/${locale}`} className="kf-hit rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <Link href={`/${locale}`} className="kf-hit rounded-md py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {t.nav.home.replace('Flow', '')}<span className="text-primary">Flow</span>
               </Link>
             </h1>
@@ -71,7 +83,7 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ locale
           <h2 className="text-3xl font-semibold tracking-tight">{t.auth.resetTitle}</h2>
           <p className="mb-8 text-sm text-muted-foreground">{t.auth.resetSubtitle}</p>
 
-          {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
+          {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger [text-wrap:balance]">{error}</div>}
 
           {hasSession === false ? (
             <div className="rounded-xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm text-foreground">
@@ -92,14 +104,14 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ locale
               <button type="submit" disabled={loading || hasSession === null} className={cn(buttonVariants({ variant: 'primary' }), 'mt-2 w-full')}>
                 {loading ? t.auth.resetSaving : t.auth.resetSubmit}
               </button>
-              <button type="button" onClick={handleCancel} className="kf-hit w-full text-center text-sm text-muted-foreground transition-colors hover:text-primary">
+              <button type="button" onClick={handleCancel} className="kf-hit !-mb-2 !mt-2 w-full pb-2 pt-4 text-center text-sm text-muted-foreground transition-colors hover:text-primary">
                 {t.auth.resetCancel}
               </button>
             </>
           )}
 
           <div className="mt-6 text-center">
-            <Link href={`/${locale}/forgot-password`} className="kf-hit text-sm text-muted-foreground transition-colors hover:text-primary">
+            <Link href={`/${locale}/forgot-password`} className="kf-hit py-3.5 text-sm text-muted-foreground transition-colors hover:text-primary">
               {t.auth.forgotLink}
             </Link>
           </div>

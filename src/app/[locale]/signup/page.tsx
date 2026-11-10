@@ -15,6 +15,7 @@ import { markSeenAfterSignUp } from '@/lib/first-screen';
 import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
 import { keepDotWithBefore } from '@/lib/separator';
+import { authErrorMessage } from '@/lib/auth/auth-error';
 
 export default function SignupPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = use(params);
@@ -74,7 +75,8 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
     });
 
     if (authError) {
-      setError(authError.message);
+      // Audit cause #8: our sentence in the page's language, by code (src/lib/auth/auth-error.ts), never GoTrue's English.
+      setError(authErrorMessage(authError, 'signup', t));
       setLoading(false);
       return;
     }
@@ -140,7 +142,7 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
           </p>
         </div>
 
-        {error && <div className="rounded-2xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
+        {error && <div className="rounded-2xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger [text-wrap:balance]">{error}</div>}
 
         {notice && (
           <div className="rounded-2xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm">
@@ -148,6 +150,10 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
             {/* Balanced (activation 5, the owner's review of #315): the Arabic
                 sentence ended on one word alone. Style only. */}
             <p className="mt-1 text-muted-foreground [text-wrap:balance]">{notice}</p>
+            {/* Audit cause #3, the app only: the mail link opens in Safari, so the
+                student has to come back. True: markSeenAfterSignUp (above) set
+                kf-seen, so the app opens on sign-in (src/lib/first-screen.ts). */}
+            {platform === 'native' && <p className="mt-1 text-muted-foreground [text-wrap:balance]">{t.auth.checkInboxApp}</p>}
           </div>
         )}
 

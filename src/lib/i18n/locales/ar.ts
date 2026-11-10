@@ -146,6 +146,7 @@ export const ar: Translation = {
     creating: "ننشئ حسابك…",
     checkInboxTitle: "تفقد بريدك الإلكتروني",
     checkInboxBody: "أرسلنا رابط تأكيد إلى بريدك الإلكتروني. افتحه لتفعيل حسابك.",
+    checkInboxApp: "بعد التأكيد، عد إلى التطبيق وادخل.",
     signupRepeatPassword: "إن سجّلت مرة أخرى ببريد استعملته من قبل، يصلك رابط تأكيد جديد، وتبقى كلمة المرور الأولى كما هي.",
     signupRepeatPasswordLink: "نسيتها؟ اختر كلمة مرور جديدة",
     noticeSigninRequired: "لم يعمل هذا الرابط. سجّل الدخول من الأسفل.",
@@ -167,7 +168,18 @@ export const ar: Translation = {
     resetSaving: "نحفظ كلمة المرور…",
     resetNoSession: "افتح هذه الصفحة من الرابط في بريدك. أو اطلب رابطًا جديدًا.",
     resetCancel: "إلغاء وتسجيل الخروج",
-    backToLogin: "ارجع إلى تسجيل الدخول"
+    backToLogin: "ارجع إلى تسجيل الدخول",
+    errors: {
+      invalidCredentials: "البريد أو كلمة المرور غير صحيحة.",
+      emailNotConfirmed: "لم تؤكد بريدك بعد. افتح رابط التأكيد ثم ادخل.",
+      weakPassword: "كلمة المرور ضعيفة. اختر كلمة أطول.",
+      samePassword: "هذه كلمة مرورك الحالية. اختر غيرها.",
+      invalidEmail: "هذا البريد غير صالح. تحقق منه.",
+      emailRateLimit: "تعذّر إرسال الرسالة. حاول بعد دقائق.",
+      requestRateLimit: "محاولات كثيرة. حاول بعد دقائق.",
+      network: "تعذّر الاتصال. تحقق من الإنترنت.",
+      generic: "حدث خطأ. حاول مرة أخرى."
+    }
   },
   about: {
     title: "المذاكرة يجب أن تكون أسهل.",

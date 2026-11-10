@@ -156,6 +156,7 @@ export const en = {
     creating: "Creating...",
     checkInboxTitle: "Check your inbox",
     checkInboxBody: "We sent a confirmation link to your email address. Open it to activate your account.",
+    checkInboxApp: "After confirming, come back to the app and sign in.",
     signupRepeatPassword: "Signing up again with an email you already used sends a new confirmation link, but keeps your first password.",
     signupRepeatPasswordLink: "Forgot it? Reset your password",
     noticeSigninRequired: "We could not finish that link. Please sign in below.",
@@ -178,7 +179,18 @@ export const en = {
     resetSaving: "Saving...",
     resetNoSession: "This page needs a valid reset link. Ask for a new one and open it from your email.",
     resetCancel: "Cancel and sign out",
-    backToLogin: "Back to sign in"
+    backToLogin: "Back to sign in",
+    errors: {
+      invalidCredentials: "The email or password is incorrect.",
+      emailNotConfirmed: "Your email is not confirmed yet. Open the confirmation link, then sign in.",
+      weakPassword: "Weak password. Choose a longer one.",
+      samePassword: "That is your current password. Choose another.",
+      invalidEmail: "This email is not valid. Check it.",
+      emailRateLimit: "Could not send the email. Try again in a few minutes.",
+      requestRateLimit: "Too many attempts. Try again in a few minutes.",
+      network: "Could not connect. Check your internet.",
+      generic: "Something went wrong. Try again."
+    }
   },
   about: {
     title: "We believe studying should feel simpler.",
