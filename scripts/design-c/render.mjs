@@ -138,6 +138,12 @@
  * to-left text, a Latin run of 30 characters or fewer lies on one line and
  * is drawn in its logical order; a finding fails AFTER only inside a drop
  * zone or the AI permission sheet, any other is reported (latin-runs.mjs).
+ * The owner's review of fc60340 (design-c 42870265441, "..zip") adds check
+ * 15's doubled-dot rule: no two "." drawn in a row where the text has one,
+ * with its forced case (fc60340's ".zip" isolate rebuilt in the page); the
+ * run fails if no AFTER render exercised that forced case. It also adds
+ * upload-mime-app / -desk: the route's real mime refusal "(.pdf)." drawn in
+ * the drop zone (activation5.mjs).
  *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
@@ -937,6 +943,8 @@ mkdirSync(join(out, 'after'), { recursive: true });
 const results = [];
 let failures = 0;
 const fontSets = new Set();
+// Check 15's doubled-dot forced case: how many AFTER renders rebuilt fc60340's isolate.
+let dottedForced = 0;
 
 async function shoot(side, job) {
   const ctx = await browser.createBrowserContext();
@@ -1124,6 +1132,7 @@ for (const job of JOBS) {
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
     bad.splice(0, bad.length, ...bad.filter((b) => !known.includes(b)));
     if (side === 'after') failures += bad.length;
+    if (side === 'after') dottedForced += r.runs15Plant?.dotted || 0;
     const tmin = Math.min(...r.a.text.map((t) => t.got));
     row.sides[side] = {
       url: r.url, landed: r.landed, theme: r.theme, findings: bad,
@@ -1142,7 +1151,7 @@ for (const job of JOBS) {
       ...(r.stepsView ? { stepsView: { title: r.stepsView.title, step: r.stepsView.step, limit: r.stepsView.limit, forced: r.stepsPlant?.forced ?? null, forcedCaught: r.stepsPlant?.caught ?? null } } : {}),
       ...(r.crossLink ? { crossLink: r.crossLink } : {}),
       ...(r.askPath ? { askPath: { link: r.askPath.link, forced: r.askPlant?.forced ?? null, forcedCaught: r.askPlant?.caught ?? null } } : {}),
-      latinRuns: { runs: r.runs15.runs, inScope: r.runs15.inScope, isolated: r.runs15.isolated, findingsInScope: r.runs15.findings.filter((f) => f.scope).map((f) => f.text), outsideScope: r.runs15.findings.filter((f) => !f.scope).map((f) => f.text), ...(r.runs15Plant ? { forced: r.runs15Plant } : {}) },
+      latinRuns: { runs: r.runs15.runs, inScope: r.runs15.inScope, isolated: r.runs15.isolated, dotPairs: r.runs15.dotPairs, findingsInScope: r.runs15.findings.filter((f) => f.scope).map((f) => f.text), outsideScope: r.runs15.findings.filter((f) => !f.scope).map((f) => f.text), ...(r.runs15Plant ? { forced: r.runs15Plant } : {}) },
       ...(r.dzError ? { dropZoneError: { zones: r.dzError.zones, controls: r.dzError.controls, finding: r.dzError.finding, forced: r.dzPlant?.forced ?? null, forcedCaught: r.dzPlant?.caught ?? null } } : {}),
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no
@@ -1161,6 +1170,8 @@ for (const job of JOBS) {
 }
 await browser.close();
 if (fontSets.size !== 1) { console.log(`FAIL the pages loaded different static font sets: ${[...fontSets].join(' | ')}`); failures++; }
+if (!dottedForced) { console.log('FAIL check 15\'s doubled-dot rule was never forced: no AFTER render had an isolate with a "." on each side'); failures++; }
+else console.log(`check 15's doubled-dot forced case ran on ${dottedForced} isolate(s) across the AFTER renders`);
 writeFileSync(join(out, 'report.json'), JSON.stringify({ fonts: { family: FAMILY, package: '@fontsource/rubik@5.2.5', weights: WEIGHTS, files: fontHashes }, results }, null, 2) + '\n');
 console.log(`\nfonts: one static set on every page (${[...fontSets][0]}), ${Object.keys(fontHashes).length} files hashed`);
 console.log(`${failures} failure(s) on AFTER across ${JOBS.length} screens (${JOBS.length * 2} renders)`);

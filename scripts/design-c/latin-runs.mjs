@@ -7,13 +7,21 @@
  * In the page, on EVERY screen (so BEFORE measures main everywhere), every
  * text block that reads right to left (:dir(rtl)), its text read across its
  * inline children, cut with the rule of src/lib/latin-groups.ts
- * (splitLatinRuns: a bracketed Latin group, or a bare run: an optional "."
- * and a Latin word, then Latin words, digits and the separators between
- * them), re-read from the TEXT so main's plain text is read the same way:
+ * (splitLatinRuns: a bracketed Latin group, or a bare run: a Latin word,
+ * then Latin words, digits and the separators between them; a leading "."
+ * of a file extension is NOT part of the run, it stays with the Arabic, as
+ * main draws it), re-read from the TEXT so main's plain text is read the
+ * same way:
  *   (a) a run of at most 30 characters (a group's inside its brackets) lies
  *       on ONE line;
  *   (b) on each line, the run's characters are drawn left to right in their
- *       logical order (".zip" as ".zip", a list in its order).
+ *       logical order (a list in its order);
+ *   (c) THE DOUBLED-DOT RULE (the owner's review of design-c 42870265441:
+ *       fc60340 isolated ".zip" whole and the refusal ended "..zip"): on a
+ *       line, no two "." are drawn in a row (no other character drawn
+ *       between them, a space included) unless they are next to each other
+ *       in the text. Read on every block this check reads, so BEFORE (main)
+ *       is measured too.
  * Skipped: file names ([data-filename], #124's own isolation) and answer
  * cards ([data-kf-bubble="answer"], check 10).
  *
@@ -26,7 +34,7 @@
 export function latinRunsCheck() {
   const RTL = /[֐-ࣿיִ-﷿ﹰ-﻿]/, LAT = /[A-Za-zÀ-ɏ]/;
   const GROUP = /\(([^()[\]\n]+)\)/g;
-  const RUN = /\.?[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ0-9]*(?:[ ,.\-_'’/+&]+[A-Za-zÀ-ɏ0-9]+)*/g;
+  const RUN = /[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ0-9]*(?:[ ,.\-_'’/+&]+[A-Za-zÀ-ɏ0-9]+)*/g;
   const SKIP = '[data-filename], [data-kf-bubble="answer"], script, style, noscript, textarea, input, select, svg';
   // A <bdi> is an isolate INSIDE its sentence, whatever its display: read as
   // part of the text block around it (a forced inline-block isolate, the
@@ -56,6 +64,8 @@ export function latinRunsCheck() {
   const scopeOf = (el) => (el.closest('[data-kf-consent-sheet]') ? 'consent-sheet' : zones.some((z) => z.contains(el)) ? 'drop-zone' : null);
   const findings = [];
   const runs = [];
+  let dotPairs = 0;
+  const mid = (r) => (r.left + r.right) / 2;
   for (const [block, nodes] of blocks) {
     const B = block.getBoundingClientRect();
     if (!(B.width > 0 && B.height > 0) || !block.matches(':dir(rtl)')) continue;
@@ -76,6 +86,7 @@ export function latinRunsCheck() {
     }
     bare(text.slice(from), from);
     const scope = scopeOf(block);
+    const where = `${block.tagName.toLowerCase()} "${text.trim().slice(0, 60)}"`;
     for (const f of found) {
       const rects = [];
       for (let i = f.start; i < f.start + f.run.length; i++) {
@@ -95,14 +106,30 @@ export function latinRunsCheck() {
           if (cb < ca - 1) { reversed = `"${text[rects[b].i]}" is drawn left of "${text[rects[a].i]}"`; break; }
         }
       }
-      const where = `${block.tagName.toLowerCase()} "${text.trim().slice(0, 60)}"`;
       const g = { run: f.run, short, lines: lines.length, ordered: !reversed, scope, isolated: !!(rects.length && parts.find((p) => p.start <= rects[0].i && rects[0].i < p.start + p.n.data.length)?.n.parentElement.closest('[data-kf-latin]')) };
       runs.push(g);
       if (short && lines.length > 1) findings.push({ scope, text: `a short Latin run splits across ${lines.length} lines: "${f.run}" in ${where}` });
       if (reversed) findings.push({ scope, text: `a Latin run is drawn out of order (${reversed}): "${f.run}" in ${where}` });
     }
+    // (c) The doubled-dot rule: two "." drawn in a row on a line, with no
+    // other character drawn between them, must be next to each other in the text.
+    const dots = [];
+    for (let i = 0; i < text.length; i++) if (text[i] === '.') { const r = at(i); if (r) dots.push({ i, r }); }
+    if (dots.length < 2) continue;
+    const drawn = [...dots];
+    for (let i = 0; i < text.length; i++) if (text[i] !== '.') { const r = at(i); if (r) drawn.push({ i, r }); }
+    for (let a = 0; a < dots.length; a++) {
+      for (let b = a + 1; b < dots.length; b++) {
+        const A = dots[a], D = dots[b];
+        if (D.i - A.i === 1 || !sameLine(A.r, D.r)) continue;
+        dotPairs++;
+        const lo = Math.min(mid(A.r), mid(D.r)), hi = Math.max(mid(A.r), mid(D.r));
+        const between = drawn.some((x) => x.i !== A.i && x.i !== D.i && sameLine(x.r, A.r) && mid(x.r) > lo && mid(x.r) < hi);
+        if (!between) findings.push({ scope, text: `two dots are drawn in a row ("..") where the text has one: "${text.slice(A.i, D.i + 1)}" in ${where}` });
+      }
+    }
   }
-  return { findings, runs: runs.length, inScope: runs.filter((r) => r.scope).length, isolated: runs.filter((r) => r.isolated).length };
+  return { findings, runs: runs.length, inScope: runs.filter((r) => r.scope).length, isolated: runs.filter((r) => r.isolated).length, dotPairs };
 }
 
 /**
@@ -112,7 +139,10 @@ export function latinRunsCheck() {
  * isolate of two or more letters drawn backwards (unicode-bidi:
  * isolate-override, direction: rtl; plain right-to-left is not enough, since
  * the space between two Latin words still resolves left to right): each must
- * be flagged as out of order.
+ * be flagged as out of order; (c) fc60340's markup rebuilt in the page:
+ * every in-scope isolate with a "." just before it and a "." just after it
+ * takes the "." before it inside (`<bdi ...>.zip</bdi>.`, byte for byte what
+ * fc60340 rendered): each must be flagged as two dots drawn in a row.
  * Each is undone after its read; a check that misses one is blind.
  */
 export function latinRunsPlant() {
@@ -130,9 +160,19 @@ export function latinRunsPlant() {
   try { flipped = window.latinRunsCheck(); } finally { t.remove(); }
   const splitCaught = count(narrow, 'a short Latin run splits', shortsWithSpace);
   const orderCaught = count(flipped, 'a Latin run is drawn out of order', withSep);
-  const blind = splitCaught !== shortsWithSpace.length || orderCaught !== withSep.length;
+  const isText = (n) => n && n.nodeType === Node.TEXT_NODE;
+  const dotted = isos.filter((b) => isText(b.previousSibling) && b.previousSibling.data.endsWith('.') && isText(b.nextSibling) && b.nextSibling.data.startsWith('.') && b.childNodes.length === 1 && isText(b.firstChild));
+  const saved = dotted.map((b) => [b.previousSibling, b.previousSibling.data, b.firstChild, b.firstChild.data]);
+  const dotsMarkup = [];
+  let doubled = { findings: [] };
+  try {
+    for (const b of dotted) { b.previousSibling.data = b.previousSibling.data.slice(0, -1); b.firstChild.data = `.${b.firstChild.data}`; dotsMarkup.push(`${b.outerHTML}${b.nextSibling.data.slice(0, 1)}`); }
+    if (dotted.length) doubled = window.latinRunsCheck();
+  } finally { for (const [p, pd, c, cd] of saved) { p.data = pd; c.data = cd; } }
+  const dotsCaught = dotted.filter((b) => doubled.findings.some((f) => f.text.startsWith('two dots are drawn in a row') && f.text.includes(`".${b.firstChild.data}.`))).length;
+  const blind = splitCaught !== shortsWithSpace.length || orderCaught !== withSep.length || dotsCaught !== dotted.length;
   return {
-    isolates: isos.length, shortsWithSpace: shortsWithSpace.length, splitCaught, reversible: withSep.length, orderCaught,
-    finding: blind ? `check 15 is blind: ${shortsWithSpace.length} short isolate(s) with a space, forced narrow flagged ${splitCaught}; ${withSep.length} of two or more letters, drawn backwards flagged ${orderCaught}` : null,
+    isolates: isos.length, shortsWithSpace: shortsWithSpace.length, splitCaught, reversible: withSep.length, orderCaught, dotted: dotted.length, dotsCaught, dotsMarkup,
+    finding: blind ? `check 15 is blind: ${shortsWithSpace.length} short isolate(s) with a space, forced narrow flagged ${splitCaught}; ${withSep.length} of two or more letters, drawn backwards flagged ${orderCaught}; ${dotted.length} rebuilt as fc60340's ".zip" isolate, two dots in a row flagged ${dotsCaught}` : null,
   };
 }

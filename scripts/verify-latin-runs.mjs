@@ -3,8 +3,11 @@
  * (src/lib/latin-groups.ts `splitLatinRuns`, drawn by
  * src/components/ui/LatinText.tsx): the drop zone's messages and the AI
  * permission sheet, after activation 5's renders showed the wrong-type
- * refusal's list broken over two lines with ".zip" drawn as "zip.", and the
- * declined sentence's "Voyage" / "AI." split.
+ * refusal's list broken over two lines, and the declined sentence's
+ * "Voyage" / "AI." split. A file extension's leading "." stays OUTSIDE the
+ * run: fc60340 isolated ".zip" whole and the refusal ended "..zip" (the
+ * owner's review of design-c 42870265441); "zip" alone is isolated and the
+ * dots around it stay with the Arabic, drawn as main draws them, ".zip.".
  *
  * Pure: the helper on the REAL strings (the approved dictionaries and
  * limit-messages.ts), then the component through react-dom/server. On main
@@ -37,15 +40,16 @@ check(typeof split === 'function', 'latin-groups has no splitLatinRuns (main has
 const runs = (s) => (typeof split === 'function' ? split(s) : []).filter((p) => typeof p !== 'string');
 const joined = (s) => (typeof split === 'function' ? split(s) : []).map((p) => (typeof p === 'string' ? p : p.run)).join('');
 
-// 1. The wrong-type refusal: the list is ONE short run, ".zip" keeps its dot, the sentence's "." stays Arabic.
+// 1. The wrong-type refusal: the list is ONE short run; the extension's "." and the sentence's "." both stay Arabic.
 const refusal = uploadRefusalMessage('ar', 'type', 'zip');
 const r1 = runs(refusal);
 check(JSON.stringify(r1) === JSON.stringify([
   { run: 'KnowFlow', short: true },
   { run: 'PDF, DOCX, PPTX, XLSX, TXT, MD', short: true },
-  { run: '.zip', short: true },
-]), `the type refusal cuts into KnowFlow / the list / .zip, got ${JSON.stringify(r1)}`);
-check(refusal.endsWith('.zip.') && joined(refusal) === refusal, 'the refusal joins back byte for byte, its final "." outside the run');
+  { run: 'zip', short: true },
+]), `the type refusal cuts into KnowFlow / the list / zip, got ${JSON.stringify(r1)}`);
+check(refusal.endsWith('.zip.') && joined(refusal) === refusal, 'the refusal joins back byte for byte, both "." outside the run');
+check(runs('أ .md ب')[0]?.run === 'md' && runs('أ notes.pdf ب')[0]?.run === 'notes.pdf', 'a leading "." is outside a run; a "." inside one ("notes.pdf") is kept');
 
 // 2. The declined sentence: "Anthropic" and "Voyage AI", the "و" before Voyage and the "." after AI stay Arabic.
 const declined = ar.dashboard.aiConsent.declined;
@@ -57,6 +61,8 @@ const sheet = ['title', 'intro', 'anthropic', 'voyage', 'notSent', 'withdrawHint
 const zone = [ar.dashboard.upload.error, ar.dashboard.upload.tryAnother, ar.dashboard.upload.awaitingConsent, ar.dashboard.upload.uploadFailed, ar.dashboard.subjectDetail.noTextFix, ar.dashboard.subjectDetail.noTextLine,
   ...['request', 'type', 'mime', 'session', 'nothing-saved', 'unconfirmed'].map((k) => uploadRefusalMessage('ar', k, 'zip'))];
 for (const s of [...sheet, ...zone]) check(joined(s) === s, `does not join back: ${s}`);
+// No bare run of any string the drop zone or the sheet shows starts with "." (fc60340's "..zip").
+for (const s of [...sheet, ...zone]) for (const p of runs(s)) if (!p.run.startsWith('(')) check(!p.run.startsWith('.'), `a run starts with ".": "${p.run}" in ${s}`);
 check(JSON.stringify(runs(ar.dashboard.aiConsent.voyage)) === JSON.stringify([{ run: 'Voyage AI', short: true }]), 'the sheet\'s Voyage line holds one run');
 
 // 4. A bracketed group is still one piece, brackets included (#310's rule), and the 30-character cap.
@@ -72,7 +78,10 @@ if (existsSync(resolvePath(ROOT, 'src/components/ui/LatinText.tsx'))) {
   const { LatinText } = await load('src/components/ui/LatinText.tsx');
   const html = renderToStaticMarkup(createElement('p', null, createElement(LatinText, { text: refusal })));
   check(html.includes('<bdi dir="ltr" data-kf-latin="short" class="whitespace-nowrap">PDF, DOCX, PPTX, XLSX, TXT, MD</bdi>'), `the list is a nowrap isolate: ${html}`);
-  check(html.includes('<bdi dir="ltr" data-kf-latin="short" class="whitespace-nowrap">.zip</bdi>.'), `".zip" is isolated, the "." after it is not: ${html}`);
+  check(html.includes(' .<bdi dir="ltr" data-kf-latin="short" class="whitespace-nowrap">zip</bdi>.'), `"zip" is isolated, the "." before it and the "." after it are not: ${html}`);
+  check(!html.includes('>.zip</bdi>'), `fc60340's ".zip" isolate is gone: ${html}`);
+  const mimeHtml = renderToStaticMarkup(createElement('p', null, createElement(LatinText, { text: mime })));
+  check(mimeHtml.includes('<bdi dir="ltr" data-kf-latin="short" class="whitespace-nowrap">(.zip)</bdi>.'), `the mime refusal's "(.zip)" is one isolate, brackets and dot inside: ${mimeHtml}`);
   const text = html.replace(/<[^>]+>/g, '');
   check(text === refusal.replace(/&/g, '&amp;'), 'the rendered text equals the string');
   const long = `أ ${'word '.repeat(8).trim()} ب`;

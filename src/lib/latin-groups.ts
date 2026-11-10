@@ -56,13 +56,17 @@ export function splitLatinGroups(text: string): Piece[] {
  * permission sheet, after activation 5's renders). Not only bracketed groups:
  * "يقبل KnowFlow ملفات PDF, DOCX, PPTX, XLSX, TXT, MD فقط، وهذا الملف من نوع
  * .zip." broke the list over two lines (its order scrambled around the
- * Arabic) and drew ".zip" as "zip."; the declined sentence broke "Voyage" /
- * "AI.". A run is a Latin word, or a leading "." and a Latin word (".zip"),
- * then any further Latin words, digits and the separators between them
+ * Arabic); the declined sentence broke "Voyage" / "AI.". A run is a Latin
+ * word, then any further Latin words, digits and the separators between them
  * (space, comma, dot, hyphen, underscore, apostrophe, slash, plus, "&"). It
- * ends on a letter or a digit, so a sentence's own "." or "،" stays with the
- * Arabic. A bracketed Latin group is still one piece, brackets included, as
- * splitLatinGroups() cuts it.
+ * starts on a letter and ends on a letter or a digit, so a sentence's own "." or "،"
+ * stays with the Arabic, and so does the leading "." of a file extension:
+ * ".zip" is cut as "." + "zip". Isolating ".zip" whole (PR #316 at fc60340)
+ * drew the sentence's closing "." against the extension's own, "..zip" (the
+ * owner's review of design-c 42870265441); with the "." outside, the
+ * extension is drawn as main draws it, ".zip." (check 15's doubled-dot rule).
+ * A bracketed Latin group is still one piece, brackets included, as
+ * splitLatinGroups() cuts it ("(.zip)": the brackets hold the dot).
  *
  * `short` is the same cap as a bracketed group's: at most SHORT_GROUP
  * characters (the run's own; a group's inside its brackets). The caller
@@ -70,7 +74,7 @@ export function splitLatinGroups(text: string): Piece[] {
  */
 export type Run = string | { run: string; short: boolean };
 
-const RUN = /\.?[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ0-9]*(?:[ ,.\-_'’/+&]+[A-Za-zÀ-ɏ0-9]+)*/g;
+const RUN = /[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ0-9]*(?:[ ,.\-_'’/+&]+[A-Za-zÀ-ɏ0-9]+)*/g;
 
 export function splitLatinRuns(text: string): Run[] {
   const out: Run[] = [];
