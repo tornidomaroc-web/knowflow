@@ -183,6 +183,45 @@ for (const [why, platform, answer, want] of [
 }
 check(!/httponly/i.test(MARK), 'the script-written mark is not HttpOnly (a script cannot set that flag)');
 
+// ── 4. What the app's sign-up says (activation fix 4, owner-approved 2026-11-10) ─
+// docs/copy-drafts/activation_3_signup.md, shipped: under the subtitle, in the
+// slot the web gives `cta.note` (the free-plan line), the app shows the
+// approved `about.subtitle`, unchanged, in both locales. The web keeps
+// `cta.note` and does not show the new line. The REAL page function is
+// called and its element tree read; no new key, no plan word in the app.
+const { en } = await load('src/lib/i18n/locales/en.ts');
+const { ar } = await load('src/lib/i18n/locales/ar.ts');
+const { kfWording } = await load('scripts/lib/app-wording.mjs');
+const plain = (s) => s.replace(/[ ⁠]/g, (c) => (c === ' ' ? ' ' : ''));
+function texts(node, out = []) {
+  if (node == null || typeof node === 'boolean') return out;
+  if (typeof node === 'string' || typeof node === 'number') { out.push(plain(String(node))); return out; }
+  if (Array.isArray(node)) { for (const n of node) texts(n, out); return out; }
+  if (typeof node === 'object') texts(node.props?.children, out);
+  return out;
+}
+function heading(node) {
+  if (!node || typeof node !== 'object') return null;
+  if (Array.isArray(node)) { for (const n of node) { const h = heading(n); if (h) return h; } return null; }
+  if (Array.isArray(node.props?.children) && node.props.children.some((c) => c?.type === 'h1')) return node;
+  return heading(node.props?.children);
+}
+for (const [loc, dict] of [['en', en], ['ar', ar]]) {
+  for (const platform of ['native', 'web']) {
+    globalThis.__kfPlatform = platform;
+    const head = heading(SignupPage({ params: { locale: loc } }));
+    const said = head ? texts(head) : [];
+    const all = said.join(' | ');
+    const app = platform === 'native';
+    check(!!head, `${loc} ${platform}: the sign-up heading block is found`);
+    check(said.includes(dict.auth.signupSubtitle), `${loc} ${platform}: the subtitle is still there: ${all}`);
+    check(said.includes(dict.about.subtitle) === app, `${loc} ${platform}: about.subtitle ${app ? 'shown under the subtitle' : 'not shown (the web is unchanged)'}: ${all}`);
+    check(said.includes(plain(dict.cta.note)) === !app, `${loc} ${platform}: cta.note ${app ? 'not shown in the app' : 'still shown on the web'}: ${all}`);
+    if (app) check(kfWording(all).length === 0, `${loc} app: no plan, price, upgrade or free word in the heading: ${JSON.stringify(kfWording(all))}`);
+  }
+}
+check(/\*\*Status: SHIPPED/.test((await import('node:fs')).readFileSync(resolvePath(ROOT, 'docs/copy-drafts/activation_3_signup.md'), 'utf8')), 'the copy draft is marked shipped');
+
 for (const f of failures) console.log(`FAIL ${f}`);
 console.log(`${passed} passed, ${failures.length} failed`);
 process.exit(failures.length ? 1 : 0);

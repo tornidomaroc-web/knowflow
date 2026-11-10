@@ -139,12 +139,16 @@ export function MessageBubble({ role, content, isStreaming, citations, sourceHre
               the gold user bubble and the surface assistant bubble. */}
           <ReactMarkdown
             components={{
-              p: ({ children }) => <p className={`mb-2 last:mb-0 ${isUser ? '' : 'whitespace-pre-line'}`}>{iso(children)}</p>,
+              // The deferred "ATP [1]." case (2026-11-10): an answer's paragraph
+              // and list item wrap with text-wrap: pretty, so the last line is
+              // not one word and its citation alone under a full line (check
+              // 12, scripts/design-c/pr4.mjs). Engines without it wrap as before.
+              p: ({ children }) => <p className={`mb-2 last:mb-0 ${isUser ? '' : 'whitespace-pre-line [text-wrap:pretty]'}`}>{iso(children)}</p>,
               strong: ({ children }) => <strong className="font-semibold">{iso(children)}</strong>,
               em: ({ children }) => <em>{iso(children)}</em>,
               ul: ({ children }) => <ul className="mb-2 list-inside list-disc space-y-1">{children}</ul>,
               ol: ({ children }) => <ol className="mb-2 list-inside list-decimal space-y-1">{children}</ol>,
-              li: ({ children }) => <li className="text-sm">{iso(children)}</li>,
+              li: ({ children }) => <li className={`text-sm ${isUser ? '' : '[text-wrap:pretty]'}`}>{iso(children)}</li>,
               // `font-mono` DROPPED, not remapped. Tailwind's stock mono stack is
               // Latin-only, and this span holds arbitrary model output — in an
               // Arabic-first product that is frequently Arabic, which would render

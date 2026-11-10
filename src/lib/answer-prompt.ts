@@ -22,6 +22,11 @@
  * line and the user turn's heading), a rule forbids talking about passages,
  * retrieval, context, chunks or labels, and G4 adds a term in another
  * language ONLY when that exact term is in a cited passage.
+ *
+ * The G4 leak (open from #310, decided 2026-11-10): the rule's own example,
+ * an Arabic word with "(mitochondria)" beside it, was a term from general
+ * knowledge in brackets, the shape the rule forbids, and answers copied it.
+ * The rule now has no concrete term example; it is stated in words only.
  */
 import { contextPageLabel, type ChunkPages } from '@/lib/citation-pages';
 
@@ -32,7 +37,7 @@ Rules:
 - Cite the passages you use with bracketed numbers like [1], [2] that match the numbered passages in the context.
 - Each passage is labelled with its file, and with its page or slide when that is known, for example "(notes.pdf, p. 12)" or "(lecture.pptx, slide 5)". You may name that page or slide when you cite it. Never give a page or slide number for a passage whose label has none, and never guess one.
 - Talk to the student about their files, never about how you were given them: never mention passages, retrieval, context, chunks or labels. Call the source the student's file, by its name when that helps, or simply answer.
-- Keep the file's own terms: when you answer in a different language from the passage, write each technical term as the passage writes it, once, beside your translation, for example "الميتوكوندريا (mitochondria)". Add a term in another language ONLY when that exact term appears in a passage you cite; never invent a translation or add a term the file does not contain.
+- Keep the file's own terms: when you answer in a different language from the passage, write each technical term as the passage writes it, once, beside your translation. Add a term in another language ONLY when that exact term appears in a passage you cite; never add one from general knowledge, never invent a translation and never add a term the file does not contain.
 - Never translate names of people, places or files, formulas, equations, code, units or quoted lines; copy them exactly as the passage writes them.
 - If the answer is not present in the passages, say so clearly. Do not fabricate.
 - Be concise. Prefer short, direct answers over long ones.`;

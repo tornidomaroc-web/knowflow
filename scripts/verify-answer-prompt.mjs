@@ -125,14 +125,32 @@ for (const [re, what] of RULES) need(re.test(SYSTEM_INSTRUCTIONS), `system rules
 const NEW_RULES = [
   [/never mention passages, retrieval, context, chunks or labels/, '(b) never mention passages, retrieval, context, chunks or labels'],
   [/Call the source the student's file, by its name when that helps, or simply answer\./, '(b) the source is the student\'s file, by name when useful'],
-  [/Add a term in another language ONLY when that exact term appears in a passage you cite; never invent a translation or add a term the file does not contain\./, '(b) G4 narrowed: a foreign term only when that exact term is in a cited passage'],
+  [/Add a term in another language ONLY when that exact term appears in a passage you cite; never add one from general knowledge, never invent a translation and never add a term the file does not contain\./, '(b) G4 narrowed: a foreign term only when that exact term is in a cited passage, never from general knowledge'],
 ];
 for (const [re, what] of NEW_RULES) need(re.test(SYSTEM_INSTRUCTIONS), `system rules: ${what}`);
 // The words the model echoed ("المقطع المسترجع", the retrieved passage) are gone from everything it reads.
 need(!/retriev/i.test(SYSTEM_INSTRUCTIONS.replace(/never mention passages, retrieval,/, '')), '(b) the system rules call nothing "retrieved" (only the rule that forbids the word names it)');
 need(!/retriev/i.test(buildUserTurn('CTX', 'q')), '(b) the user turn calls nothing "retrieved"');
-// The narrowed G4 keeps its example only because it fits: an English passage's own term beside the Arabic.
-need(/"الميتوكوندريا \(mitochondria\)"/.test(SYSTEM_INSTRUCTIONS) && /when you answer in a different language from the passage/.test(SYSTEM_INSTRUCTIONS), 'G4 example kept, under "a different language from the passage"');
+// The G4 leak (open defect from #310, decided 2026-11-10): the example "الميتوكوندريا (mitochondria)"
+// was itself a term from general knowledge beside a translation, the very thing the rule forbids, and
+// the model copied its shape. No concrete term example at all: the rule is in words only.
+need(!/mitochondria|الميتوكوندريا/i.test(SYSTEM_INSTRUCTIONS), 'G4: the example "الميتوكوندريا (mitochondria)" is gone');
+need(/when you answer in a different language from the passage/.test(SYSTEM_INSTRUCTIONS)
+  && /Add a term in another language ONLY when that exact term appears in a passage you cite; never add one from general knowledge/.test(SYSTEM_INSTRUCTIONS),
+  'G4 in words only: a term in another language only when that exact term is in a cited passage, never from general knowledge');
+// Every example the prompt gives: each quoted span, and what follows "for example" / "like" / "such as"
+// up to the end of its sentence. None may hold a Latin word in parentheses (a term beside a
+// translation) or any Arabic. A file label is the passage label's own format, "(notes.pdf, p. 12)":
+// it names a file (a dot and an extension), not a term, and stays.
+const EXAMPLES = [
+  ...[...SYSTEM_INSTRUCTIONS.matchAll(/"([^"\n]+)"/g)].map((m) => m[1]),
+  ...[...SYSTEM_INSTRUCTIONS.matchAll(/\b(?:for example|e\.g\.|such as|like)\b([^\n]*?)(?:\.(?:\s|$)|$)/gi)].map((m) => m[1]),
+];
+const LATIN_TERM = /\((?![^()]*\.[A-Za-z0-9]{2,5}\b)[^()]*[A-Za-z][^()]*\)/;
+const termExamples = EXAMPLES.filter((e) => LATIN_TERM.test(e) || /[؀-ۿ]/.test(e));
+need(EXAMPLES.length >= 3 && termExamples.length === 0, `no example in the prompt holds a Latin word in parentheses or an Arabic term (${EXAMPLES.length} example spans read): ${JSON.stringify(termExamples)}`);
+// The reader is not blind: it flags the old example and passes the file labels.
+need(LATIN_TERM.test('"الميتوكوندريا (mitochondria)"') && !LATIN_TERM.test('"(notes.pdf, p. 12)"') && !LATIN_TERM.test('"(lecture.pptx, slide 5)"'), 'the example reader flags a Latin term in parentheses and passes a file label');
 // Small: the rules grow by a bounded amount (measured in characters; the report gives the token estimate).
 need(SYSTEM_INSTRUCTIONS.length <= 1700, `the system rules stay small: ${SYSTEM_INSTRUCTIONS.length} characters (was 1137)`);
 
@@ -172,6 +190,11 @@ need(keepMarkersWithBefore('ATP [1][2]، و').replace(/ /g, ' ').replace(/⁠/g
 need(JSON.stringify(leadingMarkers(' [1][2]، ثم')) === JSON.stringify({ markers: '[1][2]،', rest: ' ثم' }) && leadingMarkers(' و [1]') === null, 'the markers right after a short group are taken into its box; anything else is not');
 const bubble = readFileSync(resolvePath(ROOT, 'src/components/agent/MessageBubble.tsx'), 'utf8');
 need(bubble.includes('isUser ? (c: ReactNode) => c : (c: ReactNode) => answerText(c, rtl)') && bubble.includes('keepMarkersWithBefore(child)'), "MessageBubble glues markers in every answer (either direction), never in the student's own bubble");
+// The deferred "ATP [1]." case (2026-11-10): an answer's paragraphs and list items wrap with
+// text-wrap: pretty (the student's bubble does not). Check 12 in scripts/design-c/pr4.mjs reads the result.
+need(/p: \(\{ children \}\) => <p className=\{`[^`]*\$\{isUser \? '' : '[^']*\[text-wrap:pretty\][^']*'\}`\}/.test(bubble)
+  && /li: \(\{ children \}\) => <li className=\{`[^`]*\$\{isUser \? '' : '\[text-wrap:pretty\]'\}`\}/.test(bubble),
+  "MessageBubble: an answer's paragraphs and list items wrap with text-wrap: pretty, the student's bubble as before");
 
 // ── 2. the page rule ────────────────────────────────────────────────────────
 const bad = [

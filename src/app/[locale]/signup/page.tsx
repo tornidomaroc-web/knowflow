@@ -131,8 +131,12 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
             {t.auth.signupSubtitle}
             {/* #105: the free-plan line, reusing the landing's approved `cta.note`
                 in both languages. Nothing on signup said it was free before. */}
-            {/* Step Wording-1: web only. Inside the app no plan is named. */}
-            {purchaseLinksAllowed(platform) ? <span className="mt-1 block text-sm">{keepDotWithBefore(t.cta.note)}</span> : null}
+            {/* Step Wording-1: web only. Inside the app no plan is named. In
+                that slot the app says what it does instead (activation fix 4,
+                owner-approved 2026-11-10, docs/copy-drafts/activation_3_signup.md):
+                the approved `about.subtitle`, unchanged, since a fresh install
+                now opens here. */}
+            <span className="mt-1 block text-sm">{keepDotWithBefore(purchaseLinksAllowed(platform) ? t.cta.note : t.about.subtitle)}</span>
           </p>
         </div>
 

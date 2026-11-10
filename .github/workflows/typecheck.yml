@@ -286,7 +286,9 @@ jobs:
       # Activation fix 3 (2026-11-09 audit, cause #2): in the app, a signed-out
       # visitor on a device that never held a session opens on sign-up, one that
       # did (kf-seen=1) on login; the web is unchanged. Real middleware, fetch stubbed.
-      - name: Verify the app opens on sign-up on a fresh device and on login after a session, the web unchanged (activation fix 3)
+      # Part 4 (activation fix 4): the app's sign-up says what the app does
+      # (about.subtitle in the slot the web gives cta.note), the web unchanged.
+      - name: Verify the app opens on sign-up on a fresh device and on login after a session, its sign-up says what the app does, the web unchanged (activation fixes 3 and 4)
         run: node --experimental-strip-types scripts/verify-activation-3.mjs
 
       # #295 follow-up: /api/ingest never stores a file name holding U+0000 (22P05).
