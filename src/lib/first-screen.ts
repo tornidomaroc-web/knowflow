@@ -50,6 +50,22 @@ export function signedOutPage(platform: Platform, seen: string | undefined): Sig
 }
 
 /**
+ * THE MARK WRITTEN FROM THE SIGN-UP PAGE, in the app only, once signUp has
+ * succeeded. Confirm-email is on and the app has no universal links, so the
+ * mail link opens in Safari: that session never reaches the app, and without
+ * this the student who signed up in the app would come back to sign-up and
+ * try again. Set from script, so it cannot be HttpOnly; the rest is the
+ * middleware's mark (path, 400 days, Lax, Secure, value "1"). If the
+ * middleware's HttpOnly mark is already there the browser keeps it, which is
+ * the same value.
+ */
+export const SEEN_COOKIE_SCRIPT = `${SEEN_COOKIE}=${SEEN_COOKIE_VALUE}; Path=/; Max-Age=${SEEN_COOKIE_MAX_AGE}; SameSite=Lax; Secure`;
+
+export function markSeenAfterSignUp(platform: Platform, doc: { cookie: string }): void {
+  if (platform === 'native') doc.cookie = SEEN_COOKIE_SCRIPT;
+}
+
+/**
  * Whether this request should write the mark if it carries a session (app
  * only, once). `updateSession` writes it only when its `getUser()` found one.
  */

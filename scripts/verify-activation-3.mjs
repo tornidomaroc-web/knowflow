@@ -21,10 +21,16 @@
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { existsSync } from 'node:fs';
+import { registerHooks } from 'node:module';
 import { installTsxHooks } from './lib/tsx-hooks.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
-installTsxHooks(ROOT, { 'next/server': `export * from 'next/server.js';` });
+installTsxHooks(ROOT, {
+  'next/server': `export * from 'next/server.js';`,
+  // Part 3 only: the sign-up page's browser client and platform.
+  '@/lib/supabase/client': `export function createClient() { return { auth: { async signUp() { globalThis.__kfSignUp.calls++; return globalThis.__kfSignUp.answer; } }, from() { return { async upsert() { return { error: null }; } }; } }; }`,
+  '@/components/platform/PlatformProvider': `export function usePlatform() { return globalThis.__kfPlatform; }`,
+});
 const failures = [];
 let passed = 0;
 const check = (ok, msg) => { if (ok) passed++; else failures.push(msg); };
@@ -121,6 +127,61 @@ check(signedAppAgain.seen === null, `the app, signed in, already marked: no seco
 const signedWeb = await ask('/en/dashboard', WEB, [SESSION]);
 check(signedWeb.to === null && signedWeb.seen === null, `the web, signed in: no redirect and no kf-seen (to=${signedWeb.to} seen=${signedWeb.seen})`);
 check(stray.length === 0, `no request left the process except GoTrue's /user: ${stray.join(', ')}`);
+
+// ── 3. The real sign-up handler (the mail is confirmed in Safari) ───────────
+// Confirm-email is on and the app has no universal links, so the mail link
+// opens in Safari and the app never holds that session. The sign-up page
+// therefore writes the mark itself on a successful signUp in the app. The
+// REAL page function runs with React's two hooks it calls answered in place
+// (useState -> its initial value, use -> the params), the Supabase browser
+// client and usePlatform stubbed, `document.cookie` recorded; the form's own
+// onSubmit is called. Nothing renders and nothing leaves the process.
+const PAGE = pathToFileURL(resolvePath(ROOT, 'src/app/[locale]/signup/page.tsx')).href;
+registerHooks({
+  resolve(spec, ctx, next) {
+    if (spec === 'react' && ctx.parentURL === PAGE) {
+      return { url: 'data:text/javascript,' + encodeURIComponent("export * from 'react'; export function useState(v) { return [v, () => {}]; } export function use(p) { return p; }"), shortCircuit: true };
+    }
+    return next(spec, ctx);
+  },
+});
+const { default: SignupPage } = await import(PAGE);
+function findForm(node) {
+  if (!node || typeof node !== 'object') return null;
+  if (Array.isArray(node)) { for (const n of node) { const f = findForm(n); if (f) return f; } return null; }
+  if (node.type === 'form') return node;
+  return findForm(node.props?.children);
+}
+async function submit(platform, answer) {
+  globalThis.__kfPlatform = platform;
+  globalThis.__kfSignUp = { calls: 0, answer };
+  const writes = [];
+  globalThis.window = { location: { origin: 'https://tryknowflow.com' } };
+  globalThis.document = { set cookie(v) { writes.push(v); }, get cookie() { return ''; } };
+  try {
+    const form = findForm(SignupPage({ params: { locale: 'en' } }));
+    if (!form) return { error: 'no form' };
+    await form.props.onSubmit({ preventDefault() {} });
+    return { writes, calls: globalThis.__kfSignUp.calls };
+  } finally {
+    delete globalThis.window;
+    delete globalThis.document;
+  }
+}
+const OK_NO_SESSION = { data: { user: { id: USER.id }, session: null }, error: null };
+const OK_SESSION = { data: { user: { id: USER.id }, session: { access_token: 'x' } }, error: null };
+const REFUSED = { data: { user: null, session: null }, error: { message: 'refused' } };
+const MARK = 'kf-seen=1; Path=/; Max-Age=34560000; SameSite=Lax; Secure';
+for (const [why, platform, answer, want] of [
+  ['the app, sign-up accepted, mail to confirm (no session): writes the mark', 'native', OK_NO_SESSION, [MARK]],
+  ['the app, sign-up accepted with a session: writes the mark', 'native', OK_SESSION, [MARK]],
+  ['the app, sign-up refused: writes nothing', 'native', REFUSED, []],
+  ['the web, sign-up accepted: writes nothing (unchanged)', 'web', OK_NO_SESSION, []],
+]) {
+  const r = await submit(platform, answer);
+  check(!r.error && r.calls === 1 && JSON.stringify(r.writes) === JSON.stringify(want), `${why}: signUp calls ${r.calls}, cookie writes ${JSON.stringify(r.writes ?? r.error)}`);
+}
+check(!/httponly/i.test(MARK), 'the script-written mark is not HttpOnly (a script cannot set that flag)');
 
 for (const f of failures) console.log(`FAIL ${f}`);
 console.log(`${passed} passed, ${failures.length} failed`);

@@ -11,6 +11,7 @@ import { ClayDefs } from '@/components/clay/ClayIcons';
 import { APPLE_SIGNIN_ENABLED } from '@/lib/auth/providers';
 import { googleSignInAllowed, purchaseLinksAllowed } from '@/lib/platform';
 import { usePlatform } from '@/components/platform/PlatformProvider';
+import { markSeenAfterSignUp } from '@/lib/first-screen';
 import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
 import { keepDotWithBefore } from '@/lib/separator';
@@ -77,6 +78,10 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
       setLoading(false);
       return;
     }
+
+    // Activation fix 3: in the app, this device now opens on login, not
+    // sign-up, even when the mail is confirmed in Safari (src/lib/first-screen.ts).
+    markSeenAfterSignUp(platform, document);
 
     // Confirm email is ON for this project, so GoTrue withholds the session
     // until the address is proven. The session field was always on this object.
