@@ -22,7 +22,8 @@
  *     "C" PR 3 added dashboard.upload.fromDevice and fromDeviceDesc; 429 after
  *     its review added dashboard.subjects.nothingToSummarise; 433 after G2
  *     added dashboard.agent.sourcePage, sourcePages, sourceSlide and
- *     sourceSlides, approved in app v7).
+ *     sourceSlides, approved in app v7; 434 after activation 5 added
+ *     dashboard.upload.awaitingConsent, approved in app v8).
  *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
  *     ruling that removed it. Its rows stay in the batch files, which are the
  *     owner's approved record and are never edited; they are read and checked
@@ -158,7 +159,7 @@ console.error(`${approved.size} keys asserted, ${superseded} earlier rows supers
   const onlyEn = [...E.keys()].filter((k) => !A.has(k)).sort();
   check(onlyAr.join() === [...pluralOnly].sort().join(), `keys only in ar.ts: ${onlyAr.join(', ') || '(none)'}; expected the four plural forms`);
   check(onlyEn.length === 0, `keys missing from ar.ts: ${onlyEn.join(', ')}`);
-  check(A.size === 433, `ar.ts has ${A.size} leaves, expected 433`);
+  check(A.size === 434, `ar.ts has ${A.size} leaves, expected 434`);
 }
 
 // 3. Placeholders on every key.

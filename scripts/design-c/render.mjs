@@ -130,6 +130,10 @@
  * declined states, sign-up's check-inbox notice) and check 13: on the 390 x
  * 844 zero-material Ask screens the way to the subject's upload tile lies in
  * the first view above the tab bar, with its forced case (activation5.mjs).
+ * The owner's review of #315 adds check 14: every app render of a drop zone
+ * error state has a visible 44 x 44 control in the first view that opens the
+ * picker, with its forced case; upload-refused-* renders main's own error
+ * state through a real refused pick, so the check is measured on main too.
  *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
@@ -143,7 +147,7 @@ import { join, resolve } from 'node:path';
 import { kfWording } from '../lib/app-wording.mjs';
 import { audit } from '../redesign-built/audit.mjs';
 import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing, pageLabelPlant, g2Rules, latinRules, latinPlant, markerLines, markerPlant, orphanLines, orphanPlant } from './pr4.mjs';
-import { activation5Screens, a5Prepare, a5Act, askPathCheck, askPathPlant } from './activation5.mjs';
+import { activation5Screens, a5Prepare, a5Act, askPathCheck, askPathPlant, dropZoneErrorCheck, dropZoneErrorPlant } from './activation5.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -237,7 +241,7 @@ add('home-full-desk', 'preview/student-home', { platform: 'web', state: 'full' }
 byKeyEarly('home-empty').stepsView = 0;
 byKeyEarly('home-one').stepsView = 1;
 const LONG = pr4Screens(add, { APP, SAFARI, DESK, DESKTOP, PHONE }, resolve('.'));
-activation5Screens(add, { APP, SAFARI, DESK, DESKTOP });
+activation5Screens(add, { APP, SAFARI, DESK, DESKTOP }, byKeyEarly);
 const KEEP = keepTogetherList(resolve('.'));
 const byKey = (k) => SCREENS.find((x) => x.key === k);
 function byKeyEarly(k) { return SCREENS.find((x) => x.key === k); }
@@ -247,12 +251,10 @@ function byKeyEarly(k) { return SCREENS.find((x) => x.key === k); }
 // with its reason; nothing else is let through.
 // PR 3: the one PR 2 exception (the Summary section's "Summarize" alone on
 // its line at 390 pt) is fixed and removed; nothing is let through.
-// Activation fix 5: sign-up's check-inbox notice is rendered for the first
-// time, and the confirmation flow is outside this PR (the owner's ruling), so
-// a line finding inside the notice's sentence is reported, not failed.
-const KNOWN = [
-  { screen: /check-inbox/, finding: /^lines: .* in p "(We sent a confirmation|أرسلنا رابط تأكيد)/, why: 'sign-up notice text (auth.checkInboxBody); the confirmation flow is out of scope for activation fix 5' },
-];
+// Activation fix 5: the check-inbox notice's one-word Arabic line was known
+// at 6ad142e; the owner's review of #315 balanced the notice, so it is held
+// by check 1 like every other line and nothing is let through.
+const KNOWN = [];
 
 const JOBS = [];
 for (const locale of ['ar', 'en']) for (const theme of ['light', 'dark']) for (const s of SCREENS) JOBS.push({ locale, theme, s, name: `${locale}-${theme}-${s.key}` });
@@ -1019,6 +1021,10 @@ async function shoot(side, job) {
   if (job.s.askPath) await tab.evaluate(`window.askPathCheck = ${askPathCheck.toString()}`);
   const askPath = job.s.askPath ? await tab.evaluate(askPathCheck) : null;
   const askPlant = job.s.askPath ? await tab.evaluate(askPathPlant) : null;
+  // The owner's review of #315, check 14: a drop zone error state has a way to pick another file.
+  if (job.s.dzError) await tab.evaluate(`window.dropZoneErrorCheck = ${dropZoneErrorCheck.toString()}`);
+  const dzError = job.s.dzError ? await tab.evaluate(dropZoneErrorCheck) : null;
+  const dzPlant = job.s.dzError ? await tab.evaluate(dropZoneErrorPlant) : null;
   // Activation fix 3: the link to the other auth page, in the first view.
   const crossLink = job.s.crossLink ? await tab.evaluate(crossLinkRead, job.s.crossLink) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
@@ -1050,7 +1056,7 @@ async function shoot(side, job) {
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant };
 }
 
 for (const job of JOBS) {
@@ -1098,6 +1104,9 @@ for (const job of JOBS) {
       // Activation fix 5: check 13, and its forced case on AFTER.
       ...(r.askPath?.finding ? [`activation: ${r.askPath.finding}`] : []),
       ...(side === 'after' && r.askPlant?.finding ? [`activation: ${r.askPlant.finding}`] : []),
+      // The owner's review of #315: check 14, and its forced case on AFTER.
+      ...(r.dzError?.finding ? [`activation: ${r.dzError.finding}`] : []),
+      ...(side === 'after' && r.dzPlant?.finding ? [`activation: ${r.dzPlant.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -1121,6 +1130,7 @@ for (const job of JOBS) {
       ...(r.stepsView ? { stepsView: { title: r.stepsView.title, step: r.stepsView.step, limit: r.stepsView.limit, forced: r.stepsPlant?.forced ?? null, forcedCaught: r.stepsPlant?.caught ?? null } } : {}),
       ...(r.crossLink ? { crossLink: r.crossLink } : {}),
       ...(r.askPath ? { askPath: { link: r.askPath.link, forced: r.askPlant?.forced ?? null, forcedCaught: r.askPlant?.caught ?? null } } : {}),
+      ...(r.dzError ? { dropZoneError: { zones: r.dzError.zones, controls: r.dzError.controls, finding: r.dzError.finding, forced: r.dzPlant?.forced ?? null, forcedCaught: r.dzPlant?.caught ?? null } } : {}),
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no
       // plan, price, upgrade or free word.

@@ -283,7 +283,10 @@ if (has('src/lib/ask-suggestions.ts')) {
     check(mt.initialAskSubject(['z'], ids, 'z') === '', '#129 (c): with no answerable subject, one is still preselected');
   } else check(false, '#129 (c): material-text has no initialAskSubject');
   const sel = read('src/components/agent/KBSelector.tsx');
-  check(/const offered = kbs\.filter\(\(k\) => answerable\.has\(k\.id\)\)/.test(sel) && /subjects=\{offered\}/.test(sel), '#129 (c): the subject bar is not limited to answerable subjects');
+  // Activation 5 (the owner's review of #315): the selected subject is always
+  // in the bar, as the gold chip, even when Ask cannot answer from it; every
+  // OTHER chip is still an answerable subject.
+  check(/const offered = kbs\.filter\(\(k\) => answerable\.has\(k\.id\) \|\| k\.id === selectedId\)/.test(sel) && /subjects=\{offered\}/.test(sel), '#129 (c): the subject bar is not limited to answerable subjects and the selected one');
   check(/const selectedKb = kbs\.find\(k => k\.id === selectedId\)/.test(sel), '#129 (c): history must open a past conversation from the FULL subject list');
   check(/if \(!answerable\.has\(selectedId\)\) setSelectedId\(firstAnswerable\(\)\)/.test(sel), '#129 (c): a new conversation can start in a subject Ask cannot answer from');
   check(/!selectedKb && \(\s*<AskNoAnswerableSubject/.test(sel), '#129 (c): with no answerable subject Ask renders nothing (a blank page)');

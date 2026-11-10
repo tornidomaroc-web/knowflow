@@ -42,13 +42,5 @@ export function afterConsent<F>(held: F, granted: boolean): ConsentStep<F> {
     : { send: null, held: null, state: 'idle', notice: 'declined' };
 }
 
-/**
- * The line under a held file while the sheet is open. DRAFT copy
- * (docs/copy-drafts/activation_5.md), not yet approved by the owner, so it
- * lives here and not in the dictionaries, whose every string is approved
- * (scripts/verify-arabic-copy.mjs). Moves to `dashboard.upload` once approved.
- */
-export const AWAITING_CONSENT = {
-  en: 'Kept here until you answer. Nothing is sent yet.',
-  ar: 'محفوظ هنا حتى تجيب. لم يُرسَل شيء بعد.',
-} as const;
+// The line under a held file while the sheet is open is approved copy
+// (docs/copy/ARABIC_STRINGS_app_v8.md): `dashboard.upload.awaitingConsent`.

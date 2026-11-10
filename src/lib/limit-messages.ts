@@ -259,8 +259,9 @@ export function dailyLimitMessage(
  * (`uploadAttemptCeiling`, src/lib/upload-allowance.ts). Reached only when
  * many of today's uploads failed, since a failed upload no longer uses one
  * of the day's uploads. It names no number and no plan: the student did
- * nothing wrong, so there is nothing to buy. DRAFT copy
- * (docs/copy-drafts/activation_5.md), not yet approved by the owner.
+ * nothing wrong, so there is nothing to buy. Approved by the owner on
+ * 2026-11-10 as drafted (docs/copy/ARABIC_STRINGS_app_v8.md); it stays here
+ * beside every other limit sentence, not in the dictionaries.
  */
 const UPLOAD_FAILURES_HEAD: Record<Locale, string> = {
   en: 'Many of your uploads did not finish today, so uploading is paused.',

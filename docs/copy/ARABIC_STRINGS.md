@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-11-06 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **433 Arabic strings.**
+Generated 2026-11-10 by `scripts/export-arabic-strings.mjs` from
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **434 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -567,6 +567,7 @@ file is not read by the app.
 | `dashboard.upload.dropHereTouch` | اسحب ملفاتك إلى هنا أو اضغط لرفعها | Drop files here or tap to upload |
 | `dashboard.upload.fromDevice` | ملف من جهازك | A file from your device |
 | `dashboard.upload.fromDeviceDesc` | كل ملفات الدراسة تنفع. | Any study file works. |
+| `dashboard.upload.awaitingConsent` | محفوظ هنا حتى تجيب. لم يُرسَل شيء بعد. | Kept here until you answer. Nothing is sent yet. |
 | `dashboard.upload.supported` | الملفات المقبولة: PDF, DOCX, PPTX, XLSX, TXT, MD (حتى {limit} للملف الواحد) | Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (up to {limit} per file) |
 | `dashboard.upload.uploading` | نرفع ملفك… | Uploading… |
 | `dashboard.upload.reading` | نقرأ ملفك… | Reading your file… |

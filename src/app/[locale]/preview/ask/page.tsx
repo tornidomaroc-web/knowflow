@@ -149,6 +149,11 @@ export default async function AskPreview({
     { id: 'c3', kb_id: 'k1', created_at: day(2), knowledge_bases: { name: kbs[0].name } },
     { id: 'c4', kb_id: 'k4', created_at: day(1), knowledge_bases: { name: kbs[3].name } },
     { id: 'c5', kb_id: 'k1', created_at: new Date(Date.UTC(2026, 9, 28, 18, 0)).toISOString(), knowledge_bases: { name: kbs[0].name } },
+    // Activation 5 (the owner's review of #315): an old conversation in
+    // Statistics, which has since lost its files (k3 now holds only a
+    // processing one). Listed only when `?open=c6` opens it, so every other
+    // Ask image keeps its history as it was.
+    ...(sp.open === 'c6' ? [{ id: 'c6', kb_id: 'k3', created_at: new Date(Date.UTC(2026, 9, 20, 18, 0)).toISOString(), knowledge_bases: { name: kbs[2].name } }] : []),
   ]
   // G2: a source's page, as the route sends it: [start, end, kind], or none.
   const chem = (i: number, id: string, f: string, sim: number, p?: [number, number, 'page' | 'slide']) => ({
@@ -175,6 +180,15 @@ export default async function AskPreview({
       { role: 'assistant', content: LONG[safeLocale].otherAnswer, citations: [chem(1, 'o1', summaryFile, 0.9, [12, 12, 'page']), chem(2, 'o2', 'reactions-cheatsheet-v3.pdf', 0.83, [3, 4, 'page'])] },
     ],
     c1: conversation,
+    c6: [
+      { role: 'user', content: ar ? 'ما الفرق بين الوسط الحسابي والوسيط؟' : 'What is the difference between the mean and the median?' },
+      {
+        role: 'assistant',
+        content: ar
+          ? 'الوسط الحسابي هو مجموع القيم مقسومًا على عددها، أما الوسيط فهو القيمة التي تقع في المنتصف بعد ترتيب القيم. يتأثر الوسط الحسابي بالقيم المتطرفة أكثر من الوسيط.'
+          : 'The mean is the sum of the values divided by how many there are; the median is the middle value once the values are sorted. The mean is pulled by extreme values more than the median is.',
+      },
+    ],
   }
   const appMaterials = materials.map((m, i) => ({ id: `m${i}`, kb_id: 'k1', filename: m.filename, lead: m.lead }))
 

@@ -1,9 +1,12 @@
-# Activation fix 5: copy (DRAFT, awaiting the owner)
+# Activation fix 5: copy (SHIPPED)
 
-**Status: DRAFT.** Two new sentences, both in English and Arabic. Neither is in
-`src/lib/i18n/locales/*.ts` or `docs/copy/`: each lives beside the code that
-shows it, marked DRAFT, until the owner approves or replaces it. Everything else
-this change shows reuses approved strings (listed at the end).
+**Status: SHIPPED.** The owner approved both drafts exactly as written on
+2026-11-10 (review of #315). Draft 2 is `dashboard.upload.awaitingConsent` in
+the dictionaries, recorded in `docs/copy/ARABIC_STRINGS_app_v8.md`; draft 1
+stays in `src/lib/limit-messages.ts` beside every other limit sentence (the same
+batch file records its approval). The text below is kept as the record of what
+was approved. Everything else this change shows reuses approved strings (listed
+at the end).
 
 Rules held: Modern Standard Arabic, short, no Latin word inside an Arabic
 sentence, no plan, upgrade, price or free word, no em dash.
@@ -27,7 +30,7 @@ number would invite counting failures.
 ## 2. The held file under the AI permission sheet (cause #7)
 
 Where: the drop zone, under the picked file's name, while the permission sheet
-is open. Code: `AWAITING_CONSENT` in `src/lib/upload-consent.ts`.
+is open. Code: `dashboard.upload.awaitingConsent` (was the draft `AWAITING_CONSENT` in `src/lib/upload-consent.ts`).
 
 | | en | ar |
 |---|---|---|
@@ -44,9 +47,8 @@ is open. Code: `AWAITING_CONSENT` in `src/lib/upload-consent.ts`.
 | Drop zone, processing failed | `uploadRefusalMessage(…, 'unconfirmed')` | Your file arrived, but we could not confirm it was processed. … |
 | Upload refused, day's 5 used | `dailyLimitMessage(…, 'upload', …)` | You've reached today's limit of 5 uploads. … |
 
-## For the owner to decide
+## Decided
 
-1. Approve both drafts as they are, or give your own text.
-2. On approval they move into the dictionaries (`dashboard.upload.awaitingConsent`)
-   or stay in `limit-messages.ts` (the upload pause, like every other limit
-   sentence), with a batch row in `docs/copy/`.
+Both approved as written (2026-11-10). Shipped as proposed: the held-file line
+in the dictionaries, the upload pause in `limit-messages.ts`, one batch row in
+`docs/copy/ARABIC_STRINGS_app_v8.md`.

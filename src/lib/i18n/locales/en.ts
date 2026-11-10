@@ -566,6 +566,9 @@ export const en = {
       // (docs/copy/ARABIC_STRINGS_app_v5.md).
       fromDevice: "A file from your device",
       fromDeviceDesc: "Any study file works.",
+      // Activation 5: under a picked file while the AI permission sheet is open,
+      // approved by the owner (docs/copy/ARABIC_STRINGS_app_v8.md).
+      awaitingConsent: "Kept here until you answer. Nothing is sent yet.",
       supported: "Supported: PDF, DOCX, PPTX, XLSX, TXT, MD (up to {limit} per file)",
       uploading: "Uploading…",
       // #113. What the student reads during the synchronous wait, in order:

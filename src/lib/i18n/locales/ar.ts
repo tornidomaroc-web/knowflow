@@ -529,6 +529,9 @@ export const ar: Translation = {
       // both lines approved by the owner (docs/copy/ARABIC_STRINGS_app_v5.md).
       fromDevice: "ملف من جهازك",
       fromDeviceDesc: "كل ملفات الدراسة تنفع.",
+      // Activation 5: under a picked file while the AI permission sheet is open,
+      // approved by the owner (docs/copy/ARABIC_STRINGS_app_v8.md).
+      awaitingConsent: "محفوظ هنا حتى تجيب. لم يُرسَل شيء بعد.",
       supported: "الملفات المقبولة: PDF, DOCX, PPTX, XLSX, TXT, MD (حتى {limit} للملف الواحد)",
       uploading: "نرفع ملفك…",
       reading: "نقرأ ملفك…",

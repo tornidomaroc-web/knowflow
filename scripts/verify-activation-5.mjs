@@ -321,13 +321,21 @@ if (has('src/lib/upload-consent.ts')) {
   const { DropZone } = await load('src/components/upload/DropZone.tsx');
   const { useTranslation } = await load('src/lib/i18n/index.ts');
   const t = useTranslation('ar');
-  const awaiting = has('src/lib/upload-consent.ts') ? (await load('src/lib/upload-consent.ts')).AWAITING_CONSENT?.ar ?? '\u0000' : '\u0000';
+  // The owner approved the line as drafted (docs/copy/ARABIC_STRINGS_app_v8.md).
+  const awaiting = t.dashboard.upload.awaitingConsent ?? '\u0000';
+  check(awaiting === 'محفوظ هنا حتى تجيب. لم يُرسَل شيء بعد.', `awaitingConsent (ar) is the approved line, got ${JSON.stringify(awaiting)}`);
   const html = (state) => renderToStaticMarkup(createElement(DropZone, { kbId: 'k', previewFile: { name: 'تمارين.pdf', size: 1000, state } }));
   const held = html('consent');
   check(held.includes('تمارين') && held.includes(awaiting) && held.includes('data-kf-upload-held'), `consent: the drop zone shows the held file and that nothing is sent yet (${held.slice(0, 600)})`);
   const declined = html('declined');
   check(declined.includes(t.dashboard.aiConsent.declined) && declined.includes('data-kf-upload="tile"') && !declined.includes(`>${t.dashboard.upload.error}<`), 'declined: the tile is back with the declined sentence, and no failure box');
   check(!declined.includes('تمارين.pdf'), 'declined: the file is released (not shown)');
+  // The owner's review of #315: a refusal is no dead end. The red-edged
+  // message sits above the same tile the idle state shows.
+  const failed = html('failed');
+  const at = (needle) => failed.indexOf(needle);
+  check(at('data-kf-upload-error') >= 0 && failed.includes('border-danger-border') && failed.includes(t.dashboard.upload.tryAnother), 'failed: the red-edged message is shown');
+  check(at('data-kf-upload-error') >= 0 && at('data-kf-upload="tile"') > at('data-kf-upload-error'), `failed: the upload tile is shown below the message (${failed.slice(0, 600)})`);
 }
 
 realError(`\n${passed} passed, ${failures.length} failed`);

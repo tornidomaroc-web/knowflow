@@ -145,7 +145,9 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
         {notice && (
           <div className="rounded-2xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm">
             <p className="font-medium text-foreground">{t.auth.checkInboxTitle}</p>
-            <p className="mt-1 text-muted-foreground">{notice}</p>
+            {/* Balanced (activation 5, the owner's review of #315): the Arabic
+                sentence ended on one word alone. Style only. */}
+            <p className="mt-1 text-muted-foreground [text-wrap:balance]">{notice}</p>
           </div>
         )}
 

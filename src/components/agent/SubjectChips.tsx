@@ -53,6 +53,21 @@ export function SubjectChips({
     el.addEventListener('scroll', measure, { passive: true });
     return () => { ro.disconnect(); el.removeEventListener('scroll', measure); };
   }, [measure, subjects.length]);
+  // The selected chip is scrolled into the bar's view (the owner's review of
+  // #315): a subject opened from `?kb=` or the history may sit past the edge.
+  // Only the bar scrolls (its own scrollLeft), never the page; physical
+  // pixels, so it holds in RTL and LTR alike.
+  useEffect(() => {
+    const el = ref.current;
+    const chip = el?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!el || !chip) return;
+    const r = el.getBoundingClientRect();
+    const c = chip.getBoundingClientRect();
+    const pad = 8;
+    if (c.left < r.left + pad) el.scrollLeft -= r.left + pad - c.left;
+    else if (c.right > r.right - pad) el.scrollLeft += c.right - (r.right - pad);
+    measure();
+  }, [selectedId, subjects.length, measure]);
   const mask = fade.left || fade.right
     ? `linear-gradient(to right, ${fade.left ? 'transparent' : '#000'} 0, #000 ${fade.left ? '2.5rem' : '0'}, #000 calc(100% - ${fade.right ? '2.5rem' : '0px'}), ${fade.right ? 'transparent' : '#000'} 100%)`
     : undefined;

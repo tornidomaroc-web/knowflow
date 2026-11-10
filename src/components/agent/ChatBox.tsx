@@ -39,6 +39,10 @@ interface ChatBoxProps {
    * route refuses such a question on its own as well (`no_material`).
    */
   answerable?: boolean;
+  /** Activation 5: the card is sized to its content (KBSelector's `compact`). */
+  compact?: boolean;
+  /** Activation 5: the route answered `no_material` after the page loaded. */
+  onNoMaterial?: () => void;
 }
 
 /**
@@ -115,7 +119,7 @@ function isolated(q: string, subject: string) {
 }
 const TRAILING = /^[.,!?\u060C\u061F\u00BB\u201D:;]+/;
 
-export function ChatBox({ kbId, kbName, materials = [], initialConversationId, initialMessages, onConversationCreated, answerable = true }: ChatBoxProps) {
+export function ChatBox({ kbId, kbName, materials = [], initialConversationId, initialMessages, onConversationCreated, answerable = true, compact = false, onNoMaterial }: ChatBoxProps) {
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
@@ -185,6 +189,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
       if (res.status === 409 && res.headers.get('X-KF-Refusal') === NO_MATERIAL_REFUSAL) {
         setMessages(prev => prev.filter(m => m.id !== userMsg.id));
         setNoMaterial(true);
+        onNoMaterial?.();
         setIsLoading(false);
         return;
       }
@@ -258,7 +263,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
        composer is the card's last row. The well's corners and its 0.5rem
        side inset are paint only: the list keeps its height (the Ask fit of
        render-fix2.mjs reads it). */
-    <div className="flex min-h-0 flex-1 flex-col bg-surface">
+    <div className={`flex min-h-0 flex-col bg-surface ${compact ? 'flex-none pb-2' : 'flex-1'}`}>
       <div className="flex items-center gap-3 bg-surface px-4 py-3">
         <span className="kf-tile inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
           <ClayBook width={22} height={22} />
@@ -269,7 +274,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
         </div>
       </div>
 
-      <div data-kf-thread="" className="kf-well mx-2 flex-1 space-y-6 overflow-y-auto rounded-[1.25rem] p-4 md:p-6" ref={scrollRef}>
+      <div data-kf-thread="" className={`kf-well mx-2 ${compact && noMaterial && messages.length === 0 ? 'flex-none' : 'flex-1'} space-y-6 overflow-y-auto rounded-[1.25rem] p-4 md:p-6`} ref={scrollRef}>
         {messages.map((m, i) => (
           <MessageBubble
             key={m.id}

@@ -16,7 +16,7 @@ import { fileExtension, isAllowedFileType } from '@/types';
 import { expectedProcessingSeconds, processingFraction, processingStage } from '@/lib/upload-progress';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 import { pagesWithoutText } from '@/lib/material-text';
-import { AWAITING_CONSENT, afterConsent } from '@/lib/upload-consent';
+import { afterConsent } from '@/lib/upload-consent';
 
 interface DropZoneProps {
   kbId: string;
@@ -233,19 +233,22 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
 
   return (
     <div
-      onClick={() => !busy && state !== 'idle' && state !== 'consent' && !buttonFirst && fileInputRef.current?.click()}
+      // Only the finished file's well picks the next file on a click (web). The
+      // idle and error states carry their own control (the tile), and a held
+      // file waits for the sheet's answer.
+      onClick={() => !busy && state !== 'idle' && state !== 'error' && state !== 'consent' && !buttonFirst && fileInputRef.current?.click()}
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
       aria-busy={busy}
       // Design "C", PR 3: no dashed edge. Idle is the tile alone; a running or
       // finished upload sits in a pressed-in well; a refusal keeps a solid red
       // edge, because there the edge is the message (as the delete card's).
+      // Activation 5 (the owner's review of #315): a refusal is no longer a
+      // dead end. The red-edged message sits ABOVE the same control the idle
+      // state shows (the tile in the app, the tile and the drop line on the
+      // web), so "pick another file" has something to pick with.
       className={`relative flex flex-col items-center justify-center gap-3 rounded-3xl text-center transition-colors [text-wrap:balance] ${
-        state === 'idle'
-          ? 'p-0'
-          : state === 'error'
-            ? 'cursor-pointer border border-danger-border bg-danger-subtle p-8'
-            : 'kf-well p-6'
+        state === 'idle' || state === 'error' ? 'p-0' : 'kf-well p-6'
       }`}
     >
       {/* Activation 5 (cause #7): the input is emptied as soon as the file is
@@ -263,9 +266,17 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
         }}
       />
 
-      {state === 'idle' && (
+      {state === 'error' && (
+        <div data-kf-upload-error="" role="alert" className="w-full rounded-3xl border border-danger-border bg-danger-subtle p-6">
+          <p className="text-sm font-medium text-danger">{u.error}</p>
+          <p className="mt-1 text-xs text-danger">{errorMsg}</p>
+          <p className="mt-2 text-xs text-muted-foreground">{u.tryAnother}</p>
+        </div>
+      )}
+
+      {(state === 'idle' || state === 'error') && (
         <>
-          {notice === 'declined' && (
+          {state === 'idle' && notice === 'declined' && (
             <p data-kf-upload-notice="declined" role="status" className="w-full text-start text-sm text-muted-foreground">
               {t.dashboard.aiConsent.declined}
             </p>
@@ -297,7 +308,7 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
             </span>
             <div className="min-w-0 flex-1">
               <FileName name={file.name} className="text-sm font-medium text-foreground" />
-              <p className="text-xs text-muted-foreground">{AWAITING_CONSENT[safeLocale]}</p>
+              <p className="text-xs text-muted-foreground">{u.awaitingConsent}</p>
             </div>
           </div>
         </div>
@@ -362,13 +373,6 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
         </div>
       )}
 
-      {state === 'error' && (
-        <>
-          <p className="text-sm font-medium text-danger">{u.error}</p>
-          <p className="mt-1 text-xs text-danger">{errorMsg}</p>
-          <p className="mt-2 text-xs text-muted-foreground">{u.tryAnother}</p>
-        </>
-      )}
     </div>
   );
 }
