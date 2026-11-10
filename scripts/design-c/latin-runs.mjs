@@ -28,7 +28,11 @@ export function latinRunsCheck() {
   const GROUP = /\(([^()[\]\n]+)\)/g;
   const RUN = /\.?[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ0-9]*(?:[ ,.\-_'’/+&]+[A-Za-zÀ-ɏ0-9]+)*/g;
   const SKIP = '[data-filename], [data-kf-bubble="answer"], script, style, noscript, textarea, input, select, svg';
-  const inlineLike = (el) => { const d = getComputedStyle(el).display; return d === 'inline' || d === 'contents'; };
+  // A <bdi> is an isolate INSIDE its sentence, whatever its display: read as
+  // part of the text block around it (a forced inline-block isolate, the
+  // forced case below, must still be read with its sentence; run 42866248364
+  // read it as its own left-to-right block and skipped it).
+  const inlineLike = (el) => { if (el.tagName === 'BDI') return true; const d = getComputedStyle(el).display; return d === 'inline' || d === 'contents'; };
   const containerOf = (node) => { let el = node.parentElement; while (el && el !== document.body && inlineLike(el)) el = el.parentElement; return el; };
   const blocks = new Map();
   const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
