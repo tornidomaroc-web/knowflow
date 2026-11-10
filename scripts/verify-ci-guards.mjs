@@ -19,6 +19,13 @@
  *     it was busy; a reset before the first busy (the 100 ms before submit)
  *     never counts.
  *
+ * (d) The to-login step (activation fix 3): the app opens on sign-up on a
+ *     fresh device, on login once it held a session. The REAL step from the
+ *     workflow runs on a scripted sign-up (en, ar) and a scripted login and
+ *     must reach /login on both, judged by scripts/ios/page_steps.py's rule;
+ *     the background-upload run and the App Store capture carry it byte for
+ *     byte.
+ *
  * Usage: node scripts/verify-ci-guards.mjs
  */
 import { readFileSync, mkdtempSync, readFileSync as rf } from 'node:fs';
@@ -139,6 +146,57 @@ for (const [name, plan, want] of cases) {
   const r = simulate(plan);
   need(r.result === 'submitted' && r.submits === want.submits && r.retry === want.retry && r.arrivedAt === want.path && !r.watching,
     `login ${name}: result=${r.result} submits=${r.submits} retry=${r.retry} page=${r.arrivedAt} watcher stopped=${!r.watching} | home reads "${r.homeResult}"`);
+}
+
+// ── (d) ────────────────────────────────────────────────────────────────────
+// Activation fix 3: a fresh simulator now opens on SIGN-UP (login before). The
+// REAL to-login step runs on a scripted page for each first screen, and its
+// reading is judged by the rule of scripts/ios/page_steps.py (left its start,
+// matches `until`; the hash counts because `until` names one).
+const toLogin = steps.find((s) => s.name === 'to-login');
+const order = steps.map((s) => s.name);
+need(toLogin && order.indexOf('to-login') >= 0 && order.indexOf('to-login') < order.indexOf('google-hint') && order.indexOf('google-hint') < order.indexOf('login'),
+  `to-login runs before google-hint and login: ${order.slice(0, 4).join(', ')}`);
+function firstScreen(path, links) {
+  const loc = { pathname: path, search: '', get href() { return `https://tryknowflow.com${this.pathname}${this.search}${this.hash || ''}` } };
+  const anchors = links.map((h) => ({ getAttribute: (n) => (n === 'href' ? h : null), click() { loc.pathname = h; loc.hash = ''; } }));
+  const ctx = {
+    location: loc,
+    history: { state: null, replaceState(_s, _t, u) { const [p, h] = u.split('#'); loc.pathname = p; loc.hash = h ? `#${h}` : ''; } },
+    document: { querySelectorAll: (q) => (q === 'a[href]' ? anchors : []) },
+  };
+  const start = loc.href;
+  const result = vm.runInNewContext(toLogin.js, ctx);
+  const until = new RegExp(toLogin.until);
+  const keep = toLogin.until.includes('#');
+  const bare = (u) => (keep ? u : u.split('#')[0]);
+  return { result, href: loc.href, arrived: bare(loc.href) !== bare(start) && until.test(bare(loc.href)) };
+}
+const SIGNUP_LINKS = ['/en', '/en/login', '/en/forgot-password'];
+for (const [name, path, links, want] of [
+  ['new first screen (sign-up, en)', '/en/signup', SIGNUP_LINKS, 'clicked the login link on sign-up'],
+  ['new first screen (sign-up, ar)', '/ar/signup', ['/ar', '/ar/login', '/ar/forgot-password'], 'clicked the login link on sign-up'],
+  ['old first screen (login)', '/en/login', ['/en', '/en/forgot-password', '/en/signup'], 'already on login'],
+]) {
+  const r = firstScreen(path, links);
+  need(r.result === want && r.arrived && /\/(en|ar)\/login(#kf-at-login)?$/.test(r.href), `to-login from the ${name}: "${r.result}" -> ${r.href} (arrived ${r.arrived})`);
+}
+const lost = firstScreen('/en/dashboard', []);
+need(!lost.arrived && /^not on sign-up or login/.test(lost.result), `to-login on any other page reports it and does not arrive: "${lost.result}"`);
+const noLink = firstScreen('/en/signup', ['/en']);
+need(!noLink.arrived && noLink.result === 'no login link on sign-up', `to-login on a sign-up without the link reports it: "${noLink.result}"`);
+// The same step, byte for byte, in the background-upload run and the App Store capture.
+const allToLogin = [...yml.matchAll(/\{"name":"to-login"[^\n]*\}/g)].map((m) => JSON.parse(m[0]));
+need(allToLogin.length === 2 && allToLogin.every((s) => s.js === toLogin.js && s.until === toLogin.until), `ios-signed-in.yml has the same to-login step in the screens and the background-upload runs: ${allToLogin.length}`);
+for (const py of ['python3', 'python']) {
+  const r = spawnSync(py, ['-I', join(ROOT, 'scripts/store-seed/capture_steps.py'), 'en'], { encoding: 'utf8' });
+  // A missing interpreter (or Windows' Store stub for python3) is skipped.
+  if (r.error || r.status !== 0) continue;
+  const cap = JSON.parse(r.stdout || '[]');
+  const t = cap.find((s) => s.name === 'to-login');
+  const ci = cap.map((s) => s.name);
+  need(t && t.js === toLogin.js && t.until === toLogin.until && ci.indexOf('to-login') < ci.indexOf('login'), `the App Store capture (capture_steps.py) runs the same to-login step before its login: ${ci.slice(0, 3).join(', ')}`);
+  break;
 }
 
 console.log(`\n${fails.length} failure(s)`);

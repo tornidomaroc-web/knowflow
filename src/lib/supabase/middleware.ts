@@ -2,8 +2,17 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '../../../supabase/database.types';
 import { SESSION_COOKIE_OPTIONS } from './cookie-options';
+import { SEEN_COOKIE, SEEN_COOKIE_OPTIONS, SEEN_COOKIE_VALUE, type SignedOutPage } from '@/lib/first-screen';
 
-export async function updateSession(request: NextRequest) {
+/**
+ * `firstScreen` (activation fix 3, `src/lib/first-screen.ts`): where a
+ * signed-out request for the dashboard goes, and whether a signed-in one
+ * writes the `kf-seen` mark. The defaults are the web's behaviour, unchanged.
+ */
+export async function updateSession(
+  request: NextRequest,
+  firstScreen: { signedOutPage: SignedOutPage; markSeen: boolean } = { signedOutPage: 'login', markSeen: false },
+) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
@@ -31,8 +40,12 @@ export async function updateSession(request: NextRequest) {
   if (!user && dashboardMatch) {
     const locale = dashboardMatch[1];
     const url = request.nextUrl.clone();
-    url.pathname = `/${locale}/login`;
+    url.pathname = `/${locale}/${firstScreen.signedOutPage}`;
     return NextResponse.redirect(url);
+  }
+
+  if (user && firstScreen.markSeen) {
+    supabaseResponse.cookies.set(SEEN_COOKIE, SEEN_COOKIE_VALUE, SEEN_COOKIE_OPTIONS);
   }
 
   return supabaseResponse;

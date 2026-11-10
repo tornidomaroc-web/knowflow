@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 import { platformFromHeaders } from '@/lib/platform';
+import { SEEN_COOKIE, markSeen, signedOutPage } from '@/lib/first-screen';
 import {
   LOCALE_COOKIE,
   LOCALE_COOKIE_MAX_AGE,
@@ -121,8 +122,17 @@ export async function middleware(request: NextRequest) {
   if (native && NATIVE_TWINS.has(rest)) rewriteTo = `/${locale}/native${rest}`;
   if (!native && (rest === '/native' || rest.startsWith('/native/'))) rewriteTo = `/${locale}/native-is-not-a-page${rest}`;
 
-  // 3. Supabase session update
-  let response = await updateSession(request);
+  // 3. Supabase session update. In the app only (activation fix 3,
+  //    src/lib/first-screen.ts): a signed-out request for the dashboard goes
+  //    to sign-up on a device that has never held a session here, and a
+  //    signed-in request writes that mark once. The web passes the defaults.
+  const seen = request.cookies.get(SEEN_COOKIE)?.value;
+  let response = await updateSession(
+    request,
+    native
+      ? { signedOutPage: signedOutPage('native', seen), markSeen: markSeen('native', seen) }
+      : undefined,
+  );
   if (rewriteTo && !response.headers.has('location')) {
     const url = request.nextUrl.clone();
     url.pathname = rewriteTo;
