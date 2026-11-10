@@ -16,7 +16,6 @@ import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
 import { keepDotWithBefore } from '@/lib/separator';
 import { authErrorMessage } from '@/lib/auth/auth-error';
-import { CHECK_INBOX_APP_DRAFT } from '@/lib/auth/auth-copy-drafts';
 
 export default function SignupPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = use(params);
@@ -77,7 +76,7 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
 
     if (authError) {
       // Audit cause #8: our sentence in the page's language, by code (src/lib/auth/auth-error.ts), never GoTrue's English.
-      setError(authErrorMessage(authError, 'signup', t, locale));
+      setError(authErrorMessage(authError, 'signup', t));
       setLoading(false);
       return;
     }
@@ -154,7 +153,7 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
             {/* Audit cause #3, the app only: the mail link opens in Safari, so the
                 student has to come back. True: markSeenAfterSignUp (above) set
                 kf-seen, so the app opens on sign-in (src/lib/first-screen.ts). */}
-            {platform === 'native' && <p className="mt-1 text-muted-foreground [text-wrap:balance]">{CHECK_INBOX_APP_DRAFT[locale]}</p>}
+            {platform === 'native' && <p className="mt-1 text-muted-foreground [text-wrap:balance]">{t.auth.checkInboxApp}</p>}
           </div>
         )}
 

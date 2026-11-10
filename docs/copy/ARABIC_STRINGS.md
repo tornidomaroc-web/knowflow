@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
 Generated 2026-11-10 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **434 Arabic strings.**
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **444 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -163,6 +163,7 @@ file is not read by the app.
 | `auth.creating` | ننشئ حسابك… | Creating... |
 | `auth.checkInboxTitle` | تفقد بريدك الإلكتروني | Check your inbox |
 | `auth.checkInboxBody` | أرسلنا رابط تأكيد إلى بريدك الإلكتروني. افتحه لتفعيل حسابك. | We sent a confirmation link to your email address. Open it to activate your account. |
+| `auth.checkInboxApp` | بعد التأكيد، عد إلى التطبيق وادخل. | After confirming, come back to the app and sign in. |
 | `auth.signupRepeatPassword` | إن سجّلت مرة أخرى ببريد استعملته من قبل، يصلك رابط تأكيد جديد، وتبقى كلمة المرور الأولى كما هي. | Signing up again with an email you already used sends a new confirmation link, but keeps your first password. |
 | `auth.signupRepeatPasswordLink` | نسيتها؟ اختر كلمة مرور جديدة | Forgot it? Reset your password |
 | `auth.noticeSigninRequired` | لم يعمل هذا الرابط. سجّل الدخول من الأسفل. | We could not finish that link. Please sign in below. |
@@ -184,6 +185,15 @@ file is not read by the app.
 | `auth.resetNoSession` | افتح هذه الصفحة من الرابط في بريدك. أو اطلب رابطًا جديدًا. | This page needs a valid reset link. Ask for a new one and open it from your email. |
 | `auth.resetCancel` | إلغاء وتسجيل الخروج | Cancel and sign out |
 | `auth.backToLogin` | ارجع إلى تسجيل الدخول | Back to sign in |
+| `auth.errors.invalidCredentials` | البريد أو كلمة المرور غير صحيحة. | The email or password is incorrect. |
+| `auth.errors.emailNotConfirmed` | لم تؤكد بريدك بعد. افتح رابط التأكيد ثم ادخل. | Your email is not confirmed yet. Open the confirmation link, then sign in. |
+| `auth.errors.weakPassword` | كلمة المرور ضعيفة. اختر كلمة أطول. | Weak password. Choose a longer one. |
+| `auth.errors.samePassword` | اختر كلمة مرور جديدة. | Choose a new password. |
+| `auth.errors.invalidEmail` | هذا البريد غير صالح. تحقق منه. | This email is not valid. Check it. |
+| `auth.errors.emailRateLimit` | تعذّر إرسال الرسالة. حاول بعد دقائق. | Could not send the email. Try again in a few minutes. |
+| `auth.errors.requestRateLimit` | محاولات كثيرة. حاول بعد دقائق. | Too many attempts. Try again in a few minutes. |
+| `auth.errors.network` | تعذّر الاتصال. تحقق من الإنترنت. | Could not connect. Check your internet. |
+| `auth.errors.generic` | حدث خطأ. حاول مرة أخرى. | Something went wrong. Try again. |
 
 ## About (`about`)
 

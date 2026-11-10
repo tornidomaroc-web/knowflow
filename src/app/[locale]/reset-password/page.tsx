@@ -45,7 +45,7 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ locale
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) {
       // Audit cause #8: our sentence in the page's language, by code (src/lib/auth/auth-error.ts), never GoTrue's English.
-      setError(authErrorMessage(updateError, 'reset', t, locale));
+      setError(authErrorMessage(updateError, 'reset', t));
       setLoading(false);
       return;
     }

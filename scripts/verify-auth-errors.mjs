@@ -18,7 +18,10 @@
  *    sign-up); a key outside a form's list is the generic sentence; the
  *    English message is never read (an error with only a message is generic).
  * 5. Cause #3: the check-inbox app line is drawn only when the platform is
- *    the app, inside the notice; the drafts are not in the dictionaries.
+ *    the app, inside the notice, from the dictionary (auth.checkInboxApp).
+ * 6. The approved copy (docs/copy/ARABIC_STRINGS_app_v9.md, 2026-11-10):
+ *    the pages show auth.errors and auth.checkInboxApp from the dictionaries,
+ *    and the drafts module is gone.
  *
  * On main the mapper does not exist and the three pages show `.message`,
  * so this fails there.
@@ -50,7 +53,6 @@ const mapperPath = 'src/lib/auth/auth-error.ts';
 const hasMapper = existsSync(resolvePath(ROOT, mapperPath));
 check(hasMapper, `${mapperPath} does not exist (main shows GoTrue's message as it comes)`);
 const M = hasMapper ? await load(mapperPath) : null;
-const D = existsSync(resolvePath(ROOT, 'src/lib/auth/auth-copy-drafts.ts')) ? await load('src/lib/auth/auth-copy-drafts.ts') : null;
 
 // 1. The real client against each fixture.
 const URL_ = 'http://127.0.0.1:54321';
@@ -82,7 +84,7 @@ for (const fx of AUTH_ERROR_FIXTURES) {
   const key = M.authErrorKey(error, fx.form);
   check(key === fx.key, `${fx.form}/${fx.id}: code ${error.code} name ${error.name} status ${error.status} maps to ${key}, expected ${fx.key}`);
   for (const loc of ['ar', 'en']) {
-    const text = M.authErrorMessage(error, fx.form, T[loc], loc);
+    const text = M.authErrorMessage(error, fx.form, T[loc]);
     check(typeof text === 'string' && text.length > 0, `${fx.form}/${fx.id}/${loc}: no sentence`);
     check(!fx.msg || text !== fx.msg, `${fx.form}/${fx.id}/${loc}: GoTrue's English reaches the page: ${text}`);
     if (loc === 'ar') check(/[؀-ۿ]/.test(text) && !/[A-Za-z]/.test(text), `${fx.form}/${fx.id}/ar: not an Arabic sentence: ${text}`);
@@ -94,13 +96,13 @@ const BANNED = /\b(plan|upgrade|price|pricing|free|pro|premium|subscri\w*)\b|ب�
 if (M) {
   const keys = ['invalidCredentials', 'emailNotConfirmed', 'weakPassword', 'samePassword', 'invalidEmail', 'emailRateLimit', 'requestRateLimit', 'sessionMissing', 'network', 'generic'];
   for (const k of keys) for (const loc of ['ar', 'en']) {
-    const s = M.authErrorText(k, T[loc], loc);
+    const s = M.authErrorText(k, T[loc]);
     check(typeof s === 'string' && s.trim().length > 0, `${k}/${loc}: empty`);
     check(!s.includes(EM_DASH), `${k}/${loc}: em dash in "${s}"`);
     check(!BANNED.test(s), `${k}/${loc}: plan, upgrade, price or free word in "${s}"`);
     if (loc === 'ar') check(/[؀-ۿ]/.test(s) && !/[A-Za-z]/.test(s) && !/[٠-٩۰-۹]/.test(s), `${k}/ar: Latin letter, Eastern digit or no Arabic in "${s}"`);
   }
-  check(M.authErrorText('sessionMissing', T.ar, 'ar') === T.ar.auth.resetNoSession, 'sessionMissing reuses the approved auth.resetNoSession');
+  check(M.authErrorText('sessionMissing', T.ar) === T.ar.auth.resetNoSession, 'sessionMissing reuses the approved auth.resetNoSession');
 }
 
 // 3. The pages.
@@ -122,15 +124,30 @@ if (M) {
   check(M.authErrorKey({ status: 429 }, 'login') === 'requestRateLimit', 'a code-less 429 is not the rate limit');
   check(M.authErrorKey({ message: 'Invalid login credentials', status: 400 }, 'login') === 'generic', 'the message text is read');
   check(M.authErrorKey(null, 'login') === 'generic', 'no error is not generic');
-  const enRate = M.authErrorText('emailRateLimit', T.en, 'en');
+  const enRate = M.authErrorText('emailRateLimit', T.en);
   check(!/sent|already|just/i.test(enRate), `the send limit implies an earlier mail: "${enRate}"`);
 }
 
-// 5. Cause #3, and the drafts stay out of the dictionaries.
+// 5. Cause #3: the app line, from the dictionary.
 const signup = src(PAGES.signup);
-check(/platform === 'native' && [\s\S]{0,200}CHECK_INBOX_APP_DRAFT\[/.test(signup), 'the check-inbox app line is not drawn under platform === \'native\'');
-check(D && D.CHECK_INBOX_APP_DRAFT && /[؀-ۿ]/.test(D.CHECK_INBOX_APP_DRAFT.ar) && !/[A-Za-z]/.test(D.CHECK_INBOX_APP_DRAFT.ar) && !D.CHECK_INBOX_APP_DRAFT.ar.includes(EM_DASH), 'no Arabic check-inbox app draft');
-check(!('errors' in T.ar.auth) && !('checkInboxApp' in T.ar.auth), 'a draft is in the dictionaries before approval');
+check(/platform === 'native' && [\s\S]{0,200}t\.auth\.checkInboxApp\b/.test(signup), 'the check-inbox app line is not drawn from t.auth.checkInboxApp under platform === \'native\'');
+for (const loc of ['ar', 'en']) {
+  const s = T[loc].auth.checkInboxApp;
+  check(typeof s === 'string' && s.trim().length > 0 && !s.includes(EM_DASH) && !BANNED.test(s), `auth.checkInboxApp/${loc} is missing or breaks a rule`);
+  if (loc === 'ar') check(/[؀-ۿ]/.test(s) && !/[A-Za-z]/.test(s), `auth.checkInboxApp/ar is not an Arabic sentence: "${s}"`);
+}
+
+// 6. The approved copy is read from the dictionaries; the drafts module is gone.
+check(!existsSync(resolvePath(ROOT, 'src/lib/auth/auth-copy-drafts.ts')), 'src/lib/auth/auth-copy-drafts.ts still exists');
+for (const p of [mapperPath, ...Object.values(PAGES)]) check(!/auth-copy-drafts|_DRAFT\b/.test(src(p)), `${p} still reads a draft`);
+if (M) {
+  const ERR_KEYS = ['invalidCredentials', 'emailNotConfirmed', 'weakPassword', 'samePassword', 'invalidEmail', 'emailRateLimit', 'requestRateLimit', 'network', 'generic'];
+  for (const loc of ['ar', 'en']) {
+    const got = Object.keys(T[loc].auth.errors || {}).sort().join();
+    check(got === [...ERR_KEYS].sort().join(), `auth.errors/${loc} holds ${got}`);
+    for (const k of ERR_KEYS) check(M.authErrorText(k, T[loc]) === T[loc].auth.errors[k], `${k}/${loc}: the page does not show auth.errors.${k}`);
+  }
+}
 
 console.log(`\n${passes} passed, ${failures.length} failed`);
 for (const f of failures) console.log(`FAIL ${f}`);

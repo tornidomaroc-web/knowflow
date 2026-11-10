@@ -1,11 +1,13 @@
-# Auth errors in the page's language, and the app's line after sign-up: copy (DRAFT)
+# Auth errors in the page's language, and the app's line after sign-up: copy (SHIPPED)
 
-**Status: DRAFT, awaiting the owner.** Nothing here is in the dictionaries or
-in `docs/copy/`. The strings are wired from `src/lib/auth/auth-copy-drafts.ts`
-so the pages show them now; on approval they move into `ar.ts` and `en.ts` as
-`auth.errors.*` and `auth.checkInboxApp`, with one batch row each in
-`docs/copy/`, and the one line in `authErrorText` (`src/lib/auth/auth-error.ts`)
-and the one line on the sign-up page read the dictionary instead.
+**Status: SHIPPED.** On 2026-11-10 (review of #317) the owner approved SHORTER
+copy in place of the drafts first written here. The approved strings are in the
+dictionaries as `auth.errors.*` and `auth.checkInboxApp`, recorded in
+`docs/copy/ARABIC_STRINGS_app_v9.md`; the pages read them from there
+(`authErrorText` in `src/lib/auth/auth-error.ts`, the sign-up page), and
+`src/lib/auth/auth-copy-drafts.ts` is deleted. The tables below show the
+approved strings; the mapping, the disclosure review and the #3 truth chain
+are unchanged and kept as the record.
 
 Rules held: Modern Standard Arabic, short, no Latin word inside an Arabic
 sentence, no plan, upgrade, price or free word, no em dash, Western digits.
@@ -23,16 +25,16 @@ The English message text is never read.
 
 | GoTrue code (or class / status) | Forms | Key | en | ar |
 |---|---|---|---|---|
-| `invalid_credentials`, `AuthInvalidCredentialsError` | sign-in | `invalidCredentials` | The email or password is not correct. | البريد الإلكتروني أو كلمة المرور غير صحيحة. |
-| `email_not_confirmed` | sign-in | `emailNotConfirmed` | Your email is not confirmed yet. Open the link we sent you, then sign in. | لم تؤكد بريدك الإلكتروني بعد. افتح الرابط الذي أرسلناه إليك، ثم سجّل الدخول. |
-| `weak_password`, `AuthWeakPasswordError` | sign-up, new password | `weakPassword` | This password is too weak. Choose a longer one that is harder to guess. | كلمة المرور هذه ضعيفة. اختر كلمة أطول يصعب تخمينها. |
-| `same_password` | new password | `samePassword` | Choose a password different from your current one. | اختر كلمة مرور مختلفة عن كلمتك الحالية. |
-| `email_address_invalid` | sign-up | `invalidEmail` | This email address cannot be used. Check it and try again. | لا يمكن استعمال هذا البريد الإلكتروني. تحقق منه وجرّب مرة أخرى. |
-| `over_email_send_rate_limit` | sign-up | `emailRateLimit` | We could not send the email right now. Wait a few minutes, then try again. | لم نستطع إرسال الرسالة الآن. انتظر بضع دقائق، ثم جرّب مرة أخرى. |
-| `over_request_rate_limit`, or any 429 | all three | `requestRateLimit` | Too many attempts. Wait a few minutes, then try again. | محاولات كثيرة. انتظر بضع دقائق، ثم جرّب مرة أخرى. |
+| `invalid_credentials`, `AuthInvalidCredentialsError` | sign-in | `invalidCredentials` | The email or password is incorrect. | البريد أو كلمة المرور غير صحيحة. |
+| `email_not_confirmed` | sign-in | `emailNotConfirmed` | Your email is not confirmed yet. Open the confirmation link, then sign in. | لم تؤكد بريدك بعد. افتح رابط التأكيد ثم ادخل. |
+| `weak_password`, `AuthWeakPasswordError` | sign-up, new password | `weakPassword` | Weak password. Choose a longer one. | كلمة المرور ضعيفة. اختر كلمة أطول. |
+| `same_password` | new password | `samePassword` | Choose a new password. | اختر كلمة مرور جديدة. |
+| `email_address_invalid` | sign-up | `invalidEmail` | This email is not valid. Check it. | هذا البريد غير صالح. تحقق منه. |
+| `over_email_send_rate_limit` | sign-up | `emailRateLimit` | Could not send the email. Try again in a few minutes. | تعذّر إرسال الرسالة. حاول بعد دقائق. |
+| `over_request_rate_limit`, or any 429 | all three | `requestRateLimit` | Too many attempts. Try again in a few minutes. | محاولات كثيرة. حاول بعد دقائق. |
 | `session_not_found`, `session_expired`, `refresh_token_not_found`, `refresh_token_already_used`, `AuthSessionMissingError` | new password | `sessionMissing` | REUSED, approved `auth.resetNoSession` | REUSED, approved `auth.resetNoSession` |
-| `AuthRetryableFetchError` (no answer, or 502, 503, 504), `request_timeout` | all three | `network` | We could not reach the server. Check your connection and try again. | لم نستطع الوصول إلى الخادم. تحقق من اتصالك وجرّب مرة أخرى. |
-| `user_already_exists`, `email_exists`, `identity_already_exists`; any other code; a key outside the form | all three | `generic` | Something went wrong. Try again in a moment. | حدث خطأ. جرّب مرة أخرى بعد قليل. |
+| `AuthRetryableFetchError` (no answer, or 502, 503, 504), `request_timeout` | all three | `network` | Could not connect. Check your internet. | تعذّر الاتصال. تحقق من الإنترنت. |
+| `user_already_exists`, `email_exists`, `identity_already_exists`; any other code; a key outside the form | all three | `generic` | Something went wrong. Try again. | حدث خطأ. حاول مرة أخرى. |
 
 Why the send limit says nothing of an earlier mail: the same code comes from
 the project's hourly mail cap, which is about no one, so "a link was just
@@ -46,7 +48,7 @@ reused for that reason.
 | Sign-in, wrong password or unknown address (`invalid_credentials`) | Nothing: one sentence for both | The same one sentence for both | Kept |
 | Sign-in, `email_not_confirmed` | That the account exists and is unconfirmed. GoTrue's password grant checks the password first, so only someone holding the right password sees it (from GoTrue's grant order, not re-tested on the live project) | The same, and what to do | Kept (not increased) |
 | Sign-up, `user_already_exists` / `email_exists` | "User already registered" names an existing account. With confirm-email on, GoTrue answers a confirmed address with an obfuscated user, not this code (the sign-up page's own note, `signup.go:349`), so it is reachable only if that setting changes | The generic sentence, the same as any unknown error | **Reduced** |
-| Sign-up, `over_email_send_rate_limit` | "For security purposes, you can only request this after N seconds": that this address asked for a mail moments ago | "We could not send the email right now": no seconds, no earlier request | **Reduced** (it still differs from success; removing that needs a handler change, out of scope) |
+| Sign-up, `over_email_send_rate_limit` | "For security purposes, you can only request this after N seconds": that this address asked for a mail moments ago | "Could not send the email": no seconds, no earlier request | **Reduced** (it still differs from success; removing that needs a handler change, out of scope) |
 | `over_request_rate_limit` | About this device's requests, not an account | The same | Kept |
 | New password, `same_password` | That the typed password is the current one, to the holder of the link's session | The same | Kept |
 | Weak password, invalid email, network, unknown | About the input or the connection | The same | Kept |
@@ -59,7 +61,7 @@ the app only (`platform === 'native'`). The web is unchanged.
 
 | | en | ar |
 |---|---|---|
-| line | After you confirm from the email, come back to the app and sign in. | بعد التأكيد من الرسالة، ارجع إلى التطبيق وسجّل الدخول. |
+| line | After confirming, come back to the app and sign in. | بعد التأكيد، عد إلى التطبيق وادخل. |
 
 Why it is true:
 

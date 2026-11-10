@@ -1,5 +1,3 @@
-import type { Locale } from '@/lib/i18n';
-import { AUTH_COPY_DRAFT, type AuthCopyKey } from '@/lib/auth/auth-copy-drafts';
 
 /**
  * WHAT AN AUTH FORM SHOWS WHEN SUPABASE REFUSES (audit cause #8, 2026-11-09:
@@ -95,22 +93,23 @@ function pick(error: AuthErrorLike): AuthErrorKey {
   return 'generic';
 }
 
-/** The approved strings this mapping reuses (the rest are drafts). */
-type ApprovedAuth = { resetNoSession: string };
+/** The dictionary strings a form's error box reads (approved, app v9). */
+export type AuthErrorDict = {
+  resetNoSession: string;
+  errors: Record<Exclude<AuthErrorKey, 'sessionMissing'>, string>;
+};
 
 /**
- * The sentence for a key, in the page's language. `sessionMissing` reuses the
- * approved `auth.resetNoSession`; every other key is a DRAFT awaiting the
- * owner (src/lib/auth/auth-copy-drafts.ts). On approval the drafts move into
- * the dictionaries as `auth.errors` and the one line below reads
- * `t.auth.errors[key]` instead.
+ * The sentence for a key, in the page's language: `auth.errors[key]` from the
+ * dictionary (approved by the owner 2026-11-10, docs/copy/ARABIC_STRINGS_app_v9.md).
+ * `sessionMissing` reuses the approved `auth.resetNoSession`.
  */
-export function authErrorText(key: AuthErrorKey, t: { auth: ApprovedAuth }, locale: Locale): string {
+export function authErrorText(key: AuthErrorKey, t: { auth: AuthErrorDict }): string {
   if (key === 'sessionMissing') return t.auth.resetNoSession;
-  return AUTH_COPY_DRAFT[locale][key as AuthCopyKey];
+  return t.auth.errors[key];
 }
 
 /** The page's sentence for a Supabase auth error on this form. */
-export function authErrorMessage(error: AuthErrorLike, form: AuthForm, t: { auth: ApprovedAuth }, locale: Locale): string {
-  return authErrorText(authErrorKey(error, form), t, locale);
+export function authErrorMessage(error: AuthErrorLike, form: AuthForm, t: { auth: AuthErrorDict }): string {
+  return authErrorText(authErrorKey(error, form), t);
 }

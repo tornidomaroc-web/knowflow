@@ -57,7 +57,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       // Audit cause #8: our sentence in the page's language, by code (src/lib/auth/auth-error.ts), never GoTrue's English.
-      setError(authErrorMessage(error, 'login', t, locale));
+      setError(authErrorMessage(error, 'login', t));
       setLoading(false);
     } else {
       router.push(`/${locale}/dashboard`);
