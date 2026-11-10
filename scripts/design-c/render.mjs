@@ -144,6 +144,13 @@
  * run fails if no AFTER render exercised that forced case. It also adds
  * upload-mime-app / -desk: the route's real mime refusal "(.pdf)." drawn in
  * the drop zone (activation5.mjs).
+ * Audit causes #8 and #3 add the auth-<form>-<id> screens (sign-up and
+ * sign-in in the app at 390, the new-password page in Safari at 390, each at
+ * 1280): every GoTrue refusal the mapper knows, answered in the page, and
+ * CHECK 16 on every sign-up, sign-in, new-password and forgot-password
+ * render: an Arabic page's auth error holds an Arabic letter and no Latin
+ * sentence of 3+ words, with its forced cases; the run fails if no Arabic
+ * AFTER render forced them (auth-errors.mjs).
  *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
@@ -159,6 +166,7 @@ import { audit } from '../redesign-built/audit.mjs';
 import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing, pageLabelPlant, g2Rules, latinRules, latinPlant, markerLines, markerPlant, orphanLines, orphanPlant } from './pr4.mjs';
 import { activation5Screens, a5Prepare, a5Act, askPathCheck, askPathPlant, dropZoneErrorCheck, dropZoneErrorPlant } from './activation5.mjs';
 import { latinRunsCheck, latinRunsPlant } from './latin-runs.mjs';
+import { authErrorScreens, authPrepare, authAct, authErrorCheck, authErrorPlant, isAuthPage } from './auth-errors.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -253,6 +261,7 @@ byKeyEarly('home-empty').stepsView = 0;
 byKeyEarly('home-one').stepsView = 1;
 const LONG = pr4Screens(add, { APP, SAFARI, DESK, DESKTOP, PHONE }, resolve('.'));
 activation5Screens(add, { APP, SAFARI, DESK, DESKTOP }, byKeyEarly);
+authErrorScreens(add, { APP, SAFARI, DESK, DESKTOP });
 const KEEP = keepTogetherList(resolve('.'));
 const byKey = (k) => SCREENS.find((x) => x.key === k);
 function byKeyEarly(k) { return SCREENS.find((x) => x.key === k); }
@@ -945,6 +954,8 @@ let failures = 0;
 const fontSets = new Set();
 // Check 15's doubled-dot forced case: how many AFTER renders rebuilt fc60340's isolate.
 let dottedForced = 0;
+// Check 16's forced cases: how many Arabic AFTER renders forced them.
+let authForced = 0;
 
 async function shoot(side, job) {
   const ctx = await browser.createBrowserContext();
@@ -970,6 +981,8 @@ async function shoot(side, job) {
   for (const c of job.s.cookies || []) await tab.setCookie({ ...c, url: SIDES[side] });
   // Activation fix 5: sign-up's GoTrue call answered in the page (check-inbox).
   await a5Prepare(tab, job);
+  // Audit cause #8: GoTrue's refusal answered in the page (auth-errors.mjs).
+  await authPrepare(tab, job, SIDES[side]);
   const q = new URLSearchParams({ ...(side === 'before' && job.s.beforeQ ? job.s.beforeQ : job.s.q), ...(job.theme && !job.s.lands ? { theme: job.theme } : {}) }).toString();
   const url = `${SIDES[side]}/${job.locale}${job.s.path ? '/' + job.s.path : ''}${q ? '?' + q : ''}`;
   const res = await tab.goto(url, { waitUntil: 'networkidle0', timeout: 90000 });
@@ -983,7 +996,8 @@ async function shoot(side, job) {
   // PR 4: the interaction through the real controls, before the animations
   // are ended (a new bubble rises in, the drawer slides).
   const acted = job.s.act ? await pr4Act(tab, job, LONG).catch((e) => ({ act: job.s.act, error: String(e).slice(0, 200) }))
-    : job.s.a5 ? await a5Act(tab, job).catch((e) => ({ act: job.s.a5, error: String(e).slice(0, 200) })) : null;
+    : job.s.a5 ? await a5Act(tab, job).catch((e) => ({ act: job.s.a5, error: String(e).slice(0, 200) }))
+    : job.s.authErr ? await authAct(tab, job).catch((e) => ({ act: `auth-${job.s.authErr.form}-${job.s.authErr.id}`, error: String(e).slice(0, 200) })) : null;
   // Finite animations are finished. An INFINITE one (a processing spinner,
   // Tailwind's `animate-spin`, which reduced motion does not stop: it is the
   // state itself) is paused at its first frame, the same on both sides, and
@@ -1038,6 +1052,11 @@ async function shoot(side, job) {
   await tab.evaluate(`window.latinRunsCheck = ${latinRunsCheck.toString()}`);
   const runs15 = await tab.evaluate(latinRunsCheck);
   const runs15Plant = side === 'after' ? await tab.evaluate(latinRunsPlant) : null;
+  // Check 16 on the auth pages: an Arabic page's auth error is Arabic; its forced cases on AFTER.
+  const authPage = isAuthPage(job.s.path);
+  if (authPage) await tab.evaluate(`window.authErrorCheck = ${authErrorCheck.toString()}`);
+  const auth16 = authPage ? await tab.evaluate(authErrorCheck, job.locale, !!job.s.authErr) : null;
+  const auth16Plant = authPage && side === 'after' ? await tab.evaluate(authErrorPlant, job.locale) : null;
   // The owner's review of #315, check 14: a drop zone error state has a way to pick another file.
   if (job.s.dzError) await tab.evaluate(`window.dropZoneErrorCheck = ${dropZoneErrorCheck.toString()}`);
   const dzError = job.s.dzError ? await tab.evaluate(dropZoneErrorCheck) : null;
@@ -1073,7 +1092,7 @@ async function shoot(side, job) {
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant };
 }
 
 for (const job of JOBS) {
@@ -1127,12 +1146,16 @@ for (const job of JOBS) {
       // Check 15: a Latin run split or out of order, inside a drop zone or the AI sheet; and its forced cases.
       ...r.runs15.findings.filter((f) => f.scope).map((f) => `latin runs (${f.scope}): ${f.text}`),
       ...(r.runs15Plant?.finding ? [`latin runs: ${r.runs15Plant.finding}`] : []),
+      // Check 16: an auth error on an Arabic page is Arabic; and its forced cases.
+      ...(r.auth16 ? r.auth16.findings : []),
+      ...(r.auth16Plant?.finding ? [`auth error: ${r.auth16Plant.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
     bad.splice(0, bad.length, ...bad.filter((b) => !known.includes(b)));
     if (side === 'after') failures += bad.length;
     if (side === 'after') dottedForced += r.runs15Plant?.dotted || 0;
+    if (side === 'after') authForced += r.auth16Plant?.forced ? 1 : 0;
     const tmin = Math.min(...r.a.text.map((t) => t.got));
     row.sides[side] = {
       url: r.url, landed: r.landed, theme: r.theme, findings: bad,
@@ -1151,6 +1174,7 @@ for (const job of JOBS) {
       ...(r.stepsView ? { stepsView: { title: r.stepsView.title, step: r.stepsView.step, limit: r.stepsView.limit, forced: r.stepsPlant?.forced ?? null, forcedCaught: r.stepsPlant?.caught ?? null } } : {}),
       ...(r.crossLink ? { crossLink: r.crossLink } : {}),
       ...(r.askPath ? { askPath: { link: r.askPath.link, forced: r.askPlant?.forced ?? null, forcedCaught: r.askPlant?.caught ?? null } } : {}),
+      ...(r.auth16 ? { authErrors: { boxes: r.auth16.boxes, texts: r.auth16.texts, findings: r.auth16.findings, ...(r.auth16Plant ? { forced: r.auth16Plant } : {}) } } : {}),
       latinRuns: { runs: r.runs15.runs, inScope: r.runs15.inScope, isolated: r.runs15.isolated, dotPairs: r.runs15.dotPairs, findingsInScope: r.runs15.findings.filter((f) => f.scope).map((f) => f.text), outsideScope: r.runs15.findings.filter((f) => !f.scope).map((f) => f.text), ...(r.runs15Plant ? { forced: r.runs15Plant } : {}) },
       ...(r.dzError ? { dropZoneError: { zones: r.dzError.zones, controls: r.dzError.controls, finding: r.dzError.finding, forced: r.dzPlant?.forced ?? null, forcedCaught: r.dzPlant?.caught ?? null } } : {}),
       // Every app render states its three gates, measured, so the report says
@@ -1172,6 +1196,8 @@ await browser.close();
 if (fontSets.size !== 1) { console.log(`FAIL the pages loaded different static font sets: ${[...fontSets].join(' | ')}`); failures++; }
 if (!dottedForced) { console.log('FAIL check 15\'s doubled-dot rule was never forced: no AFTER render had an isolate with a "." on each side'); failures++; }
 else console.log(`check 15's doubled-dot forced case ran on ${dottedForced} isolate(s) across the AFTER renders`);
+if (!authForced) { console.log('FAIL check 16 was never forced: no Arabic AFTER render showed an auth error'); failures++; }
+else console.log(`check 16's forced cases ran on ${authForced} Arabic AFTER render(s)`);
 writeFileSync(join(out, 'report.json'), JSON.stringify({ fonts: { family: FAMILY, package: '@fontsource/rubik@5.2.5', weights: WEIGHTS, files: fontHashes }, results }, null, 2) + '\n');
 console.log(`\nfonts: one static set on every page (${[...fontSets][0]}), ${Object.keys(fontHashes).length} files hashed`);
 console.log(`${failures} failure(s) on AFTER across ${JOBS.length} screens (${JOBS.length * 2} renders)`);

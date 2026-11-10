@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui';
 import { PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
+import { authErrorMessage } from '@/lib/auth/auth-error';
 
 /**
  * Where /api/auth/callback sends a RECOVERY landing.
@@ -43,7 +44,8 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ locale
     setError(null);
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) {
-      setError(updateError.message);
+      // Audit cause #8: our sentence in the page's language, by code (src/lib/auth/auth-error.ts), never GoTrue's English.
+      setError(authErrorMessage(updateError, 'reset', t, locale));
       setLoading(false);
       return;
     }
@@ -71,7 +73,7 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ locale
           <h2 className="text-3xl font-semibold tracking-tight">{t.auth.resetTitle}</h2>
           <p className="mb-8 text-sm text-muted-foreground">{t.auth.resetSubtitle}</p>
 
-          {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
+          {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger [text-wrap:balance]">{error}</div>}
 
           {hasSession === false ? (
             <div className="rounded-xl border border-primary-border bg-primary-subtle px-4 py-3 text-sm text-foreground">

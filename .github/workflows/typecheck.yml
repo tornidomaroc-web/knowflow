@@ -307,6 +307,15 @@ jobs:
       - name: Verify Latin runs in the drop zone and the AI sheet stay whole and in order, with the strings unchanged
         run: node --experimental-strip-types scripts/verify-latin-runs.mjs
 
+      # Audit cause #8: sign-up, sign-in and the new-password page show a
+      # sentence of ours in the page's language, chosen by the error's code
+      # (src/lib/auth/auth-error.ts), never GoTrue's English; the real
+      # supabase-js client against design-c's fixtures; no account is named.
+      # Cause #3: the app's line under the check-inbox notice. 9 failures on
+      # main 155cff5 (no mapper, the three pages show `.message`).
+      - name: Verify auth errors are ours, in the page's language, and name no account
+        run: node --experimental-strip-types scripts/verify-auth-errors.mjs
+
       # #295 follow-up: /api/ingest never stores a file name holding U+0000 (22P05).
       - name: Verify the upload route removes U+0000 from the stored file name, and nothing else
         run: node --experimental-strip-types scripts/verify-upload-filename-nul.mjs
