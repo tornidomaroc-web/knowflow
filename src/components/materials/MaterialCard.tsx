@@ -166,8 +166,14 @@ export function MaterialCard({
           study buttons (`data-kf-study`, "Summarize this material" and "Quiz
           me on this material") take a row each, so neither breaks over two
           lines at 390 pt (a 158 pt half-row could not hold three words); the
-          design-c render asserts one line each. */}
-      <div data-kf-actions="" className="mt-3 grid grid-cols-2 gap-2 [&>[data-kf-study]:not(:has(>div))]:col-span-2 sm:[&>[data-kf-study]:not(:has(>div))]:col-span-1 [&>*:has(>div)]:col-span-full">{children}</div>
+          design-c render asserts one line each.
+          Activation 5 (found by the 1280 render of #315, present on main): from
+          sm up, a card whose summary is shown (data-kf-summary, full width) or
+          whose study panel is open left ONE half-width study button above
+          Delete, so Delete sat in the second column (432 px off its start).
+          Then the closed study button takes the row, as below sm, and Delete
+          starts its row in both languages. */}
+      <div data-kf-actions="" className="mt-3 grid grid-cols-2 gap-2 [&>[data-kf-study]:not(:has(>div))]:col-span-2 sm:[&>[data-kf-study]:not(:has(>div))]:col-span-1 sm:[&:has(>[data-kf-summary])>[data-kf-study]:not(:has(>div))]:col-span-2 sm:[&:has(>[data-kf-study]>div)>[data-kf-study]:not(:has(>div))]:col-span-2 [&>*:has(>div)]:col-span-full">{children}</div>
     </article>
   );
 }
