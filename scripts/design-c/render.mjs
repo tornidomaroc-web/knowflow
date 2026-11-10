@@ -125,6 +125,16 @@
  * link to the other sits in the first view. Login and sign-up are also shot
  * on the web at 1280 (login-desk, signup-desk).
  *
+ * ACTIVATION FIX 5 adds the screens the audit never rendered (Ask in a
+ * subject with no file, the upload's processing, failed, consent-holding and
+ * declined states, sign-up's check-inbox notice) and check 13: on the 390 x
+ * 844 zero-material Ask screens the way to the subject's upload tile lies in
+ * the first view above the tab bar, with its forced case (activation5.mjs).
+ * The owner's review of #315 adds check 14: every app render of a drop zone
+ * error state has a visible 44 x 44 control in the first view that opens the
+ * picker, with its forced case; upload-refused-* renders main's own error
+ * state through a real refused pick, so the check is measured on main too.
+ *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
  *      http://127.0.0.1:3000), CHROME, PUPPETEER_DIR, FONT_DIR (the
@@ -137,6 +147,7 @@ import { join, resolve } from 'node:path';
 import { kfWording } from '../lib/app-wording.mjs';
 import { audit } from '../redesign-built/audit.mjs';
 import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing, pageLabelPlant, g2Rules, latinRules, latinPlant, markerLines, markerPlant, orphanLines, orphanPlant } from './pr4.mjs';
+import { activation5Screens, a5Prepare, a5Act, askPathCheck, askPathPlant, dropZoneErrorCheck, dropZoneErrorPlant } from './activation5.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -230,6 +241,7 @@ add('home-full-desk', 'preview/student-home', { platform: 'web', state: 'full' }
 byKeyEarly('home-empty').stepsView = 0;
 byKeyEarly('home-one').stepsView = 1;
 const LONG = pr4Screens(add, { APP, SAFARI, DESK, DESKTOP, PHONE }, resolve('.'));
+activation5Screens(add, { APP, SAFARI, DESK, DESKTOP }, byKeyEarly);
 const KEEP = keepTogetherList(resolve('.'));
 const byKey = (k) => SCREENS.find((x) => x.key === k);
 function byKeyEarly(k) { return SCREENS.find((x) => x.key === k); }
@@ -239,6 +251,9 @@ function byKeyEarly(k) { return SCREENS.find((x) => x.key === k); }
 // with its reason; nothing else is let through.
 // PR 3: the one PR 2 exception (the Summary section's "Summarize" alone on
 // its line at 390 pt) is fixed and removed; nothing is let through.
+// Activation fix 5: the check-inbox notice's one-word Arabic line was known
+// at 6ad142e; the owner's review of #315 balanced the notice, so it is held
+// by check 1 like every other line and nothing is let through.
 const KNOWN = [];
 
 const JOBS = [];
@@ -940,6 +955,8 @@ async function shoot(side, job) {
   // ?theme= link would have written.
   if (job.theme && job.s.lands) await tab.setCookie({ name: 'kf-theme', value: job.theme, url: SIDES[side] });
   for (const c of job.s.cookies || []) await tab.setCookie({ ...c, url: SIDES[side] });
+  // Activation fix 5: sign-up's GoTrue call answered in the page (check-inbox).
+  await a5Prepare(tab, job);
   const q = new URLSearchParams({ ...(side === 'before' && job.s.beforeQ ? job.s.beforeQ : job.s.q), ...(job.theme && !job.s.lands ? { theme: job.theme } : {}) }).toString();
   const url = `${SIDES[side]}/${job.locale}${job.s.path ? '/' + job.s.path : ''}${q ? '?' + q : ''}`;
   const res = await tab.goto(url, { waitUntil: 'networkidle0', timeout: 90000 });
@@ -952,7 +969,8 @@ async function shoot(side, job) {
   }, FAMILY, WEIGHTS);
   // PR 4: the interaction through the real controls, before the animations
   // are ended (a new bubble rises in, the drawer slides).
-  const acted = job.s.act ? await pr4Act(tab, job, LONG).catch((e) => ({ act: job.s.act, error: String(e).slice(0, 200) })) : null;
+  const acted = job.s.act ? await pr4Act(tab, job, LONG).catch((e) => ({ act: job.s.act, error: String(e).slice(0, 200) }))
+    : job.s.a5 ? await a5Act(tab, job).catch((e) => ({ act: job.s.a5, error: String(e).slice(0, 200) })) : null;
   // Finite animations are finished. An INFINITE one (a processing spinner,
   // Tailwind's `animate-spin`, which reduced motion does not stop: it is the
   // state itself) is paused at its first frame, the same on both sides, and
@@ -999,6 +1017,14 @@ async function shoot(side, job) {
   if (hasSteps) await tab.evaluate(`window.stepsViewCheck = ${stepsViewCheck.toString()}`);
   const stepsView = hasSteps ? await tab.evaluate(stepsViewCheck, job.s.stepsView) : null;
   const stepsPlant = hasSteps ? await tab.evaluate(stepsViewPlant, job.s.stepsView) : null;
+  // Activation fix 5, check 13: the way to the upload tile in the first view, and its forced case.
+  if (job.s.askPath) await tab.evaluate(`window.askPathCheck = ${askPathCheck.toString()}`);
+  const askPath = job.s.askPath ? await tab.evaluate(askPathCheck) : null;
+  const askPlant = job.s.askPath ? await tab.evaluate(askPathPlant) : null;
+  // The owner's review of #315, check 14: a drop zone error state has a way to pick another file.
+  if (job.s.dzError) await tab.evaluate(`window.dropZoneErrorCheck = ${dropZoneErrorCheck.toString()}`);
+  const dzError = job.s.dzError ? await tab.evaluate(dropZoneErrorCheck) : null;
+  const dzPlant = job.s.dzError ? await tab.evaluate(dropZoneErrorPlant) : null;
   // Activation fix 3: the link to the other auth page, in the first view.
   const crossLink = job.s.crossLink ? await tab.evaluate(crossLinkRead, job.s.crossLink) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
@@ -1030,7 +1056,7 @@ async function shoot(side, job) {
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant };
 }
 
 for (const job of JOBS) {
@@ -1075,6 +1101,12 @@ for (const job of JOBS) {
       // Activation fix 2: the steps in the first view, and its forced case on AFTER.
       ...(r.stepsView?.finding ? [`activation: ${r.stepsView.finding}`] : []),
       ...(side === 'after' && r.stepsPlant?.finding ? [`activation: ${r.stepsPlant.finding}`] : []),
+      // Activation fix 5: check 13, and its forced case on AFTER.
+      ...(r.askPath?.finding ? [`activation: ${r.askPath.finding}`] : []),
+      ...(side === 'after' && r.askPlant?.finding ? [`activation: ${r.askPlant.finding}`] : []),
+      // The owner's review of #315: check 14, and its forced case on AFTER.
+      ...(r.dzError?.finding ? [`activation: ${r.dzError.finding}`] : []),
+      ...(side === 'after' && r.dzPlant?.finding ? [`activation: ${r.dzPlant.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -1097,6 +1129,8 @@ for (const job of JOBS) {
       ...(r.firstView ? { firstView: { tile: r.firstView.tile, forced: r.firstPlant?.forced ?? null, forcedCaught: r.firstPlant?.caught ?? null } } : {}),
       ...(r.stepsView ? { stepsView: { title: r.stepsView.title, step: r.stepsView.step, limit: r.stepsView.limit, forced: r.stepsPlant?.forced ?? null, forcedCaught: r.stepsPlant?.caught ?? null } } : {}),
       ...(r.crossLink ? { crossLink: r.crossLink } : {}),
+      ...(r.askPath ? { askPath: { link: r.askPath.link, forced: r.askPlant?.forced ?? null, forcedCaught: r.askPlant?.caught ?? null } } : {}),
+      ...(r.dzError ? { dropZoneError: { zones: r.dzError.zones, controls: r.dzError.controls, finding: r.dzError.finding, forced: r.dzPlant?.forced ?? null, forcedCaught: r.dzPlant?.caught ?? null } } : {}),
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no
       // plan, price, upgrade or free word.

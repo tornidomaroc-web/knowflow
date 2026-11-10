@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getServiceUrl } from '@/lib/ingestion';
 import { checkDocumentLimit } from '@/lib/limits-server';
-import { enforceLimit } from '@/lib/rate-limit';
+import { enforceUploadLimit } from '@/lib/rate-limit';
+import { keptUploadsToday, utcDayStart } from '@/lib/upload-allowance';
 import { defaultLocale, resolveLocale, type Locale } from '@/lib/i18n';
 import { platformFromRequest } from '@/lib/platform';
 import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
@@ -156,7 +157,23 @@ export async function POST(request: Request) {
     // B7 cost guard: daily upload cap, in front of the expensive storage +
     // ingestion/embedding work. Placed after the per-KB document check so the
     // counter only increments for uploads that actually proceed.
-    const limit = await enforceLimit(user.id, 'upload', safeLocale, platformFromRequest(request));
+    //
+    // Activation 5 (cause #10): the day's uploads are today's documents that
+    // did not fail, so a processing failure gives its place back; the atomic
+    // counter still takes every attempt and holds them to the day's uploads
+    // plus FAILED_UPLOAD_ALLOWANCE (src/lib/upload-allowance.ts). The read is
+    // RLS-scoped: `documents` rows are the caller's own through their subjects.
+    const limit = await enforceUploadLimit(user.id, safeLocale, platformFromRequest(request), async () => {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('status, created_at')
+        .gte('created_at', utcDayStart().toISOString());
+      if (error || !data) {
+        console.error('Today\'s uploads not read; the attempt counter decides alone:', error?.message);
+        return null;
+      }
+      return keptUploadsToday(data);
+    });
     if (!limit.allowed) {
       return NextResponse.json({ error: limit.error }, { status: limit.status });
     }

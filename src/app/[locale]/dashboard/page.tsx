@@ -10,6 +10,7 @@ import { pluralize } from '@/lib/i18n/plural'
 import { getEntitlement } from '@/lib/entitlement'
 import { FREE_LIMITS, PRO_LIMITS } from '@/lib/limits'
 import { DAILY_CAPS } from '@/lib/rate-limit'
+import { keptUploadsToday } from '@/lib/upload-allowance'
 import { formatDate, formatDayDate } from '@/lib/format-date'
 import { accountInitial, buildHomeLabels, buildHomeProgress, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
 import { currentPlatform } from '@/lib/platform-server'
@@ -73,7 +74,7 @@ export default async function DashboardPage({
     // not an error.
     supabase
       .from('usage_counters')
-      .select('query_count, upload_count')
+      .select('query_count')
       .eq('user_id', user.id)
       .eq('day', new Date().toISOString().slice(0, 10))
       .maybeSingle(),
@@ -85,7 +86,7 @@ export default async function DashboardPage({
     // #129: every row, with what `hasNoText` reads, so one pass gives the
     // "files" stat (answerable files) and the progress base (failed and
     // no-text files left out). `buildHomeProgress` in home-props does both.
-    supabase.from('documents').select('id, kb_id, status, chunk_count, embedding_status, summary_generated_at'),
+    supabase.from('documents').select('id, kb_id, status, chunk_count, embedding_status, summary_generated_at, created_at'),
   ])
 
   const { data: recentActivity } = await supabase
@@ -100,7 +101,10 @@ export default async function DashboardPage({
 
   const used = {
     query: usageRow?.data?.query_count ?? 0,
-    upload: usageRow?.data?.upload_count ?? 0,
+    // Activation 5 (cause #10): the uploads the gate counts, today's files that
+    // did not fail (`keptUploadsToday`, the same rule /api/ingest applies), not
+    // the attempt counter, which now also holds failed attempts.
+    upload: keptUploadsToday(materialRows.data ?? []),
   }
 
   // Aggregated in JS rather than in SQL: the alternative is a view or an RPC, and

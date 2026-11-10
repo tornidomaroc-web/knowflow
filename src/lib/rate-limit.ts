@@ -21,7 +21,9 @@ import {
   nextDailyReset,
   TOO_FAST,
   TEMPORARILY_UNAVAILABLE,
+  uploadFailuresMessage,
 } from '@/lib/limit-messages';
+import { uploadVerdict } from '@/lib/upload-allowance';
 
 // Single source of truth: the kind list lives with the copy it must stay in step
 // with (src/lib/limit-messages.ts). Aliased, not restated, so a new kind cannot be
@@ -138,5 +140,49 @@ export async function enforceLimit(
     };
   }
 
+  return { allowed: true, count: data };
+}
+
+/**
+ * ACTIVATION 5 (cause #10): the upload gate. A failed upload no longer uses one
+ * of the day's uploads (src/lib/upload-allowance.ts says how and why).
+ *
+ * `keptToday` reads today's documents that did not fail. It runs FIRST, so a
+ * student whose day is used up is refused without touching the counter. Then
+ * the atomic counter takes this attempt, exactly as `enforceLimit` does, and is
+ * held to the attempt ceiling. If `keptToday` cannot read (null), the counter
+ * alone decides against the day's cap: the rule before this change.
+ *
+ * Fails closed on the counter, like `enforceLimit`.
+ */
+export async function enforceUploadLimit(
+  userId: string,
+  locale: Locale,
+  platform: Platform,
+  keptToday: () => Promise<number | null>
+): Promise<LimitResult> {
+  const { tier } = await getEntitlement(userId);
+  const cap = DAILY_CAPS[tier].upload;
+  const deny = (reason: 'daily' | 'failures'): LimitResult => ({
+    allowed: false,
+    status: 429,
+    error: reason === 'failures'
+      ? uploadFailuresMessage(locale, nextDailyReset(), new Date())
+      : dailyLimitMessage(locale, 'upload', cap, tier, nextDailyReset(), new Date(), platform),
+  });
+
+  const kept = await keptToday().catch(() => null);
+  const before = uploadVerdict({ kept, attempts: null, cap });
+  if (!before.allowed) return deny(before.reason ?? 'daily');
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('increment_usage', { p_kind: 'upload' });
+  if (error || typeof data !== 'number') {
+    console.error('increment_usage failed; denying request', { kind: 'upload', error });
+    return { allowed: false, status: 503, error: TEMPORARILY_UNAVAILABLE[locale] };
+  }
+
+  const after = uploadVerdict({ kept, attempts: data, cap });
+  if (!after.allowed) return deny(after.reason ?? 'daily');
   return { allowed: true, count: data };
 }

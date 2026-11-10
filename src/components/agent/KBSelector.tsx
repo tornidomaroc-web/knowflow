@@ -61,10 +61,19 @@ export function KBSelector({ kbs, materials = [], answerableIds, preview }: { kb
   const searchParams = useSearchParams();
   const wanted = searchParams.get('kb');
   const answerable = new Set(answerableIds);
-  const offered = kbs.filter((k) => answerable.has(k.id));
   const firstAnswerable = () => initialAskSubject(kbs.map((k) => k.id), answerable, null);
   const opened = preview?.open ? preview.conversations.find((c) => c.id === preview.open) : undefined;
-  const [selectedId, setSelectedId] = useState(() => opened?.kb_id ?? initialAskSubject(kbs.map((k) => k.id), answerable, wanted));
+  // Activation 5 (cause #6): a `?kb=` that names one of the student's
+  // subjects with no file to answer from opens THAT subject, on the way to
+  // its upload tile (ChatBox `answerable={false}`), instead of quietly
+  // switching to another subject. It still offers no composer there.
+  const wantedEmpty = wanted && !answerable.has(wanted) && kbs.some((k) => k.id === wanted) ? wanted : null;
+  const [selectedId, setSelectedId] = useState(() => opened?.kb_id ?? wantedEmpty ?? initialAskSubject(kbs.map((k) => k.id), answerable, wanted));
+  // The subject bar offers the subjects Ask can answer from (#129 (c)) and,
+  // always, the selected one (the owner's review of #315): a subject opened
+  // by `?kb=` or from the history with no file to answer from still shows as
+  // the gold chip, so "Asking about Statistics" has its chip.
+  const offered = kbs.filter((k) => answerable.has(k.id) || k.id === selectedId);
   const [conversations, setConversations] = useState<Conversation[]>(preview?.conversations ?? []);
   const [mountKey, setMountKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(preview?.drawer ?? false);
@@ -115,6 +124,12 @@ export function KBSelector({ kbs, materials = [], answerableIds, preview }: { kb
   };
 
   const selectedKb = kbs.find(k => k.id === selectedId);
+  // Activation 5 (the owner's review of #315): in a subject with no file to
+  // answer from and no conversation open, the card holds only the way to the
+  // upload tile, so it is sized to that content instead of stretching to the
+  // tab bar. ChatBox reports a later `no_material` refusal the same way.
+  const [refusedIds, setRefusedIds] = useState<string[]>([]);
+  const compact = Boolean(selectedKb) && (!answerable.has(selectedId) || refusedIds.includes(selectedId)) && !selection.messages?.length;
 
   if (!kbs.length) return null;
 
@@ -131,7 +146,7 @@ export function KBSelector({ kbs, materials = [], answerableIds, preview }: { kb
     /* Design "C", PR 4: one clay card and no hairline in it. On a desk the
        history is a pressed-in column at the card's start; on a phone it is
        the drawer behind the clock button. */
-    <div data-kf-ask-card="" className="kf-card flex min-h-0 flex-1 overflow-hidden rounded-xl bg-surface">
+    <div data-kf-ask-card="" data-kf-ask-compact={compact ? '' : undefined} className={`kf-card flex min-h-0 overflow-hidden rounded-xl bg-surface ${compact ? 'flex-none' : 'flex-1'}`}>
       {/* Desktop: persistent history column. Mobile: the same list lives in the Sheet below. */}
       <div data-kf-history="column" className="kf-well my-2 ms-2 hidden w-64 shrink-0 overflow-hidden rounded-[1.25rem] md:block">{sidebar}</div>
       {/* Mobile-only: display:none on this wrapper removes the fixed Sheet (and
@@ -183,6 +198,9 @@ export function KBSelector({ kbs, materials = [], answerableIds, preview }: { kb
             materials={materials.filter((m) => m.kb_id === selectedKb.id).map((m) => ({ filename: m.filename, lead: m.lead }))}
             initialConversationId={selection.conversationId}
             initialMessages={selection.messages}
+            answerable={answerable.has(selectedKb.id)}
+            compact={compact}
+            onNoMaterial={() => setRefusedIds((ids) => (ids.includes(selectedKb.id) ? ids : [...ids, selectedKb.id]))}
             onConversationCreated={(id) => { setSelection(s => ({ ...s, conversationId: id })); fetchConversations(); }}
           />
         )}

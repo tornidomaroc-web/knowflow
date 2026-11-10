@@ -254,6 +254,24 @@ export function dailyLimitMessage(
   ]);
 }
 
+/**
+ * ACTIVATION 5 (cause #10): the ceiling on upload ATTEMPTS a day
+ * (`uploadAttemptCeiling`, src/lib/upload-allowance.ts). Reached only when
+ * many of today's uploads failed, since a failed upload no longer uses one
+ * of the day's uploads. It names no number and no plan: the student did
+ * nothing wrong, so there is nothing to buy. Approved by the owner on
+ * 2026-11-10 as drafted (docs/copy/ARABIC_STRINGS_app_v8.md); it stays here
+ * beside every other limit sentence, not in the dictionaries.
+ */
+const UPLOAD_FAILURES_HEAD: Record<Locale, string> = {
+  en: 'Many of your uploads did not finish today, so uploading is paused.',
+  ar: 'لم يكتمل رفع عدد من ملفاتك اليوم، لذا توقف الرفع مؤقتًا.',
+};
+
+export function uploadFailuresMessage(locale: Locale, resetAt: Date, now: Date = new Date()): string {
+  return join([UPLOAD_FAILURES_HEAD[locale], resetClause(locale, resetAt, now)]);
+}
+
 export function monthlyConversationMessage(
   locale: Locale,
   cap: number,

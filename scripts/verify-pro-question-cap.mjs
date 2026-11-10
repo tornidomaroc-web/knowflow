@@ -63,9 +63,13 @@ export async function getEntitlement() { return { tier: globalThis.__proCapStub.
 const SUPABASE_STUB = `
 const S = () => globalThis.__proCapStub;
 function chain(table) {
+  // Activation 5: documents holds a ready file with text, so the route's
+  // no-material guard (before the counter) lets every question through.
   const result = table === 'conversations'
     ? { data: null, count: 1, error: null }
-    : { data: [], count: 0, error: null };
+    : table === 'documents'
+      ? { data: [{ status: 'ready', embedding_status: 'ready', chunk_count: 4 }], count: 1, error: null }
+      : { data: [], count: 0, error: null };
   const c = new Proxy({}, {
     get(_t, prop) {
       if (prop === 'then') return (res, rej) => Promise.resolve(result).then(res, rej);
