@@ -57,6 +57,12 @@ export function pr4Screens(add, { APP, SAFARI, DESK, DESKTOP, PHONE }, root) {
   // only a marker) and nothing runs out of the card.
   add('ask-latin-long-app', 'preview/ask', { platform: 'native', view: 'app' }, APP, { pr4: 'ask', act: 'latin-long', grow: true });
   add('ask-latin-long-320', 'preview/ask', { platform: 'native', view: 'app' }, APP, { view: { ...PHONE, width: 320 }, pr4: 'ask', act: 'latin-long', grow: true });
+  // The case #310's review deferred: an answer whose paragraphs end on
+  // "ATP [n].", Arabic in /ar and English in /en, at 390 and 320: check 12
+  // (no paragraph ends on one word and its citation). Main has no
+  // text-wrap: pretty on answers, so BEFORE shows what check 12 catches.
+  add('ask-orphan-app', 'preview/ask', { platform: 'native', view: 'app' }, APP, { pr4: 'ask', act: 'orphan', grow: true });
+  add('ask-orphan-320', 'preview/ask', { platform: 'native', view: 'app' }, APP, { view: { ...PHONE, width: 320 }, pr4: 'ask', act: 'orphan', grow: true });
   return LONG;
 }
 
@@ -78,6 +84,27 @@ export const LATIN_LONG = {
   answer: 'يحدث التنفس الخلوي في ثلاث مراحل متتالية داخل الخلية، وتبدأ بتحلل الغلوكوز في السيتوبلازم (Glycolysis) [1]، ثم تنتقل نواتجه إلى الميتوكوندريا حيث تدخل دورة كريبس (Krebs cycle) [1][2].\n\n'
     + 'وفي المرحلة الأخيرة تنتقل الإلكترونات عبر سلسلة من البروتينات في الغشاء الداخلي (Electron transport chain along the inner membrane) [2]، فيضخ ذلك البروتونات ويكوّن فرقاً في التركيز يستعمله إنزيم (ATP synthase) [3] لصنع معظم جزيئات الطاقة.\n\n'
     + 'وإذا غاب الأكسجين يتوقف هذا المسار وتلجأ الخلية إلى التخمر، فلا تنتج إلا جزيئتين من ATP لكل جزيئة غلوكوز [1][3].',
+  sources: [['الأحياء - الفصل 4.pdf', 0.9, [3, 4, 'page']], ['cell-respiration-notes.pdf', 0.84, [7, 7, 'page']], ['ملخص الطاقة.pdf', 0.8, [2, 2, 'page']]],
+};
+
+/**
+ * Check 12's fixture (the case #310's review deferred): fourteen short
+ * paragraphs, each ending on "ATP [n].", an Arabic answer in /ar and an
+ * English one in /en. Their lengths are chosen so that, without
+ * text-wrap: pretty, at least one paragraph leaves "ATP [n]." alone on its
+ * last line at EVERY card width from 150 to 336 px (measured with Rubik 400
+ * at 14/20 px, glued as MessageBubble glues): the card at 390 and at 320
+ * falls inside that range whatever its exact width, so main must fail.
+ */
+export const ORPHAN = {
+  ar: {
+    question: 'كيف تنتج الخلية الطاقة؟',
+    answer: 'يبدأ التنفس الخلوي بتحلل الغلوكوز في السيتوبلازم، وتنتج هذه المرحلة جزيئتين من ATP [1].\n\nثم تدخل نواتج التحلل إلى الميتوكوندريا، وتنتج دورة كريبس في كل دورة جزيئة واحدة من ATP [1].\n\nوفي سلسلة نقل الإلكترونات يضخ الغشاء الداخلي البروتونات، ويستعمل الإنزيم هذا الفرق ليصنع معظم ATP [2].\n\nوتعطي الجزيئة الواحدة من الغلوكوز في الظروف الهوائية نحو 30 إلى 32 جزيئة ATP [1].\n\nأما إذا غاب الأكسجين فتلجأ الخلية إلى التخمر، ولا تنتج إلا جزيئتين من ATP [2].\n\nوتستهلك العضلات في أثناء الجري السريع مخزونها بسرعة، فتحتاج إلى مزيد من ATP [3].\n\nولهذا يكثر عدد الميتوكوندريا في خلايا القلب والعضلات التي تحتاج إلى كثير من ATP [3].\n\nوتخزن الخلية الطاقة مؤقتاً في روابط الفوسفات، ثم تطلقها عند تحلل ATP [2].\n\nوكل خطوة من هذه الخطوات تحتاج إلى إنزيم خاص بها حتى تنتج ATP [1].\n\nوتقيس الكتب عادة كفاءة التنفس بعدد ما ينتج من ATP [2].\n\nوفي النباتات تحدث العملية نفسها في الليل والنهار، إلى جانب البناء الضوئي الذي ينتج بدوره ATP [3].\n\nوتنقل جزيئات NADH الإلكترونات إلى السلسلة، وكل جزيئة منها تساعد على إنتاج نحو ثلاث جزيئات ATP [1].\n\nويحتاج نقل الأيونات عبر الغشاء إلى الطاقة، وأكثرها يأتي من ATP [2].\n\nوتتكون الجزيئة من الأدينين والريبوز وثلاث مجموعات فوسفات، ولذلك تسمى ATP [3].',
+  },
+  en: {
+    question: 'How does the cell make its energy?',
+    answer: 'Cellular respiration begins with glycolysis in the cytoplasm, which yields two molecules of ATP [1].\n\nThe products then enter the mitochondria, where each turn of the Krebs cycle yields one ATP [1].\n\nIn the electron transport chain the inner membrane pumps protons, and the enzyme uses that gradient to make most ATP [2].\n\nUnder aerobic conditions one glucose molecule gives about 30 to 32 molecules of ATP [1].\n\nWithout oxygen the cell turns to fermentation and makes only two molecules of ATP [2].\n\nDuring a sprint the muscles use up their store quickly and need a steady supply of ATP [3].\n\nThis is why heart and muscle cells, which need a great deal of energy, hold many mitochondria and make much ATP [3].\n\nThe cell stores energy briefly in phosphate bonds and releases it when it breaks down ATP [2].\n\nEach of these steps needs its own enzyme before it can make ATP [1].\n\nTextbooks usually measure how efficient respiration is by counting ATP [2].\n\nIn plants the same process runs day and night, beside photosynthesis, which also makes ATP [3].\n\nNADH carries electrons to the chain, and each molecule of it helps to make about three ATP [1].\n\nMoving ions across the membrane takes energy, and most of it comes from ATP [2].\n\nThe molecule is built from adenine, ribose and three phosphate groups, which is why it is called ATP [3].',
+  },
   sources: [['الأحياء - الفصل 4.pdf', 0.9, [3, 4, 'page']], ['cell-respiration-notes.pdf', 0.84, [7, 7, 'page']], ['ملخص الطاقة.pdf', 0.8, [2, 2, 'page']]],
 };
 
@@ -113,7 +140,7 @@ export function pr4Mock(job, LONG, r, held) {
   if (u.pathname === '/api/agent') {
     const L = LONG[job.locale];
     const msg = JSON.parse(r.postData() || '{}').message || '';
-    const fx = [LATIN, LATIN_LONG].find((x) => x.question === msg);
+    const fx = [LATIN, LATIN_LONG, { ...ORPHAN[job.locale], sources: ORPHAN.sources }].find((x) => x.question === msg);
     if (fx) {
       const cites = fx.sources.map(([f, s, p], i) => ({ index: i + 1, document_id: `l${i + 1}`, chunk_id: `l${i + 1}`, filename: f, similarity: s, page_start: p[0], page_end: p[1], page_kind: p[2] }));
       return r.respond({
@@ -149,9 +176,9 @@ export function pr4Mock(job, LONG, r, held) {
 /** The interaction, through the real controls, before the shot. */
 export async function pr4Act(tab, job, LONG) {
   const act = job.s.act;
-  if (act === 'converse' || act === 'latin' || act === 'latin-long') {
+  if (act === 'converse' || act === 'latin' || act === 'latin-long' || act === 'orphan') {
     const L = LONG[job.locale];
-    for (const [k, q] of act === 'latin' ? [[1, LATIN.question]] : act === 'latin-long' ? [[1, LATIN_LONG.question]] : [[1, L.question], [2, L.otherQuestion]]) {
+    for (const [k, q] of act === 'latin' ? [[1, LATIN.question]] : act === 'latin-long' ? [[1, LATIN_LONG.question]] : act === 'orphan' ? [[1, ORPHAN[job.locale].question]] : [[1, L.question], [2, L.otherQuestion]]) {
       await tab.evaluate((text) => {
         const t = document.querySelector('[data-kf-composer] textarea');
         const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
@@ -269,6 +296,11 @@ export async function pr4Act(tab, job, LONG) {
  *  11. markerLines(): no line of an answer card, in either direction, holds
  *      only citation markers ("[1]", "[1][2]") and the punctuation after
  *      them, and no character of an answer lies outside its card.
+ * The deferred "ATP [1]." case (2026-11-10) adds, proven blind-free by
+ * orphanPlant():
+ *  12. orphanLines(): no answer paragraph of two lines or more ends on a line
+ *      holding one word and its citation markers ("ATP [1]." alone); the
+ *      ask-orphan-* screens (fixture ORPHAN) make main fail it at 390 and 320.
  */
 export function pr4Checks(kind, act) {
   const findings = [];
@@ -426,6 +458,13 @@ export function pr4Checks(kind, act) {
     const mk = window.markerLines();
     measured.markerLines = mk.cards;
     for (const f of mk.findings) findings.push(f);
+    // 12. The deferred "ATP [1]." case: no answer paragraph ends on one word and its citation (orphanLines(), defined in the page by render.mjs).
+    const orph = window.orphanLines();
+    measured.orphanLines = orph.cards.map((c) => c.blocks);
+    // What the engine applied to the answer's paragraphs (main: "wrap"; this PR: "pretty").
+    measured.answerTextWrap = [...new Set([...document.querySelectorAll('[data-kf-bubble="answer"] p, [data-kf-bubble="answer"] li')].map((b) => getComputedStyle(b).textWrapStyle || getComputedStyle(b).textWrap || 'unknown'))];
+    if (act === 'orphan' && !orph.cards.some((c) => c.blocks >= 4)) findings.push(`the one-word answer shows ${orph.cards.map((c) => c.blocks).join('/')} paragraph(s) of two lines or more, want 4 (check 12 would be blind)`);
+    for (const f of orph.findings) findings.push(f);
   }
   // 5. The device run's own selectors.
   if (kind === 'study') {
@@ -813,6 +852,118 @@ export function markerPlant() {
     cards: forced.length, caught,
     unglued: unglued.findings.filter(isOnly),
     finding: blind ? `the marker-line check is blind: ${forced.length} marker(s) forced alone, ${caught} flagged; ${before.findings.length} finding(s) before forcing, ${after.findings.length} after` : null,
+  };
+}
+
+/**
+ * CHECK 12, IN THE PAGE (the case #310's review deferred, 2026-11-10;
+ * render.mjs defines it as window.orphanLines). Every answer card, either
+ * direction, every text block of two lines or more: its LAST line must not
+ * hold one word alone with its citation markers and their punctuation
+ * ("ATP [1]." under a full line). Words are what is left of the line once
+ * the markers and punctuation are taken out; a line with no marker is not
+ * this case. Lines are read as check 11 reads them, by each character's box.
+ */
+export function orphanLines() {
+  const findings = [];
+  const cards = [];
+  const MARK = /\[[0-9٠-٩]+\]/g;
+  for (const card of document.querySelectorAll('[data-kf-bubble="answer"]')) {
+    if (!(card.getBoundingClientRect().width > 0)) continue;
+    const c = { blocks: 0, lastLines: [] };
+    for (const block of card.querySelectorAll('p, li, h1, h2, h3')) {
+      if (block.querySelector('p, li')) continue;
+      const lines = [];
+      let gap = false;
+      const tw = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+      for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+        for (let i = 0; i < n.data.length; i++) {
+          const ch = n.data[i];
+          if (ch === '⁠') continue;
+          if (/\s/.test(ch)) { gap = true; continue; }
+          const r = document.createRange();
+          r.setStart(n, i);
+          r.setEnd(n, i + 1);
+          const x = [...r.getClientRects()].find((q) => q.width > 0 && q.height > 0);
+          if (!x) continue;
+          const mid = (x.top + x.bottom) / 2;
+          let line = lines.find((l) => mid > l.top && mid < l.bottom);
+          if (!line) lines.push((line = { top: x.top, bottom: x.bottom, text: '' }));
+          else if (gap && line.text) line.text += ' ';
+          gap = false;
+          line.text += ch;
+        }
+        gap = true;
+      }
+      if (lines.length < 2) continue;
+      c.blocks++;
+      const last = lines.reduce((a, b) => (b.top > a.top ? b : a));
+      const words = last.text.replace(MARK, ' ').replace(/[.,;:!?،؛؟()]/g, ' ').trim().split(/\s+/).filter(Boolean);
+      const marks = (last.text.match(MARK) || []).length;
+      c.lastLines.push(last.text);
+      if (marks && words.length === 1) findings.push(`the last line of an answer paragraph holds one word and its citation: "${last.text}"`);
+    }
+    cards.push(c);
+  }
+  return { findings, cards };
+}
+
+/**
+ * CHECK 12'S FORCED CASES (run AFTER the shot on every Ask screen).
+ *  (a) the main shape: text-wrap: pretty taken off every answer block, then
+ *      read; what check 12 says without this PR's rule. Reported, not
+ *      required (it depends on width).
+ *  (b) blindness: in every answer card with a marker after a word, the last
+ *      such word with its markers and punctuation forced onto a line of its
+ *      own at the end of its block; every such card must be flagged. Undone
+ *      after its read.
+ */
+export function orphanPlant() {
+  const WM = /(\S+)[  ]((?:\[[0-9٠-٩]+\]⁠?)+[.,;:!?،؛؟]*)/g;
+  const isOne = (f) => f.startsWith('the last line of an answer paragraph');
+  const before = window.orphanLines();
+  // (a)
+  const tag = document.createElement('style');
+  tag.textContent = '[data-kf-bubble="answer"], [data-kf-bubble="answer"] * { text-wrap: wrap !important; }';
+  document.head.appendChild(tag);
+  let plain;
+  try { plain = window.orphanLines(); } finally { tag.remove(); }
+  // (b)
+  const forced = [];
+  for (const card of document.querySelectorAll('[data-kf-bubble="answer"]')) {
+    if (!(card.getBoundingClientRect().width > 0)) continue;
+    let last = null;
+    const tw = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
+    for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+      if (n.parentElement.closest('[data-kf-latin-group]')) continue;
+      for (const m of n.data.matchAll(WM)) if (m.index > 0) last = [n, m.index, m[0].length];
+    }
+    if (!last) continue;
+    const r = document.createRange();
+    r.setStart(last[0], last[1]);
+    r.setEnd(last[0], last[1] + last[2]);
+    const s = document.createElement('span');
+    s.style.display = 'block';
+    r.surroundContents(s);
+    // Nothing after it in its block, so it is the block's last line.
+    const block = s.closest('p, li, h1, h2, h3') || s.parentNode;
+    const tail = document.createRange();
+    tail.setStartAfter(s);
+    tail.setEndAfter(block.lastChild);
+    const rest = tail.extractContents();
+    forced.push([s, block, rest]);
+  }
+  let alone;
+  try { alone = window.orphanLines(); } finally {
+    for (const [s, block, rest] of forced) { block.appendChild(rest); const p = s.parentNode; s.replaceWith(...s.childNodes); p.normalize(); block.normalize(); }
+  }
+  const after = window.orphanLines();
+  const caught = alone.findings.filter(isOne).length - before.findings.filter(isOne).length;
+  const blind = caught < forced.length || after.findings.length !== before.findings.length;
+  return {
+    cards: forced.length, caught,
+    unpretty: plain.findings.filter(isOne),
+    finding: blind ? `the one-word last-line check is blind: ${forced.length} forced, ${caught} flagged; ${before.findings.length} finding(s) before forcing, ${after.findings.length} after` : null,
   };
 }
 

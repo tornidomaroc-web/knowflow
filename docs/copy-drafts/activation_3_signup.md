@@ -1,7 +1,9 @@
-# Activation fix 3: one line on the app's sign-up page (DRAFT, not shipped)
+# Activation fix 3: one line on the app's sign-up page (SHIPPED)
 
-**Status: DRAFT for the owner.** Nothing here is in `src/`. PR "activation fix 3"
-changes no copy.
+**Status: SHIPPED** in activation fix 4 (owner-approved 2026-11-10): the app's
+sign-up shows `about.subtitle`, unchanged, under the subtitle, in the slot the
+web gives `cta.note`; the web is unchanged. No new key, so no new copy
+approval. Proven by part 4 of `scripts/verify-activation-3.mjs`.
 
 ## Why
 
@@ -29,7 +31,7 @@ in both dictionaries and already reviewed.
 
 It names no plan, price, upgrade or free word (`scripts/lib/app-wording.mjs`).
 
-## Open for the owner
+## Decided by the owner (2026-11-10)
 
-1. Ship it, shorten it, or keep the page as it is?
-2. App only (in the slot the web's `cta.note` uses), or on both?
+1. Ship it as it is.
+2. App only, in the slot the web's `cta.note` uses.

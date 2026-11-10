@@ -136,7 +136,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { kfWording } from '../lib/app-wording.mjs';
 import { audit } from '../redesign-built/audit.mjs';
-import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing, pageLabelPlant, g2Rules, latinRules, latinPlant, markerLines, markerPlant } from './pr4.mjs';
+import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing, pageLabelPlant, g2Rules, latinRules, latinPlant, markerLines, markerPlant, orphanLines, orphanPlant } from './pr4.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -984,6 +984,8 @@ async function shoot(side, job) {
   await tab.evaluate(`window.latinRules = ${latinRules.toString()}`);
   // Check 11 (the review of PR #310): pr4Checks() and markerPlant() call markerLines() in the page.
   await tab.evaluate(`window.markerLines = ${markerLines.toString()}`);
+  // Check 12 (the deferred "ATP [1]." case): pr4Checks() and orphanPlant() call orphanLines() in the page.
+  await tab.evaluate(`window.orphanLines = ${orphanLines.toString()}`);
   const review = await tab.evaluate(reviewChecks);
   const pr4 = job.s.pr4 ? await tab.evaluate(pr4Checks, job.s.pr4, job.s.act || null) : null;
   const phrases = await tab.evaluate(phraseChecks, KEEP);
@@ -1024,9 +1026,11 @@ async function shoot(side, job) {
   const latin = job.s.pr4 === 'ask' ? await tab.evaluate(latinPlant) : null;
   // The review of PR #310: check 11's forced cases, after the shot (pr4.mjs, markerPlant).
   const markers = job.s.pr4 === 'ask' ? await tab.evaluate(markerPlant) : null;
+  // Check 12's forced cases, after the shot (pr4.mjs, orphanPlant).
+  const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, firstView, firstPlant, stepsView, stepsPlant, crossLink };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink };
 }
 
 for (const job of JOBS) {
@@ -1064,6 +1068,7 @@ for (const job of JOBS) {
       ...(side === 'after' && r.labelPlant?.finding ? [`g2: ${r.labelPlant.finding}`] : []),
       ...(side === 'after' && r.latin?.finding ? [`latin: ${r.latin.finding}`] : []),
       ...(side === 'after' && r.markers?.finding ? [`markers: ${r.markers.finding}`] : []),
+      ...(side === 'after' && r.orphans?.finding ? [`orphans: ${r.orphans.finding}`] : []),
       // Activation fix 1: the tile in the first viewport, and its forced case on AFTER.
       ...(r.firstView?.finding ? [`activation: ${r.firstView.finding}`] : []),
       ...(side === 'after' && r.firstPlant?.finding ? [`activation: ${r.firstPlant.finding}`] : []),
@@ -1086,7 +1091,7 @@ for (const job of JOBS) {
       // What reviewChecks() read on this page.
       review: { ...r.review.measured, ...(r.plant ? { deletePlant: { cards: r.plant.cards, caught: r.plant.caught } } : {}) },
       // What pr4Checks() read, and how much of the thread the page was grown by.
-      ...(r.pr4 ? { pr4: { ...r.pr4.measured, act: job.s.act || null, grownBy: r.hidden || 0, ...(r.ring ? { tabRing: r.ring } : {}), ...(r.labelPlant ? { pageLabelPlant: { labels: r.labelPlant.labels, wrapCaught: r.labelPlant.wrapCaught, clipCaught: r.labelPlant.clipCaught, ranges: r.labelPlant.ranges, orderCaught: r.labelPlant.orderCaught, names: r.labelPlant.names, oneWordCaught: r.labelPlant.oneWordCaught, pills: r.labelPlant.pills, bulletCaught: r.labelPlant.bulletCaught, edges: r.labelPlant.edges, edgeCaught: r.labelPlant.edgeCaught } } : {}), ...(r.latin && r.latin.isolates ? { latinPlant: { isolates: r.latin.isolates, mirroredCaught: r.latin.mirroredCaught, shorts: r.latin.shorts, splitCaught: r.latin.splitCaught } } : {}), ...(r.markers && r.markers.cards ? { markerPlant: { cards: r.markers.cards, caught: r.markers.caught, unglued: r.markers.unglued } } : {}) } } : {}),
+      ...(r.pr4 ? { pr4: { ...r.pr4.measured, act: job.s.act || null, grownBy: r.hidden || 0, ...(r.ring ? { tabRing: r.ring } : {}), ...(r.labelPlant ? { pageLabelPlant: { labels: r.labelPlant.labels, wrapCaught: r.labelPlant.wrapCaught, clipCaught: r.labelPlant.clipCaught, ranges: r.labelPlant.ranges, orderCaught: r.labelPlant.orderCaught, names: r.labelPlant.names, oneWordCaught: r.labelPlant.oneWordCaught, pills: r.labelPlant.pills, bulletCaught: r.labelPlant.bulletCaught, edges: r.labelPlant.edges, edgeCaught: r.labelPlant.edgeCaught } } : {}), ...(r.latin && r.latin.isolates ? { latinPlant: { isolates: r.latin.isolates, mirroredCaught: r.latin.mirroredCaught, shorts: r.latin.shorts, splitCaught: r.latin.splitCaught } } : {}), ...(r.markers && r.markers.cards ? { markerPlant: { cards: r.markers.cards, caught: r.markers.caught, unglued: r.markers.unglued } } : {}), ...(r.orphans && r.orphans.cards ? { orphanPlant: { cards: r.orphans.cards, caught: r.orphans.caught, unpretty: r.orphans.unpretty } } : {}) } } : {}),
       protectedPhrasesRead: r.phrases.read,
       // Activation fix 1: where the upload tile sat in the first viewport, and the forced case.
       ...(r.firstView ? { firstView: { tile: r.firstView.tile, forced: r.firstPlant?.forced ?? null, forcedCaught: r.firstPlant?.caught ?? null } } : {}),
@@ -1102,6 +1107,7 @@ for (const job of JOBS) {
     for (const b of known) console.log(`       ${side}: known (not failed): ${b}`);
     // Check 11 on the glue undone (94195ab's shape), printed, not failed: the head this PR fixes.
     if (side === 'after' && r.markers?.unglued?.length) for (const u of r.markers.unglued) console.log(`       glue undone (94195ab): ${u}`);
+    if (side === 'after' && r.orphans?.unpretty?.length) for (const u of r.orphans.unpretty) console.log(`       text-wrap: pretty undone (main's rule): ${u}`);
   }
   results.push(row);
 }
