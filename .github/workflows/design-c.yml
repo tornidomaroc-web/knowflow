@@ -121,19 +121,17 @@ jobs:
           PUPPETEER_DIR: ${{ runner.temp }}/pp
         run: CHROME="$(command -v google-chrome)" FONT_DIR="$RUNNER_TEMP/pp/node_modules/@fontsource/rubik" node scripts/design-c/render.mjs --out "$RUNNER_TEMP/design-c"
 
-      - name: Side by side
-        if: ${{ !cancelled() }}
-        working-directory: after
-        env:
-          BEFORE_LABEL: ${{ github.event.pull_request && 'main' || steps.before.outputs.ref }}
-        run: |
-          python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
-          python3 scripts/design-c/compose.py "$RUNNER_TEMP/design-c"
-          cp "$RUNNER_TEMP/contrast.md" "$RUNNER_TEMP/design-c/contrast.md"
-
-      - name: Server logs
+      # The renders are kept BEFORE the side-by-side is composed: run
+      # 42882221702 rendered and audited green, then "Side by side" hung until
+      # the job's 55-minute limit, the cancellation skipped every if: always()
+      # step, and the renders and the job log were lost. Kept here, a later
+      # step that stalls costs only the side-by-side images.
+      - name: The contrast table and the server logs beside the renders
         if: always()
-        run: tail -n 30 "$RUNNER_TEMP/after.log" "$RUNNER_TEMP/before.log" || true
+        run: |
+          mkdir -p "$RUNNER_TEMP/design-c/server-logs"
+          cp "$RUNNER_TEMP/contrast.md" "$RUNNER_TEMP/design-c/contrast.md" || true
+          cp "$RUNNER_TEMP/after.log" "$RUNNER_TEMP/before.log" "$RUNNER_TEMP/design-c/server-logs/" || true
 
       - name: Keep the renders
         if: always()
@@ -143,3 +141,31 @@ jobs:
           path: ${{ runner.temp }}/design-c
           if-no-files-found: error
           retention-days: 14
+
+      # Its own limit, well under the job's: a stall here ends this step (a
+      # failure), not the job, so the steps after it still run and the job's
+      # log is uploaded. Its images go in a second artifact (design-c holds
+      # the renders already; a second upload under the same name would need
+      # overwrite: true, which deletes the first before re-uploading).
+      - name: Side by side
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        working-directory: after
+        env:
+          BEFORE_LABEL: ${{ github.event.pull_request && 'main' || steps.before.outputs.ref }}
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
+          python3 scripts/design-c/compose.py "$RUNNER_TEMP/design-c"
+
+      - name: Keep the side-by-sides
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: design-c-side-by-side
+          path: ${{ runner.temp }}/design-c/side-by-side
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Server logs
+        if: always()
+        run: tail -n 30 "$RUNNER_TEMP/after.log" "$RUNNER_TEMP/before.log" || true
