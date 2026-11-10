@@ -29,6 +29,18 @@
  *       is measured on it.
  *   ask-oldconv-nomaterial-app / -desk an old conversation in Statistics,
  *       which has since lost its files (`?open=c6`).
+ *
+ * The owner's review of PR #316 at fc60340 adds:
+ *   upload-mime-app / -desk            the drop zone after the ROUTE's mime
+ *       refusal, "... (.pdf). ...": a "notes.pdf" whose type is text/plain,
+ *       picked through the real input. It passes the drop zone's type check;
+ *       the preview has no consent provider, so it is sent at once to the
+ *       local server's real /api/ingest, which refuses a type that
+ *       contradicts the extension before it reads any account (no Supabase
+ *       call), on main and on this PR alike. A mime refusal always names an
+ *       ACCEPTED extension (".zip" is refused earlier, as `type`), so the
+ *       fixture is ".pdf"; the bracketed group "(.pdf)" is drawn the same way
+ *       for any extension.
  * The upload states now take `?platform=` (the app's shell on -app).
  *
  * CHECK 14 (dropZoneErrorCheck, on every app render of a drop zone error
@@ -61,6 +73,9 @@ export function activation5Screens(add, { APP, SAFARI, DESK, DESKTOP }, byKey) {
   // shell (?platform=native), so main's own app error state is measured.
   add('upload-refused-app', 'preview/subject', { platform: 'native' }, APP, { a5: 'refuse', dzError: true });
   add('upload-refused-desk', 'preview/subject', { platform: 'web' }, DESK, { view: DESKTOP, targets: false, a5: 'refuse' });
+  // The owner's review of #316: the route's mime refusal, "(.pdf).", in the drop zone.
+  add('upload-mime-app', 'preview/subject', { platform: 'native' }, APP, { a5: 'mime', dzError: true });
+  add('upload-mime-desk', 'preview/subject', { platform: 'web' }, DESK, { view: DESKTOP, targets: false, a5: 'mime' });
   add('ask-oldconv-nomaterial-app', 'preview/ask', { platform: 'native', view: 'app', open: 'c6' }, APP, { pr4: 'ask' });
   add('ask-oldconv-nomaterial-desk', 'preview/ask', { platform: 'web', view: 'app', open: 'c6' }, DESK, { view: DESKTOP, targets: false, pr4: 'ask' });
   add('check-inbox-app', 'signup', {}, APP, { a5: 'check-inbox' });
@@ -92,8 +107,29 @@ export async function a5Prepare(tab, job) {
   });
 }
 
-/** The interactions: a refused file through the real input (refuse); the real form, filled and sent (check-inbox). */
+/** The interactions: a refused file through the real input (refuse, mime); the real form, filled and sent (check-inbox). */
 export async function a5Act(tab, job) {
+  if (job.s.a5 === 'mime') {
+    // An accepted extension with a type that contradicts it: the route's own
+    // mime refusal (415), answered by the local server before any account read.
+    await tab.evaluate(() => {
+      const input = document.querySelector('input[type="file"]');
+      if (!input) throw new Error('no file input');
+      const dt = new DataTransfer();
+      dt.items.add(new File(['not a study file'], 'notes.pdf', { type: 'text/plain' }));
+      input.files = dt.files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await tab.waitForFunction(() => {
+      const z = document.querySelector('input[type="file"]')?.parentElement;
+      return z && (z.matches('.border-danger-border') || z.querySelector('.border-danger-border'));
+    }, { timeout: 15000 });
+    // The refusal shown must be the route's mime sentence (it names "(.pdf)"),
+    // not the network failure or another refusal.
+    const shown = await tab.evaluate(() => document.querySelector('input[type="file"]')?.parentElement?.textContent || '');
+    if (!shown.includes('(.pdf)')) return { act: 'mime', error: `the drop zone shows no "(.pdf)" refusal: ${shown.slice(0, 160)}` };
+    return { act: 'mime' };
+  }
   if (job.s.a5 === 'refuse') {
     // A .zip is not an accepted type: DropZone refuses it before the
     // permission sheet and before any request, on main and on this PR alike.

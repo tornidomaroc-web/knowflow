@@ -328,7 +328,9 @@ if (has('src/lib/upload-consent.ts')) {
   const held = html('consent');
   check(held.includes('تمارين') && held.includes(awaiting) && held.includes('data-kf-upload-held'), `consent: the drop zone shows the held file and that nothing is sent yet (${held.slice(0, 600)})`);
   const declined = html('declined');
-  check(declined.includes(t.dashboard.aiConsent.declined) && declined.includes('data-kf-upload="tile"') && !declined.includes(`>${t.dashboard.upload.error}<`), 'declined: the tile is back with the declined sentence, and no failure box');
+  // The sentence's text, not its markup: its Latin runs are isolates (src/components/ui/LatinText.tsx).
+  const declinedText = declined.replace(/<[^>]+>/g, '');
+  check(declinedText.includes(t.dashboard.aiConsent.declined) && declined.includes('data-kf-upload="tile"') && !declined.includes(`>${t.dashboard.upload.error}<`), 'declined: the tile is back with the declined sentence, and no failure box');
   check(!declined.includes('تمارين.pdf'), 'declined: the file is released (not shown)');
   // The owner's review of #315: a refusal is no dead end. The red-edged
   // message sits above the same tile the idle state shows.

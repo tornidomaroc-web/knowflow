@@ -300,6 +300,13 @@ jobs:
       - name: Verify zero material costs no question, a failed processing costs no upload (bounded), and the picked file survives the permission sheet (activation fix 5)
         run: node --experimental-strip-types scripts/verify-activation-5.mjs
 
+      # Latin runs in a right-to-left sentence (the drop zone's messages and
+      # the AI permission sheet): each a left-to-right isolate, a short one
+      # (30 characters or fewer) on one line, every string unchanged. 30
+      # failures on main 5aab762 (no splitLatinRuns, no LatinText).
+      - name: Verify Latin runs in the drop zone and the AI sheet stay whole and in order, with the strings unchanged
+        run: node --experimental-strip-types scripts/verify-latin-runs.mjs
+
       # #295 follow-up: /api/ingest never stores a file name holding U+0000 (22P05).
       - name: Verify the upload route removes U+0000 from the stored file name, and nothing else
         run: node --experimental-strip-types scripts/verify-upload-filename-nul.mjs
