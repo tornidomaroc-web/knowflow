@@ -260,6 +260,14 @@ jobs:
       # and then the quiz opened no sheet. If Settings reads "on" before the
       # quiz, the run withdraws it there first, with the card's own button, so
       # the sheet below still opens. It never gives the permission.
+      # The to-login step (activation fix 3): a fresh simulator has never held a
+      # session, so the app now opens on SIGN-UP; before that change it opened
+      # on login. The step works from both: on sign-up it taps the page's own
+      # "already have an account" link (the path a student and App Review
+      # take) and waits for /login; on login it only marks the URL
+      # (#kf-at-login) so the wait has a change to see. Anything else is
+      # reported and the login step then finds no form. Proof, offline, on
+      # both first screens: scripts/verify-ci-guards.mjs (d).
       - name: Signed-in run against the live site
         if: ${{ inputs.scenario == 'screens' }}
         env:
@@ -271,6 +279,7 @@ jobs:
           test -n "$KF_SMOKE_PASSWORD" || { echo "REVIEWER_PASSWORD is empty"; exit 1; }
           cat > "$RUNNER_TEMP/steps.json" <<'JSON'
           [
+            {"name":"to-login","until":"/(en|ar)/login(#kf-at-login)?$","wait":1500,"js":"(function(){var p=location.pathname;if(/^\\/(en|ar)\\/login$/.test(p)){history.replaceState(history.state,'',p+location.search+'#kf-at-login');return 'already on login'}if(!/^\\/(en|ar)\\/signup$/.test(p)){return 'not on sign-up or login: '+p}var a=Array.prototype.slice.call(document.querySelectorAll('a[href]')).filter(function(x){return /^\\/(en|ar)\\/login$/.test(x.getAttribute('href')||'')})[0];if(!a){return 'no login link on sign-up'}a.click();return 'clicked the login link on sign-up'})()"},
             {"name":"google-hint","wait":500,"js":"(function(){var h=document.querySelector('[data-kf-google-hint]');if(!h){return 'no hint'}var a=h.querySelector('a');var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]'),f=e&&e.form,b=f&&f.querySelector('button[type=submit]');var fld=function(x){if(!x){return null}var r=x.getBoundingClientRect();return {type:x.type,clay:x.classList.contains('kf-field'),h:Math.round(r.height),fs:parseFloat(getComputedStyle(x).fontSize)}};var br=b?b.getBoundingClientRect():null;var lay={email:fld(e),password:fld(p),submit:b?{gold:b.classList.contains('kf-gold'),bg:getComputedStyle(b).backgroundColor,h:Math.round(br.height),w:Math.round(br.width)}:null};return (h.innerText||'').replace(/\\s+/g,' ').trim()+' | '+(a?a.getAttribute('href'):'no link')+' || '+JSON.stringify(lay)})()"},
             {"name":"login","until":"/(en|ar)/dashboard$","timeout":180000,"wait":3000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}var f=e.form;if(!f){return 'no form'}var K=function(v){try{sessionStorage.setItem('kfLoginRetry',v)}catch(x){}};var D=function(s){if(s.arrived){return 'done'}if(!s.busySeen||!s.reset){return 'wait'}return s.retries<1?'retry':'fail'};var btn=function(){return f.querySelector('button[type=submit]')};var b0=btn(),label=b0?(b0.innerText||'').trim():'';var go=function(){set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100)};var st={retries:0,busySeen:false};K('0');go();var iv=setInterval(function(){var b=btn(),t=b?(b.innerText||'').trim():'';var reset=!!b&&!b.disabled&&t===label;if(!reset){st.busySeen=true}var d=D({arrived:/^\\/(en|ar)\\/dashboard$/.test(location.pathname),busySeen:st.busySeen,reset:reset,retries:st.retries});if(d==='retry'){st.retries=1;st.busySeen=false;K('1');go()}else if(d==='fail'){K('1 failed');clearInterval(iv)}else if(d==='done'){clearInterval(iv)}},500);return 'submitted'})()"},
             {"name":"home","wait":3000,"js":"(function(){window.scrollTo(0,0);var r='?';try{r=sessionStorage.getItem('kfLoginRetry')||'?'}catch(x){}return location.pathname+' retry='+r})()"},
@@ -374,8 +383,15 @@ jobs:
           # (run 38592947638 failed ar-settings-bottom on /ar/dashboard/settings#kfP...).
           def url(p): return (p.get("href", "") or "").split("#", 1)[0]
           L = P("launch")
-          need(re.match(r"^https://tryknowflow\.com/(en|ar)/login$", url(L)), f"the first page is the login twin: {L.get('href')}")
+          # Activation fix 3: a fresh install opens on sign-up (login before the
+          # fix); either is a twin, and the to-login step reaches login from it.
+          need(re.match(r"^https://tryknowflow\.com/(en|ar)/(signup|login)$", url(L)), f"the first page is the sign-up or the login twin: {L.get('href')}")
+          print(f"info first screen of a fresh install: {url(L).rsplit('/', 1)[-1]}")
           need(L.get("google") == 0 and L.get("bridge") is True, f"...the twin, with the bridge: google={L.get('google')} bridge={L.get('bridge')}")
+          TL = by.get("to-login", {})
+          need(TL.get("result") in ("already on login", "clicked the login link on sign-up") and (TL.get("nav") or {}).get("arrived") is True and re.search(r"/(en|ar)/login$", url(P("to-login"))), f"the login page was reached from the first page: {TL.get('result')} -> {P('to-login').get('href')} (arrived {(TL.get('nav') or {}).get('arrived')})")
+          need((TL.get("result") == "clicked the login link on sign-up") == url(L).endswith("/signup"), f"...by the sign-up page's own link exactly when the first page was sign-up: {TL.get('result')}")
+          need(P("to-login").get("google") == 0, f"...and that login is the twin: google={P('to-login').get('google')}")
           # The line for Google-registered students: on the app's login page
           # (no Google button there), linking to the page's own forgot link.
           # Design "C", PR 3: the same step also reads the login's layout, after
@@ -569,6 +585,7 @@ jobs:
           test -n "$KF_SMOKE_PASSWORD" || { echo "REVIEWER_PASSWORD is empty"; exit 1; }
           cat > "$RUNNER_TEMP/steps.json" <<'JSON'
           [
+          {"name":"to-login","until":"/(en|ar)/login(#kf-at-login)?$","wait":1500,"js":"(function(){var p=location.pathname;if(/^\\/(en|ar)\\/login$/.test(p)){history.replaceState(history.state,'',p+location.search+'#kf-at-login');return 'already on login'}if(!/^\\/(en|ar)\\/signup$/.test(p)){return 'not on sign-up or login: '+p}var a=Array.prototype.slice.call(document.querySelectorAll('a[href]')).filter(function(x){return /^\\/(en|ar)\\/login$/.test(x.getAttribute('href')||'')})[0];if(!a){return 'no login link on sign-up'}a.click();return 'clicked the login link on sign-up'})()"},
           {"name":"login","wait":10000,"js":"(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);var f=e.form;if(!f){return 'no form'}setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted'})()"},
           {"name":"home","wait":3000,"js":"(function(){return location.pathname})()"},
           {"name":"settings-allow","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings'}a.click();return 'clicked Settings'})()"},

@@ -29,6 +29,14 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PLAN = json.load(open(os.path.join(ROOT, 'docs', 'store', 'screenshot-content', 'plan.json'), encoding='utf-8'))
 
+# Activation fix 3: a fresh simulator opens on sign-up (the first set), a
+# simulator that held a session on login (the second set, after the first
+# signed out). The same step as ios-signed-in.yml, byte for byte
+# (scripts/verify-ci-guards.mjs (d)): on sign-up it taps the page's own login
+# link; on login it marks the URL so the wait sees a change.
+TO_LOGIN = r"""(function(){var p=location.pathname;if(/^\/(en|ar)\/login$/.test(p)){history.replaceState(history.state,'',p+location.search+'#kf-at-login');return 'already on login'}if(!/^\/(en|ar)\/signup$/.test(p)){return 'not on sign-up or login: '+p}var a=Array.prototype.slice.call(document.querySelectorAll('a[href]')).filter(function(x){return /^\/(en|ar)\/login$/.test(x.getAttribute('href')||'')})[0];if(!a){return 'no login link on sign-up'}a.click();return 'clicked the login link on sign-up'})()"""
+TO_LOGIN_UNTIL = "/(en|ar)/login(#kf-at-login)?$"
+
 # The login step, as in every signed-in run: __KF_EMAIL__ and __KF_PASSWORD__
 # are bare tokens the app replaces from its launch environment.
 LOGIN = r"""(function(){var set=function(el,v){var s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))};var e=document.querySelector('input[name=email]'),p=document.querySelector('input[name=password]');if(!e||!p){return 'no login form'}set(e,__KF_EMAIL__);set(p,__KF_PASSWORD__);var f=e.form;if(!f){return 'no form'}setTimeout(function(){if(f.requestSubmit){f.requestSubmit()}else{f.submit()}},100);return 'submitted'})()"""
@@ -77,6 +85,7 @@ def steps(locale):
     subject = p['summary']['subject']
     L = locale
     out = [
+        {"name": "to-login", "until": TO_LOGIN_UNTIL, "wait": 1500, "js": TO_LOGIN},
         {"name": "login", "until": "/(en|ar)/dashboard$", "timeout": 60000, "wait": 3000, "js": LOGIN},
         {"name": f"nav-{L}-subjects", "until": f"/{L}/dashboard/knowledge$", "wait": 4000, "js": "(function(){location.assign('/" + L + "/dashboard/knowledge');return 'assigned'})()"},
         {"name": f"shot-{L}-01-subjects", "wait": 1500, "js": with_purity("(function(){window.scrollTo(0,0);return location.pathname})()", L)},

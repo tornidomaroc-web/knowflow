@@ -118,6 +118,13 @@
  * stepsViewPlant() pushes the card 900 px down and must be flagged. The
  * full-data home is also shot on the web at 1280 (home-full-desk).
  *
+ * ACTIVATION FIX 3 opens the app on sign-up on a fresh device. landing-app
+ * (the app's first request, no cookie) must land on sign-up, and the new
+ * landing-app-seen (cookie kf-seen=1) on login; BEFORE (main) lands both on
+ * login, so it reports the first. crossLinkRead() reports where each page's
+ * link to the other sits in the first view. Login and sign-up are also shot
+ * on the web at 1280 (login-desk, signup-desk).
+ *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
  *      http://127.0.0.1:3000), CHROME, PUPPETEER_DIR, FONT_DIR (the
@@ -170,11 +177,18 @@ const SCREENS = [];
 const add = (key, path, q, ua, opts = {}) => SCREENS.push({ key, path, q, ua, view: PHONE, targets: true, native: ua === APP, ...opts });
 add('landing', '', {}, SAFARI);
 add('landing-desk', '', {}, DESK, { view: DESKTOP, targets: false });
-add('landing-app', '', {}, APP, { lands: 'login' });
+// Activation fix 3: the app's first screen on a FRESH device is sign-up (main
+// sends it to login, so BEFORE reports that), and on a device that has held
+// a session (`kf-seen=1`) it is login, as before. `crossLink` reads where the
+// page's link to the other page sits in the first 390 x 844 view.
+add('landing-app', '', {}, APP, { lands: 'signup', crossLink: '/login' });
+add('landing-app-seen', '', {}, APP, { lands: 'login', cookies: [{ name: 'kf-seen', value: '1' }], crossLink: '/signup' });
 add('login-web', 'login', {}, SAFARI);
 add('login-app', 'login', {}, APP);
 add('signup-web', 'signup', {}, SAFARI);
-add('signup-app', 'signup', {}, APP);
+add('signup-app', 'signup', {}, APP, { crossLink: '/login' });
+add('login-desk', 'login', {}, DESK, { view: DESKTOP, targets: false });
+add('signup-desk', 'signup', {}, DESK, { view: DESKTOP, targets: false });
 add('settings-app', 'preview/settings', { platform: 'native' }, APP);
 add('settings-web', 'preview/settings', { platform: 'web' }, SAFARI);
 add('subject-app', 'preview/subject', { platform: 'native' }, APP);
@@ -860,6 +874,23 @@ function stepsViewPlant(next) {
 }
 
 /**
+ * ACTIVATION FIX 3: WHERE THE WAY TO THE OTHER AUTH PAGE SITS (reported, not
+ * failed). `to` is '/login' on sign-up and '/signup' on login: the page's own
+ * link to `/<locale><to>`, its text, its box at the top of the page, and
+ * whether it is wholly inside the first viewport (no tab bar on these pages).
+ * Self-contained: serialised into the page.
+ */
+function crossLinkRead(to) {
+  window.scrollTo(0, 0);
+  const loc = location.pathname.split('/')[1];
+  const a = [...document.querySelectorAll('a[href]')].find((x) => x.getAttribute('href') === `/${loc}${to}`);
+  if (!a) return { to, found: false };
+  const r = a.getBoundingClientRect();
+  const H = window.innerHeight;
+  return { to, found: true, text: (a.innerText || '').replace(/\s+/g, ' ').trim(), top: Math.round(r.top), bottom: Math.round(r.bottom), height: Math.round(r.height), viewport: `${window.innerWidth} x ${H}`, inFirstView: r.top >= 0 && r.bottom <= H + 0.5 && r.height > 0 };
+}
+
+/**
  * THE APP'S GATES, IN THE PAGE (every render with the app's user agent): no
  * Sign in with Apple button (it ships natively in 1.1) and no Google button
  * (Google refuses OAuth in an embedded web view; the platform gate hides it).
@@ -908,6 +939,7 @@ async function shoot(side, job) {
   // loses its query on the way, so its theme is asked with the cookie the
   // ?theme= link would have written.
   if (job.theme && job.s.lands) await tab.setCookie({ name: 'kf-theme', value: job.theme, url: SIDES[side] });
+  for (const c of job.s.cookies || []) await tab.setCookie({ ...c, url: SIDES[side] });
   const q = new URLSearchParams({ ...(side === 'before' && job.s.beforeQ ? job.s.beforeQ : job.s.q), ...(job.theme && !job.s.lands ? { theme: job.theme } : {}) }).toString();
   const url = `${SIDES[side]}/${job.locale}${job.s.path ? '/' + job.s.path : ''}${q ? '?' + q : ''}`;
   const res = await tab.goto(url, { waitUntil: 'networkidle0', timeout: 90000 });
@@ -965,6 +997,8 @@ async function shoot(side, job) {
   if (hasSteps) await tab.evaluate(`window.stepsViewCheck = ${stepsViewCheck.toString()}`);
   const stepsView = hasSteps ? await tab.evaluate(stepsViewCheck, job.s.stepsView) : null;
   const stepsPlant = hasSteps ? await tab.evaluate(stepsViewPlant, job.s.stepsView) : null;
+  // Activation fix 3: the link to the other auth page, in the first view.
+  const crossLink = job.s.crossLink ? await tab.evaluate(crossLinkRead, job.s.crossLink) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -992,7 +1026,7 @@ async function shoot(side, job) {
   const markers = job.s.pr4 === 'ask' ? await tab.evaluate(markerPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, firstView, firstPlant, stepsView, stepsPlant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, firstView, firstPlant, stepsView, stepsPlant, crossLink };
 }
 
 for (const job of JOBS) {
@@ -1057,6 +1091,7 @@ for (const job of JOBS) {
       // Activation fix 1: where the upload tile sat in the first viewport, and the forced case.
       ...(r.firstView ? { firstView: { tile: r.firstView.tile, forced: r.firstPlant?.forced ?? null, forcedCaught: r.firstPlant?.caught ?? null } } : {}),
       ...(r.stepsView ? { stepsView: { title: r.stepsView.title, step: r.stepsView.step, limit: r.stepsView.limit, forced: r.stepsPlant?.forced ?? null, forcedCaught: r.stepsPlant?.caught ?? null } } : {}),
+      ...(r.crossLink ? { crossLink: r.crossLink } : {}),
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no
       // plan, price, upgrade or free word.
