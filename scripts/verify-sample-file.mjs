@@ -65,7 +65,8 @@ if (plant && !PLANTS.includes(plant)) { console.log(`unknown forced case ${plant
 
 const failures = [];
 const check = (ok, msg) => { if (!ok) failures.push(msg); };
-const read = (p) => readFileSync(resolvePath(ROOT, p), 'utf8');
+// A Windows checkout holds CRLF (core.autocrlf); every pattern below is written for LF.
+const read = (p) => readFileSync(resolvePath(ROOT, p), 'utf8').replace(/\r\n/g, '\n');
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 
 // 1. The manifest against main.py's source.

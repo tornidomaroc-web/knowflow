@@ -249,7 +249,7 @@ document marked `is_sample`, and chunks with committed embeddings, after the AI
 permission. It needs one small migration (`documents.is_sample`) applied by
 hand before the merge, and one keyed run to produce the embeddings.
 
-## 10. Built in #319 (2026-11-11): the inputs, and one blocker on the Arabic file
+## 10. Built in #319 (2026-11-11): the inputs; the Arabic blocker resolved for the sample
 
 No `src/` and no `supabase/` change. The `is_sample` migration is still text
 only (section 4).
@@ -277,7 +277,7 @@ needs the folder listed in `outputFileTracingIncludes` for that route.
 | | Pages | Text equals the approved text | Chunks | Token counts | Page labels |
 |---|---|---|---|---|---|
 | English | 2 | yes, both pages | 1 | 464 | 1-2 |
-| Arabic | 2 | **no**, 7 words (below) | 3 | 512, 512, 452 | 1, 1-2, 2 |
+| Arabic | 2 | yes, both pages (after the marks were dropped, below) | 3 | 512, 512, 439 | 1, 1-2, 2 |
 
 This replaces the estimate in section 2 (English 1 chunk, Arabic 2 to 3).
 
@@ -289,10 +289,17 @@ fonts and three line heights tried. Left alignment (the direction stays
 right-to-left) kept the order in every case. The file is read for its text
 only; the app never shows it as a page.
 
-### BLOCKER: production puts shadda and tanween on the wrong letter
+### RESOLVED FOR THE SAMPLE: production puts shadda and tanween on the wrong letter
 
-The Arabic PDF's text comes out of production's conversion with 7 words
-changed. Each is a letter carrying a shadda or a tanween:
+**Resolved for the sample on 2026-11-11 by dropping the marks:** the owner
+approved writing the 7 words below without their shadda or tanween, in the
+approved text and in the Arabic PDF. Both languages now extract exactly.
+**Production's mark rule is still wrong for students' own PDFs; that is its
+own PR, later.**
+
+What was found, with the marks still in: the Arabic PDF's text came out of
+production's conversion with 7 words changed. Each is a letter carrying a
+shadda or a tanween:
 
 | Approved | Extracted by production |
 |---|---|
@@ -314,19 +321,16 @@ second PDF engine (PyMuPDF). Without the marks the same PDF extracts exactly.
 This is not only about the sample: a student's Arabic PDF with tashkeel made
 the same way is stored with the same misplaced marks today.
 
-So `generate.py` fails on Arabic, as it must, and embeds nothing. Two ways out,
-both the owner's call:
-
-- **(A) Write the 7 words without their marks** in the approved text (the two
-  occurrences of the one verb count twice). The PDF then extracts exactly.
-  It is a change to approved copy, so it needs the owner's yes.
-- **(B) Fix the mark rule in `main.py` first**, in its own ingestion PR with
-  this PDF as a fixture, deploy it, then generate. It also fixes real uploads.
+The two ways out were (A) write the 7 words without their marks, or (B) fix
+the mark rule in `main.py` first. The owner chose (A). Three marked words
+stay in the text because they extract correctly as they are. (B) is still
+owed for real uploads: `_line_units` in `services/ingestion/main.py`, with a
+marked-text PDF as its fixture.
 
 ### The order from here
 
-1. The owner decides (A) or (B); the Arabic PDF is regenerated if (A), and
-   `manifest.json` gets its new sha256.
+1. DONE 2026-11-11: (A) chosen, the Arabic PDF regenerated, `manifest.json`
+   and `SHA256SUMS` hold its new sha256; the English PDF is byte-identical.
 2. The owner creates a temporary Voyage AI key and adds it as the secret
    `VOYAGE_SAMPLE_KEY` in a new GitHub environment `sample-embeddings`
    (recommended: restrict the environment to `main`).
