@@ -316,6 +316,14 @@ jobs:
       - name: Verify auth errors are ours, in the page's language, and name no account
         run: node --experimental-strip-types scripts/verify-auth-errors.mjs
 
+      # Audit cause 9 (docs/plans/sample-file.md): the sample file's embeddings
+      # are computed once and committed, so they are only right while the PDFs,
+      # the model and the chunker are the committed ones and main.py's. Passes
+      # with "not generated yet" until the JSON files land; its forced cases
+      # (a changed PDF, model, chunk size, overlap, or JSON) must each fail.
+      - name: Verify the sample file's PDFs and embedding settings have not drifted
+        run: node scripts/verify-sample-file.mjs && node scripts/verify-sample-file.mjs --self-test
+
       # #295 follow-up: /api/ingest never stores a file name holding U+0000 (22P05).
       - name: Verify the upload route removes U+0000 from the stored file name, and nothing else
         run: node --experimental-strip-types scripts/verify-upload-filename-nul.mjs

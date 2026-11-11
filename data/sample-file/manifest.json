@@ -1,0 +1,10 @@
+{
+  "model": "voyage-3-large",
+  "dimensions": 1024,
+  "chunk_tokens": 512,
+  "chunk_overlap": 64,
+  "pdf_sha256": {
+    "ar": "7e3f94e92ab5d0f215752de5dbdd95cef9fd868cd04fefc0561c433686f0346b",
+    "en": "5b33cf183c87fb70b2646507555a97ae6c04d0e91ea295777a71227e703953ea"
+  }
+}
