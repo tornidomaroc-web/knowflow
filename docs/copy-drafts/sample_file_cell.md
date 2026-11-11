@@ -1,6 +1,7 @@
-# The sample file about the cell: text (DRAFT)
+# The sample file about the cell: text (APPROVED)
 
-**Status: DRAFT, awaiting the owner.** Nothing here is in the app. This is the
+**Status: APPROVED by the owner 2026-11-11**, as drafted, with the terms
+"الميتوكوندريا" and "السيتوبلازم". Nothing here is in the app yet. This is the
 text of the one file the "try with a sample file" button would add (audit
 cause 9, owner decision 2026-11-11). The build plan is
 `docs/plans/sample-file.md`; the button's copy is

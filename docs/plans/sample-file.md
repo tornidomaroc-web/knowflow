@@ -1,6 +1,6 @@
 # Build plan: "try with a sample file" (audit cause 9)
 
-**Status: PLAN, nothing built.** Owner decision 2026-11-11: a button on the
+**Status: approach (b) APPROVED by the owner 2026-11-11; the inputs are built (section 10), the route and the button are not.** Owner decision 2026-11-11: a button on the
 zero-material home's three-steps card creates a subject "مثال" / "Sample"
 holding one short file about the cell, asks for the AI permission first, then
 offers one ready question under the Ask field. The file does not use one of the
@@ -248,3 +248,92 @@ Build (b): `/api/sample` writes the subject, the stored two-page PDF, a `ready`
 document marked `is_sample`, and chunks with committed embeddings, after the AI
 permission. It needs one small migration (`documents.is_sample`) applied by
 hand before the merge, and one keyed run to produce the embeddings.
+
+## 10. Built in #319 (2026-11-11): the inputs, and one blocker on the Arabic file
+
+No `src/` and no `supabase/` change. The `is_sample` migration is still text
+only (section 4).
+
+### What is in the repo
+
+| Path | What |
+|---|---|
+| `data/sample-file/cell.ar.pdf`, `cell.en.pdf` | The two PDFs, two pages each, made from the approved text by `scripts/sample-file/make_pdfs.py` (WeasyPrint, DejaVu Sans embedded: the #309 fixture's face) |
+| `data/sample-file/manifest.json`, `SHA256SUMS` | Each PDF's sha256, the model, dimensions, chunk size and overlap the embeddings must be made with |
+| `scripts/sample-file/generate.py` | Runs production's own functions on each PDF; asserts the extracted text equals the approved text before any embedding; writes `cell.<lang>.json` |
+| `.github/workflows/sample-embeddings.yml` | Manual only; environment `sample-embeddings`, secret `VOYAGE_SAMPLE_KEY`; uploads the JSON as an artifact |
+| `scripts/verify-sample-file.mjs` | In the tsc job: fails on a changed PDF, model, chunk size, overlap or JSON; "not generated yet" passes |
+
+**Why `data/sample-file/`:** outside `src/` (the relay, design-c, field-zoom and
+redesign-built all watch `src/**`, so adding or regenerating these files starts
+no device run and no render run) and outside `public/` (a file there is served
+to anyone at a public address and cached by the CDN; the sample must reach a
+student only through `/api/sample`, after sign-in and the AI permission). The
+later route reads the PDF bytes and imports the JSON from this folder; Next
+needs the folder listed in `outputFileTracingIncludes` for that route.
+
+### Measured (the production functions, no key)
+
+| | Pages | Text equals the approved text | Chunks | Token counts | Page labels |
+|---|---|---|---|---|---|
+| English | 2 | yes, both pages | 1 | 464 | 1-2 |
+| Arabic | 2 | **no**, 7 words (below) | 3 | 512, 512, 452 | 1, 1-2, 2 |
+
+This replaces the estimate in section 2 (English 1 chunk, Arabic 2 to 3).
+
+### Layout finding: every block starts at the left margin
+
+pdfminer orders text boxes by a mix of height and left edge. A short,
+right-aligned Arabic heading sank below the paragraph after it, in all four
+fonts and three line heights tried. Left alignment (the direction stays
+right-to-left) kept the order in every case. The file is read for its text
+only; the app never shows it as a page.
+
+### BLOCKER: production puts shadda and tanween on the wrong letter
+
+The Arabic PDF's text comes out of production's conversion with 7 words
+changed. Each is a letter carrying a shadda or a tanween:
+
+| Approved | Extracted by production |
+|---|---|
+| معًا | معاً |
+| حيًّا. | حي اًّ. |
+| جدًّا. | جداًّ. |
+| ينظّم | ينظمّ |
+| وتحوّل | وتحولّ |
+| عددًا | عدداً |
+| ينظّم | ينظمّ |
+
+Cause, measured: `_line_units` (`services/ingestion/main.py`, #309) joins a
+mark to the glyph its drawn point lies over. In these PDFs the point of a mark
+lies about 0.1 to 1.3 pt inside the glyph drawn before it, not over its own
+letter, so the mark goes to the neighbour. Tried and no better: Amiri, Noto
+Naskh Arabic, Noto Kufi Arabic, two alignments, three line heights, and a
+second PDF engine (PyMuPDF). Without the marks the same PDF extracts exactly.
+
+This is not only about the sample: a student's Arabic PDF with tashkeel made
+the same way is stored with the same misplaced marks today.
+
+So `generate.py` fails on Arabic, as it must, and embeds nothing. Two ways out,
+both the owner's call:
+
+- **(A) Write the 7 words without their marks** in the approved text (the two
+  occurrences of the one verb count twice). The PDF then extracts exactly.
+  It is a change to approved copy, so it needs the owner's yes.
+- **(B) Fix the mark rule in `main.py` first**, in its own ingestion PR with
+  this PDF as a fixture, deploy it, then generate. It also fixes real uploads.
+
+### The order from here
+
+1. The owner decides (A) or (B); the Arabic PDF is regenerated if (A), and
+   `manifest.json` gets its new sha256.
+2. The owner creates a temporary Voyage AI key and adds it as the secret
+   `VOYAGE_SAMPLE_KEY` in a new GitHub environment `sample-embeddings`
+   (recommended: restrict the environment to `main`).
+3. The owner, or the agent on the owner's word, runs `sample-embeddings` from
+   `main`. The owner deletes the key at Voyage and the secret.
+4. A PR commits `cell.ar.json` and `cell.en.json` from the run's artifact;
+   `verify-sample-file` then checks them on every run.
+5. The migration (`documents.is_sample`) is applied to production by hand.
+6. The UI PR: `/api/sample`, the button, the ready question, the strings as
+   a batch file, the tests of section 7.

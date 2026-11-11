@@ -1,7 +1,8 @@
-# The sample file: button, subject name, ready question and refusals (DRAFT)
+# The sample file: button, subject name, ready question and refusals (APPROVED)
 
-**Status: DRAFT, awaiting the owner.** Nothing here is in the dictionaries or
-in `docs/copy/`. On approval the strings move into `ar.ts` and `en.ts` under
+**Status: APPROVED by the owner 2026-11-11**, as drafted, with the button
+"جرّب بملف جاهز" and the plural English question. Nothing here is in the
+dictionaries or in `docs/copy/` yet. In the UI PR the strings move into `ar.ts` and `en.ts` under
 the keys below, with one batch file in `docs/copy/`. The file's own text is
 `docs/copy-drafts/sample_file_cell.md`; the build plan is
 `docs/plans/sample-file.md`.

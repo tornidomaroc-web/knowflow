@@ -1,0 +1,88 @@
+# The sample file's embeddings, computed ONCE (audit cause 9, docs/plans/sample-file.md).
+#
+# Runs scripts/sample-file/generate.py: the production ingestion functions
+# (services/ingestion/main.py) on the two committed PDFs in data/sample-file/,
+# one Voyage AI call per language, and uploads data/sample-file/cell.ar.json
+# and cell.en.json as an artifact. A person then commits those two files in a
+# PR; this workflow writes nothing to the repository.
+#
+# MANUAL ONLY: workflow_dispatch, and only from main. No push, pull_request,
+# schedule or deployment trigger, so no merge and no deploy can start it.
+#
+# THE KEY. One secret, VOYAGE_SAMPLE_KEY, in the GitHub environment
+# `sample-embeddings`. The owner creates a temporary Voyage AI key, adds it
+# there, runs this once, and deletes the key at Voyage and the secret here.
+# It is passed to ONE step as VOYAGE_API_KEY (the name main.py reads). It is
+# never echoed; that step runs without `set -x`; the script logs no request
+# and no response body; and the step fails if the key's text is found in the
+# files it wrote.
+#
+# Before any call the script asserts that each PDF's sha256, the model, the
+# dimensions and the chunk settings are the committed ones
+# (data/sample-file/manifest.json), that each PDF has 2 pages, and that the
+# extracted text equals the approved text (docs/copy-drafts/sample_file_cell.md).
+# If one fails, nothing is embedded and the key is not used.
+name: sample-embeddings
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sample-embeddings
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    name: Compute the sample file's embeddings once (manual, one Voyage AI key)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: sample-embeddings
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install the ingestion service's pinned requirements
+        run: |
+          set -eu -o pipefail
+          python3 --version
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet --disable-pip-version-check -r services/ingestion/requirements.txt
+
+      # No key in this step: the same assertions the keyed step runs first.
+      - name: Extract and compare with the approved text (no key)
+        run: |
+          set -eu -o pipefail
+          "$RUNNER_TEMP/venv/bin/python" scripts/sample-file/generate.py --extract-only --report "$RUNNER_TEMP/extract-report.txt"
+
+      - name: Embed with the temporary key and write the two JSON files
+        env:
+          VOYAGE_API_KEY: ${{ secrets.VOYAGE_SAMPLE_KEY }}
+        run: |
+          set -eu -o pipefail
+          if [ -z "${VOYAGE_API_KEY:-}" ]; then echo "FAIL: the secret VOYAGE_SAMPLE_KEY is not set in the environment sample-embeddings"; exit 1; fi
+          "$RUNNER_TEMP/venv/bin/python" scripts/sample-file/generate.py --report "$RUNNER_TEMP/extract-report.txt"
+          if grep -rqF -- "$VOYAGE_API_KEY" data/sample-file "$RUNNER_TEMP/extract-report.txt"; then
+            rm -f data/sample-file/cell.ar.json data/sample-file/cell.en.json
+            echo "FAIL: the key's text is in a written file; the files were removed"
+            exit 1
+          fi
+
+      - name: The check the typecheck job runs, on the generated files
+        run: node scripts/verify-sample-file.mjs
+
+      - name: Keep the two JSON files and the extraction report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sample-embeddings-${{ github.sha }}
+          path: |
+            data/sample-file/cell.ar.json
+            data/sample-file/cell.en.json
+            ${{ runner.temp }}/extract-report.txt
+          if-no-files-found: error
+          retention-days: 7

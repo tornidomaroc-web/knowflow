@@ -1,0 +1,25 @@
+model voyage-3-large, dimensions 1024, CHUNK_TOKENS 512, CHUNK_OVERLAP 64
+ar page 1 MISMATCH at character 213 of 789:
+  extracted: ن الخلايا. تعمل هذه الخلايا معاً ليبقى الجسم حي اًّ. معظم ال
+  approved:  ن الخلايا. تعمل هذه الخلايا معًا ليبقى الجسم حيًّا. معظم الخ
+ar page 2 MISMATCH at character 304 of 1121:
+  extracted: كوندريا الغذاء والأكسجين، وتحولّ الطاقة المخزونة في الغذاء إ
+  approved:  كوندريا الغذاء والأكسجين، وتحوّل الطاقة المخزونة في الغذاء إ
+== ar: cell.ar.pdf, sha256 d3d16dd0a6ac35be99bcb1750a27c53a3d044b59e397131751985e513e78c8ac
+pages: 2 (without text: 0); characters: 1935
+page 1 first 40: الخلية: وحدة الحياة ما الخلية؟ الخلية أص
+page 1 last 40:  لسيتوبلازم تفاعلات كثيرة تحتاجها الخلية.
+page 1 equals the approved text (whitespace normalized): NO
+page 2 first 40: النواة النواة مركز التحكم في الخلية. تحف
+page 2 last 40:  ار والبلاستيدات الخضراء والفجوة الكبيرة.
+page 2 equals the approved text (whitespace normalized): NO
+chunks: 3; token counts: [512, 512, 452]; pages: [(1, 1), (1, 2), (2, 2)]
+== en: cell.en.pdf, sha256 5b33cf183c87fb70b2646507555a97ae6c04d0e91ea295777a71227e703953ea
+pages: 2 (without text: 0); characters: 1959
+page 1 first 40: The cell: the unit of life What is a cel
+page 1 last 40:  all parts called organelles float in it.
+page 1 equals the approved text (whitespace normalized): yes
+page 2 first 40: The nucleus The nucleus is the control c
+page 2 last 40:   wall, chloroplasts and a large vacuole.
+page 2 equals the approved text (whitespace normalized): yes
+chunks: 1; token counts: [464]; pages: [(1, 2)]
