@@ -47,11 +47,26 @@ jobs:
         with:
           persist-credentials: false
 
+      # Production's interpreter, not the runner's python3 (3.14.4 on run
+      # 43117619008, where markitdown[all]'s youtube-transcript-api~=1.0.0 has
+      # no release). services/ingestion/Dockerfile: `FROM python:3.11-slim`.
+      - name: Set up the Python production runs
+        id: py
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
+
       - name: Install the ingestion service's pinned requirements
+        env:
+          PY: ${{ steps.py.outputs.python-path }}
         run: |
           set -eu -o pipefail
-          python3 --version
-          python3 -m venv "$RUNNER_TEMP/venv"
+          want=$(sed -n 's/^FROM python:\([0-9][0-9.]*\)-slim.*/\1/p' services/ingestion/Dockerfile)
+          have=$("$PY" -c 'import sys; print("%d.%d" % sys.version_info[:2])')
+          echo "interpreter: $PY ($("$PY" --version)); Dockerfile wants python $want"
+          if [ -z "$want" ] || [ "$have" != "$want" ]; then echo "FAIL: interpreter is $have, services/ingestion/Dockerfile says ${want:-nothing readable}"; exit 1; fi
+          "$PY" -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" --version
           "$RUNNER_TEMP/venv/bin/pip" install --quiet --disable-pip-version-check -r services/ingestion/requirements.txt
 
       # No key in this step: the same assertions the keyed step runs first.
