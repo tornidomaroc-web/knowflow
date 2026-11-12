@@ -451,6 +451,18 @@ bodies total 37,095 bytes. **This retires the Option C frozen-tail invariant by 
 existed only to police a boundary inside an unreviewable single line, and the append-only rule above
 supersedes it. No bespoke hash is needed for future updates: the diff is the proof.
 
+### 2026-11-12 - #318 to #322 merged: the sample file (audit cause 9) live and proven on a device; #318 never deployed
+
+**No Section 7 block is edited.** Rows 42, 69 and 81 untouched. Merge SHAs and run results below were read from GitHub on 2026-11-12.
+
+- **#318, docs PROGRESS block for #309 to #317 (74909d8, merged 00:47:24Z on 2026-11-11):** it got no Vercel deploy, no Railway deploy and no push-triggered run. Cause unknown; harmless, as it changed docs only. Open risk: nothing checks that main equals Production. Every later merge deployed (7833c6c: Vercel 7727096779, 64 s after the merge; Railway 7727084488).
+- **Owner decision 2026-11-11, activation cause 9:** a button "جرّب بملف جاهز" / "Try with a sample file" on the home with zero material; subject "مثال" / "Sample"; our own 2-page file about the cell; a ready question chip. Approach (b): the embeddings are computed once and committed (voyage-3-large, 1024). The sample never uses a daily upload. The source pill reads pages 1-2 (accepted). 7 words without shadda or tanween.
+- **#319 (89d967e):** the approved texts, the two PDFs, the generator and a manual keyed workflow. **#320 (730270d):** the workflow pinned to Python 3.11 after run 43117619008 failed on 3.14. Keyed run 43122125966: success; then the secret was deleted and the temporary Voyage key revoked; environment sample-embeddings stays empty. **#321 (4dad5fd):** the embeddings committed, byte-equal to the run's artifact.
+- **#322 (7833c6c, merged 02:58:26Z on 2026-11-12; head 0538327):** route /api/sample, the button, the ready question, documents.is_sample. Production SQL applied by hand BEFORE the merge, about 01:01Z, and verified (is_sample | boolean | NO | false | 0 | 0). The owner's review of design-c run 43128045215 found 4 defects: en "Voyage AI" split and the declined line's size; en "a ready question" split; the sample subject's "hardest" suggestion naming "مثال"; empty space in the suggestions well. Fixed at 0538327 with render check 18; design-c 43140201872 green, 0 AFTER findings; renders reviewed.
+- **#322 on a device:** relay run 43145126810 dispatched ios-signed-in run 43145151330: success, 0 failures of 52; first screen sign-up; the AI consent granted then withdrawn, read off; step 12 ok; 0 lines with "-1200". New assert: the sample button is ABSENT on the reviewer account's home, and no step pressed it. Sign-in retry=1 (92.6 s), the first retry since the #306 era: watch, not a blocker.
+- **The reviewer account, read about 03:47Z on 2026-11-12:** consent off, 0 files, 0 questions since 00:00, one session from 13.105.x (the run). GET /ar/login answered 200.
+- **Open:** production's Arabic mark rule (_line_units) misplaces shadda and tanween in students' own Arabic PDFs: its own PR later, no backfill. ios-smoke still expects login first: must-fix in the next ios/ PR.
+
 ### 2026-11-11 - #309 to #317 merged: Arabic PDF order, answer wording, the activation fixes, Latin runs, auth errors in the page's language; device witnesses; the reviewer account's unexplained login; the activation measure
 
 **No Section 7 block is edited.** Rows 42, 69 and 81 untouched. Merge SHAs, merge times, Production deploy ids and run results below were read from GitHub on 2026-11-11; what this session could not prove is marked "not verified".
