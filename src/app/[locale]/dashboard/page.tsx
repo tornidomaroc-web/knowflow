@@ -14,6 +14,8 @@ import { keptUploadsToday } from '@/lib/upload-allowance'
 import { formatDate, formatDayDate } from '@/lib/format-date'
 import { accountInitial, buildHomeLabels, buildHomeProgress, buildHrefs, buildOnboarding, buildQuotas } from '@/lib/home-props'
 import { currentPlatform } from '@/lib/platform-server'
+import { sampleDocuments } from '@/lib/sample-file-server'
+import { markSampleRows } from '@/lib/sample-file'
 
 // Thin server wrapper: auth + data only. Presentation lives in <StudentHome/>
 // (dumb, prop-driven) so it can be reused/storybooked in Phase 8.
@@ -60,6 +62,7 @@ export default async function DashboardPage({
     usageRow,
     subjectRows,
     materialRows,
+    sampleDocs,
   ] = await Promise.all([
     supabase.from('knowledge_bases').select('*', { count: 'exact', head: true }),
     supabase.from('documents').select('*', { count: 'exact', head: true }),
@@ -87,6 +90,8 @@ export default async function DashboardPage({
     // "files" stat (answerable files) and the progress base (failed and
     // no-text files left out). `buildHomeProgress` in home-props does both.
     supabase.from('documents').select('id, kb_id, status, chunk_count, embedding_status, summary_generated_at, created_at'),
+    // The sample file (audit cause 9), a separate tolerant read (sample-file-server.ts).
+    sampleDocuments(supabase),
   ])
 
   const { data: recentActivity } = await supabase
@@ -104,7 +109,8 @@ export default async function DashboardPage({
     // Activation 5 (cause #10): the uploads the gate counts, today's files that
     // did not fail (`keptUploadsToday`, the same rule /api/ingest applies), not
     // the attempt counter, which now also holds failed attempts.
-    upload: keptUploadsToday(materialRows.data ?? []),
+    // The sample file is not one of the day's uploads (upload-allowance.ts).
+    upload: keptUploadsToday(markSampleRows(materialRows.data ?? [], new Set(sampleDocs.map((d) => d.id)))),
   }
 
   // Aggregated in JS rather than in SQL: the alternative is a view or an RPC, and

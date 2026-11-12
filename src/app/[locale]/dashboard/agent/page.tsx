@@ -7,6 +7,7 @@ import type { KnowledgeBase } from '@/types';
 import { summaryLead } from '@/lib/ask-suggestions';
 import { hasNoText, answerableSubjectIds } from '@/lib/material-text';
 import { currentPlatform } from '@/lib/platform-server';
+import { sampleDocuments } from '@/lib/sample-file-server';
 
 // Thin server wrapper: data only. The chat UI (KBSelector) is a client island;
 // the no-subjects case renders the dumb <AgentEmptyState/> (Phase 8 reuse).
@@ -26,12 +27,14 @@ export default async function AgentPage({
 
   // Register #85 (SIGNED_IN_FEATURES.md 2.3): the material names feed the
   // suggested first questions; one read, RLS-scoped, no text of any material.
-  const [{ data: kbs }, { data: materials }] = await Promise.all([
+  const [{ data: kbs }, { data: materials }, sampleDocs] = await Promise.all([
     supabase.from('knowledge_bases').select('*').order('created_at', { ascending: false }),
     // `summary` is read for its FIRST SENTENCE only (register #121, defect 4):
     // a file name is not a topic. The lead is cut here, on the server, so no
     // summary text beyond one line reaches the client.
     supabase.from('documents').select('id, kb_id, filename, summary, status, chunk_count, embedding_status').eq('status', 'ready').order('created_at', { ascending: false }),
+    // The sample file (audit cause 9): where the ready question is offered.
+    sampleDocuments(supabase),
   ]);
   // #128: a file with no text is never suggested; Ask has nothing from it.
   const materialLeads = (materials ?? []).filter((m) => !hasNoText(m)).map((m) => ({ id: m.id, kb_id: m.kb_id, filename: m.filename, lead: summaryLead(m.summary) }));
@@ -113,7 +116,7 @@ export default async function AgentPage({
           conversation box takes the rest of the column, its composer pinned
           at the bottom above the tab bar. The web keeps its top bar. */}
       {platform === 'native' && <AskTitle text={t.dashboard.nav.agent} />}
-      <KBSelector kbs={kbs as KnowledgeBase[]} materials={materialLeads} answerableIds={[...answerableSubjectIds(materials ?? [])]} />
+      <KBSelector kbs={kbs as KnowledgeBase[]} materials={materialLeads} answerableIds={[...answerableSubjectIds(materials ?? [])]} sampleKbIds={[...new Set(sampleDocs.map((d) => d.kb_id))]} />
     </div>
   );
 }

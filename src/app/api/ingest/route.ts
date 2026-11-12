@@ -4,6 +4,8 @@ import { getServiceUrl } from '@/lib/ingestion';
 import { checkDocumentLimit } from '@/lib/limits-server';
 import { enforceUploadLimit } from '@/lib/rate-limit';
 import { keptUploadsToday, utcDayStart } from '@/lib/upload-allowance';
+import { sampleDocuments } from '@/lib/sample-file-server';
+import { markSampleRows } from '@/lib/sample-file';
 import { defaultLocale, resolveLocale, type Locale } from '@/lib/i18n';
 import { platformFromRequest } from '@/lib/platform';
 import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
@@ -166,13 +168,16 @@ export async function POST(request: Request) {
     const limit = await enforceUploadLimit(user.id, safeLocale, platformFromRequest(request), async () => {
       const { data, error } = await supabase
         .from('documents')
-        .select('status, created_at')
+        .select('id, status, created_at')
         .gte('created_at', utcDayStart().toISOString());
       if (error || !data) {
         console.error('Today\'s uploads not read; the attempt counter decides alone:', error?.message);
         return null;
       }
-      return keptUploadsToday(data);
+      // The sample file (/api/sample) is not one of the day's uploads. Its
+      // ids come from a separate, tolerant read (sample-file-server.ts).
+      const sampleIds = new Set((await sampleDocuments(supabase)).map((d) => d.id));
+      return keptUploadsToday(markSampleRows(data, sampleIds));
     });
     if (!limit.allowed) {
       return NextResponse.json({ error: limit.error }, { status: limit.status });

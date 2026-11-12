@@ -87,7 +87,12 @@ if (existsSync(resolvePath(ROOT, 'src/components/ui/LatinText.tsx'))) {
   const long = `أ ${'word '.repeat(8).trim()} ب`;
   check(renderToStaticMarkup(createElement(LatinText, { text: long })).includes('<bdi dir="ltr" data-kf-latin="long">'), 'a long run is an isolate that may wrap (no nowrap)');
   const enHtml = renderToStaticMarkup(createElement(LatinText, { text: en.dashboard.aiConsent.declined }));
-  check(enHtml === en.dashboard.aiConsent.declined.replace(/&/g, '&amp;'), 'an English sentence is returned as it is');
+  // PR #322 review: in an English sentence only a KEEP_WHOLE name is wrapped
+  // (one nowrap piece, "Voyage AI" kept whole); every character is unchanged.
+  check(enHtml.replace(/<[^>]+>/g, '') === en.dashboard.aiConsent.declined.replace(/&/g, '&amp;'), 'an English sentence keeps every character');
+  check(enHtml.includes('<span data-kf-keep="" class="whitespace-nowrap">Voyage AI</span>') && !enHtml.includes('<bdi'), `an English sentence draws "Voyage AI" as one nowrap piece and no isolate: ${enHtml}`);
+  const plainEn = 'Nothing was sent.';
+  check(renderToStaticMarkup(createElement(LatinText, { text: plainEn })) === plainEn, 'an English sentence without a kept name is returned as it is');
 } else check(false, 'no src/components/ui/LatinText.tsx');
 
 console.log(`\n${passes} passed, ${failures.length} failed`);

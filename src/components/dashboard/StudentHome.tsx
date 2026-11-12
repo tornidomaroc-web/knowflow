@@ -25,6 +25,7 @@ import {
 import { RecentActivity, type ActivityItem, type RecentActivityLabels } from './RecentActivity';
 import { UserName } from '@/components/ui/UserName';
 import { homeStepsFirst } from '@/lib/home-order';
+import { SampleFileButton, type SamplePreviewState } from './SampleFileButton';
 
 interface StudentHomeStat {
   label: string;
@@ -136,6 +137,8 @@ export interface StudentHomeProps {
   onboarding: OnboardingStep[];
   labels: StudentHomeLabels;
   recentActivity: ActivityItem[];
+  /** PREVIEW ONLY: the sample-file button frozen in one of its states (SampleFileButton). */
+  samplePreview?: SamplePreviewState;
 }
 
 /**
@@ -191,6 +194,7 @@ export function StudentHome({
   recentActivity,
   continueCard = null,
   locale,
+  samplePreview,
 }: StudentHomeProps) {
   const stepsLeft = onboarding.filter((s) => !s.done).length;
   const lit = (streak ?? 0) > 0;
@@ -262,6 +266,10 @@ export function StudentHome({
           );
         })}
       </ol>
+      {/* Audit cause 9: with no material yet (the same rule that puts this
+          card first), a sample file to try with. Gone from the first material
+          on, with no query of its own. */}
+      {stepsFirst && <SampleFileButton locale={locale} preview={samplePreview} />}
     </section>
   );
 

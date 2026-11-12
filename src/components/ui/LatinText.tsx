@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import { readsRightToLeft, splitLatinRuns } from '@/lib/latin-groups';
+import { splitKeepWhole } from '@/lib/keep-together';
 
 /**
  * A SENTENCE WHOSE LATIN RUNS STAY WHOLE AND IN ORDER (src/lib/latin-groups.ts,
@@ -22,7 +23,19 @@ import { readsRightToLeft, splitLatinRuns } from '@/lib/latin-groups';
  * scripts/design-c/latin-runs.mjs (check 15) reads it.
  */
 export function LatinText({ text }: { text: string }) {
-  if (!readsRightToLeft(text)) return <>{text}</>;
+  // A left-to-right sentence: only the KEEP_WHOLE names ("Voyage AI") are
+  // kept on one line, as a nowrap piece; no character changes (PR #322 review).
+  if (!readsRightToLeft(text)) {
+    const kept = splitKeepWhole(text);
+    if (kept.length === 1 && typeof kept[0] === 'string') return <>{text}</>;
+    return (
+      <>
+        {kept.map((p, i) =>
+          typeof p === 'string' ? <Fragment key={i}>{p}</Fragment> : <span key={i} data-kf-keep="" className="whitespace-nowrap">{p.keep}</span>
+        )}
+      </>
+    );
+  }
   return (
     <>
       {splitLatinRuns(text).map((p, i) =>

@@ -54,7 +54,7 @@ export default async function StudentHomePreview({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ state?: string; theme?: string; platform?: string; streak?: string }>
+  searchParams: Promise<{ state?: string; theme?: string; platform?: string; streak?: string; sample?: string }>
 }) {
   // ── THE GATE. A `noindex` tag is not access control: it asks crawlers not to
   //    list the path, and does nothing about anyone who has the URL. This route
@@ -79,7 +79,10 @@ export default async function StudentHomePreview({
   const t = useTranslation(safeLocale)
   const home = t.dashboard.home
 
-  const { state: rawState, theme: rawTheme, platform: rawPlatform, streak: rawStreak } = await searchParams
+  const { state: rawState, theme: rawTheme, platform: rawPlatform, streak: rawStreak, sample: rawSample } = await searchParams
+  // The sample file (audit cause 9): `?sample=declined|failed|adding` freezes
+  // the button under the three steps in that state; no request is made.
+  const samplePreview = rawSample === 'declined' || rawSample === 'failed' || rawSample === 'adding' ? rawSample : undefined
   // `?platform=native` shows the home as the app renders it (no Upgrade link),
   // the same switch the settings preview has; the store screenshots use it.
   const platform = resolvePlatform(rawPlatform)
@@ -239,6 +242,7 @@ export default async function StudentHomePreview({
             streakUnit: streak === null ? '' : pluralize(safeLocale, streak, home.streakUnit),
           })}
           recentActivity={recentActivity}
+          samplePreview={samplePreview}
         />
       </DashboardShell>
       </PlatformProvider>

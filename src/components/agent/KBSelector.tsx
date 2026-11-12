@@ -12,6 +12,7 @@ import { ConversationSidebar } from './ConversationSidebar';
 import { createClient } from '@/lib/supabase/client';
 import { initialAskSubject } from '@/lib/material-text';
 import { SubjectChips, AskNoAnswerableSubject } from './SubjectChips';
+import { sampleQuestionFor } from '@/lib/sample-file';
 
 export interface Conversation {
   id: string;
@@ -49,7 +50,7 @@ export interface KBSelectorPreview {
   drawer?: boolean;
 }
 
-export function KBSelector({ kbs, materials = [], answerableIds, preview }: { kbs: KnowledgeBase[]; materials?: MaterialName[]; answerableIds: string[]; preview?: KBSelectorPreview }) {
+export function KBSelector({ kbs, materials = [], answerableIds, preview, sampleKbIds = [] }: { kbs: KnowledgeBase[]; materials?: MaterialName[]; answerableIds: string[]; preview?: KBSelectorPreview; /** The subjects holding the sample file (audit cause 9): the ready question is offered there only. */ sampleKbIds?: string[] }) {
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
@@ -146,7 +147,7 @@ export function KBSelector({ kbs, materials = [], answerableIds, preview }: { kb
     /* Design "C", PR 4: one clay card and no hairline in it. On a desk the
        history is a pressed-in column at the card's start; on a phone it is
        the drawer behind the clock button. */
-    <div data-kf-ask-card="" data-kf-ask-compact={compact ? '' : undefined} className={`kf-card flex min-h-0 overflow-hidden rounded-xl bg-surface ${compact ? 'flex-none' : 'flex-1'}`}>
+    <div data-kf-ask-card="" data-kf-ask-compact={compact ? '' : undefined} className={`kf-card flex min-h-0 overflow-hidden rounded-xl bg-surface ${compact ? 'flex-none' : 'flex-1 [&:has([data-kf-ask-fit])]:flex-none'}`}>
       {/* Desktop: persistent history column. Mobile: the same list lives in the Sheet below. */}
       <div data-kf-history="column" className="kf-well my-2 ms-2 hidden w-64 shrink-0 overflow-hidden rounded-[1.25rem] md:block">{sidebar}</div>
       {/* Mobile-only: display:none on this wrapper removes the fixed Sheet (and
@@ -200,6 +201,7 @@ export function KBSelector({ kbs, materials = [], answerableIds, preview }: { kb
             initialMessages={selection.messages}
             answerable={answerable.has(selectedKb.id)}
             compact={compact}
+            sampleQuestion={sampleQuestionFor(selectedKb.id, sampleKbIds, t.dashboard.agent.sampleQuestion)}
             onNoMaterial={() => setRefusedIds((ids) => (ids.includes(selectedKb.id) ? ids : [...ids, selectedKb.id]))}
             onConversationCreated={(id) => { setSelection(s => ({ ...s, conversationId: id })); fetchConversations(); }}
           />

@@ -291,7 +291,7 @@ if (has('src/lib/upload-allowance.ts')) {
   const src = read('src/app/api/ingest/route.ts');
   check(!/enforceLimit\(user\.id, 'upload'/.test(src) && /enforceUploadLimit\(/.test(src), "ingest route: the upload gate must be enforceUploadLimit, not enforceLimit(..., 'upload')");
   const dash = read('src/app/[locale]/dashboard/page.tsx');
-  check(/upload: keptUploadsToday\(materialRows\.data/.test(dash) && /summary_generated_at, created_at'/.test(dash), 'the home must show the uploads the gate counts (keptUploadsToday), not the attempt counter');
+  check(/upload: keptUploadsToday\((markSampleRows\()?materialRows\.data/.test(dash) && /summary_generated_at, created_at'/.test(dash), 'the home must show the uploads the gate counts (keptUploadsToday), not the attempt counter');
 }
 
 // ══ 3. Cause #7: the picked file through the permission sheet. ═════════════

@@ -150,6 +150,7 @@ export type Database = {
           file_type: string | null
           filename: string
           id: string
+          is_sample: boolean
           kb_id: string
           markdown_content: string | null
           pages_no_text: number | null
@@ -169,6 +170,7 @@ export type Database = {
           file_type?: string | null
           filename: string
           id?: string
+          is_sample?: boolean
           kb_id: string
           markdown_content?: string | null
           pages_no_text?: number | null
@@ -188,6 +190,7 @@ export type Database = {
           file_type?: string | null
           filename?: string
           id?: string
+          is_sample?: boolean
           kb_id?: string
           markdown_content?: string | null
           pages_no_text?: number | null

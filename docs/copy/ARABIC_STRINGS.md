@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-11-10 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **444 Arabic strings.**
+Generated 2026-11-12 by `scripts/export-arabic-strings.mjs` from
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **452 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -299,6 +299,13 @@ file is not read by the app.
 | `dashboard.home.step2Desc` | PDF أو شرائح أو ملاحظات. كلّها تنفع. | PDFs, slides and notes. |
 | `dashboard.home.step3Title` | اسأل ما تريد | Ask a question |
 | `dashboard.home.step3Desc` | الجواب من ملفاتك أنت. | Answers come from your own materials. |
+| `dashboard.home.sampleButton` | جرّب بملف جاهز | Try with a sample file |
+| `dashboard.home.sampleDesc` | ملف قصير عن الخلية وسؤال جاهز. يمكنك حذفه متى شئت. | A short file about the cell and a ready question. You can delete it any time. |
+| `dashboard.home.sampleAdding` | نضيف الملف… | Adding the file… |
+| `dashboard.home.sampleSubjectName` | مثال | Sample |
+| `dashboard.home.sampleFileName` | الخلية | The cell |
+| `dashboard.home.sampleExists` | لديك ملف المثال من قبل. افتحه من موادك. | You already have the sample file. Open it from your subjects. |
+| `dashboard.home.sampleFailed` | تعذّرت إضافة الملف. حاول مرة أخرى. | Could not add the file. Try again. |
 | `dashboard.home.whatTitle` | ماذا يفعل KnowFlow لأجلك | What KnowFlow does for you |
 | `dashboard.home.whatLine1` | يقرأ ملفاتك ويرتّبها لتسأل عنها. | Reads the files you upload and turns them into searchable text. |
 | `dashboard.home.whatLine2` | يلخّصها لك ويصنع منها اختبارات. | Writes summaries and builds quizzes from them. |
@@ -559,6 +566,7 @@ file is not read by the app.
 | `dashboard.agent.askPlaceholder` | اكتب سؤالك… | Ask a question… |
 | `dashboard.agent.sendHintMac` | ⌘ + Enter للإرسال | ⌘ + Enter to send |
 | `dashboard.agent.sendHintOther` | Ctrl + Enter للإرسال | Ctrl + Enter to send |
+| `dashboard.agent.sampleQuestion` | ما دور الميتوكوندريا في الخلية؟ | What do mitochondria do in the cell? |
 | `dashboard.agent.send` | أرسل | Send |
 | `dashboard.agent.connectionError` | انقطع الاتصال. حاول مرة أخرى. | Connection error. |
 | `dashboard.agent.newConversation` | محادثة جديدة | New Conversation |

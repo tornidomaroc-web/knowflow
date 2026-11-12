@@ -282,6 +282,16 @@ export const ar: Translation = {
       step2Desc: "PDF أو شرائح أو ملاحظات. كلّها تنفع.",
       step3Title: "اسأل ما تريد",
       step3Desc: "الجواب من ملفاتك أنت.",
+      // The sample file (audit cause 9), approved by the owner 2026-11-11
+      // (docs/copy/ARABIC_STRINGS_app_v10.md): the button under the three
+      // steps at zero material, its line, and the names it creates.
+      sampleButton: "جرّب بملف جاهز",
+      sampleDesc: "ملف قصير عن الخلية وسؤال جاهز. يمكنك حذفه متى شئت.",
+      sampleAdding: "نضيف الملف…",
+      sampleSubjectName: "مثال",
+      sampleFileName: "الخلية",
+      sampleExists: "لديك ملف المثال من قبل. افتحه من موادك.",
+      sampleFailed: "تعذّرت إضافة الملف. حاول مرة أخرى.",
       whatTitle: "ماذا يفعل KnowFlow لأجلك",
       whatLine1: "يقرأ ملفاتك ويرتّبها لتسأل عنها.",
       whatLine2: "يلخّصها لك ويصنع منها اختبارات.",
@@ -523,6 +533,8 @@ export const ar: Translation = {
       askPlaceholder: "اكتب سؤالك…",
       sendHintMac: "⌘ + Enter للإرسال",
       sendHintOther: "Ctrl + Enter للإرسال",
+      // The sample file: the ready question under the Ask field, in the sample subject only.
+      sampleQuestion: "ما دور الميتوكوندريا في الخلية؟",
       send: "أرسل",
       connectionError: "انقطع الاتصال. حاول مرة أخرى.",
       newConversation: "محادثة جديدة",

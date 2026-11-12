@@ -25,7 +25,8 @@
  *     sourceSlides, approved in app v7; 434 after activation 5 added
  *     dashboard.upload.awaitingConsent, approved in app v8; 444 after #317
  *     added auth.checkInboxApp and the nine of auth.errors, approved in app
- *     v9).
+ *     v9; 452 after the sample file added seven of dashboard.home.sample*
+ *     and dashboard.agent.sampleQuestion, approved in app v10).
  *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
  *     ruling that removed it. Its rows stay in the batch files, which are the
  *     owner's approved record and are never edited; they are read and checked
@@ -161,7 +162,7 @@ console.error(`${approved.size} keys asserted, ${superseded} earlier rows supers
   const onlyEn = [...E.keys()].filter((k) => !A.has(k)).sort();
   check(onlyAr.join() === [...pluralOnly].sort().join(), `keys only in ar.ts: ${onlyAr.join(', ') || '(none)'}; expected the four plural forms`);
   check(onlyEn.length === 0, `keys missing from ar.ts: ${onlyEn.join(', ')}`);
-  check(A.size === 444, `ar.ts has ${A.size} leaves, expected 444`);
+  check(A.size === 452, `ar.ts has ${A.size} leaves, expected 452`);
 }
 
 // 3. Placeholders on every key.
