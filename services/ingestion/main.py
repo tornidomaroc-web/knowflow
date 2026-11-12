@@ -5,6 +5,7 @@ import re
 import shutil
 import tempfile
 import unicodedata
+from collections import Counter
 from typing import Literal, NamedTuple
 
 import httpx
@@ -206,8 +207,10 @@ def _pdf_page_counts(path: str) -> PageCounts | None:
 # reversed ("تنتج جزيئة" stored as "ةئيزج جتنت"). _pdf_logical_text redoes
 # MarkItDown's own pdfminer pass and turns every line that holds an Arabic or
 # Hebrew letter back into reading order; every other line is written exactly
-# as before. It is used only when the same pass, left unturned, reproduces
-# MarkItDown's text byte for byte, so it can never change anything else.
+# as before. It is used when the same pass, left unturned, reproduces
+# MarkItDown's text byte for byte, or holds exactly MarkItDown's letters in
+# another arrangement (see _pdf_in_reading_order); a PDF with no right-to-left
+# letter is never touched.
 _RTL = ("R", "AL")
 _MIRROR = str.maketrans("()[]{}<>«»", ")(][}{><»«")
 _BRACKETS = {")": "(", "]": "[", "}": "{"}
@@ -343,35 +346,35 @@ def _visual_to_logical(units: list[str]) -> str:
 def _line_units(line: LTTextLine) -> list[str]:
     """The line's glyph texts, left to right, without its closing newline.
 
-    A combining mark (a haraka) is joined to the glyph it sits over, so it
-    stays after its letter when the line is turned.
+    A combining mark (a haraka, tanween, shadda) is joined to the glyph drawn
+    right after it, so it stays after its letter when the line is turned.
+    HarfBuzz (WeasyPrint, fpdf2) and Skia (Chrome, Edge) draw an RTL cluster's
+    mark just before its base. Position cannot tell: pdfminer gives every mark
+    a zero-width box at the pen, on or near a letter edge, and about half of
+    them sit inside the previous letter's box (measured 2026-11-12, 9
+    producers). A space pdfminer inserted after a mark (an LTAnno, not a
+    drawn glyph) is the gap it measured from that zero width, not a word gap.
+    A mark with no glyph after it stays on the glyph before it.
     """
     items = [c for c in line if isinstance(c, LTText)]
     if items and items[-1].get_text() == "\n":
         items = items[:-1]
     units: list[str] = []
-    prev: LTChar | None = None
     pending = ""  # marks drawn before the glyph they sit over
-    for idx, c in enumerate(items):
+    for c in items:
         t = c.get_text()
         if isinstance(c, LTChar) and t and all(unicodedata.category(ch) == "Mn" for ch in t):
-            mid = (c.x0 + c.x1) / 2
-            nxt = next((o for o in items[idx + 1:] if isinstance(o, LTChar)), None)
-            over_prev = prev is not None and prev.x0 <= mid <= prev.x1
-            over_next = nxt is not None and nxt.x0 <= mid <= nxt.x1
-            if over_next and not over_prev:
-                pending += t
-            elif units:
-                units[-1] += t
-            else:
-                pending += t
+            pending += t
+            continue
+        if pending and not isinstance(c, LTChar) and t == " ":
             continue
         units.append(t + pending)
         pending = ""
-        if isinstance(c, LTChar):
-            prev = c
     if pending:
-        units.append(pending)
+        if units:
+            units[-1] += pending
+        else:
+            units.append(pending)
     return units
 
 
@@ -477,21 +480,66 @@ def _markitdown_pdf_post(text: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", text)
 
 
+def _same_letters(a: str, b: str) -> bool:
+    """Whether two texts hold the same letters, each as often, in any order."""
+    def count(t: str) -> Counter:
+        return Counter(ch for ch in t if unicodedata.category(ch).startswith("L"))
+    return count(a) == count(b)
+
+
+def _has_orphan_mark(text: str) -> bool:
+    """Whether a combining mark follows something other than a letter or a mark:
+    a line cut between a mark and its letter."""
+    prev = ""
+    for ch in text:
+        if unicodedata.category(ch) == "Mn":
+            cat = unicodedata.category(prev) if prev else ""
+            if not (cat.startswith("L") or cat == "Mn"):
+                return True
+        prev = ch
+    return False
+
+
+def _has_presentation_forms(text: str) -> bool:
+    """Arabic presentation forms (U+FB50-FDFF, U+FE70-FEFF): shaped glyphs a
+    producer mapped to themselves (Chrome and Edge do), not letters."""
+    return any(0xFB50 <= ord(ch) <= 0xFDFF or 0xFE70 <= ord(ch) <= 0xFEFF for ch in text)
+
+
+def _rearranged_only(raw: str, logical: str, markdown_text: str) -> bool:
+    """Whether MarkItDown's text, though not pdfminer's, is only a rearrangement
+    of the same clean reading, so the logical text can stand in for it: the
+    same letters, each as often; no glyph pdfminer could not map ("(cid:N)");
+    no presentation form; and no mark in the logical text cut off from its
+    letter. Measured 2026-11-12 on 19 PDFs: without the last three, a
+    fragmented reading (Noto Naskh, LibreOffice with Tahoma) would lose marks
+    it has today, and a presentation-form reading (Chrome with DejaVu Sans) is
+    not yet letters to compare; those keep MarkItDown's text, as before."""
+    return (_same_letters(raw, markdown_text) and "(cid:" not in raw
+            and not _has_presentation_forms(raw) and not _has_orphan_mark(logical))
+
+
 def _pdf_in_reading_order(path: str, markdown_text: str) -> str:
     """MarkItDown's text of a PDF, with right-to-left lines in reading order.
 
     A PDF without a right-to-left letter is returned untouched, with no second
-    pass. Otherwise the logical text replaces MarkItDown's only when the
-    unturned pass equals it byte for byte; a PDF MarkItDown read another way
-    (its form-style table path) keeps MarkItDown's text, as before. Never raises.
+    pass. Otherwise the logical text replaces MarkItDown's when the unturned
+    pass equals it byte for byte, or when MarkItDown's text is only a
+    rearrangement of it (_rearranged_only). That is MarkItDown's
+    borderless-table path, which Arabic marks trigger (pdfplumber cuts marked
+    words into fragments) and which returns the same glyphs in visual order
+    with pipes. Any other difference keeps MarkItDown's text, as before.
+    Never raises.
     """
     if not _has_rtl(markdown_text):
         return markdown_text
     try:
         raw, logical = _pdf_logical_text(path)
         if _markitdown_pdf_post(raw) != markdown_text:
-            print("rtl order: kept MarkItDown's text (passes differ)", flush=True)
-            return markdown_text
+            if not _rearranged_only(raw, logical, markdown_text):
+                print("rtl order: kept MarkItDown's text (passes differ)", flush=True)
+                return markdown_text
+            print("rtl order: passes differ, same letters; used the logical text", flush=True)
         return _markitdown_pdf_post(logical)
     except Exception as e:  # noqa: BLE001 - a better order, never a reason to fail an upload
         print(f"rtl order failed: {type(e).__name__}", flush=True)
