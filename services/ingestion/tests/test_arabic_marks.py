@@ -22,6 +22,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 os.environ.setdefault("INGESTION_TOKEN", "test-token")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -45,10 +47,11 @@ def test_marked_weasyprint_lines_whole_and_in_reading_order():
             (FIXTURES / "arabic-marks-weasyprint.txt").read_text(encoding="utf-8").splitlines()
             if line.strip()]
     assert len(want) == 3
-    have = {_norm(line) for line in text.split("\n") if line.strip()}
-    missing = [w for w in want if w not in have]
-    assert not missing, f"missing {missing}; got:\n{text}"
     assert "|" not in text, text
+    # Each paragraph wraps onto two lines in the PDF, so the whole text is
+    # compared: every letter and mark of every source line, in reading order,
+    # and nothing else (whitespace, line breaks and the page's form feed aside).
+    assert _norm(text) == " ".join(want), f"got:\n{text}"
 
 
 def _char(text: str, x0: float, x1: float) -> LTChar:
@@ -89,8 +92,44 @@ def test_mark_last_on_the_line_stays_on_the_glyph_before_it():
 
 
 def test_same_letters_rule():
-    """The logical text replaces MarkItDown's only when both read the same
-    letters, whatever the arrangement; marks, spaces and pipes do not count."""
+    """Same letters, each as often, whatever the arrangement; marks, spaces
+    and pipes do not count."""
     assert main._same_letters("ab | c" + FATHA, "c ba")
     assert not main._same_letters("abc", "abd")
     assert not main._same_letters("abc", "abcc")
+
+
+def test_orphan_mark():
+    assert not main._has_orphan_mark(BA + FATHA + " " + TA + "ّ" + FATHA)
+    assert main._has_orphan_mark(BA + " " + FATHA + TA)
+    assert main._has_orphan_mark(FATHA + BA)
+    assert main._has_orphan_mark(BA + "\n" + FATHA)
+
+
+LOGICAL = TA + FATHA + BA + "\n"
+RAW = BA + TA + FATHA + "\n"
+VISUAL_TABLE = "| " + BA + " | " + TA + FATHA + " |"
+
+
+@pytest.mark.parametrize("raw, logical, md, want", [
+    # MarkItDown's table path, same letters, clean reading: the logical text
+    (RAW, LOGICAL, VISUAL_TABLE, TA + FATHA + BA + "\n"),
+    # MarkItDown read a letter pdfminer did not: kept
+    (RAW, LOGICAL, VISUAL_TABLE + "ج", VISUAL_TABLE + "ج"),
+    # a glyph pdfminer could not map: kept
+    (RAW + "(cid:3)", LOGICAL + "(cid:3)", VISUAL_TABLE + "(cid:3)", VISUAL_TABLE + "(cid:3)"),
+    # a mark cut off from its letter in the logical text: kept
+    (RAW, TA + "\n" + FATHA + BA + "\n", VISUAL_TABLE, VISUAL_TABLE),
+    # presentation forms (here final ba, U+FE90), not letters yet: kept
+    (RAW + "ﺐ", LOGICAL + "ﺐ", VISUAL_TABLE + "ﺐ", VISUAL_TABLE + "ﺐ"),
+])
+def test_passes_differ_rule(monkeypatch, raw, logical, md, want):
+    monkeypatch.setattr(main, "_pdf_logical_text", lambda path: (raw, logical))
+    assert main._pdf_in_reading_order("unused.pdf", md) == want
+
+
+def test_passes_differ_never_raises(monkeypatch):
+    def boom(path):
+        raise ValueError("bad pdf")
+    monkeypatch.setattr(main, "_pdf_logical_text", boom)
+    assert main._pdf_in_reading_order("unused.pdf", VISUAL_TABLE) == VISUAL_TABLE
