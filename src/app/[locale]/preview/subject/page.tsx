@@ -54,6 +54,10 @@ export default async function SubjectPreview({
   const { platform: rawPlatform, view } = await searchParams
   const fresh = view === 'new'
   const noFiles = view === 'empty' || fresh
+  // The sample file (audit cause 9): `?view=sample` the subject /api/sample
+  // creates, holding the one ready file about the cell.
+  const sample = view === 'sample'
+  const home = t.dashboard.home
   const platform = resolvePlatform(rawPlatform)
 
   const materials: { id: string; filename: string; type: string; status: string; added: string; summary: boolean; quiz: boolean; chunk_count?: number; embedding_status?: string }[] = [
@@ -72,7 +76,10 @@ export default async function SubjectPreview({
     { id: 'd6', filename: ar ? 'ملاحظات المحاضرة الخامسة عن مرونة الطلب الدخلية والتقاطعية وأثرها على السوق - النسخة النهائية 12.pdf' : 'Lecture 5 notes on income and cross elasticity of demand in markets - final version 12.pdf', type: 'pdf', status: 'ready', added: '2026-09-25T12:00:00Z', summary: true, quiz: true },
     { id: 'd7', filename: ar ? 'ملخص Chapter 3 (1).pdf' : 'Summary الفصل 3 (1).pdf', type: 'pdf', status: 'ready', added: '2026-09-25T13:00:00Z', summary: false, quiz: false },
   ]
-  const stats = noFiles ? emptyStats() : { ...emptyStats(), materials: 8, ready: 5, processing: 1, failed: 1, summarised: 3, quizzed: 3 }
+  const shown = sample
+    ? [{ id: 'sample', filename: `${home.sampleFileName}.pdf`, type: 'pdf', status: 'ready', added: '2026-11-12T09:00:00Z', summary: false, quiz: false, chunk_count: ar ? 3 : 1, embedding_status: 'ready' }]
+    : materials
+  const stats = noFiles ? emptyStats() : sample ? { ...emptyStats(), materials: 1, ready: 1 } : { ...emptyStats(), materials: 8, ready: 5, processing: 1, failed: 1, summarised: 3, quizzed: 3 }
   const renameLabels = t.dashboard.kbDetail.renameMaterial
   const deleteLabels = withSupportEmail(t.dashboard.kbDetail.deleteMaterial)
   // #123 batch 2: a summary already generated and cut short, so the partial
@@ -123,8 +130,8 @@ export default async function SubjectPreview({
       >
         <div className="mx-auto max-w-4xl space-y-6 [text-wrap:balance]">
           <SubjectHeader
-            name={fresh ? (ar ? 'الأحياء' : 'Biology') : ar ? 'مبادئ الاقتصاد الجزئي' : 'Microeconomics'}
-            description={fresh ? null : ar ? 'الفصل الأول، د. العلوي' : 'Semester 1, Dr. Alaoui'}
+            name={sample ? home.sampleSubjectName : fresh ? (ar ? 'الأحياء' : 'Biology') : ar ? 'مبادئ الاقتصاد الجزئي' : 'Microeconomics'}
+            description={fresh || sample ? null : ar ? 'الفصل الأول، د. العلوي' : 'Semester 1, Dr. Alaoui'}
             stats={stats}
             askHref="#"
             labels={{
@@ -140,7 +147,7 @@ export default async function SubjectPreview({
             <h2 className="text-xs font-semibold uppercase text-muted-foreground">{t.dashboard.kbDetail.documents}</h2>
             {noFiles ? <NoMaterials text={t.dashboard.kbDetail.noDocuments} /> : (
             <div className="space-y-3">
-              {materials.map((m) => (
+              {shown.map((m) => (
                 <MaterialCard
                   key={m.id}
                   filename={m.filename}
@@ -163,6 +170,7 @@ export default async function SubjectPreview({
                   {m.id === 'd4' ? <PreviewStudyKit docId={m.id} summary={null} partial={false} deleteLabels={deleteLabels} rename={{ filename: m.filename, labels: withSupportEmail(renameLabels) }} /> : null}
                   {m.id === 'd1' ? <PreviewStudyKit docId={m.id} summary={partialSummary} partial quizEmpty={view === 'quizempty'} deleteLabels={deleteLabels} /> : null}
                   {m.id === 'd8' ? <PreviewStudyKit docId={m.id} summary={null} partial={false} noText deleteLabels={deleteLabels} /> : null}
+                  {m.id === 'sample' ? <PreviewStudyKit docId={m.id} summary={null} partial={false} deleteLabels={deleteLabels} rename={{ filename: m.filename, labels: withSupportEmail(renameLabels) }} /> : null}
                 </MaterialCard>
               ))}
             </div>

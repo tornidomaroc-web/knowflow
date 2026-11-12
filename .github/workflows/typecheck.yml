@@ -324,6 +324,17 @@ jobs:
       - name: Verify the sample file's PDFs and embedding settings have not drifted
         run: node scripts/verify-sample-file.mjs && node scripts/verify-sample-file.mjs --self-test
 
+      # Audit cause 9, the feature: the day's uploads leave the sample out; the
+      # REAL /api/sample handler, against an in-memory database, refuses without
+      # the AI permission before any write, is idempotent, holds the subject
+      # limit, stores the committed PDF and chunks in one insert, undoes a
+      # failed attempt and never touches a usage counter; the button is drawn
+      # only at zero material and the ready question only fills the field. Its
+      # forced cases (the sample counted, the permission skipped, a second
+      # sample) must each fail.
+      - name: Verify the sample file feature (the route, the rows, the day's uploads)
+        run: node --experimental-strip-types scripts/verify-sample-feature.mjs && node --experimental-strip-types scripts/verify-sample-feature.mjs --self-test
+
       # #295 follow-up: /api/ingest never stores a file name holding U+0000 (22P05).
       - name: Verify the upload route removes U+0000 from the stored file name, and nothing else
         run: node --experimental-strip-types scripts/verify-upload-filename-nul.mjs

@@ -295,6 +295,16 @@ export const en = {
       step2Desc: "PDFs, slides and notes.",
       step3Title: "Ask a question",
       step3Desc: "Answers come from your own materials.",
+      // The sample file (audit cause 9), approved by the owner 2026-11-11
+      // (docs/copy/ARABIC_STRINGS_app_v10.md): the button under the three
+      // steps at zero material, its line, and the names it creates.
+      sampleButton: "Try with a sample file",
+      sampleDesc: "A short file about the cell and a ready question. You can delete it any time.",
+      sampleAdding: "Adding the file…",
+      sampleSubjectName: "Sample",
+      sampleFileName: "The cell",
+      sampleExists: "You already have the sample file. Open it from your subjects.",
+      sampleFailed: "Could not add the file. Try again.",
       whatTitle: "What KnowFlow does for you",
       whatLine1: "Reads the files you upload and turns them into searchable text.",
       whatLine2: "Writes summaries and builds quizzes from them.",
@@ -559,6 +569,8 @@ export const en = {
       askPlaceholder: "Ask a question…",
       sendHintMac: "⌘ + Enter to send",
       sendHintOther: "Ctrl + Enter to send",
+      // The sample file: the ready question under the Ask field, in the sample subject only.
+      sampleQuestion: "What do mitochondria do in the cell?",
       send: "Send",
       connectionError: "Connection error.",
       newConversation: "New Conversation",

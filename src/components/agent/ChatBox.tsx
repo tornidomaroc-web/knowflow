@@ -43,6 +43,12 @@ interface ChatBoxProps {
   compact?: boolean;
   /** Activation 5: the route answered `no_material` after the page loaded. */
   onNoMaterial?: () => void;
+  /**
+   * The sample file (audit cause 9): the ready question, only in a subject
+   * that holds the sample. Shown as a chip under the field until the first
+   * message; pressing it puts the question IN the field and sends nothing.
+   */
+  sampleQuestion?: string | null;
 }
 
 /**
@@ -119,7 +125,7 @@ function isolated(q: string, subject: string) {
 }
 const TRAILING = /^[.,!?\u060C\u061F\u00BB\u201D:;]+/;
 
-export function ChatBox({ kbId, kbName, materials = [], initialConversationId, initialMessages, onConversationCreated, answerable = true, compact = false, onNoMaterial }: ChatBoxProps) {
+export function ChatBox({ kbId, kbName, materials = [], initialConversationId, initialMessages, onConversationCreated, answerable = true, compact = false, onNoMaterial, sampleQuestion = null }: ChatBoxProps) {
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
@@ -139,6 +145,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
     labels: { title: t.dashboard.home.step2Title, desc: t.dashboard.home.step2Desc, cta: t.dashboard.upload.uploadButton },
   };
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fieldRef = useRef<HTMLTextAreaElement>(null);
   // The keyboard hint is shown only where a keyboard is likely (md and up, via
   // CSS) and names the modifier the platform has (review #122, defect 5):
   // Cmd on a Mac, Ctrl elsewhere. Read after mount; the server renders none.
@@ -313,7 +320,10 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
               {t.dashboard.suggestions.heading}
             </p>
             <div className="mt-2 grid grid-cols-1 gap-2">
-              {askSuggestions(t.dashboard.suggestions, kbName, materials).map((q, i) => {
+              {/* With the ready question under the field, two suggestions:
+                  the chip takes a row of the screen, and all of them must
+                  show whole above the composer at 390 x 844. */}
+              {askSuggestions(t.dashboard.suggestions, kbName, materials, sampleQuestion ? 2 : 3).map((q, i) => {
                 const icon = [
                   <ClaySummary key="s" width={24} height={24} />,
                   <ClayAnswer key="a" width={24} height={24} mark={safeLocale === 'ar' ? '؟' : '?'} />,
@@ -360,6 +370,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
       <div data-kf-composer="" className="sticky bottom-0 shrink-0 bg-surface p-3 pb-6 md:p-4">
         <div className="kf-composer flex items-end gap-2 rounded-2xl border border-control-border bg-background p-2 focus-within:border-primary">
           <textarea
+            ref={fieldRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -376,6 +387,20 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
             <ClaySend className="rtl:-scale-x-100" />
           </button>
         </div>
+        {/* The sample file (audit cause 9): the ready question, under the
+            field. A press fills the field and moves the caret there; the
+            student sends it, so nothing leaves without their own tap on send. */}
+        {sampleQuestion && messages.length === 0 && (
+          <button
+            type="button"
+            onClick={() => { setInput(sampleQuestion); fieldRef.current?.focus(); }}
+            data-kf-sample-question=""
+            className="kf-pill pressable mt-2 inline-flex min-h-[2.75rem] max-w-full items-center gap-2 rounded-full px-4 text-start text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ClaySpark width={20} height={20} className="shrink-0" />
+            <span className="min-w-0 truncate">{sampleQuestion}</span>
+          </button>
+        )}
         {/* Only where a keyboard is likely: md and up, and only once the platform
             is known, so a phone never reads a shortcut it cannot press. */}
         {modifier && (

@@ -1,4 +1,6 @@
-# The sample file: button, subject name, ready question and refusals (APPROVED)
+# The sample file: button, subject name, ready question and refusals (APPROVED, SHIPPED)
+
+**Shipped: the strings are in `ar.ts` and `en.ts`, recorded in `docs/copy/ARABIC_STRINGS_app_v10.md`.**
 
 **Status: APPROVED by the owner 2026-11-11**, as drafted, with the button
 "جرّب بملف جاهز" and the plural English question. Nothing here is in the

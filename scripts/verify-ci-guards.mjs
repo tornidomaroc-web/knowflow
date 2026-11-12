@@ -112,7 +112,8 @@ function simulate(plan) {
   class HTMLInputElement {}
   Object.defineProperty(HTMLInputElement.prototype, 'value', { set(v) { this.value_ = v; }, configurable: true });
   const ctx = {
-    document: { querySelector: (q) => (q.includes('email') ? email : q.includes('password') ? password : null) },
+    // The home step also counts the sample-file button; this page (an account with material) has none.
+    document: { querySelector: (q) => (q.includes('email') ? email : q.includes('password') ? password : null), querySelectorAll: () => [] },
     HTMLInputElement, Event: class { constructor(t) { this.type = t; } },
     sessionStorage: { setItem: (k, v) => store.set(k, String(v)), getItem: (k) => store.get(k) ?? null },
     location,

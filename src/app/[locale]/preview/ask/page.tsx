@@ -73,7 +73,7 @@ export default async function AskPreview({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ view?: string; platform?: string; tail?: string; q?: string; open?: string; drawer?: string }>
+  searchParams: Promise<{ view?: string; platform?: string; tail?: string; q?: string; open?: string; drawer?: string; sample?: string }>
 }) {
   if (process.env.VERCEL_ENV === 'production') notFound()
   const { locale } = await params
@@ -102,6 +102,15 @@ export default async function AskPreview({
     // k3 holds only a processing file and k5 only a failed one: neither is a
     // ready row, which is all the Ask page reads.
   ]
+  // The sample file (audit cause 9): `?view=app&sample=1&kb=ks` adds the
+  // subject /api/sample creates, with its one ready file, and Ask offers the
+  // ready question there. Without `sample` nothing here changes.
+  const withSample = sp.sample === '1'
+  // Kept out of `kbs`, whose positions name the history's subjects below.
+  const sampleKbs = withSample ? [{ id: 'ks', name: t.dashboard.home.sampleSubjectName }] : []
+  if (withSample) {
+    readyRows.push({ kb_id: 'ks', status: 'ready', chunk_count: ar ? 3 : 1, embedding_status: 'ready' })
+  }
   const answerable = answerableSubjectIds(readyRows)
   const offered = kbs.filter((k) => answerable.has(k.id))
 
@@ -142,7 +151,7 @@ export default async function AskPreview({
   // other language). The messages table stores no sources; the preview
   // passes them so the opened conversation shows its pills.
   const day = (d: number) => new Date(Date.UTC(2026, 10, d, 9, 30)).toISOString()
-  const appKbs = kbs.map((k) => ({ ...k, user_id: 'u', description: null, language: ar ? 'ar' : 'en', created_at: day(1) })) as unknown as KnowledgeBase[]
+  const appKbs = [...sampleKbs, ...kbs].map((k) => ({ ...k, user_id: 'u', description: null, language: ar ? 'ar' : 'en', created_at: day(1) })) as unknown as KnowledgeBase[]
   const historyList = [
     { id: 'c1', kb_id: 'k1', created_at: day(5), knowledge_bases: { name: kbs[0].name } },
     { id: 'c2', kb_id: 'k4', created_at: day(4), knowledge_bases: { name: kbs[3].name } },
@@ -190,7 +199,10 @@ export default async function AskPreview({
       },
     ],
   }
-  const appMaterials = materials.map((m, i) => ({ id: `m${i}`, kb_id: 'k1', filename: m.filename, lead: m.lead }))
+  const appMaterials = [
+    ...materials.map((m, i) => ({ id: `m${i}`, kb_id: 'k1', filename: m.filename, lead: m.lead })),
+    ...(withSample ? [{ id: 'ms', kb_id: 'ks', filename: `${t.dashboard.home.sampleFileName}.pdf`, lead: null }] : []),
+  ]
 
   return (
     <div className="min-h-screen">
@@ -273,6 +285,7 @@ export default async function AskPreview({
               materials={appMaterials}
               answerableIds={[...answerable]}
               preview={{ conversations: historyList, messages: historyMessages, open: sp.open, drawer: sp.drawer === '1' }}
+              sampleKbIds={withSample ? ['ks'] : []}
             />
           </div>
         ) : view === 'history' ? (

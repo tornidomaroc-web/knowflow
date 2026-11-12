@@ -108,3 +108,8 @@
 # `apply`: plain DDL on public.chunks, re-runnable (if not exists, drop
 # constraint if exists before add).
 20261106_chunks_pages.sql  apply
+# 20261112 is the schema half of the sample file (audit cause 9): documents
+# gets is_sample, boolean not null default false, with a column comment. No
+# function, policy or grant change. `apply`: plain DDL on public.documents,
+# re-runnable (add column if not exists).
+20261112_documents_is_sample.sql  apply

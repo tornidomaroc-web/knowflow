@@ -12,6 +12,7 @@ import { ConversationSidebar } from './ConversationSidebar';
 import { createClient } from '@/lib/supabase/client';
 import { initialAskSubject } from '@/lib/material-text';
 import { SubjectChips, AskNoAnswerableSubject } from './SubjectChips';
+import { sampleQuestionFor } from '@/lib/sample-file';
 
 export interface Conversation {
   id: string;
@@ -49,7 +50,7 @@ export interface KBSelectorPreview {
   drawer?: boolean;
 }
 
-export function KBSelector({ kbs, materials = [], answerableIds, preview }: { kbs: KnowledgeBase[]; materials?: MaterialName[]; answerableIds: string[]; preview?: KBSelectorPreview }) {
+export function KBSelector({ kbs, materials = [], answerableIds, preview, sampleKbIds = [] }: { kbs: KnowledgeBase[]; materials?: MaterialName[]; answerableIds: string[]; preview?: KBSelectorPreview; /** The subjects holding the sample file (audit cause 9): the ready question is offered there only. */ sampleKbIds?: string[] }) {
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
   const t = useTranslation(safeLocale);
@@ -200,6 +201,7 @@ export function KBSelector({ kbs, materials = [], answerableIds, preview }: { kb
             initialMessages={selection.messages}
             answerable={answerable.has(selectedKb.id)}
             compact={compact}
+            sampleQuestion={sampleQuestionFor(selectedKb.id, sampleKbIds, t.dashboard.agent.sampleQuestion)}
             onNoMaterial={() => setRefusedIds((ids) => (ids.includes(selectedKb.id) ? ids : [...ids, selectedKb.id]))}
             onConversationCreated={(id) => { setSelection(s => ({ ...s, conversationId: id })); fetchConversations(); }}
           />

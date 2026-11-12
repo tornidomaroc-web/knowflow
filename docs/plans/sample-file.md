@@ -352,3 +352,98 @@ from voyage-3-large. The two files are committed from its artifact unchanged.
 The owner deleted the secret `VOYAGE_SAMPLE_KEY` and the Voyage key the same
 night; the environment `sample-embeddings` lists no secret. Steps 2 to 4 above
 are done; 5 and 6 remain.
+
+## 11. Built (2026-11-12): the route, the button, the ready question
+
+**Order: the SQL below first, by the owner, then the merge.** The code tolerates
+the other order (the home, Ask and the upload route read `is_sample` through a
+separate read that treats a refusal as "no sample"; only the sample button
+would answer "Could not add the file"), but the button must not ship broken.
+
+### What is built
+
+| Path | What |
+|---|---|
+| `supabase/migrations/20261112_documents_is_sample.sql`, `supabase/migration-order.txt`, `supabase/database.types.ts` | The one column, re-runnable; the generated types |
+| `src/lib/sample-file.ts` | Pure: the document row, the chunk rows, the file's whole text, the names, the Ask link, where the ready question is offered |
+| `src/lib/sample-file-data.ts` | Imports `data/sample-file/cell.{ar,en}.json` (server only) |
+| `src/lib/sample-file-server.ts` | The caller's sample documents, a tolerant read |
+| `src/app/api/sample/route.ts` | `POST /api/sample`, the student's session only |
+| `src/lib/upload-allowance.ts`, `src/app/api/ingest/route.ts`, `src/app/[locale]/dashboard/page.tsx` | The day's uploads leave the sample out, in the gate and on the home's ring |
+| `src/components/dashboard/SampleFileButton.tsx`, `StudentHome.tsx` | The button under the three steps, only while `homeStepsFirst` is true |
+| `src/components/agent/ChatBox.tsx`, `KBSelector.tsx`, `dashboard/agent/page.tsx` | The ready question as a chip under the field, in a sample subject only |
+| `src/lib/i18n/locales/{ar,en}.ts`, `docs/copy/ARABIC_STRINGS_app_v10.md` | The eight approved strings (452 Arabic strings) |
+| `next.config.ts` | `outputFileTracingIncludes`: the two PDFs travel with `/api/sample` |
+| `scripts/verify-sample-feature.mjs` (typecheck job) | The real route against an in-memory database; fails on main |
+| `scripts/design-c/sample.mjs` | The screens and check 17, with a forced wrong case per mode |
+| `.github/workflows/ios-signed-in.yml` | The home step reads that the button is absent; no step presses it |
+
+### How the route differs from section 2, and why
+
+- **`markdown_content` is written.** The summary and the quiz read
+  `documents.markdown_content`, not the chunks. The row carries the file's
+  whole text, rebuilt from the committed chunks (their overlap joined once);
+  the proof holds it equal to the approved text.
+- **The stored file cannot be removed by the route.** A student's session may
+  insert and read in the `documents` bucket (`002_storage.sql`) and not
+  delete. A failure after the upload removes the document row, its chunks and
+  the subject this request made, and can leave one file of 10 to 17 KB with
+  no row: the gap register #111 records for `/api/ingest`. The removal is
+  still attempted.
+- **An empty subject of the sample's name is reused** (section 5), also at the
+  subject limit; a subject of that name that holds a file is not.
+- **Where the PDF and the embeddings come from:** the PDF is read from disk
+  (`data/sample-file/cell.<lang>.pdf`, traced into the function); the chunks
+  and embeddings are imported.
+- **The ready question fills the field and sends nothing.** With the chip under
+  the field the empty Ask shows two suggestions, not three, so all of them
+  show whole above the composer at 390 x 844.
+- **The source pill reads pages 1-2** (accepted by the owner): the
+  mitochondria paragraph is in the Arabic chunk 1 and the English chunk 0,
+  both labelled 1-2. Section 6's "ص 2" is not what ships.
+- **The signed-in iOS run asserts ABSENCE.** The reviewer account holds the
+  seeded material, so its home has no button; the button's presence is held
+  by design-c on the empty-home renders.
+
+### The SQL (run once in the SQL editor; safe to run again)
+
+```sql
+alter table public.documents
+  add column if not exists is_sample boolean not null default false;
+
+comment on column public.documents.is_sample is
+  'True for the one sample file /api/sample creates. Not counted in the day''s uploads (src/lib/upload-allowance.ts).';
+
+-- The API reads the table's columns from a cache; this refreshes it at once.
+notify pgrst, 'reload schema';
+```
+
+### The verify query, and what it must return
+
+```sql
+select c.column_name, c.data_type, c.is_nullable, c.column_default,
+       (select count(*) from public.documents where is_sample) as sample_rows,
+       (select count(*) from public.documents where is_sample is null) as null_rows
+from information_schema.columns c
+where c.table_schema = 'public' and c.table_name = 'documents' and c.column_name = 'is_sample';
+```
+
+Exactly one row:
+
+| column_name | data_type | is_nullable | column_default | sample_rows | null_rows |
+|---|---|---|---|---|---|
+| is_sample | boolean | NO | false | 0 | 0 |
+
+No row means the column was not added. `sample_rows` is 0 until a student
+presses the button after the merge.
+
+### Not built, and open
+
+- No rate limit on the route (section 8): the subject limit bounds live
+  subjects, and a create-and-delete loop costs no AI call.
+- No subject delete: after deleting the sample file the empty subject stays
+  and is reused by the next press.
+- Two presses at the same instant can still make two samples (section 5).
+- `docs/design/redesign-built/` and `docs/store/redesign3-renders/` hold the
+  empty home, which now carries the button; their images are replaced in the
+  same PR.

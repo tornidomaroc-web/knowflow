@@ -51,12 +51,18 @@ export function utcDayStart(now: Date = new Date()): Date {
 export interface UploadRow {
   status: string;
   created_at: string | null;
+  /** The sample file /api/sample creates (`documents.is_sample`): never one of the day's uploads. */
+  is_sample?: boolean | null;
 }
 
-/** Today's (UTC) documents that did not fail: ready, processing, or any status but `error`. */
+/**
+ * Today's (UTC) documents that did not fail: ready, processing, or any status but `error`.
+ * The sample file is not an upload (docs/plans/sample-file.md, section 4): a row
+ * with `is_sample` true is never counted.
+ */
 export function keptUploadsToday(rows: UploadRow[], now: Date = new Date()): number {
   const start = utcDayStart(now).getTime();
-  return rows.filter((r) => r.status !== 'error' && r.created_at && Date.parse(r.created_at) >= start).length;
+  return rows.filter((r) => r.is_sample !== true && r.status !== 'error' && r.created_at && Date.parse(r.created_at) >= start).length;
 }
 
 /**

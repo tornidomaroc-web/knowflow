@@ -167,6 +167,7 @@ import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList,
 import { activation5Screens, a5Prepare, a5Act, askPathCheck, askPathPlant, dropZoneErrorCheck, dropZoneErrorPlant } from './activation5.mjs';
 import { latinRunsCheck, latinRunsPlant } from './latin-runs.mjs';
 import { authErrorScreens, authPrepare, authAct, authErrorCheck, authErrorPlant, isAuthPage } from './auth-errors.mjs';
+import { sampleScreens, sampleMode, sampleCheck, samplePlant } from './sample.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -262,6 +263,8 @@ byKeyEarly('home-one').stepsView = 1;
 const LONG = pr4Screens(add, { APP, SAFARI, DESK, DESKTOP, PHONE }, resolve('.'));
 activation5Screens(add, { APP, SAFARI, DESK, DESKTOP }, byKeyEarly);
 authErrorScreens(add, { APP, SAFARI, DESK, DESKTOP });
+// The sample file (audit cause 9): its screens and check 17 (sample.mjs).
+sampleScreens(add, { APP, DESK, DESKTOP }, byKeyEarly);
 const KEEP = keepTogetherList(resolve('.'));
 const byKey = (k) => SCREENS.find((x) => x.key === k);
 function byKeyEarly(k) { return SCREENS.find((x) => x.key === k); }
@@ -956,6 +959,8 @@ const fontSets = new Set();
 let dottedForced = 0;
 // Check 16's forced cases: how many Arabic AFTER renders forced them.
 let authForced = 0;
+// Check 17 (sample.mjs): per mode, the AFTER renders whose forced wrong case was caught.
+const sampleForced = {};
 
 async function shoot(side, job) {
   const ctx = await browser.createBrowserContext();
@@ -1057,6 +1062,12 @@ async function shoot(side, job) {
   if (authPage) await tab.evaluate(`window.authErrorCheck = ${authErrorCheck.toString()}`);
   const auth16 = authPage ? await tab.evaluate(authErrorCheck, job.locale, !!job.s.authErr) : null;
   const auth16Plant = authPage && side === 'after' ? await tab.evaluate(authErrorPlant, job.locale) : null;
+  // The sample file, check 17 (sample.mjs): the button at zero material only,
+  // the ready question in the sample subject only; and its forced cases on AFTER.
+  const mode17 = sampleMode(job);
+  if (mode17) await tab.evaluate(`window.sampleCheck = ${sampleCheck.toString()}`);
+  const sample17 = mode17 ? await tab.evaluate(sampleCheck, mode17, job.locale) : null;
+  const sample17Plant = mode17 && side === 'after' ? await tab.evaluate(samplePlant, mode17, job.locale) : null;
   // The owner's review of #315, check 14: a drop zone error state has a way to pick another file.
   if (job.s.dzError) await tab.evaluate(`window.dropZoneErrorCheck = ${dropZoneErrorCheck.toString()}`);
   const dzError = job.s.dzError ? await tab.evaluate(dropZoneErrorCheck) : null;
@@ -1092,7 +1103,7 @@ async function shoot(side, job) {
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant };
 }
 
 for (const job of JOBS) {
@@ -1149,6 +1160,9 @@ for (const job of JOBS) {
       // Check 16: an auth error on an Arabic page is Arabic; and its forced cases.
       ...(r.auth16 ? r.auth16.findings : []),
       ...(r.auth16Plant?.finding ? [`auth error: ${r.auth16Plant.finding}`] : []),
+      // Check 17: the sample button and the ready question; and its forced cases on AFTER.
+      ...(r.sample17?.finding ? [`sample: ${r.sample17.finding}`] : []),
+      ...(r.sample17Plant?.finding ? [`sample: ${r.sample17Plant.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -1156,6 +1170,7 @@ for (const job of JOBS) {
     if (side === 'after') failures += bad.length;
     if (side === 'after') dottedForced += r.runs15Plant?.dotted || 0;
     if (side === 'after') authForced += r.auth16Plant?.forced ? 1 : 0;
+    if (side === 'after' && r.sample17Plant?.caught) sampleForced[r.sample17Plant.mode] = (sampleForced[r.sample17Plant.mode] || 0) + 1;
     const tmin = Math.min(...r.a.text.map((t) => t.got));
     row.sides[side] = {
       url: r.url, landed: r.landed, theme: r.theme, findings: bad,
@@ -1180,6 +1195,7 @@ for (const job of JOBS) {
       // Every app render states its three gates, measured, so the report says
       // them even when they pass: no Apple button, no Google button, and no
       // plan, price, upgrade or free word.
+      ...(r.sample17 ? { sample: { mode: r.sample17.mode, ...r.sample17.measured, finding: r.sample17.finding, ...(r.sample17Plant ? { forcedCaught: r.sample17Plant.caught, forced: r.sample17Plant.forced } : {}) } } : {}),
       ...(job.s.native ? { app: { appleButtons: r.gate.apple.length, googleButtons: r.gate.google.length, purchaseWords: words } } : {}),
     };
     console.log(`${side === 'after' && bad.length ? 'FAIL' : 'ok  '} ${side.padEnd(6)} ${job.name}: theme ${r.theme}, ${r.fonts.loaded.length} static faces, text worst ${tmin.toFixed(2)}:1, ${bad.length} finding(s)`);
@@ -1198,6 +1214,10 @@ if (!dottedForced) { console.log('FAIL check 15\'s doubled-dot rule was never fo
 else console.log(`check 15's doubled-dot forced case ran on ${dottedForced} isolate(s) across the AFTER renders`);
 if (!authForced) { console.log('FAIL check 16 was never forced: no Arabic AFTER render showed an auth error'); failures++; }
 else console.log(`check 16's forced cases ran on ${authForced} Arabic AFTER render(s)`);
+for (const m of ['home', 'home-desk', 'absent', 'ask', 'no-question']) {
+  if (!sampleForced[m]) { console.log(`FAIL check 17 was never forced in mode ${m}: no AFTER render caught its wrong case`); failures++; }
+  else console.log(`check 17's forced case (${m}) was caught on ${sampleForced[m]} AFTER render(s)`);
+}
 writeFileSync(join(out, 'report.json'), JSON.stringify({ fonts: { family: FAMILY, package: '@fontsource/rubik@5.2.5', weights: WEIGHTS, files: fontHashes }, results }, null, 2) + '\n');
 console.log(`\nfonts: one static set on every page (${[...fontSets][0]}), ${Object.keys(fontHashes).length} files hashed`);
 console.log(`${failures} failure(s) on AFTER across ${JOBS.length} screens (${JOBS.length * 2} renders)`);
