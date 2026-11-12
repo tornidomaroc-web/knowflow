@@ -192,8 +192,6 @@ export async function samplePlant(mode, locale) {
  * 1 px wide line inside the sample block; the well held 700 px tall) and the
  * check must flag it, or the run fails.
  */
-export const GAP_MAX = 24;
-
 export function sampleWholeMode(job) {
   const m = job.s.sample;
   return m === 'home' || m === 'home-desk' || m === 'ask' ? m : null;
@@ -201,6 +199,8 @@ export function sampleWholeMode(job) {
 
 /** Self-contained: serialised into the page. `units` = KEEP_TOGETHER + KEEP_WHOLE + "Anthropic". */
 export function sampleWholeCheck(mode, units) {
+  // Inside the function: it is serialised into the page, which sees no module scope.
+  const GAP_MAX = 24;
   window.scrollTo(0, 0);
   const done = (measured, bad) => ({ mode, measured, finding: bad.length ? `check 18 (${mode}): ${bad.join('; ')}` : null });
   if (mode === 'ask') {
