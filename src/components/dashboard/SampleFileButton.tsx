@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ClaySpark } from '@/components/clay/ClayIcons';
 import { LatinText } from '@/components/ui/LatinText';
+import { keepTogether } from '@/lib/keep-together';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 import { usePlatform } from '@/components/platform/PlatformProvider';
 import { AI_CONSENT_REFUSAL } from '@/lib/ai-consent';
@@ -99,18 +100,19 @@ export function SampleFileButton({ locale, preview }: { locale: Locale; preview?
         <ClaySpark width={20} height={20} />
         {adding ? home.sampleAdding : home.sampleButton}
       </button>
-      <p data-kf-sample-desc="" className="text-xs text-muted-foreground">{home.sampleDesc}</p>
+      {/* "a ready question" / "سؤال جاهز" kept on one line (keep-together.ts). */}
+      <p data-kf-sample-desc="" className="text-xs text-muted-foreground"><LatinText text={keepTogether(home.sampleDesc)} /></p>
       {notice && (
         <p
           data-kf-sample-notice={notice.kind}
           role={notice.kind === 'declined' ? 'status' : 'alert'}
           className={
             notice.kind === 'declined' || notice.kind === 'exists'
-              ? 'text-start text-sm text-muted-foreground'
+              ? 'text-start text-xs text-muted-foreground' /* the description's size and colour (PR #322 review) */
               : 'w-full rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-start text-sm text-danger'
           }
         >
-          <LatinText text={notice.text} />
+          <LatinText text={keepTogether(notice.text)} />
         </p>
       )}
     </div>

@@ -333,4 +333,58 @@ check(db.rpc === 0 && fetches === 0, `across every case: ${db.rpc} rpc call(s), 
   check(!/kf-sample-button[^"\n]*\)\s*\.click\(|kf-sample-button[^\n]*\.click\(\)/.test(signed), 'ios-signed-in.yml must never press the sample button (it would write to the reviewer account)');
 }
 
+// ══ 5. The owner's review of d9647f5's renders (2026-11-12). ══════════════════
+{
+  // (3) In a sample subject the "hardest" suggestion filled the SUBJECT's
+  // name ("Explain the hardest concept in Sample simply."). There it is the
+  // approved "example" template, filled with the file's title; two in all.
+  const { askSuggestions } = await load('src/lib/ask-suggestions.ts');
+  const FSI = '⁨', PDI = '⁩';
+  for (const [l, dict, subject] of [['ar', ar, ar.dashboard.home.sampleSubjectName], ['en', en, en.dashboard.home.sampleSubjectName]]) {
+    const s = dict.dashboard.suggestions;
+    const file = S.sampleFileName(l === 'ar' ? 'الخلية' : 'The cell');
+    const title = file.replace(/\.pdf$/, '');
+    const want = s.example.replace('{material}', `${FSI}${title}${PDI}`);
+    const got = askSuggestions(s, subject, [{ filename: file, lead: null }], 2, { sample: true });
+    check(got.length === 2, `${l}: a sample subject must offer exactly two suggestions (got ${got.length})`);
+    check(got[1] === want, `${l}: the sample's second suggestion must be the example template with the file title, want "${want}", got "${got[1]}"`);
+    check(!got.some((q) => q.includes(s.hardest.split('{subject}')[0])), `${l}: a sample subject must not offer the "hardest" suggestion`);
+    check(!got.some((q) => q.includes(`${FSI}${subject}${PDI}`)), `${l}: no sample suggestion may name the subject "${subject}"`);
+    // Every other subject is unchanged: the same call without the sample flag.
+    const other = askSuggestions(s, subject, [{ filename: file, lead: null }], 2);
+    const hardest = s.hardest.replace('{subject}', `${FSI}${subject}${PDI}`);
+    check(other[1] === hardest, `${l}: another subject keeps the "hardest" suggestion second (got "${other[1]}")`);
+    check(askSuggestions(s, 'Biology', [{ filename: 'Lecture 1.pdf', lead: null }, { filename: 'Lab notes.pdf', lead: null }]).length === 3, `${l}: another subject keeps three suggestions`);
+  }
+  const box = read('src/components/agent/ChatBox.tsx');
+  check(/askSuggestions\(t\.dashboard\.suggestions, kbName, materials, sampleQuestion \? 2 : 3, \{ sample: Boolean\(sampleQuestion\) \}\)/.test(box), 'ChatBox: the suggestions must be built with the sample flag in a sample subject');
+
+  // (2) "a ready question" / "سؤال جاهز" never split: the keep-together list (PR 4).
+  const kt = await load('src/lib/keep-together.ts');
+  for (const p of ['a ready question', 'سؤال جاهز']) check(kt.KEEP_TOGETHER.includes(p), `keep-together.ts: "${p}" must be a protected phrase`);
+  check(kt.keepTogether(en.dashboard.home.sampleDesc).includes('a ready question'), 'en sampleDesc: "a ready question" must be joined by no-break spaces');
+  check(kt.keepTogether(ar.dashboard.home.sampleDesc).includes('سؤال جاهز'), 'ar sampleDesc: "سؤال جاهز" must be joined by a no-break space');
+  // (1) "Voyage AI" never split, in a left-to-right sentence too, with no
+  // character changed (ios-signed-in.yml reads "Voyage AI" with a plain space).
+  const split = typeof kt.splitKeepWhole === 'function' ? kt.splitKeepWhole(en.dashboard.aiConsent.declined) : [];
+  check(split.some((p) => typeof p === 'object' && p.keep === 'Voyage AI'), 'keep-together.ts: splitKeepWhole must cut "Voyage AI" out of the en declined sentence as one piece');
+  check(split.map((p) => (typeof p === 'string' ? p : p.keep)).join('') === en.dashboard.aiConsent.declined, 'splitKeepWhole must not change a character');
+  const lt = read('src/components/ui/LatinText.tsx');
+  check(/splitKeepWhole\(text\)/.test(lt) && /data-kf-keep/.test(lt) && /whitespace-nowrap/.test(lt), 'LatinText: a left-to-right sentence must draw each kept name as one nowrap piece (data-kf-keep)');
+  const btn = read('src/components/dashboard/SampleFileButton.tsx');
+  check(/<LatinText text=\{keepTogether\(home\.sampleDesc\)\} \/>/.test(btn), 'SampleFileButton: the line under the button must go through keepTogether and LatinText');
+  check(/<LatinText text=\{keepTogether\(notice\.text\)\} \/>/.test(btn), 'SampleFileButton: the notice must go through keepTogether and LatinText');
+  const descCls = (/data-kf-sample-desc="" className="([^"]+)"/.exec(btn) || [])[1] || '';
+  const muted = (/notice\.kind === 'declined' \|\| notice\.kind === 'exists'\s*\?\s*'([^']+)'/.exec(btn) || [])[1] || '';
+  for (const c of ['text-xs', 'text-muted-foreground']) check(descCls.split(' ').includes(c) && muted.split(' ').includes(c), `SampleFileButton: the declined sentence must share the description's ${c} (desc "${descCls}", declined "${muted}")`);
+  check(!/\btext-sm\b/.test(muted), 'SampleFileButton: the declined sentence must not be larger than the description (text-sm)');
+
+  // (4) The suggestions well fits its content in a sample subject before the
+  // first message: the well, the chat column and the card are not stretched.
+  check(/const fit = Boolean\(sampleQuestion\) && messages\.length === 0 && !noMaterial;/.test(box), 'ChatBox: "fit" must hold in a sample subject before the first message only');
+  check(/data-kf-ask-fit=\{fit \? '' : undefined\}/.test(box), 'ChatBox: the well must carry data-kf-ask-fit when it fits');
+  const sel = read('src/components/agent/KBSelector.tsx');
+  check(/data-kf-ask-card=""[^>]*\[&:has\(\[data-kf-ask-fit\]\)\]:flex-none/.test(sel), 'KBSelector: the Ask card must stop stretching while its well fits (:has([data-kf-ask-fit]))');
+}
+
 finish();

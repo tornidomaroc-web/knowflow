@@ -147,7 +147,7 @@ export function KBSelector({ kbs, materials = [], answerableIds, preview, sample
     /* Design "C", PR 4: one clay card and no hairline in it. On a desk the
        history is a pressed-in column at the card's start; on a phone it is
        the drawer behind the clock button. */
-    <div data-kf-ask-card="" data-kf-ask-compact={compact ? '' : undefined} className={`kf-card flex min-h-0 overflow-hidden rounded-xl bg-surface ${compact ? 'flex-none' : 'flex-1'}`}>
+    <div data-kf-ask-card="" data-kf-ask-compact={compact ? '' : undefined} className={`kf-card flex min-h-0 overflow-hidden rounded-xl bg-surface ${compact ? 'flex-none' : 'flex-1 [&:has([data-kf-ask-fit])]:flex-none'}`}>
       {/* Desktop: persistent history column. Mobile: the same list lives in the Sheet below. */}
       <div data-kf-history="column" className="kf-well my-2 ms-2 hidden w-64 shrink-0 overflow-hidden rounded-[1.25rem] md:block">{sidebar}</div>
       {/* Mobile-only: display:none on this wrapper removes the fixed Sheet (and

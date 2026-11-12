@@ -247,6 +247,13 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') handleSend();
   };
 
+  // The owner's review of PR #322: in the sample subject, before the first
+  // message, two suggestions and the ready question; the well fits them (it
+  // kept the height of three cards). The chat column and the Ask card
+  // (KBSelector, `:has([data-kf-ask-fit])`) stop stretching too, so the
+  // composer sits under the well. From the first message on, as before.
+  const fit = Boolean(sampleQuestion) && messages.length === 0 && !noMaterial;
+
   return (
     /*
       THE MAGIC NUMBER THAT USED TO BE HERE IS GONE AND MUST NOT COME BACK.
@@ -270,7 +277,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
        composer is the card's last row. The well's corners and its 0.5rem
        side inset are paint only: the list keeps its height (the Ask fit of
        render-fix2.mjs reads it). */
-    <div className={`flex min-h-0 flex-col bg-surface ${compact ? 'flex-none pb-2' : 'flex-1'}`}>
+    <div className={`flex min-h-0 flex-col bg-surface ${compact ? 'flex-none pb-2' : fit ? 'flex-none' : 'flex-1'}`}>
       <div className="flex items-center gap-3 bg-surface px-4 py-3">
         <span className="kf-tile inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
           <ClayBook width={22} height={22} />
@@ -281,7 +288,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
         </div>
       </div>
 
-      <div data-kf-thread="" className={`kf-well mx-2 ${compact && noMaterial && messages.length === 0 ? 'flex-none' : 'flex-1'} space-y-6 overflow-y-auto rounded-[1.25rem] p-4 md:p-6`} ref={scrollRef}>
+      <div data-kf-thread="" data-kf-ask-fit={fit ? '' : undefined} className={`kf-well mx-2 ${fit || (compact && noMaterial && messages.length === 0) ? 'flex-none' : 'flex-1'} space-y-6 overflow-y-auto rounded-[1.25rem] p-4 md:p-6`} ref={scrollRef}>
         {messages.map((m, i) => (
           <MessageBubble
             key={m.id}
@@ -323,7 +330,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
               {/* With the ready question under the field, two suggestions:
                   the chip takes a row of the screen, and all of them must
                   show whole above the composer at 390 x 844. */}
-              {askSuggestions(t.dashboard.suggestions, kbName, materials, sampleQuestion ? 2 : 3).map((q, i) => {
+              {askSuggestions(t.dashboard.suggestions, kbName, materials, sampleQuestion ? 2 : 3, { sample: Boolean(sampleQuestion) }).map((q, i) => {
                 const icon = [
                   <ClaySummary key="s" width={24} height={24} />,
                   <ClayAnswer key="a" width={24} height={24} mark={safeLocale === 'ar' ? '؟' : '?'} />,

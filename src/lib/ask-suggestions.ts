@@ -81,13 +81,26 @@ export function askSuggestions(
   templates: SuggestionTemplates,
   subject: string,
   materials: MaterialForSuggestion[],
-  max = 3
+  max = 3,
+  /**
+   * The sample subject (audit cause 9; the owner's review of PR #322): its
+   * name ("مثال" / "Sample") is not a topic, so the "hardest" question that
+   * fills {subject} is replaced by the approved "example" one, filled with
+   * the sample file's title ("الخلية" / "The cell"). Two questions.
+   */
+  opts: { sample?: boolean } = {}
 ): string[] {
   const iso = (s: string) => `${FSI}${s}${PDI}`;
   const fill = (t: string, material?: string) =>
     t.replace('{subject}', iso(subject)).replace('{material}', iso(material ?? subject));
   const topics = materials.map(materialTopic).filter((t): t is string => Boolean(t));
   const out: string[] = [];
+  if (opts.sample && materials[0]) {
+    if (topics[0]) out.push(fill(templates.mainIdeas, topics[0]));
+    out.push(fill(templates.example, materialTitle(materials[0].filename)));
+    if (out.length < 2) out.push(fill(templates.overview));
+    return Array.from(new Set(out)).slice(0, Math.min(max, 2));
+  }
   if (topics[0]) out.push(fill(templates.mainIdeas, topics[0]));
   out.push(fill(templates.hardest));
   if (topics[1]) out.push(fill(templates.example, topics[1]));
