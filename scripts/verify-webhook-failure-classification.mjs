@@ -40,6 +40,9 @@ const FAKE_PADDLE_KEY = ['pdl', 'sdbx', 'apikey', '01verifyonlynotreal'].join('_
 process.env.PADDLE_ENV = 'sandbox';
 process.env.PADDLE_API_KEY = FAKE_PADDLE_KEY;
 process.env.PADDLE_WEBHOOK_SECRET = SECRET;
+// fix/paddle-safety: Pro is granted only for this price at quantity 1, so the
+// payload below carries exactly that item.
+process.env.PADDLE_PRO_PRICE_ID = 'pri_verify_pro';
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://verify.example.invalid';
 process.env.SUPABASE_SERVICE_ROLE_KEY = ['verify', 'service', 'role'].join('-');
 
@@ -53,16 +56,30 @@ export const NextResponse = {
 };`;
 
 // Mimics supabase-js closely enough for this handler: it throws on a missing
-// URL exactly as the real client does, and returns { error } from writes.
+// URL exactly as the real client does, and returns { data, error } from writes.
+// fix/paddle-safety: the route now writes update-if-older (.update().eq().or()
+// .select()), then insert-or-nothing (.upsert(..., ignoreDuplicates).select()).
+// The update matches no row here (a first event), so the insert is the write
+// whose error each case chooses, as the single upsert's was before.
 const SUPABASE_STUB = `
+function q(result) {
+  const b = { eq: () => b, or: () => b, select: () => b, then: (ok, bad) => Promise.resolve(result()).then(ok, bad) };
+  return b;
+}
 export function createClient(url, key) {
   if (!url) throw new Error('supabaseUrl is required.');
   if (!key) throw new Error('supabaseKey is required.');
   return {
     from() {
       return {
-        upsert: async () => ({ error: globalThis.__webhookStub.upsertError }),
-        update() { return { eq: async () => ({ error: globalThis.__webhookStub.updateError }) }; },
+        upsert: () => q(() => {
+          const error = globalThis.__webhookStub.upsertError;
+          return { data: error ? null : [{ id: 'row_verify_1' }], error };
+        }),
+        update: () => q(() => {
+          const error = globalThis.__webhookStub.updateError;
+          return { data: error ? null : [], error };
+        }),
       };
     },
   };
@@ -102,7 +119,16 @@ function eventBody({ status = 'active', endsAt = '2027-01-01T00:00:00Z', userId 
       // unconditionally, so omitting it throws before any handler logic runs.
       billing_cycle: { interval: 'month', frequency: 1 },
       current_billing_period: endsAt ? { starts_at: '2026-09-07T00:00:00Z', ends_at: endsAt } : null,
-      items: [],
+      items: [
+        {
+          status: 'active',
+          quantity: 1,
+          recurring: true,
+          created_at: '2026-09-07T00:00:00Z',
+          updated_at: '2026-09-07T00:00:00Z',
+          price: { id: 'pri_verify_pro', product_id: 'pro_verify', description: 'Pro', tax_mode: 'account_setting' },
+        },
+      ],
     },
   });
 }

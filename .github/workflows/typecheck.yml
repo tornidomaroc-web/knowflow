@@ -386,6 +386,17 @@ jobs:
       - name: Verify a summary spans its card and keeps its own text direction
         run: node --experimental-strip-types scripts/verify-summary-layout.mjs
 
+      # fix/paddle-safety: the webhook grants Pro only for PADDLE_PRO_PRICE_ID at
+      # quantity 1, compares the signature in constant time, and never lets an
+      # older event overwrite a newer one. The checkout and webhook failure
+      # proofs (registers #72b, #72c) existed but no workflow ran them.
+      - name: Verify the Paddle webhook's safety rules and the billing failure paths
+        run: |
+          node --experimental-strip-types scripts/verify-paddle-webhook-safety.mjs
+          node --experimental-strip-types scripts/verify-webhook-failure-classification.mjs
+          node --experimental-strip-types scripts/verify-checkout-route.mjs
+          node --experimental-strip-types scripts/verify-checkout-error-classification.mjs
+
   # Register #125 (the proof of #72). Drives the REAL readEntitlement through the
   # REAL supabase-js against a throwaway Postgres + PostgREST in Docker holding
   # the subscriptions table's exact definition: a paying user with two rows must
