@@ -468,10 +468,13 @@ export function uploadRefusalMessage(locale: Locale, kind: UploadRefusal, ext = 
  */
 export function questionTooLongMessage(locale: Locale): string {
   // From the constant, so the sentence cannot name a cap the route does not
-  // enforce. Arabic without a thousands separator, English with one.
+  // enforce. Arabic without a thousands separator, English with one, grouped
+  // by hand: toLocale*String is banned here (register #121, the hydration
+  // defect; scripts/verify-production-defects.mjs).
+  const grouped = String(MAX_QUESTION_CHARS).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return locale === 'ar'
     ? `يمكن أن يصل السؤال إلى ${MAX_QUESTION_CHARS} حرف، وهذا السؤال أطول من ذلك. اختصره أو قسّمه إلى سؤالين، ثم أرسله مجددًا.`
-    : `A question can be up to ${MAX_QUESTION_CHARS.toLocaleString('en-US')} characters, and this one is longer. Shorten it or split it into two questions, then send it again.`;
+    : `A question can be up to ${grouped} characters, and this one is longer. Shorten it or split it into two questions, then send it again.`;
 }
 
 /**
