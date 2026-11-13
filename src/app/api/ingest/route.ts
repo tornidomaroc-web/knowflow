@@ -11,6 +11,7 @@ import { platformFromRequest } from '@/lib/platform';
 import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
 import { fileTooLargeMessage, subjectMaterialsMessage, uploadRefusalMessage } from '@/lib/limit-messages';
 import { isOverUploadLimit } from '@/lib/upload-limits';
+import { isContentCapRefusal } from '@/lib/ingest-content-caps';
 import { recordStudyEvent } from '@/lib/study-events';
 import { documentStorageKey } from '@/lib/storage-key';
 import { fileExtension, isAllowedFileType, type FileType } from '@/types';
@@ -382,6 +383,17 @@ export async function POST(request: Request) {
       // detail in front of a user. The user-facing body below is deliberately
       // unchanged.
       await failIfStillProcessing(upstream);
+      // fix/ai-cost-caps: the service refused the file for its content (too
+      // much text, or an archive that unpacks too far) and has marked it
+      // `error`, before Voyage (src/lib/ingest-content-caps.ts). The outcome
+      // is known, so the student is told it, not `unconfirmed`. Like any
+      // failed upload it is not one of the day's (`keptUploadsToday`).
+      if (isContentCapRefusal(pyResponse.status, detail)) {
+        return NextResponse.json(
+          { success: false, error: uploadRefusalMessage(safeLocale, 'too-much-text') },
+          { status: 422 }
+        );
+      }
       return NextResponse.json(
         { success: false, error: uploadRefusalMessage(safeLocale, 'unconfirmed') },
         { status: 500 }

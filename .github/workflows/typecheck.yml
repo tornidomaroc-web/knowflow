@@ -397,6 +397,15 @@ jobs:
           node --experimental-strip-types scripts/verify-checkout-route.mjs
           node --experimental-strip-types scripts/verify-checkout-error-classification.mjs
 
+      # fix/ai-cost-caps: a question over 4,000 characters is refused before the
+      # consent check and the counter; Pro uploads are 20 a day; the ingestion
+      # service's content-cap refusal reaches the student as too-much-text; the
+      # two sentences are the drafts in docs/copy-drafts/ai_cost_caps.md. The
+      # service half (text and archive caps) is services/ingestion/tests/
+      # test_content_caps.py, run by the ingestion-image workflow.
+      - name: Verify the question length cap, the Pro upload cap and the too-much-text refusal
+        run: node --experimental-strip-types scripts/verify-ai-cost-caps.mjs
+
   # Register #125 (the proof of #72). Drives the REAL readEntitlement through the
   # REAL supabase-js against a throwaway Postgres + PostgREST in Docker holding
   # the subscriptions table's exact definition: a paying user with two rows must

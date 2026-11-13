@@ -45,21 +45,34 @@ export type UsageKind = LimitKind;
 // enforces. Restating the numbers in the UI is how copy and enforcement drift
 // apart — register #1 records that exact failure for the limit messages.
 //
-// `pro.query` IS THE SETTLED PRICE'S ALLOWANCE, NOT A TUNING KNOB (register #80(b)).
-// The price (40 USD a semester, 12 USD a month) was set on Pro at 25 questions a
-// day (#94). It was 2,000, which at the measured $0.005622 a question is $337 per
-// 30 days against a $12 month. `enforceLimit` counts every question, so keeping
-// one conversation open does not get past it (scripts/verify-pro-question-cap.mjs).
+// THE PRICE THESE ARE SET AGAINST: Pro is 9.99 USD a month, one price for every
+// country (2026-11-13). Paddle keeps 5% + 0.50 USD of each payment, so a month
+// nets about 8.99 USD before any sales tax that comes out of the same 9.99.
+// Unit costs are the measured ones (#94, one 13,421-character Arabic document).
 //
-// `pro.summary` and `pro.quiz` ARE SET FROM THE SAME PRICE (register #80(b)).
-// They were 100 and 100, which at the measured $0.015891 a summary and $0.014168 a
-// quiz (#94) is $90 per 30 days. At 5 and 5 it is $4.51, so with 25 questions a
-// Pro day is about $8.72 per 30 days at that document's size. They now EQUAL
-// Free's 5 and 5: Pro buys more questions, not more summaries or quizzes
+// `pro.query` (register #80(b)): 25 a day. At $0.005622 a question that is $4.22
+// per 30 days. It was 2,000 ($337). `enforceLimit` counts every question, so
+// keeping one conversation open does not get past it
+// (scripts/verify-pro-question-cap.mjs).
+//
+// `pro.summary` and `pro.quiz` (register #80(b)): 5 and 5, EQUAL to Free's. At
+// $0.015891 a summary and $0.014168 a quiz that is $4.51 per 30 days (they were
+// 100 and 100, $90). With the questions, a Pro month at every model limit is
+// $8.73 at that document's size: about the whole of the 8.99 USD net
 // (scripts/verify-pro-summary-quiz-caps.mjs).
+//
+// `pro.upload` (fix/ai-cost-caps): 20 a day, was 500. An upload's cost is its
+// Voyage AI embedding, which grows with the file's text: about $0.0013 for the
+// #94 document (estimated at 2 characters a token, not measured), about $0.18 for the largest text one file may hold
+// (MAX_CONVERTED_CHARS in services/ingestion/main.py: 4,194,304 characters,
+// measured on production as about a million Voyage tokens). At 20 a day that
+// is $0.78 to $108 per 30 days; at 500 it was $20 to $2,700. The attempt
+// ceiling is 20 + FAILED_UPLOAD_ALLOWANCE = 25 (src/lib/upload-allowance.ts).
+// The per-file cap bounds one file, not a month: the top of that range is still
+// over the price, and the monthly spend allowance is the PR that closes it.
 export const DAILY_CAPS: Record<Tier, Record<UsageKind, number>> = {
   free: { query: 10, upload: 5, summary: 5, quiz: 5 },
-  pro: { query: 25, upload: 500, summary: 5, quiz: 5 },
+  pro: { query: 25, upload: 20, summary: 5, quiz: 5 },
 };
 
 
