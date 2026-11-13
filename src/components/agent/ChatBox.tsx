@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { ClayAnswer, ClayAskArt, ClayBook, ClayQuiz, ClaySend, ClaySpark, ClaySummary, ClayUploadGlyph } from '@/components/clay/ClayIcons';
 import { UserName } from '@/components/ui/UserName';
 import { NO_MATERIAL_REFUSAL, subjectUploadHref } from '@/lib/ask-material';
+import { QUESTION_TOO_LONG } from '@/lib/question-cap';
 import { AskNoAnswerableSubject } from './SubjectChips';
 
 interface Message {
@@ -197,6 +198,21 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
         setMessages(prev => prev.filter(m => m.id !== userMsg.id));
         setNoMaterial(true);
         onNoMaterial?.();
+        setIsLoading(false);
+        return;
+      }
+
+      // fix/ai-cost-caps: a question over the length cap was not counted or
+      // sent. It leaves the thread and goes back in the box, so a long paste
+      // is not lost; the server's sentence says how long a question can be.
+      if (res.status === 413 && res.headers.get('X-KF-Refusal') === QUESTION_TOO_LONG) {
+        const body = (await res.text()).trim();
+        setMessages(prev => [...prev.filter(m => m.id !== userMsg.id), {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: body || t.dashboard.agent.connectionError,
+        }]);
+        setInput(userMsg.content);
         setIsLoading(false);
         return;
       }

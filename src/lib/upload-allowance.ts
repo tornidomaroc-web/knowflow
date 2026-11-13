@@ -24,7 +24,7 @@
  *    now held to `uploadAttemptCeiling(cap)` = the day's uploads plus
  *    `FAILED_UPLOAD_ALLOWANCE`. That is the cost bound on the ingestion
  *    service and Voyage AI: whatever fails, a free account starts at most 10
- *    ingestions a day (Pro 505), and no student loses an upload to the first 5
+ *    ingestions a day (Pro 25), and no student loses an upload to the first 5
  *    failures.
  *
  * One consequence, stated rather than hidden: a file deleted the same day no

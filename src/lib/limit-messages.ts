@@ -3,6 +3,7 @@ import { pluralize, type PluralForms } from '@/lib/i18n/plural';
 import type { Tier } from '@/types';
 import { MAX_UPLOAD_BYTES, isOverUploadLimit, type UploadReply } from '@/lib/upload-limits';
 import { purchaseLinksAllowed, type Platform } from '@/lib/platform';
+import { MAX_QUESTION_CHARS } from '@/lib/question-cap';
 
 /**
  * The one place every limit message a student can read is written (register #1).
@@ -413,7 +414,10 @@ export function uploadFailureMessage(
  * `type` and `mime` name the file's extension. It is taken from the filename,
  * so it is cut to ten plain characters before it is printed.
  */
-export type UploadRefusal = 'request' | 'type' | 'mime' | 'session' | 'nothing-saved' | 'unconfirmed';
+// `too-much-text` (fix/ai-cost-caps): the service refused the file for its
+// content, not its size on disk (src/lib/ingest-content-caps.ts). DRAFT copy,
+// docs/copy-drafts/ai_cost_caps.md, awaiting the owner's approval.
+export type UploadRefusal = 'request' | 'type' | 'mime' | 'session' | 'nothing-saved' | 'unconfirmed' | 'too-much-text';
 
 const FORMATS = 'PDF, DOCX, PPTX, XLSX, TXT, MD';
 
@@ -449,7 +453,28 @@ export function uploadRefusalMessage(locale: Locale, kind: UploadRefusal, ext = 
       return locale === 'ar'
         ? 'وصل ملفك، لكننا لم نتمكن من تأكيد معالجته. حدّث الصفحة: ستظهر المادة جاهزة أو مع علامة خطأ، ويمكنك حذفها ورفعها مجددًا.'
         : 'Your file arrived, but we could not confirm it was processed. Refresh the page: the material will show as ready or marked with an error, and you can delete it and upload it again.';
+    case 'too-much-text':
+      return locale === 'ar'
+        ? 'يحتوي هذا الملف على نص أطول مما يمكن قراءته من ملف واحد. قسّمه إلى ملفات أصغر، ثم ارفعها.'
+        : 'This file holds more text than can be read from one file. Split it into smaller files, then upload them.';
   }
+}
+
+/**
+ * A question over MAX_QUESTION_CHARS (src/lib/question-cap.ts), refused by
+ * `/api/agent` before it is counted. The number is printed: it is the same for
+ * every student and it is what they need to shorten the question. DRAFT copy,
+ * docs/copy-drafts/ai_cost_caps.md, awaiting the owner's approval.
+ */
+export function questionTooLongMessage(locale: Locale): string {
+  // From the constant, so the sentence cannot name a cap the route does not
+  // enforce. Arabic without a thousands separator, English with one, grouped
+  // by hand: toLocale*String is banned here (register #121, the hydration
+  // defect; scripts/verify-production-defects.mjs).
+  const grouped = String(MAX_QUESTION_CHARS).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return locale === 'ar'
+    ? `يمكن أن يصل السؤال إلى ${MAX_QUESTION_CHARS} حرف، وهذا السؤال أطول من ذلك. اختصره أو قسّمه إلى سؤالين، ثم أرسله مجددًا.`
+    : `A question can be up to ${grouped} characters, and this one is longer. Shorten it or split it into two questions, then send it again.`;
 }
 
 /**

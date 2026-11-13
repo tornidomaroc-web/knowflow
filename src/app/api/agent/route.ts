@@ -5,7 +5,8 @@ import { checkConversationLimit, conversationMonthWindow } from '@/lib/limits-se
 import { enforceLimit } from '@/lib/rate-limit';
 import { resolveLocale, useTranslation as dictionaryFor, type Locale } from '@/lib/i18n';
 import { NO_MATERIAL_REFUSAL, hasAnswerableMaterial } from '@/lib/ask-material';
-import { monthlyConversationMessage } from '@/lib/limit-messages';
+import { monthlyConversationMessage, questionTooLongMessage } from '@/lib/limit-messages';
+import { MAX_QUESTION_CHARS, QUESTION_TOO_LONG, questionChars } from '@/lib/question-cap';
 import { platformFromRequest } from '@/lib/platform';
 import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
 import { embedQuery } from '@/lib/ingestion';
@@ -134,13 +135,30 @@ export async function POST(request: Request) {
     // Whitelisted server-side, exactly as /api/summarize does (register #27):
     // the value is never interpolated, only used to pick a locale key.
     const safeLocale: Locale = resolveLocale(locale);
-    if (!message || !kb_id) {
+    // A message that is not a string is a malformed request, not a question:
+    // before this it reached embedQuery and the model as whatever it was.
+    if (!message || typeof message !== 'string' || !kb_id) {
       return NextResponse.json({ error: 'Missing message or kb_id' }, { status: 400 });
     }
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // fix/ai-cost-caps: the question length cap (src/lib/question-cap.ts).
+    // After auth, so only a signed-in student learns the cap; before the
+    // consent check and the usage counter, so an over-long question is never
+    // counted and nothing is embedded, stored or sent to the model. 413, not
+    // 400: the request is well formed and only too large, which is what 413
+    // says, and it keeps this apart from the 400 above. text/plain like every
+    // refusal here (the chat renders the body as the reply); the header lets
+    // the chat put the question back in the box.
+    if (questionChars(message) > MAX_QUESTION_CHARS) {
+      return new Response(questionTooLongMessage(safeLocale), {
+        status: 413,
+        headers: { 'Content-Type': 'text/plain', 'X-KF-Refusal': QUESTION_TOO_LONG },
+      });
+    }
 
     // Apple 5.1.2(i) (src/lib/ai-consent.ts): the question goes to Voyage AI and
     // Anthropic only with the student's permission. Before the usage counter, so

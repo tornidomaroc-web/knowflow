@@ -5,6 +5,7 @@ import re
 import shutil
 import tempfile
 import unicodedata
+import zipfile
 from collections import Counter
 from typing import Literal, NamedTuple
 
@@ -75,6 +76,38 @@ MAX_EMBED_CHARS = 32_000
 # 4 MiB therefore never refuses a real upload, and bounds what one request can
 # spend on conversion and embedding.
 MAX_INGEST_BYTES = 8 * 1024 * 1024
+
+# THE CONVERTED TEXT, NOT THE FILE. MAX_INGEST_BYTES bounds the bytes uploaded,
+# but a .docx, .pptx or .xlsx is a zip, and compressible text expands without a
+# useful bound: a 19,058-byte .docx in tests/test_content_caps.py converts to
+# 4,395,600 characters, and on 71b1b46 all of it was chunked (1,636 chunks) and
+# sent to Voyage AI. The cap is 4 MiB of characters because that is the most text
+# the app already accepts and has measured end to end: a 4,194,304-byte .txt,
+# the largest the upload route takes, ingested on production on 2026-09-23 in
+# 80.5 s as 1,845 chunks, about a million Voyage tokens (about 0.18 USD at
+# voyage-3-large's 0.18 USD per million). One byte is at least one character,
+# so no .txt or .md the route accepts can reach it; only an expanding format
+# can. Over it the document fails with TEXT_TOO_LONG before chunking, so
+# nothing reaches Voyage. It bounds one file, not a month: the monthly bound is
+# the upload counter (src/lib/rate-limit.ts) and, later, a spend allowance.
+MAX_CONVERTED_CHARS = 4 * 1024 * 1024
+TEXT_TOO_LONG = "text_too_long"
+
+# THE ARCHIVE, BEFORE THE CONVERTER OPENS IT. mammoth (.docx), python-pptx and
+# openpyxl read the whole zip through Python's zipfile, which never inflates an
+# entry past the size its central directory declares (ZipExtFile stops at
+# file_size). So the declared sizes, read without inflating anything, bound
+# what the converter can inflate. 80 MiB of zeros deflates to about 80 KB, so a
+# small upload could otherwise make the converter hold hundreds of megabytes.
+# 64 MiB uncompressed is 16 times the 4 MiB upload limit: images do not shrink
+# in a zip, so a real file's image bytes count about once, and a file whose
+# XML alone is over 64 MiB carries far more than MAX_CONVERTED_CHARS of text
+# (Word XML is several bytes of markup per byte of text) and would be refused
+# after conversion anyway. Checking first refuses it without the memory spike.
+# 10,000 entries is many times a long deck (a slide is a handful of parts).
+MAX_ARCHIVE_BYTES = 64 * 1024 * 1024
+MAX_ARCHIVE_ENTRIES = 10_000
+ARCHIVE_TOO_LARGE = "archive_too_large"
 
 CHUNK_TOKENS = 512
 CHUNK_OVERLAP = 64
@@ -897,6 +930,7 @@ def _convert_to_markdown(file: UploadFile) -> tuple[str, PageCounts | None]:
     try:
         with open(tmp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        _check_archive(tmp_path)
         md = MarkItDown()
         result = md.convert(tmp_path)
         text = result.text_content or ""
@@ -909,6 +943,31 @@ def _convert_to_markdown(file: UploadFile) -> tuple[str, PageCounts | None]:
                 os.remove(tmp_path)
             except OSError:
                 pass
+
+
+def _check_archive(path: str) -> None:
+    """Refuse a zip whose declared contents are over the archive caps.
+
+    By content, not by name, so a renamed file is checked too. Reads only the
+    central directory; nothing is inflated. A file that is not a zip, or a zip
+    too broken to list, is left to the converter, which fails it as before.
+    """
+    if not zipfile.is_zipfile(path):
+        return
+    try:
+        with zipfile.ZipFile(path) as zf:
+            infos = zf.infolist()
+    except (zipfile.BadZipFile, OSError):
+        return
+    total = sum(i.file_size for i in infos)
+    if len(infos) > MAX_ARCHIVE_ENTRIES or total > MAX_ARCHIVE_BYTES:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"{ARCHIVE_TOO_LARGE}: {len(infos)} entries, {total} bytes uncompressed "
+                f"(caps {MAX_ARCHIVE_ENTRIES} entries, {MAX_ARCHIVE_BYTES} bytes)"
+            ),
+        )
 
 
 def _is_pdf(path: str) -> bool:
@@ -979,6 +1038,14 @@ async def ingest(
     try:
         markdown_text, pages = _convert_to_markdown(file)
         markdown_text = _strip_nul(markdown_text)
+        # Before chunking and Voyage: an over-long text costs only its
+        # conversion. 422 and the code reach the upload route, which tells the
+        # student; _mark_error below records the same line on the row.
+        if len(markdown_text) > MAX_CONVERTED_CHARS:
+            raise HTTPException(
+                status_code=422,
+                detail=f"{TEXT_TOO_LONG}: {len(markdown_text)} characters (cap {MAX_CONVERTED_CHARS})",
+            )
         # A file whose pages hold nothing but page numbers has no text: no
         # chunks, nothing sent to Voyage, chunk_count 0.
         chunks = [] if _has_no_text(markdown_text, pages) else _chunk_text(markdown_text)
