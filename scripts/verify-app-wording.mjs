@@ -51,7 +51,7 @@ installTsxHooks(ROOT, {
 });
 
 // ── 1. The rule ──────────────────────────────────────────────────────────────
-const MUST_HIT = ['Your account, plan and preferences.', 'If you have an active subscription, it is cancelled immediately.', "You've reached the free plan's limit of 5 subjects.", 'Free plan · No credit card', 'Start free', 'Upgrade to Pro', 'a premium tier', 'pro tier', 'Pricing', 'price', '$49', '100 conversations/month', 'Subscribe now', 'checkout',
+const MUST_HIT = ['Your account, plan and preferences.', 'If you have an active subscription, it is cancelled immediately.', "You've reached the free plan's limit of 5 subjects.", 'Free plan · No credit card', 'Start free', 'Upgrade to Pro', 'a premium tier', 'pro tier', 'Pricing', 'price', '$49', '$9.99', '100 conversations/month', 'Subscribe now', 'checkout',
   'حسابك وباقتك وتفضيلاتك.', 'إن كان لديك اشتراك نشط فسيُلغى فورًا.', 'وصلت إلى حد المواد في الباقة المجانية', 'باقة مجانية', 'بباقتك', 'الباقات', 'اشتراكك', 'الاشتراك', 'اشترك الآن', 'الترقية', 'ترقية', 'ابدأ مجانًا', 'مجانا', 'مجاني', 'سعر', 'الأسعار', 'الاحترافي', 'خطتك', 'الخطة', '/شهرياً'];
 const MUST_PASS = ['Your account and preferences.', "You've reached your limit of 5 subjects.", 'Create account', 'أسئلة باقية', 'رفعات باقية', 'حسابك وتفضيلاتك.', 'وصلت إلى الحد الأقصى لعدد المواد في حسابك: 5.', 'أنشئ حسابًا', 'خطأ في الطلب', 'خطوة', 'مخطط', 'الخطوط', 'مشترك بين المواد', 'ترقيم الصفحات', 'approach', 'professor', 'process', 'freedom', 'planet', 'explanation', 'Plain text', 'Nothing is sold or charged inside this app.'];
 for (const s of MUST_HIT) check(kfWording(s).length > 0, `the rule misses "${s}"`);
