@@ -200,7 +200,9 @@ function SubjectCard({ subject: s, locale, labels, index }: { subject: SubjectIt
 
 function Stat({ icon, value, label }: { icon: ReactNode; value: number; label: string }) {
   return (
-    <div className="kf-tile p-3">
+    // A column with the number pinned to the bottom (mt-auto): the numbers of
+    // one row share a baseline whatever lines the labels take (360 pt Android).
+    <div data-kf-stat="" className="kf-tile flex flex-col p-3">
       {/* Below sm the icon sits above its label: beside it, "Summarised" did
           not fit a third of a 390 pt card once the icon kept its size. */}
       <dt className="flex flex-col items-start gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:gap-1.5">
@@ -209,7 +211,7 @@ function Stat({ icon, value, label }: { icon: ReactNode; value: number; label: s
         <span data-kf-stat-icon="" className="inline-flex h-4 w-4 shrink-0">{icon}</span>
         {label}
       </dt>
-      <dd className="mt-1 text-2xl font-bold leading-none text-foreground">{value}</dd>
+      <dd className="mt-auto pt-1 text-2xl font-bold leading-none text-foreground">{value}</dd>
     </div>
   );
 }
