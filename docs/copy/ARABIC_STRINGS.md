@@ -121,7 +121,7 @@ file is not read by the app.
 | `pricing.free.features[3]` | بالعربية والإنجليزية | Arabic & English |
 | `pricing.free.button` | ابدأ مجاناً | Start free |
 | `pricing.pro.name` | احترافي | Pro |
-| `pricing.pro.price` | $49 | $49 |
+| `pricing.pro.price` | $9.99 | $9.99 |
 | `pricing.pro.period` | /شهرياً | /month |
 | `pricing.pro.features[0]` | مواد أكثر بكثير | Many more subjects |
 | `pricing.pro.features[1]` | حدود سخية للملفات | Generous material limits |

@@ -102,7 +102,7 @@ export const ar: Translation = {
     },
     pro: {
       name: "احترافي",
-      price: "$49",
+      price: "$9.99",
       period: "/شهرياً",
       features: [
         "مواد أكثر بكثير",

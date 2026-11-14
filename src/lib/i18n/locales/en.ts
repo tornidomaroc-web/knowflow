@@ -111,7 +111,7 @@ export const en = {
     },
     pro: {
       name: "Pro",
-      price: "$49",
+      price: "$9.99",
       period: "/month",
       features: [
         "Many more subjects",
