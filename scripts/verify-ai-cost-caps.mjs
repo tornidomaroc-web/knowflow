@@ -250,6 +250,9 @@ await attempt('the mapping loads', async () => {
   const truth = [
     [422, '{"detail":"text_too_long: 4395600 characters (cap 4194304)"}', true],
     [422, '{"detail":"archive_too_large: 4 entries, 83886080 bytes uncompressed"}', true],
+    [422, '{"detail":"file_too_heavy: memory (over 1610612736 bytes)"}', true],
+    [422, '{"detail":"file_too_heavy: time (over 180 s)"}', true],
+    [500, '{"detail":"file_too_heavy: time (over 180 s)"}', false],
     [422, '{"detail":[{"loc":["body","file"],"msg":"field required"}]}', false],
     [500, '{"detail":"text_too_long: 1"}', false],
     [413, '{"detail":"File too large"}', false],
@@ -265,7 +268,7 @@ await attempt('the mapping loads', async () => {
   check('the route answers a content-cap refusal with too-much-text and 422',
     /if \(isContentCapRefusal\(pyResponse\.status, detail\)\)[\s\S]{0,300}uploadRefusalMessage\(safeLocale, 'too-much-text'\)[\s\S]{0,80}status: 422/.test(route));
   check('...after the guarded error write, which still runs for it', /await failIfStillProcessing\(upstream\);(\s*\/\/[^\n]*)*\s*if \(isContentCapRefusal/.test(route));
-  check('the service and the web share the two codes', ['text_too_long', 'archive_too_large'].every((c) =>
+  check('the service and the web share the three codes', ['text_too_long', 'archive_too_large', 'file_too_heavy'].every((c) =>
     read('services/ingestion/main.py').includes(`"${c}"`) && read('src/lib/ingest-content-caps.ts').includes(`'${c}'`)));
 });
 
