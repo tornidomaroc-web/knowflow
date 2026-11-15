@@ -29,7 +29,12 @@ the same way). مجددًا with tanween fatha, as `ar.ts` writes it.
 Sent by `/api/ingest` as `{ success: false, error }` with status 422 when the
 ingestion service refuses the file with `text_too_long` (over 4,194,304
 characters of text) or `archive_too_large` (a .docx, .pptx or .xlsx whose
-contents unpack to over 64 MiB, or over 10,000 parts). The upload box shows
+contents unpack to over 64 MiB, or over 10,000 parts), or, since
+fix/pdf-memory-guard, `file_too_heavy` (reading the file went over the
+converter's memory or time bound: in practice a very dense PDF or a very large
+spreadsheet, both of which also hold a great deal of text, or a deliberately
+malformed file). No new sentence: splitting the file is the way through for
+all three. The upload box shows
 it as it shows every refusal. The material is marked as failed and, like any
 failed upload, does not use one of the day's uploads.
 
