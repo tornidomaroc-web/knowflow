@@ -26,7 +26,6 @@ sys.path.insert(0, str(HERE))
 os.environ.setdefault("INGESTION_TOKEN", "test-token")
 
 SELF_AS_SOFT = 6 * 1024 ** 3
-resource.setrlimit(resource.RLIMIT_AS, (SELF_AS_SOFT, resource.getrlimit(resource.RLIMIT_AS)[1]))
 
 import main  # noqa: E402
 import pdf_bombs  # noqa: E402
@@ -56,13 +55,6 @@ async def fake_mark_error(sb, document_id, message):
     seen["errors"].append(message)
 
 
-main._user_client = fake_user_client
-main._load_owned_document = fake_load
-main._embed = fake_embed
-main._persist = fake_persist
-main._mark_error = fake_mark_error
-if len(sys.argv) > 2:
-    main.CONVERT_TIMEOUT_S = float(sys.argv[2])
 
 
 def docx(text: str) -> bytes:
@@ -90,12 +82,28 @@ def ingest(client, name, data, mime):
             "embedded": seen["embedded"] - before, "error_row": seen["errors"][-1] if seen["errors"] else None}
 
 
-kind = sys.argv[1]
-arg = {"dense_text": (200,)}.get(kind, ())
-bomb = getattr(pdf_bombs, kind)(*arg)
-client = TestClient(main.app, raise_server_exceptions=False)
-print(json.dumps({"step": "bomb", **ingest(client, f"{kind}.pdf", bomb, "application/pdf")}), flush=True)
-seen["errors"].clear()
-print(json.dumps({"step": "next", **ingest(client, "notes.docx", docx("Lecture 1: supply and demand."),
-                                          "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}), flush=True)
-print(json.dumps({"step": "self", "maxrss_kb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss}), flush=True)
+def run() -> None:
+    resource.setrlimit(resource.RLIMIT_AS, (SELF_AS_SOFT, resource.getrlimit(resource.RLIMIT_AS)[1]))
+    main._user_client = fake_user_client
+    main._load_owned_document = fake_load
+    main._embed = fake_embed
+    main._persist = fake_persist
+    main._mark_error = fake_mark_error
+    if len(sys.argv) > 2:
+        main.CONVERT_TIMEOUT_S = float(sys.argv[2])
+    kind = sys.argv[1]
+    arg = {"dense_text": (200,)}.get(kind, ())
+    bomb = getattr(pdf_bombs, kind)(*arg)
+    client = TestClient(main.app, raise_server_exceptions=False)
+    print(json.dumps({"step": "bomb", **ingest(client, f"{kind}.pdf", bomb, "application/pdf")}), flush=True)
+    seen["errors"].clear()
+    print(json.dumps({"step": "next", **ingest(client, "notes.docx", docx("Lecture 1: supply and demand."),
+                                              "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}), flush=True)
+    print(json.dumps({"step": "self", "maxrss_kb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss}), flush=True)
+
+
+# The guard is load-bearing: the converter child (a forkserver fork) imports
+# the parent's __main__ as __mp_main__, so without it every child would run
+# the whole harness again.
+if __name__ == "__main__":
+    run()
