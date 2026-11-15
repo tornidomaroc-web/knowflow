@@ -534,7 +534,8 @@ console.log('5. the AI allowance ledger: a student reads their own rows and can 
   check('the only spend function in public is the read, ai_spend_since (no write function exists)', fns === 'ai_spend_since', fns);
   const total = admin(`select sum(usd)::text || '/' || count(*) from public.ai_spend;`).trim();
   check('after every refusal the ledger holds exactly the three appended rows', total === '0.012354/3', total);
-  const cascade = admin(`delete from auth.users where id = '${B}'; select count(*) from public.ai_spend where user_id = '${B}';`).trim();
+  // As account deletion does: the profile first (profiles_id_fkey has no cascade), then the auth user.
+  const cascade = admin(`delete from public.profiles where id = '${B}'; delete from auth.users where id = '${B}'; select count(*) from public.ai_spend where user_id = '${B}';`).trim();
   check("deleting B's account removes B's rows (on delete cascade), service_role's missing DELETE notwithstanding", cascade === '0', cascade);
 }
 
