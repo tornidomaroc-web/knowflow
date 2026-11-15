@@ -10,19 +10,29 @@ name: ios-smoke
 # first page settles and after each step this workflow passes it, and appends
 # one JSON line per step to tmp/smoke.jsonl in the app's data container:
 #   1. the marker reaches the server: the first page is a /native/ twin (no
-#      Google button), and the user agent in the page carries KnowFlowApp/1;
+#      Google button), sign-up on a fresh install or login once the device
+#      holds the kf-seen mark (src/lib/first-screen.ts, activation fix 3), and
+#      the user agent in the page carries KnowFlowApp/1;
 #   2. the Capacitor bridge is present in a document served from
 #      tryknowflow.com (window.Capacitor.isNativePlatform() true, platform
 #      "ios"), the one reading that decides the architecture (§8.3 of the
 #      store path: if it ever turns false, the fallback is the bundled build);
 #   3. client-side navigation between two rewritten pages keeps the document
-#      (a window property set before the click survives it) and lands on the
-#      signup twin; a direct load of the dashboard bounces to the login twin;
+#      (a window property set before the click survives it): from the first
+#      page to the login twin by the sign-up page's own link (the to-login
+#      step of ios-signed-in.yml, byte for byte), then back to the signup twin
+#      by the login page's link; a direct load of the dashboard bounces to the
+#      same signed-out twin the app first opened on (both are chosen by the
+#      same rule, signedOutPage in src/lib/first-screen.ts);
 #   4. with the site unreachable (its name pointed at 127.0.0.1 in /etc/hosts
 #      for one launch), the bundled offline page is what the app shows;
-#   5. an off-site link (the GitHub link in the privacy page's footer) leaves
-#      the web view where it was and takes the app out of the foreground,
-#      which is Capacitor opening the system browser;
+#   5. an off-site link leaves the web view where it was and takes the app
+#      out of the foreground, which is Capacitor opening the system browser.
+#      The privacy page's footer carried a GitHub link until Design C PR 2
+#      (#302, f5b7ee0) removed it, and the app's twin pages carry no off-site
+#      link at all, so the step plants one on the privacy page when there is
+#      none and says so in its result: what is proved is the shell's handling
+#      of an off-site navigation, which does not depend on the site's content;
 #   6. the study reminder's plugin (STORE_PATH.md S3(a)): the bridge lists
 #      LocalNotifications, nothing asks for the notification permission at
 #      launch (the app stays active and the status reads "prompt"), the
@@ -237,23 +247,34 @@ jobs:
       # The script the app runs, one line of JavaScript per step. `l` is the
       # locale the page is on; the server chose it from the simulator's
       # Accept-Language on the first request.
+      # THE FIRST PAGE (activation fix 3, #313): a fresh simulator has never
+      # held a session, so the app opens on SIGN-UP, not login, and this run
+      # never signs in, so it never earns the kf-seen mark. nav-mark sets the
+      # window property, to-login (ios-signed-in.yml's own step, byte for
+      # byte; scripts/verify-ci-guards.mjs (d) holds the two equal) reaches
+      # login from either first page, and signup-link then crosses back by the
+      # login page's link. Every page step leaves the page it starts on
+      # (scripts/ios/page_steps.py), so dashboard-direct starts from terms and
+      # live-signup from contact.
       - name: Smoke run against the live site (proofs 1, 2, 3 and 5)
         run: |
           set -eu
           cat > "$RUNNER_TEMP/steps.json" <<'JSON'
           [
+            {"name":"nav-mark","wait":300,"js":"(function(){window.__kfNav=1;return location.pathname})()"},
+            {"name":"to-login","until":"/(en|ar)/login(#kf-at-login)?$","wait":1500,"js":"(function(){var p=location.pathname;if(/^\\/(en|ar)\\/login$/.test(p)){history.replaceState(history.state,'',p+location.search+'#kf-at-login');return 'already on login'}if(!/^\\/(en|ar)\\/signup$/.test(p)){return 'not on sign-up or login: '+p}var a=Array.prototype.slice.call(document.querySelectorAll('a[href]')).filter(function(x){return /^\\/(en|ar)\\/login$/.test(x.getAttribute('href')||'')})[0];if(!a){return 'no login link on sign-up'}a.click();return 'clicked the login link on sign-up'})()"},
             {"name":"signup-link","until":"/(en|ar)/signup$","wait":5000,"js":"(function(){window.__kfNav=1;var a=Array.prototype.slice.call(document.querySelectorAll('a')).filter(function(a){return /\\/signup$/.test(a.getAttribute('href')||'')})[0];if(!a){return 'no signup link'}a.click();return 'clicked '+a.getAttribute('href')})()"},
-            {"name":"dashboard-direct","until":"/(en|ar)/login$","wait":3000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard');return 'assigned /'+l+'/dashboard'})()"},
             {"name":"wording-baseline","wait":500,"js":"(function(){return location.pathname})()"},
             {"name":"wording-plant","wait":500,"js":"(function(){var p=document.createElement('p');p.id='kf-plant';p.textContent='Upgrade to our Pro plan · انتقل إلى باقتك واشتراكك';document.body.appendChild(p);return 'planted'})()"},
             {"name":"wording-unplant","wait":500,"js":"(function(){var p=document.getElementById('kf-plant');if(p){p.remove()}return p?'removed':'none'})()"},
-            {"name":"live-signup","until":"/en/signup$","wait":4000,"js":"(function(){location.assign('/en/signup');return 'assigned /en/signup'})()"},
             {"name":"live-terms","until":"/en/terms$","wait":4000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
+            {"name":"dashboard-direct","until":"/(en|ar)/(signup|login)$","wait":3000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard');return 'assigned /'+l+'/dashboard'})()"},
             {"name":"live-refund","until":"/en/refund$","wait":4000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
             {"name":"live-about","until":"/en/about$","wait":4000,"js":"(function(){location.assign('/en/about');return 'assigned /en/about'})()"},
             {"name":"live-contact","until":"/en/contact$","wait":4000,"js":"(function(){location.assign('/en/contact');return 'assigned /en/contact'})()"},
+            {"name":"live-signup","until":"/en/signup$","wait":4000,"js":"(function(){location.assign('/en/signup');return 'assigned /en/signup'})()"},
             {"name":"privacy","until":"/(en|ar)/privacy$","wait":3000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/privacy');return 'assigned /'+l+'/privacy'})()"},
-            {"name":"external-link","wait":5000,"js":"(function(){var a=document.querySelector('a[href^=\"https://github.com\"]');if(!a){return 'no external link'}a.click();return 'clicked '+a.href})()"}
+            {"name":"external-link","wait":5000,"js":"(function(){var a=document.querySelector('a[href^=\"https://github.com\"]');var planted=false;if(!a){a=document.createElement('a');a.href='https://github.com/tornidomaroc-web/knowflow';a.id='kf-offsite';a.textContent='kf-offsite';document.body.appendChild(a);planted=true}a.click();return 'clicked '+a.href+(planted?' (planted: the page has no off-site link since #302)':'')})()"}
           ]
           JSON
           steps=$(base64 < "$RUNNER_TEMP/steps.json" | tr -d '\n')
@@ -295,7 +316,9 @@ jobs:
           [ -n "$b" ] && cp "$b" "$RUNNER_TEMP/smoke.boot"
           test -n "$(sf smoke.done)" || { echo "FAIL: the smoke run did not finish; lines seen: $seen"; [ -n "$f" ] && cat "$f"; find "$data/tmp" -maxdepth 3 | head -n 30; grep -iE 'KFSmoke|Unknown class|crash|fatal' "$RUNNER_TEMP/app-online.log" | tail -n 30 || true; exit 1; }
 
-      # Proof 6, two launches on the login page of the live site; the steps
+      # Proof 6, two launches on the live site's first page (sign-up: this run
+      # never signs in, so neither launch carries the kf-seen mark and both
+      # open on the same page; the steps read no page, only the plugin); the steps
       # call the plugin through the bridge (Capacitor.nativePromise), so this
       # needs no change on the site. Launch A is a fresh install: nothing may
       # ask at launch, and a request must raise the system prompt (the app
@@ -404,17 +427,29 @@ jobs:
               print(("ok   " if cond else "FAIL ") + msg)
               if not cond: fails.append(msg)
           L = by.get("launch", {}).get("probe", {})
-          need(re.match(r"^https://tryknowflow\.com/(en|ar)/login$", L.get("href", "") or ""), f"1. the first page is the login page: {L.get('href')}")
+          # Activation fix 3 (#313): a fresh install opens on sign-up, a device
+          # with the kf-seen mark on login; either is a twin (ios-signed-in.yml's
+          # first-page check, the same rule).
+          first = (L.get("href", "") or "").split("#", 1)[0]
+          need(re.match(r"^https://tryknowflow\.com/(en|ar)/(signup|login)$", first), f"1. the first page is the sign-up or the login twin: {L.get('href')}")
+          print(f"info first screen of a fresh install: {first.rsplit('/', 1)[-1]}")
           need(L.get("google") == 0, f"1. no Google button in the first page (twin, not the web page): google={L.get('google')}")
           need(L.get("marker") is True, f"1. the page's user agent carries KnowFlowApp/1: {L.get('marker')}")
           need(L.get("bridge") is True and L.get("platform") == "ios", f"2. the Capacitor bridge is present in a page from tryknowflow.com: bridge={L.get('bridge')} platform={L.get('platform')}")
+          TL = by.get("to-login", {})
+          TP = TL.get("probe", {})
+          need(TL.get("result") in ("already on login", "clicked the login link on sign-up") and (TL.get("nav") or {}).get("arrived") is True and re.search(r"/(en|ar)/login$", (TP.get("href", "") or "").split("#", 1)[0]), f"3. the login page was reached from the first page: {TL.get('result')} -> {TP.get('href')} (arrived {(TL.get('nav') or {}).get('arrived')})")
+          need((TL.get("result") == "clicked the login link on sign-up") == first.endswith("/signup"), f"3. ...by the sign-up page's own link exactly when the first page was sign-up: {TL.get('result')}")
+          need(TP.get("nav") == 1, f"3. the document survived the way to login (window.__kfNav kept): nav={TP.get('nav')}")
+          need(TP.get("google") == 0, f"3. the login page in the app is the twin (no Google button): google={TP.get('google')}")
           S = by.get("signup-link", {}).get("probe", {})
           need(str(by.get("signup-link", {}).get("result", "")).startswith("clicked"), f"3. the signup link was found and clicked: {by.get('signup-link', {}).get('result')}")
           need(re.search(r"/(en|ar)/signup$", S.get("href", "") or ""), f"3. client-side navigation landed on signup: {S.get('href')}")
           need(S.get("nav") == 1, f"3. the document survived the navigation (window.__kfNav kept): nav={S.get('nav')}")
           need(S.get("google") == 0, f"3. the signup page in the app is the twin (no Google button): google={S.get('google')}")
           D = by.get("dashboard-direct", {}).get("probe", {})
-          need(re.search(r"/(en|ar)/login$", D.get("href", "") or ""), f"3. a direct load of the dashboard without a session bounces to login: {D.get('href')}")
+          dpage = re.search(r"/(en|ar)/(signup|login)$", D.get("href", "") or "")
+          need(dpage is not None and first.endswith("/" + dpage.group(2)), f"3. a direct load of the dashboard without a session bounces to the signed-out twin the app opened on ({first.rsplit('/', 1)[-1]}): {D.get('href')}")
           need(D.get("google") == 0 and D.get("bridge") is True, f"3. ...and that page is the twin with the bridge: google={D.get('google')} bridge={D.get('bridge')}")
           # Step Wording-1, PLANTED PROOF: the probe's word rule (the same bytes as
           # scripts/lib/app-wording.mjs) runs in WKWebView on a live page. A
@@ -431,13 +466,14 @@ jobs:
           # REPORTED here, not failed: this run reads the deployed site, which
           # carries the old copy until the pull request merges; the signed-in
           # run on main fails on any hit after the deploy.
-          for page in ("launch", "signup-link", "live-signup", "live-terms", "live-refund", "live-about", "live-contact", "privacy"):
+          for page in ("launch", "to-login", "signup-link", "live-signup", "live-terms", "live-refund", "live-about", "live-contact", "privacy"):
               w = (by.get(page, {}).get("probe", {}).get("purchase") or {}).get("words")
               print(f"info live {page}: {by.get(page, {}).get('probe', {}).get('href')} words={w}")
           P = by.get("privacy", {}).get("probe", {})
           need(re.search(r"/(en|ar)/privacy$", P.get("href", "") or ""), f"1. the privacy page loads in the app: {P.get('href')}")
           need(P.get("pricing") == 0, f"1. the privacy page in the app has no Pricing link (twin chrome): pricing={P.get('pricing')}")
           E = by.get("external-link", {})
+          print(f"info external link: {'planted by the step (no off-site link on the page)' if 'planted' in str(E.get('result', '')) else 'the page own link'}")
           need(str(E.get("result", "")).startswith("clicked https://github.com"), f"5. the GitHub link was found and clicked: {E.get('result')}")
           need(re.search(r"/(en|ar)/privacy$", E.get("probe", {}).get("href", "") or ""), f"5. the web view stayed on the privacy page: {E.get('probe', {}).get('href')}")
           need(E.get("appState") in (1, 2), f"5. the app left the foreground (the system browser took the link): appState={E.get('appState')} (0=active,1=inactive,2=background)")

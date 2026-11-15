@@ -189,6 +189,20 @@ need(!noLink.arrived && noLink.result === 'no login link on sign-up', `to-login 
 // The same step, byte for byte, in the background-upload run and the App Store capture.
 const allToLogin = [...yml.matchAll(/\{"name":"to-login"[^\n]*\}/g)].map((m) => JSON.parse(m[0]));
 need(allToLogin.length === 2 && allToLogin.every((s) => s.js === toLogin.js && s.until === toLogin.until), `ios-signed-in.yml has the same to-login step in the screens and the background-upload runs: ${allToLogin.length}`);
+// ios-smoke.yml (the signed-out smoke) opens on the same first page and must
+// reach login the same way, before it crosses back to sign-up by the login
+// page's link; dashboard-direct then accepts either signed-out twin.
+{
+  const smoke = readFileSync(join(ROOT, '.github/workflows/ios-smoke.yml'), 'utf8').replace(/\r/g, '');
+  const sm = smoke.match(/cat > "\$RUNNER_TEMP\/steps\.json" <<'JSON'\n([\s\S]*?)\n\s*JSON\n/);
+  const ss = sm ? JSON.parse(sm[1]) : [];
+  const sn = ss.map((s) => s.name);
+  const st = ss.find((s) => s.name === 'to-login');
+  need(st && st.js === toLogin.js && st.until === toLogin.until, `ios-smoke.yml runs ios-signed-in.yml's to-login step byte for byte: ${st ? 'same' : 'missing'}`);
+  need(sn.indexOf('nav-mark') === 0 && sn.indexOf('to-login') === 1 && sn.indexOf('signup-link') === 2, `ios-smoke.yml marks the document, reaches login, then crosses back to sign-up: ${sn.slice(0, 3).join(', ')}`);
+  const dd = ss.find((s) => s.name === 'dashboard-direct');
+  need(dd && /signup/.test(dd.until) && /login/.test(dd.until), `ios-smoke.yml's dashboard-direct accepts either signed-out twin: ${dd && dd.until}`);
+}
 for (const py of ['python3', 'python']) {
   const r = spawnSync(py, ['-I', join(ROOT, 'scripts/store-seed/capture_steps.py'), 'en'], { encoding: 'utf8' });
   // A missing interpreter (or Windows' Store stub for python3) is skipped.
