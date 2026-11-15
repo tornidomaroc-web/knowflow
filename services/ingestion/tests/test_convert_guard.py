@@ -125,7 +125,11 @@ def _assert_refused(steps: dict, reason: str):
 
 @needs_linux
 def test_operand_flood_is_refused_and_the_service_lives():
-    _assert_refused(_harness("operand_flood", deadline=120), "memory")
+    # A time bomb more than a memory one: after a 300 MB jump while the stream
+    # inflates, it grows about 2.7 MB/s (measured), so 1.5 GiB would take some
+    # 7 minutes and the 180 s bound stops it first. The bound is set to 20 s
+    # for this run so the test does not take three minutes.
+    _assert_refused(_harness("operand_flood", deadline=90, timeout_s=20), "time")
 
 
 @needs_linux

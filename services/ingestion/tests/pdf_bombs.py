@@ -5,8 +5,9 @@ inside the 4 MiB upload limit, because the payload is one FlateDecode content
 stream of highly repetitive bytes (deflate reaches about 1000:1 on them).
 
   operand_flood   "0 0 0 ..." with no operator: pdfminer's content parser
-                  keeps every operand on its stack until an operator comes,
-                  so memory grows with every token (and so does time).
+                  keeps every operand on its stack until an operator comes.
+                  Measured: a 300 MB jump, then about 2.7 MB/s, for many
+                  minutes; the time bound is what stops it.
   glyph_flood     one Tj of millions of letters: every letter becomes an
                   LTChar object in layout analysis, about 1 KB each.
   inflate_zeros   a stream of spaces: zlib.decompress materialises all of it,
