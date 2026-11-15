@@ -538,6 +538,12 @@ export const en = {
       allowButton: "Allow",
       withdrawFailed: "That did not work and nothing was changed. You can try again."
     },
+    // The AI allowance (src/lib/ai-allowance.ts): the refusal every AI route
+    // sends once the account's spend in the last 30 days reaches its ceiling.
+    // DRAFT until the owner approves docs/copy-drafts/ai_monthly_allowance.md.
+    aiAllowance: {
+      used: "You have reached the AI use available to your account in the last 30 days. Nothing was sent. Uploading, asking, summaries and quizzes come back gradually as your earlier use passes 30 days."
+    },
     // STORE_PATH.md S3(a), Apple 4.2 (src/lib/study-reminder.ts). Settings,
     // inside the app only. No price, plan or offer word (3.1.3(f)).
     studyReminder: {

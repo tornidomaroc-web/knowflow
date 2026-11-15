@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-11-12 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **452 Arabic strings.**
+Generated 2026-11-15 by `scripts/export-arabic-strings.mjs` from
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **453 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -535,6 +535,12 @@ file is not read by the app.
 | `dashboard.aiConsent.withdrawButton` | اسحب الإذن | Withdraw permission |
 | `dashboard.aiConsent.allowButton` | اسمح | Allow |
 | `dashboard.aiConsent.withdrawFailed` | لم ينجح ذلك، وبقي كل شيء كما هو. جرّب مرة أخرى. | That did not work and nothing was changed. You can try again. |
+
+## Signed-in app: aiAllowance (`dashboard.aiAllowance`)
+
+| Key | العربية | English |
+|---|---|---|
+| `dashboard.aiAllowance.used` | وصلت إلى حد استخدام الذكاء الاصطناعي المتاح لحسابك خلال آخر 30 يومًا. لم يُرسَل شيء. يعود الرفع والأسئلة والملخصات والاختبارات تدريجيًا كلما مضى 30 يومًا على استخدامك السابق. | You have reached the AI use available to your account in the last 30 days. Nothing was sent. Uploading, asking, summaries and quizzes come back gradually as your earlier use passes 30 days. |
 
 ## Signed-in app: studyReminder (`dashboard.studyReminder`)
 

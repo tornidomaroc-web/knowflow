@@ -124,6 +124,8 @@ installTsxHooks(ROOT, {
   '@/lib/entitlement': `export async function getEntitlement() { return { tier: 'free' }; }`,
   '@/lib/ingestion': `export async function embedQuery() { globalThis.__a5.embeds++; return [0]; } export function getServiceUrl() { return 'http://ingestion.invalid'; }`,
   '@/lib/study-events': `export async function recordStudyEvent() {}`,
+  // The AI allowance is proved by scripts/verify-ai-allowance.mjs; here it always allows and records nothing.
+  '@/lib/ai-allowance-server': `export async function checkAiAllowance() { return { allowed: true }; } export async function recordAiSpend() {}`,
 });
 
 const failures = [];
@@ -189,7 +191,7 @@ if (has('src/lib/ask-material.ts')) {
   const src = read('src/app/api/agent/route.ts');
   const at = (s) => src.indexOf(s);
   const guard = at('hasAnswerableMaterial(');
-  check(guard > 0 && guard < at("enforceLimit(user.id, 'query'") && guard < at('checkConversationLimit(user.id)') && guard < at('embedQuery(message)'), 'agent route: the no-material guard must run before the question counter, the conversation count and the embedding');
+  check(guard > 0 && guard < at("enforceLimit(user.id, 'query'") && guard < at('checkConversationLimit(user.id)') && guard < at('embedQuery(message'), 'agent route: the no-material guard must run before the question counter, the conversation count and the embedding');
   check(/\.eq\('status', 'ready'\)/.test(src.slice(guard - 600, guard)), "agent route: the guard must read the subject's ready rows");
   const box = read('src/components/agent/ChatBox.tsx');
   check(/NO_MATERIAL_REFUSAL/.test(box) && /subjectUploadHref\(safeLocale, kbId\)/.test(box), 'ChatBox: the no-material reply must show the way to the subject\'s upload tile');

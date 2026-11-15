@@ -7,6 +7,7 @@ import tempfile
 import unicodedata
 import zipfile
 from collections import Counter
+from contextvars import ContextVar
 from typing import Literal, NamedTuple
 
 import httpx
@@ -692,6 +693,29 @@ def _assign_pages(text: str, chunks: list[dict], layout: PageLayout | None) -> N
         c["page_start"], c["page_end"], c["page_kind"] = first, last, layout.kind
 
 
+# THE AI ALLOWANCE'S PRICE OF AN EMBEDDING (src/lib/ai-allowance.ts). Voyage
+# answers every request with `usage.total_tokens`; `_embed_voyage` adds each
+# batch's count to the request's tally, and /embed and /ingest report the sum
+# as `voyage_tokens`, or null when any batch came back without a count. A
+# ContextVar rather than a return value, so `_embed`'s signature (and every
+# test that replaces it) is unchanged; each request sets its own tally.
+_VOYAGE_TALLY: ContextVar[dict | None] = ContextVar("voyage_tally", default=None)
+
+
+def _start_voyage_tally() -> dict:
+    tally = {"tokens": 0, "batches": 0, "uncounted": 0}
+    _VOYAGE_TALLY.set(tally)
+    return tally
+
+
+def _voyage_tokens(tally: dict) -> int | None:
+    """The request's Voyage tokens: 0 when nothing was sent, null when any
+    batch had no count (the web app then estimates, and says so)."""
+    if tally["uncounted"]:
+        return None
+    return tally["tokens"]
+
+
 async def _embed(texts: list[str], input_type: Literal["query", "document"]) -> list[list[float]]:
     # Provider dispatch (PIVOT_PLAN.md §4): one branch, no registry/ABC. Voyage is
     # the only provisioned path today; bge_m3 is a documented stub.
@@ -745,6 +769,14 @@ async def _embed_voyage(texts: list[str], input_type: Literal["query", "document
                 )
             data = resp.json()
             out.extend(item["embedding"] for item in data["data"])
+            tally = _VOYAGE_TALLY.get()
+            if tally is not None:
+                tally["batches"] += 1
+                used = (data.get("usage") or {}).get("total_tokens")
+                if isinstance(used, int) and not isinstance(used, bool) and used >= 0:
+                    tally["tokens"] += used
+                else:
+                    tally["uncounted"] += 1
     return out
 
 
@@ -1035,6 +1067,7 @@ async def ingest(
     sb = await _user_client(x_supabase_token)
     await _load_owned_document(sb, document_id, kb_id)
 
+    tally = _start_voyage_tally()
     try:
         markdown_text, pages = _convert_to_markdown(file)
         markdown_text = _strip_nul(markdown_text)
@@ -1060,10 +1093,17 @@ async def ingest(
         await _persist(sb, document_id, kb_id, markdown_text, chunks)
     except HTTPException as e:
         await _mark_error(sb, document_id, str(e.detail))
+        # A Voyage batch that failed after earlier ones were paid: the count
+        # rides on the error, in FastAPI's own {"detail": ...} shape. Only then:
+        # every refusal before Voyage (the content caps) keeps its exact body.
+        if tally["tokens"] > 0:
+            return JSONResponse(status_code=e.status_code, content={"detail": e.detail, "voyage_tokens": _voyage_tokens(tally)})
         raise
     except Exception as e:
         await _mark_error(sb, document_id, str(e))
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        # Voyage may already have been paid (a failed persist): the count goes
+        # back with the 500 so the web app still records the spend.
+        return JSONResponse(status_code=500, content={"error": str(e), "voyage_tokens": _voyage_tokens(tally)})
 
     # Small ack by design: no embeddings, no markdown. The caller already knows
     # the filename and does not need the content back — it is in the database.
@@ -1076,6 +1116,8 @@ async def ingest(
         "document_id": document_id,
         "chunk_count": len(chunks),
         "status": "ready",
+        # What Voyage counted for this file (null if it did not say).
+        "voyage_tokens": _voyage_tokens(tally),
         # A PDF's pages and how many have no text; null for any other file.
         "pages_total": pages.total if pages is not None else None,
         "pages_no_text": pages.no_text if pages is not None else None,
@@ -1101,5 +1143,6 @@ async def embed_endpoint(
             status_code=413,
             detail=f"Text longer than {MAX_EMBED_CHARS} characters",
         )
+    tally = _start_voyage_tally()
     [vector] = await _embed([payload.text], input_type=payload.input_type)
-    return {"embedding": vector, "model": VOYAGE_MODEL, "dim": EMBED_DIM}
+    return {"embedding": vector, "model": VOYAGE_MODEL, "dim": EMBED_DIM, "voyage_tokens": _voyage_tokens(tally)}

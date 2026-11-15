@@ -7,6 +7,8 @@ import { platformFromRequest } from '@/lib/platform';
 import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
 import { recordStudyEvent } from '@/lib/study-events';
 import { usageTokens, usageUsd } from '@/lib/usage-cost';
+import { anthropicUsd } from '@/lib/ai-allowance';
+import { checkAiAllowance, recordAiSpend } from '@/lib/ai-allowance-server';
 
 // Same cheap tier as /api/agent — a summary is a single, bounded Haiku call.
 const SUMMARY_MODEL = 'claude-haiku-4-5-20251001';
@@ -166,6 +168,13 @@ export async function POST(request: Request) {
     // (Matches /api/agent and /api/ingest: the atomic increment happens before the
     // paid work, so a rare model failure after this point still counts — the
     // fail-closed cost ceiling is preferred pre-revenue over a decrement race.)
+    // The AI allowance (src/lib/ai-allowance.ts), before the daily counter:
+    // at the ceiling nothing is counted, sent or recorded.
+    const allowance = await checkAiAllowance(user.id, lang);
+    if (!allowance.allowed) {
+      return NextResponse.json({ error: allowance.error, code: allowance.code }, { status: allowance.status });
+    }
+
     const limit = await enforceLimit(user.id, 'summary', lang, platformFromRequest(request));
     if (!limit.allowed) {
       return NextResponse.json({ error: limit.error }, { status: limit.status });
@@ -222,6 +231,8 @@ export async function POST(request: Request) {
       // and before any check on the text, because an empty or rejected summary
       // was still billed. Counts and ids only: no document text, no summary text.
       const tokens = usageTokens(resp.usage);
+      // The AI allowance: billed, so recorded, before any check on the text.
+      await recordAiSpend(user.id, 'summary', anthropicUsd(tokens));
       console.log(
         JSON.stringify({
           tag: 'kf-usage',
