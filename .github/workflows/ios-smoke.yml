@@ -26,9 +26,13 @@ name: ios-smoke
 #      same rule, signedOutPage in src/lib/first-screen.ts);
 #   4. with the site unreachable (its name pointed at 127.0.0.1 in /etc/hosts
 #      for one launch), the bundled offline page is what the app shows;
-#   5. an off-site link (the GitHub link in the privacy page's footer) leaves
-#      the web view where it was and takes the app out of the foreground,
-#      which is Capacitor opening the system browser;
+#   5. an off-site link leaves the web view where it was and takes the app
+#      out of the foreground, which is Capacitor opening the system browser.
+#      The privacy page's footer carried a GitHub link until Design C PR 2
+#      (#302, f5b7ee0) removed it, and the app's twin pages carry no off-site
+#      link at all, so the step plants one on the privacy page when there is
+#      none and says so in its result: what is proved is the shell's handling
+#      of an off-site navigation, which does not depend on the site's content;
 #   6. the study reminder's plugin (STORE_PATH.md S3(a)): the bridge lists
 #      LocalNotifications, nothing asks for the notification permission at
 #      launch (the app stays active and the status reads "prompt"), the
@@ -270,7 +274,7 @@ jobs:
             {"name":"live-contact","until":"/en/contact$","wait":4000,"js":"(function(){location.assign('/en/contact');return 'assigned /en/contact'})()"},
             {"name":"live-signup","until":"/en/signup$","wait":4000,"js":"(function(){location.assign('/en/signup');return 'assigned /en/signup'})()"},
             {"name":"privacy","until":"/(en|ar)/privacy$","wait":3000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/privacy');return 'assigned /'+l+'/privacy'})()"},
-            {"name":"external-link","wait":5000,"js":"(function(){var a=document.querySelector('a[href^=\"https://github.com\"]');if(!a){return 'no external link'}a.click();return 'clicked '+a.href})()"}
+            {"name":"external-link","wait":5000,"js":"(function(){var a=document.querySelector('a[href^=\"https://github.com\"]');var planted=false;if(!a){a=document.createElement('a');a.href='https://github.com/tornidomaroc-web/knowflow';a.id='kf-offsite';a.textContent='kf-offsite';document.body.appendChild(a);planted=true}a.click();return 'clicked '+a.href+(planted?' (planted: the page has no off-site link since #302)':'')})()"}
           ]
           JSON
           steps=$(base64 < "$RUNNER_TEMP/steps.json" | tr -d '\n')
@@ -469,6 +473,7 @@ jobs:
           need(re.search(r"/(en|ar)/privacy$", P.get("href", "") or ""), f"1. the privacy page loads in the app: {P.get('href')}")
           need(P.get("pricing") == 0, f"1. the privacy page in the app has no Pricing link (twin chrome): pricing={P.get('pricing')}")
           E = by.get("external-link", {})
+          print(f"info external link: {'planted by the step (no off-site link on the page)' if 'planted' in str(E.get('result', '')) else 'the page own link'}")
           need(str(E.get("result", "")).startswith("clicked https://github.com"), f"5. the GitHub link was found and clicked: {E.get('result')}")
           need(re.search(r"/(en|ar)/privacy$", E.get("probe", {}).get("href", "") or ""), f"5. the web view stayed on the privacy page: {E.get('probe', {}).get('href')}")
           need(E.get("appState") in (1, 2), f"5. the app left the foreground (the system browser took the link): appState={E.get('appState')} (0=active,1=inactive,2=background)")
