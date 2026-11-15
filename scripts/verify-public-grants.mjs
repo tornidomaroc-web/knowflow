@@ -498,9 +498,14 @@ console.log('5. the AI allowance ledger: a student reads their own rows and can 
   check("the server sums A's window: 0.005254 (B's row not in it)", r.error === null && Number(r.data) === 0.005254, r.error ? `${r.error.code} ${r.error.message}` : `returned ${r.data}`);
   r = await asService.rpc('ai_spend_since', { p_user: A, p_since: new Date(Date.now() + 60000).toISOString() });
   check('a window that starts after every row sums to 0', r.error === null && Number(r.data) === 0, r.error ? r.error.message : `returned ${r.data}`);
-  for (const [label, usd] of [['-0.01', -0.01], ['-1', -1], ['10.000001', 10.000001], ["'NaN'", 'NaN'], ["'Infinity'", 'Infinity'], ["'-Infinity'", '-Infinity']]) {
+  for (const [label, usd] of [['-0.01', -0.01], ['-1', -1], ['10.000001', 10.000001], ["'NaN'", 'NaN']]) {
     const res = await asService.from('ai_spend').insert({ user_id: A, kind: 'answer', usd });
     check(`even the server cannot append usd ${label}: refused by ai_spend_usd_check (23514)`, res.error?.code === '23514', res.error ? `${res.error.code} ${res.error.message}` : 'no error');
+  }
+  // numeric(12, 6) cannot hold an infinity at all: the type refuses it before the check.
+  for (const usd of ['Infinity', '-Infinity']) {
+    const res = await asService.from('ai_spend').insert({ user_id: A, kind: 'answer', usd });
+    check(`even the server cannot append usd '${usd}': refused by the column type (22003 numeric field overflow)`, res.error?.code === '22003', res.error ? `${res.error.code} ${res.error.message}` : 'no error');
   }
   {
     const res = await asService.from('ai_spend').insert({ user_id: A, kind: 'refund', usd: 0 });

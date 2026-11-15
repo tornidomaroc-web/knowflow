@@ -21,7 +21,7 @@
 --                  key's ON DELETE CASCADE.
 -- There is NO write function. The only function, ai_spend_since, reads, and
 -- only service_role may execute it. A negative, NaN or infinite usd is refused
--- by the table's own check, for every role.
+-- by the column type and the table's own check, for every role.
 --
 -- Idempotent: safe to run more than once.
 
@@ -37,8 +37,9 @@ create table if not exists public.ai_spend (
 alter table public.ai_spend drop constraint if exists ai_spend_kind_check;
 alter table public.ai_spend add constraint ai_spend_kind_check
   check (kind in ('answer', 'summary', 'quiz', 'query_embed', 'upload_embed'));
--- NaN is greater than every number in Postgres, so `usd <= 10` refuses it;
--- 'Infinity' fails the same bound and '-Infinity' fails `usd >= 0`.
+-- NaN is greater than every number in Postgres, so `usd <= 10` refuses it
+-- (23514). numeric(12, 6) cannot hold 'Infinity' or '-Infinity' at all: the
+-- type refuses them first (22003, numeric field overflow).
 alter table public.ai_spend drop constraint if exists ai_spend_usd_check;
 alter table public.ai_spend add constraint ai_spend_usd_check
   check (usd >= 0 and usd <= 10);
