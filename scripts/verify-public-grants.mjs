@@ -6,7 +6,7 @@
  * no production contact.
  *
  * WHAT IS ASSERTED.
- *   1. THE MATRIX. For each of the 13 tables and each API role (`anon`,
+ *   1. THE MATRIX. For each of the 14 tables and each API role (`anon`,
  *      `authenticated`, `service_role`), which of SELECT, INSERT, UPDATE,
  *      DELETE the role holds, read with `has_table_privilege` by the SAME
  *      statement the production read uses (`scripts/sql/read-public-grants.sql`,
@@ -77,6 +77,7 @@ $$;`;
 // table in the same PR, which is the point: a grant moves nowhere unnoticed.
 const INTENDED = {
   account_deletion_orphans: { anon: '',     authenticated: '',     service_role: 'rawd' }, // 20260904
+  ai_spend:                 { anon: '',     authenticated: 'r',    service_role: 'ra' },   // 20261115, append-only
   chunks:                   { anon: 'r',    authenticated: 'rawd', service_role: 'rawd' },
   conversations:            { anon: 'r',    authenticated: 'rawd', service_role: 'rawd' },
   documents:                { anon: 'r',    authenticated: 'rawd', service_role: 'rawd' },
@@ -96,6 +97,7 @@ const ROLES = ['anon', 'authenticated', 'service_role'];
 // The policy names each table must carry, exactly (the migrations' own).
 const POLICIES = {
   account_deletion_orphans: [],
+  ai_spend: ['Users can read own ai spend'],
   chunks: ['Users can delete own chunks', 'Users can insert own chunks', 'Users can read own chunks'],
   conversations: ['Users can manage own conversations'],
   documents: ['Users can manage own documents'],
@@ -197,9 +199,11 @@ await waitFor('postgrest', async () => {
 console.log(`postgrest ready (${since()})`);
 
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
-function tokenFor(userId) {
+function tokenFor(userId, role = 'authenticated') {
   const head = b64({ alg: 'HS256', typ: 'JWT' });
-  const body = b64({ role: 'authenticated', aud: 'authenticated', sub: userId, exp: Math.floor(Date.now() / 1000) + 3600 });
+  const body = b64(role === 'authenticated'
+    ? { role, aud: 'authenticated', sub: userId, exp: Math.floor(Date.now() / 1000) + 3600 }
+    : { role, exp: Math.floor(Date.now() / 1000) + 3600 });
   return `${head}.${body}.${createHmac('sha256', JWT_SECRET).update(`${head}.${body}`).digest('base64url')}`;
 }
 
@@ -333,7 +337,7 @@ await refused('A DELETEs study_events', () => asA.from('study_events').delete().
 await refused('A INSERTs into account_deletion_orphans (20260904)', () => asA.from('account_deletion_orphans').insert({}));
 await refused('A INSERTs into subscriptions (20261004)', () => asA.from('subscriptions').insert({ user_id: A, status: 'active' }));
 const probeRow = {
-  account_deletion_orphans: {}, chunks: { chunk_index: 0, content: 'x' }, conversations: { user_id: A }, documents: { filename: 'x' },
+  account_deletion_orphans: {}, ai_spend: { user_id: A, kind: 'answer', usd: 0 }, chunks: { chunk_index: 0, content: 'x' }, conversations: { user_id: A }, documents: { filename: 'x' },
   knowledge_bases: { user_id: A, name: 'x' }, messages: { role: 'user', content: 'x' }, profiles: { id: A, email: 'x@example.invalid' },
   quiz_items: { question: 'x', options: ['a'], correct_index: 0, position: 0 }, quizzes: {}, study_events: { user_id: A, kind: 'quiz_submitted' },
   subscriptions: { user_id: A, status: 'active' }, usage_counters: { user_id: A }, waitlist: { email: 'anon@example.invalid' },
@@ -462,6 +466,72 @@ const quiz = await allowed('A INSERTs a quizzes row (/api/quiz/generate)', () =>
 await allowed('A INSERTs quiz_items (/api/quiz/generate)', () => asA.from('quiz_items').insert({ quiz_id: quiz.id, question: 'q', options: ['a', 'b'], correct_index: 0, position: 0 }).select('id'), (d) => d.length === 1);
 await allowed('A DELETEs the quizzes row (/api/quiz/generate on a failed regeneration)', () => asA.from('quizzes').delete().eq('id', quiz.id).select('id'), (d) => d.length === 1);
 await allowed('A DELETEs the documents row (material deletion, the session client)', () => asA.from('documents').delete().eq('id', doc.id).select('id'), (d) => d.length === 1);
+
+// --- 5. the AI allowance's ledger (20261115) ---------------------------------------------
+console.log('');
+console.log('5. the AI allowance ledger: a student reads their own rows and can never write, lower or reset them; the server appends only:');
+{
+  const MIG = 'supabase/migrations/20261115_ai_spend.sql';
+  const migText = readFileSync(resolvePath(ROOT, MIG), 'utf8');
+  let rerun = null;
+  try { psqlAs('postgres', migText); } catch (e) { rerun = String(e.stderr || e.message).split('\n')[0]; }
+  check(`${MIG} runs a second time without error`, rerun === null, rerun ?? 'ok', true);
+  // The file's own VERIFY query, uncommented, against the rows it says to expect.
+  const lines = migText.split(/\r?\n/);
+  const q0 = lines.findIndex((l) => l.startsWith('-- VERIFY'));
+  const e0 = lines.findIndex((l) => l.startsWith('-- Expected rows'));
+  const verifySql = lines.slice(q0 + 1, e0).map((l) => l.replace(/^-- ?/, '')).join('\n').trim();
+  const want = lines.slice(e0 + 1).filter((l) => /^-- {3}\w/.test(l)).map((l) => l.replace(/^-- {3}/, '').replace(/\s+\|\s+/, '|').trim());
+  const got = admin(verifySql).trim().split(/\r?\n/).map((l) => l.trim());
+  check(`${MIG}'s VERIFY query returns exactly its ${want.length} expected rows`, JSON.stringify(got) === JSON.stringify(want),
+    `got:\n          ${got.join('\n          ')}\n        want:\n          ${want.join('\n          ')}`, true);
+  check('the "Expected rows (N)" header counts the rows listed', lines[e0] === `-- Expected rows (${want.length}):`, lines[e0]);
+
+  const B = '0000000b-0000-4000-8000-000000000137';
+  const asService = clientFor(tokenFor(null, 'service_role'));
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  await allowed('the server (service_role) appends a row for A (src/lib/ai-allowance-server.ts recordAiSpend)',
+    () => asService.from('ai_spend').insert({ user_id: A, kind: 'answer', usd: 0.00525, estimated: false }), () => true);
+  await allowed('...and a query embedding, estimated', () => asService.from('ai_spend').insert({ user_id: A, kind: 'query_embed', usd: 0.000004, estimated: true }), () => true);
+  await allowed('...and one for B', () => asService.from('ai_spend').insert({ user_id: B, kind: 'summary', usd: 0.0071 }), () => true);
+  let r = await asService.rpc('ai_spend_since', { p_user: A, p_since: since });
+  check("the server sums A's window: 0.005254 (B's row not in it)", r.error === null && Number(r.data) === 0.005254, r.error ? `${r.error.code} ${r.error.message}` : `returned ${r.data}`);
+  r = await asService.rpc('ai_spend_since', { p_user: A, p_since: new Date(Date.now() + 60000).toISOString() });
+  check('a window that starts after every row sums to 0', r.error === null && Number(r.data) === 0, r.error ? r.error.message : `returned ${r.data}`);
+  for (const [label, usd] of [['-0.01', -0.01], ['-1', -1], ['10.000001', 10.000001], ["'NaN'", 'NaN'], ["'Infinity'", 'Infinity'], ["'-Infinity'", '-Infinity']]) {
+    const res = await asService.from('ai_spend').insert({ user_id: A, kind: 'answer', usd });
+    check(`even the server cannot append usd ${label}: refused by ai_spend_usd_check (23514)`, res.error?.code === '23514', res.error ? `${res.error.code} ${res.error.message}` : 'no error');
+  }
+  {
+    const res = await asService.from('ai_spend').insert({ user_id: A, kind: 'refund', usd: 0 });
+    check('a kind outside the five is refused by ai_spend_kind_check (23514)', res.error?.code === '23514', res.error ? `${res.error.code} ${res.error.message}` : 'no error');
+  }
+  await refused('the server UPDATEs a row down to 0 (append-only)', () => asService.from('ai_spend').update({ usd: 0 }).eq('user_id', A).select());
+  await refused('the server DELETEs a row (append-only)', () => asService.from('ai_spend').delete().eq('user_id', A).select());
+
+  r = await asA.from('ai_spend').select('kind, usd').order('kind');
+  check("A reads their own two rows, and not B's", r.error === null && JSON.stringify(r.data?.map((x) => x.kind)) === '["answer","query_embed"]', r.error ? r.error.message : JSON.stringify(r.data));
+  await refused('A INSERTs a row of their own (usd 0)', () => asA.from('ai_spend').insert({ user_id: A, kind: 'answer', usd: 0 }));
+  await refused('A INSERTs a negative row to lower their total', () => asA.from('ai_spend').insert({ user_id: A, kind: 'answer', usd: -5 }));
+  await refused('A UPDATEs their rows to 0 (resetting the total)', () => asA.from('ai_spend').update({ usd: 0 }).eq('user_id', A).select());
+  await refused('A DELETEs their rows (resetting the total)', () => asA.from('ai_spend').delete().eq('user_id', A).select());
+  await refused('A UPSERTs over their own row', () => asA.from('ai_spend').upsert({ id: '00000000-0000-4000-8000-0000000000a1', user_id: A, kind: 'answer', usd: 0 }));
+  for (const [who, client] of [['A', asA], ['anon', anon]]) {
+    const before = snapshotAll();
+    const res = await client.rpc('ai_spend_since', { p_user: A, p_since: since });
+    check(`${who} calls ai_spend_since: 42501 permission denied for function, nothing changed`,
+      res.error?.code === '42501' && /permission denied for function/.test(res.error.message) && sameAs(before).length === 0,
+      res.error ? `${res.error.code} ${res.error.message}` : `returned ${res.data}`);
+  }
+  r = await anon.from('ai_spend').select('id');
+  check('anon SELECT on ai_spend: 42501 permission denied (no SELECT grant at all)', r.error?.code === '42501', r.error ? `${r.error.code} ${r.error.message}` : `${r.data.length} rows`);
+  const fns = admin(`select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like '%spend%';`).trim();
+  check('the only spend function in public is the read, ai_spend_since (no write function exists)', fns === 'ai_spend_since', fns);
+  const total = admin(`select sum(usd)::text || '/' || count(*) from public.ai_spend;`).trim();
+  check('after every refusal the ledger holds exactly the three appended rows', total === '0.012354/3', total);
+  const cascade = admin(`delete from auth.users where id = '${B}'; select count(*) from public.ai_spend where user_id = '${B}';`).trim();
+  check("deleting B's account removes B's rows (on delete cascade), service_role's missing DELETE notwithstanding", cascade === '0', cascade);
+}
 
 const total = pass + failures.length;
 console.log('');

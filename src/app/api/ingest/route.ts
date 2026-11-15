@@ -13,6 +13,8 @@ import { fileTooLargeMessage, subjectMaterialsMessage, uploadRefusalMessage } fr
 import { isOverUploadLimit } from '@/lib/upload-limits';
 import { isContentCapRefusal } from '@/lib/ingest-content-caps';
 import { recordStudyEvent } from '@/lib/study-events';
+import { reportedTokens, uploadEmbedSpend, voyageUsd } from '@/lib/ai-allowance';
+import { checkAiAllowance, recordAiSpend } from '@/lib/ai-allowance-server';
 import { documentStorageKey } from '@/lib/storage-key';
 import { fileExtension, isAllowedFileType, type FileType } from '@/types';
 
@@ -35,6 +37,8 @@ interface IngestionAck {
   // Option C: a PDF's pages and how many have no text; null for any other file.
   pages_total?: number | null;
   pages_no_text?: number | null;
+  // The AI allowance: what Voyage AI counted for this file, or null.
+  voyage_tokens?: unknown;
 }
 
 /** A page count from the ack: a whole number of 0 or more, or null. */
@@ -154,6 +158,17 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: subjectMaterialsMessage(safeLocale, docLimit.limit, docLimit.tier, platformFromRequest(request)) },
         { status: 403 }
+      );
+    }
+
+    // The AI allowance (src/lib/ai-allowance.ts): before the day's upload
+    // counter and the storage upload, so a refused file is not counted, not
+    // stored, never reaches Voyage AI and is not recorded.
+    const allowance = await checkAiAllowance(user.id, safeLocale);
+    if (!allowance.allowed) {
+      return NextResponse.json(
+        { success: false, error: allowance.error, code: allowance.code },
+        { status: allowance.status }
       );
     }
 
@@ -394,6 +409,15 @@ export async function POST(request: Request) {
           { status: 422 }
         );
       }
+      // The AI allowance: any other failure after the embedding (a failed write) was
+      // still paid, and the service sends Voyage's count with its 500. Only a
+      // reported count is recorded here: an unknown failure is not estimated.
+      try {
+        const failedTokens = reportedTokens((JSON.parse(detail) as { voyage_tokens?: unknown }).voyage_tokens);
+        if (failedTokens) await recordAiSpend(user.id, 'upload_embed', voyageUsd(failedTokens));
+      } catch {
+        // Not JSON: nothing reported, nothing to record.
+      }
       return NextResponse.json(
         { success: false, error: uploadRefusalMessage(safeLocale, 'unconfirmed') },
         { status: 500 }
@@ -411,6 +435,13 @@ export async function POST(request: Request) {
     // allowed to flow into the emit and the success response — that is how a
     // document gets reported ready to a user while nothing was persisted.
     const ack: IngestionAck = await pyResponse.json().catch(() => ({} as IngestionAck));
+    // The AI allowance: Voyage's own count for this file, or the stated
+    // conservative estimate when this service does not report one. Before the
+    // ack check, because the embedding was paid either way.
+    if (typeof ack.chunk_count === 'number') {
+      const spend = uploadEmbedSpend(ack.voyage_tokens, ack.chunk_count, file.size);
+      await recordAiSpend(user.id, 'upload_embed', spend.usd, spend.estimated);
+    }
     if (ack.status !== 'ready' || typeof ack.chunk_count !== 'number') {
       const shape = JSON.stringify(ack).slice(0, 500);
       console.error('Unexpected ingestion ack:', shape);

@@ -73,6 +73,8 @@ const withTs = (base) => {
 };
 registerHooks({
   resolve(spec, ctx, next) {
+    // The AI allowance is proved by scripts/verify-ai-allowance.mjs; here it always allows and records nothing.
+    if (spec === '@/lib/ai-allowance-server') return { url: inline('export async function checkAiAllowance() { return { allowed: true }; } export async function recordAiSpend() {}'), shortCircuit: true };
     if (spec === 'next/server') return { url: inline(NEXT_SERVER), shortCircuit: true };
     if (spec === '@/lib/supabase/server') return { url: inline(SUPABASE_STUB), shortCircuit: true };
     if (spec === '@/lib/rate-limit') return { url: inline(RATE_LIMIT_STUB), shortCircuit: true };

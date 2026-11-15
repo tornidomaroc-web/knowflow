@@ -506,6 +506,10 @@ export const ar: Translation = {
       allowButton: "اسمح",
       withdrawFailed: "لم ينجح ذلك، وبقي كل شيء كما هو. جرّب مرة أخرى."
     },
+    // DRAFT: docs/copy-drafts/ai_monthly_allowance.md
+    aiAllowance: {
+      used: "وصلت إلى حد استخدام الذكاء الاصطناعي المتاح لحسابك خلال آخر 30 يومًا. لم يُرسَل شيء. يعود الرفع والأسئلة والملخصات والاختبارات تدريجيًا كلما مضى 30 يومًا على استخدامك السابق."
+    },
     // STORE_PATH.md S3(a). مسودة من الوكيل، تنتظر دفعة نسخ المالك.
     studyReminder: {
       heading: "تذكير المذاكرة",

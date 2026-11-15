@@ -34,7 +34,17 @@ function getToken(): string {
   return token;
 }
 
-export async function embedQuery(text: string): Promise<number[]> {
+/**
+ * `onVoyageTokens` receives what Voyage AI counted for this question (the
+ * service's `voyage_tokens`, from Voyage's `usage.total_tokens`), or
+ * undefined when the service did not report it. The AI allowance prices the
+ * embedding from it (src/lib/ai-allowance.ts). A callback, not a new return
+ * shape, so every caller and stub of `embedQuery` keeps its number[].
+ */
+export async function embedQuery(
+  text: string,
+  onVoyageTokens?: (tokens: unknown) => void
+): Promise<number[]> {
   const resp = await fetch(`${getServiceUrl()}/embed`, {
     method: 'POST',
     headers: {
@@ -48,6 +58,7 @@ export async function embedQuery(text: string): Promise<number[]> {
     throw new Error(`Embedding service returned ${resp.status}`);
   }
 
-  const data: { embedding: number[] } = await resp.json();
+  const data: { embedding: number[]; voyage_tokens?: unknown } = await resp.json();
+  onVoyageTokens?.(data.voyage_tokens);
   return data.embedding;
 }

@@ -45,6 +45,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_spend: {
+        Row: {
+          at: string
+          estimated: boolean
+          id: string
+          kind: string
+          usd: number
+          user_id: string
+        }
+        Insert: {
+          at?: string
+          estimated?: boolean
+          id?: string
+          kind: string
+          usd: number
+          user_id: string
+        }
+        Update: {
+          at?: string
+          estimated?: boolean
+          id?: string
+          kind?: string
+          usd?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       chunks: {
         Row: {
           chunk_index: number
@@ -483,6 +510,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ai_spend_since: {
+        Args: { p_since: string; p_user: string }
+        Returns: number
+      }
       current_streak: { Args: { p_time_zone: string }; Returns: number }
       has_unresolved_deletion_orphan: { Args: never; Returns: boolean }
       increment_usage: { Args: { p_kind: string }; Returns: number }

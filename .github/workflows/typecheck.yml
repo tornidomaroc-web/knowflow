@@ -406,6 +406,15 @@ jobs:
       - name: Verify the question length cap, the Pro upload cap and the too-much-text refusal
         run: node --experimental-strip-types scripts/verify-ai-cost-caps.mjs
 
+      # feat/ai-allowance: at an account's 30-day USD ceiling every question,
+      # summary, quiz and upload is refused before the daily counter and the
+      # provider, and is not recorded; under it, the real price of each billed
+      # call is recorded by the server. The ledger's grants, RLS and checks are
+      # public-grants section 5; the service's Voyage count is
+      # services/ingestion/tests/test_voyage_tokens.py (ingestion-image).
+      - name: Verify the monthly AI allowance refuses before any provider call and records what was billed
+        run: node --experimental-strip-types scripts/verify-ai-allowance.mjs
+
   # Register #125 (the proof of #72). Drives the REAL readEntitlement through the
   # REAL supabase-js against a throwaway Postgres + PostgREST in Docker holding
   # the subscriptions table's exact definition: a paying user with two rows must
@@ -486,7 +495,7 @@ jobs:
   # and role by role, against Supabase's own postgres image (db-types' digest)
   # with every migration applied in the manifest's order, and PostgREST with a
   # JWT secret generated for the run: the declared intended-writers matrix
-  # (13 tables x anon/authenticated/service_role x SELECT/INSERT/UPDATE/DELETE)
+  # (14 tables x anon/authenticated/service_role x SELECT/INSERT/UPDATE/DELETE)
   # is asserted line for line against the SAME statement the production read
   # uses (scripts/sql/read-public-grants.sql), so a migration that creates a
   # table and forgets its REVOKE, or a REVOKE that over-reaches, goes red; the

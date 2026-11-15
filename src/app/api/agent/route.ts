@@ -10,6 +10,8 @@ import { MAX_QUESTION_CHARS, QUESTION_TOO_LONG, questionChars } from '@/lib/ques
 import { platformFromRequest } from '@/lib/platform';
 import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
 import { embedQuery } from '@/lib/ingestion';
+import { anthropicUsd, queryEmbedSpend } from '@/lib/ai-allowance';
+import { checkAiAllowance, recordAiSpend } from '@/lib/ai-allowance-server';
 import { recordStudyEvent } from '@/lib/study-events';
 import { SYSTEM_INSTRUCTIONS, buildContextBlock, buildUserTurn } from '@/lib/answer-prompt';
 import { knownPages, type KnownPages, type PageKind } from '@/lib/citation-pages';
@@ -195,6 +197,17 @@ export async function POST(request: Request) {
       });
     }
 
+    // The AI allowance (src/lib/ai-allowance.ts): the account's spend at
+    // Anthropic and Voyage AI in the last 30 days, against its ceiling. Before
+    // the daily counter, so a refused question is not counted, embedded, sent
+    // or recorded. text/plain with the code in a header, like every refusal here.
+    const allowance = await checkAiAllowance(user.id, safeLocale);
+    if (!allowance.allowed) {
+      const headers: Record<string, string> = { 'Content-Type': 'text/plain' };
+      if (allowance.code) headers['X-KF-Refusal'] = allowance.code;
+      return new Response(allowance.error, { status: allowance.status, headers });
+    }
+
     // B7 cost guard: burst + daily query cap, in front of the expensive
     // embed/retrieve/Claude work. Returned as text/plain (not JSON) so the
     // streaming client renders the message cleanly while the status is a real 429.
@@ -233,7 +246,11 @@ export async function POST(request: Request) {
     //    the RPC is SECURITY INVOKER).
     let chunks: MatchedChunk[] = [];
     try {
-      const queryEmbedding = await embedQuery(message);
+      let voyageTokens: unknown;
+      const queryEmbedding = await embedQuery(message, (t) => { voyageTokens = t; });
+      // Voyage was paid: record it now, whatever retrieval does next.
+      const embedSpend = queryEmbedSpend(voyageTokens, message);
+      await recordAiSpend(user.id, 'query_embed', embedSpend.usd, embedSpend.estimated);
       const { data, error } = await supabase.rpc('match_chunks', {
         // pgvector's `vector` argument is generated as `string`, but the RPC
         // accepts a JSON number[] on the wire and postgREST coerces it to a
@@ -484,6 +501,15 @@ export async function POST(request: Request) {
         } catch (error) {
           console.error('Stream error:', error);
         } finally {
+          // The AI allowance: what Anthropic billed for this answer, from the
+          // stream's own usage. In `finally` so an answer that died mid-stream,
+          // and was still billed for what it read and wrote, is recorded too.
+          await recordAiSpend(user.id, 'answer', anthropicUsd({
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+            cache_read_tokens: cacheReadTokens,
+            cache_write_tokens: cacheWriteTokens,
+          }));
           controller.close();
         }
       },

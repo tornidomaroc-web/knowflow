@@ -113,3 +113,10 @@
 # function, policy or grant change. `apply`: plain DDL on public.documents,
 # re-runnable (add column if not exists).
 20261112_documents_is_sample.sql  apply
+# 20261115 is the AI allowance's ledger: public.ai_spend (one row per billed
+# call; authenticated SELECT own rows only, service_role SELECT + INSERT only,
+# anon nothing; usd checked 0..10) and public.ai_spend_since(uuid, timestamptz),
+# executable by service_role only. No write function. `apply`: re-runnable
+# (if not exists, drop ... if exists before add, create or replace), and
+# scripts/verify-public-grants.mjs section 5 asserts the result.
+20261115_ai_spend.sql  apply

@@ -6,6 +6,8 @@ import { resolveLocale } from '@/lib/i18n';
 import { platformFromRequest } from '@/lib/platform';
 import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
 import { usageTokens, usageUsd } from '@/lib/usage-cost';
+import { anthropicUsd } from '@/lib/ai-allowance';
+import { checkAiAllowance, recordAiSpend } from '@/lib/ai-allowance-server';
 import type { ClientQuizItem, Quiz } from '@/types';
 
 // Same cheap tier as /api/summarize and /api/agent — a quiz is a single, bounded
@@ -261,6 +263,13 @@ export async function POST(request: Request) {
     //    drains the query or summary caps. The atomic increment happens before
     //    the paid work — the fail-closed cost ceiling is preferred pre-revenue
     //    over a decrement race (register #24).
+    // The AI allowance (src/lib/ai-allowance.ts), before the daily counter:
+    // at the ceiling nothing is counted, sent or recorded.
+    const allowance = await checkAiAllowance(user.id, lang);
+    if (!allowance.allowed) {
+      return NextResponse.json({ error: allowance.error, code: allowance.code }, { status: allowance.status });
+    }
+
     const limit = await enforceLimit(user.id, 'quiz', lang, platformFromRequest(request));
     if (!limit.allowed) {
       return NextResponse.json({ error: limit.error }, { status: limit.status });
@@ -313,6 +322,8 @@ export async function POST(request: Request) {
       // #80). Logged HERE, before the parse, because a quiz that fails
       // validation and is never stored was still billed. Counts and ids only.
       const tokens = usageTokens(resp.usage);
+      // The AI allowance: billed, so recorded, before any check on the text.
+      await recordAiSpend(user.id, 'quiz', anthropicUsd(tokens));
       console.log(
         JSON.stringify({
           tag: 'kf-usage',
