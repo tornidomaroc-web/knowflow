@@ -1,9 +1,13 @@
+import asyncio
 import bisect
 import hmac
+import multiprocessing
 import os
 import re
 import shutil
+import sys
 import tempfile
+import time
 import unicodedata
 import zipfile
 from collections import Counter
@@ -23,7 +27,65 @@ from postgrest.exceptions import APIError
 from pydantic import BaseModel
 from supabase import acreate_client, AsyncClient, AsyncClientOptions
 
+try:
+    import resource  # POSIX only; the bounded conversion needs it (Linux)
+except ImportError:  # pragma: no cover - Windows checkout
+    resource = None
+
+import markitdown
+import markitdown.converters._pdf_converter as _md_pdf
+
 app = FastAPI()
+
+
+# MarkItDown 0.1.5's PDF converter walks `pdf.pages` with pdfplumber and never
+# closes a page, and pdfplumber caches every page's characters and layout until
+# it is closed. Measured on main (ccc2b63): about 9.4 MiB held per page of
+# ordinary text, so a 100-page PDF peaked at 1.16 GB and a 300-page one at
+# 3.05 GB, in pdfplumber alone (pdfminer's own passes stay flat). Closing each
+# page once MarkItDown has moved past it gives the same text (same length, same
+# bytes; tests/test_convert_guard.py) at a flat footprint. The wrapper changes
+# nothing else: it is pdfplumber's PDF object, whose `pages` closes each page
+# when the loop asks for the next one. Pinned to the MarkItDown it was
+# measured on; a different version must be measured again before it is trusted.
+assert markitdown.__version__ == "0.1.5", markitdown.__version__
+
+
+class _ClosingPagesPDF:
+    def __init__(self, pdf):
+        self._pdf = pdf
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return self._pdf.__exit__(*exc)
+
+    @property
+    def pages(self):
+        for page in self._pdf.pages:
+            try:
+                yield page
+            finally:
+                page.close()
+
+    def __getattr__(self, name):
+        return getattr(self._pdf, name)
+
+
+class _PdfplumberClosingPages:
+    def __init__(self, real):
+        self._real = real
+
+    def open(self, *a, **k):
+        return _ClosingPagesPDF(self._real.open(*a, **k))
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+
+if not isinstance(_md_pdf.pdfplumber, _PdfplumberClosingPages):
+    _md_pdf.pdfplumber = _PdfplumberClosingPages(_md_pdf.pdfplumber)
 
 INGESTION_TOKEN = (os.environ.get("INGESTION_TOKEN") or "").strip()
 # Rotation without downtime. While a new token is being rolled out, Railway holds
@@ -935,7 +997,39 @@ async def health():
         # "is persistence configured" without an upload and without leaking
         # anything to an unauthenticated caller.
         "supabase_configured": bool(SUPABASE_URL and SUPABASE_ANON_KEY),
+        # The conversion bounds, and the memory this container may use, so a
+        # plain GET measures what Railway gives the service (no dashboard, no
+        # CLI login). Numbers only.
+        "convert": {
+            "isolated": _isolation_supported(),
+            "max_rss_bytes": CONVERT_MAX_RSS_BYTES,
+            "timeout_s": CONVERT_TIMEOUT_S,
+            "concurrency": CONVERT_CONCURRENCY,
+            "container_memory_bytes": _container_memory_bytes(),
+            "cpus": os.cpu_count(),
+        },
     }
+
+
+def _container_memory_bytes() -> int | None:
+    """The cgroup memory limit (v2, then v1), else the machine's MemTotal."""
+    for p in ("/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes"):
+        try:
+            with open(p) as fp:
+                v = fp.read().strip()
+            if v.isdigit() and int(v) < (1 << 60):
+                return int(v)
+        except OSError:
+            pass
+    kb = None
+    try:
+        with open("/proc/meminfo") as fp:
+            for line in fp:
+                if line.startswith("MemTotal:"):
+                    kb = int(line.split()[1])
+    except (OSError, ValueError, IndexError):
+        return None
+    return kb * 1024 if kb else None
 
 
 def _upload_size(file: UploadFile) -> int:
@@ -956,6 +1050,10 @@ def _convert_to_markdown(file: UploadFile) -> tuple[str, PageCounts | None]:
     (MarkItDown marks each), but they are not counted here; a .docx has no
     fixed pages (Word lays them out when it opens the file); .xlsx, .txt and
     .md have none. Those are measured as a whole by _has_no_text.
+
+    The conversion itself runs in a child process bounded in memory and time
+    (_run_converter); over either bound the file is refused with
+    FILE_TOO_HEAVY and this process is untouched.
     """
     fd, tmp_path = tempfile.mkstemp(suffix=f"_{_safe_basename(file.filename)}")
     os.close(fd)
@@ -963,18 +1061,218 @@ def _convert_to_markdown(file: UploadFile) -> tuple[str, PageCounts | None]:
         with open(tmp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         _check_archive(tmp_path)
-        md = MarkItDown()
-        result = md.convert(tmp_path)
-        text = result.text_content or ""
-        if _is_pdf(tmp_path):
-            return _pdf_in_reading_order(tmp_path, text), _pdf_page_counts(tmp_path)
-        return text, None
+        return _run_converter(tmp_path)
     finally:
         if os.path.exists(tmp_path):
             try:
                 os.remove(tmp_path)
             except OSError:
                 pass
+
+
+def _convert_path(path: str) -> tuple[str, PageCounts | None]:
+    """MarkItDown, then for a PDF the reading-order pass and the page counts.
+
+    What _convert_to_markdown always did, unchanged; it now runs inside the
+    bounded child (_convert_child), or in this process where the bounds are
+    not available (_isolation_supported)."""
+    md = MarkItDown()
+    result = md.convert(path)
+    text = result.text_content or ""
+    if _is_pdf(path):
+        return _pdf_in_reading_order(path, text), _pdf_page_counts(path)
+    return text, None
+
+
+# ---------------------------------------------------------------------------
+# THE CONVERSION, BOUNDED IN MEMORY AND TIME.
+#
+# MAX_INGEST_BYTES bounds the upload and MAX_CONVERTED_CHARS the text that
+# comes out, but nothing bounded what the converter holds or how long it runs
+# on the way. A PDF is a set of compressed streams: a few hundred KB can
+# decompress to gigabytes (deflate reaches about 1000:1), and pdfminer keeps
+# every operand of a content stream until an operator arrives and builds one
+# object per drawn letter. Measured on main (ccc2b63, tests/pdf_bombs.py): a
+# 0.5 MB legitimate 1,000-page text PDF peaked at 9.7 GB, and the generated
+# bombs grow without bound. The conversion used to run in the web process
+# itself, ON the event loop, so one such file stalled every request (/embed,
+# which every Ask question uses, included) and an out-of-memory kill took the
+# whole service down for every user.
+#
+# Now every conversion runs in a child process forked from a clean forkserver
+# (never from this threaded process). The parent, in a worker thread so the
+# event loop keeps serving, watches the child's resident memory every
+# CONVERT_POLL_S and its wall clock, and kills it at CONVERT_MAX_RSS_BYTES or
+# CONVERT_TIMEOUT_S. RLIMIT_AS in the child is a backstop for one allocation
+# too fast to be seen between two polls. At most CONVERT_CONCURRENCY run at
+# once, so the service's worst case is that many times the cap, not the sum
+# of every upload in flight. Over a bound, the file is refused with
+# FILE_TOO_HEAVY (422, like the content caps) before chunking, so nothing
+# reaches Voyage, and the row is marked error by the existing failure path.
+# The limits and how they were chosen: PR "PDF memory guard", report.md.
+CONVERT_MAX_RSS_BYTES = int(os.environ.get("CONVERT_MAX_RSS_BYTES", 1536 * 1024 * 1024))
+CONVERT_TIMEOUT_S = float(os.environ.get("CONVERT_TIMEOUT_S", 180))
+CONVERT_CONCURRENCY = int(os.environ.get("CONVERT_CONCURRENCY", 2))
+# Address space the child may add over what it holds when the conversion
+# starts. Larger than the resident cap on purpose: address space is not memory
+# (thread stacks and malloc arenas reserve far more than they touch), and this
+# limit is only the backstop; the resident cap is the bound.
+CONVERT_AS_HEADROOM_BYTES = 4 * CONVERT_MAX_RSS_BYTES
+CONVERT_POLL_S = 0.02
+FILE_TOO_HEAVY = "file_too_heavy"
+
+
+class ConversionFailed(Exception):
+    """The converter raised; the message is the converter's own, as before."""
+
+
+def _isolation_supported() -> bool:
+    """A forkserver, /proc and RLIMIT_AS: Linux, which is what Railway runs.
+
+    Elsewhere (a developer's Windows or macOS checkout) the conversion runs in
+    this process exactly as it did before, unbounded, so the tests that do not
+    need the bounds still run there; the bound tests skip."""
+    return (
+        sys.platform.startswith("linux")
+        and "forkserver" in multiprocessing.get_all_start_methods()
+        and os.path.exists("/proc/self/statm")
+    )
+
+
+_MP_CONTEXT = None
+
+
+def _mp_context():
+    global _MP_CONTEXT
+    if _MP_CONTEXT is None:
+        ctx = multiprocessing.get_context("forkserver")
+        # The forkserver imports this module once; each conversion is then a
+        # fork of that single-threaded server, which costs milliseconds, not
+        # the seconds a fresh interpreter importing MarkItDown would.
+        ctx.set_forkserver_preload([__name__])
+        _MP_CONTEXT = ctx
+    return _MP_CONTEXT
+
+
+def _rss_bytes(pid: int) -> int | None:
+    try:
+        with open(f"/proc/{pid}/statm") as fp:
+            return int(fp.read().split()[1]) * os.sysconf("SC_PAGE_SIZE")
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def _status_kb(field: str) -> int | None:
+    try:
+        with open("/proc/self/status") as fp:
+            for line in fp:
+                if line.startswith(field + ":"):
+                    return int(line.split()[1])
+    except (OSError, ValueError, IndexError):
+        return None
+    return None
+
+
+def _convert_child(conn, path: str) -> None:
+    """In the child: convert, and send back one tagged tuple.
+
+    ("ok", text, pages, peak_kb) | ("too_long", n) | ("memory",) |
+    ("error", message). Text over MAX_CONVERTED_CHARS is never sent: only its
+    length crosses back, so the parent never holds it either."""
+    try:
+        vm_kb = _status_kb("VmSize")
+        if vm_kb is not None:
+            limit = vm_kb * 1024 + CONVERT_AS_HEADROOM_BYTES
+            resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
+        text, pages = _convert_path(path)
+        if len(text) > MAX_CONVERTED_CHARS:
+            stripped = _strip_nul(text)
+            if len(stripped) > MAX_CONVERTED_CHARS:
+                conn.send(("too_long", len(stripped)))
+                return
+            text = stripped
+        conn.send(("ok", text, pages, _status_kb("VmHWM")))
+    except MemoryError:
+        conn.send(("memory",))
+    except Exception as e:  # noqa: BLE001 - reported to the parent as before
+        conn.send(("error", str(e)))
+    finally:
+        conn.close()
+
+
+def _too_heavy(reason: str) -> HTTPException:
+    return HTTPException(status_code=422, detail=f"{FILE_TOO_HEAVY}: {reason}")
+
+
+def _run_converter(path: str) -> tuple[str, PageCounts | None]:
+    """_convert_path(path) in a bounded child; blocking, call it off the loop."""
+    if not _isolation_supported():
+        return _convert_path(path)
+    ctx = _mp_context()
+    parent_conn, child_conn = ctx.Pipe(duplex=False)
+    proc = ctx.Process(target=_convert_child, args=(child_conn, path), daemon=True)
+    started = time.monotonic()
+    proc.start()
+    child_conn.close()
+    peak = 0
+    msg = None
+    try:
+        while True:
+            if parent_conn.poll(CONVERT_POLL_S):
+                try:
+                    msg = parent_conn.recv()
+                except EOFError:
+                    msg = None  # died without a word: killed, or crashed
+                break
+            if not proc.is_alive():
+                if parent_conn.poll(0):
+                    continue  # it answered and exited between two checks
+                break
+            rss = _rss_bytes(proc.pid)
+            if rss is not None:
+                peak = max(peak, rss)
+                if rss > CONVERT_MAX_RSS_BYTES:
+                    proc.kill()
+                    print(f"convert: killed at {rss} bytes resident", flush=True)
+                    raise _too_heavy(f"memory (over {CONVERT_MAX_RSS_BYTES} bytes)")
+            if time.monotonic() - started > CONVERT_TIMEOUT_S:
+                proc.kill()
+                print(f"convert: killed after {CONVERT_TIMEOUT_S:g} s", flush=True)
+                raise _too_heavy(f"time (over {CONVERT_TIMEOUT_S:g} s)")
+    finally:
+        parent_conn.close()
+        proc.join(5)
+        if proc.is_alive():
+            proc.kill()
+            proc.join(5)
+    secs = time.monotonic() - started
+    if msg is None:
+        print(f"convert: child ended with code {proc.exitcode} after {secs:.1f} s", flush=True)
+        raise _too_heavy(f"converter ended (code {proc.exitcode})")
+    kind = msg[0]
+    if kind == "ok":
+        _, text, pages, peak_kb = msg
+        print(f"convert: {secs:.1f} s, peak {peak_kb} kB resident", flush=True)
+        return text, pages
+    if kind == "too_long":
+        # The same refusal, in the same words, as the check in /ingest.
+        raise HTTPException(
+            status_code=422,
+            detail=f"{TEXT_TOO_LONG}: {msg[1]} characters (cap {MAX_CONVERTED_CHARS})",
+        )
+    if kind == "memory":
+        print(f"convert: out of address space after {secs:.1f} s", flush=True)
+        raise _too_heavy(f"memory (over {CONVERT_MAX_RSS_BYTES} bytes)")
+    raise ConversionFailed(msg[1])
+
+
+_CONVERT_SLOTS = asyncio.Semaphore(CONVERT_CONCURRENCY)
+
+
+async def _convert_bounded(file: UploadFile) -> tuple[str, PageCounts | None]:
+    """At most CONVERT_CONCURRENCY conversions at once, off the event loop."""
+    async with _CONVERT_SLOTS:
+        return await asyncio.to_thread(_convert_to_markdown, file)
 
 
 def _check_archive(path: str) -> None:
@@ -1069,7 +1367,7 @@ async def ingest(
 
     tally = _start_voyage_tally()
     try:
-        markdown_text, pages = _convert_to_markdown(file)
+        markdown_text, pages = await _convert_bounded(file)
         markdown_text = _strip_nul(markdown_text)
         # Before chunking and Voyage: an over-long text costs only its
         # conversion. 422 and the code reach the upload route, which tells the

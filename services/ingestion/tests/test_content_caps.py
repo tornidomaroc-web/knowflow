@@ -58,19 +58,21 @@ def seen(monkeypatch):
     async def fake_mark_error(sb, document_id, message):
         out["error"] = message
 
-    real_md = main.MarkItDown
+    # Counted where the converter is entered, in THIS process: on Linux the
+    # conversion itself runs in a bounded child (main._run_converter), where a
+    # patched MarkItDown class would not be seen.
+    real_run = main._run_converter
 
-    class CountingMarkItDown(real_md):
-        def convert(self, *a, **k):
-            out["converted"] += 1
-            return super().convert(*a, **k)
+    def counting_run(path):
+        out["converted"] += 1
+        return real_run(path)
 
     monkeypatch.setattr(main, "_user_client", fake_user_client)
     monkeypatch.setattr(main, "_load_owned_document", fake_load)
     monkeypatch.setattr(main, "_embed", fake_embed)
     monkeypatch.setattr(main, "_persist", fake_persist)
     monkeypatch.setattr(main, "_mark_error", fake_mark_error)
-    monkeypatch.setattr(main, "MarkItDown", CountingMarkItDown)
+    monkeypatch.setattr(main, "_run_converter", counting_run)
     return out
 
 
