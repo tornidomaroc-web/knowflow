@@ -269,7 +269,7 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
                 href={`/${locale}/forgot-password`}
                 className="font-medium text-foreground underline underline-offset-2 transition-colors hover:text-accent"
               >
-                {keepLastTwo(t.auth.signupRepeatPasswordLink)}
+                {keepLastThree(t.auth.signupRepeatPasswordLink)}
               </Link>
             </p>
         </div>
@@ -279,15 +279,20 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
 }
 
 /**
- * The link's last two words drawn as one unbreakable piece, so the note never
- * ends on a word alone: at 360 pt the Arabic link left "جديدة" by itself
- * (Android 360 audit, 2026-11-12). No character changes (no no-break space):
- * the text read by every check and by the reviewer is the dictionary's own.
+ * The link's last three words drawn as one unbreakable piece, so the note never
+ * ends on a word alone and never splits a phrase: at 360 pt the Arabic link
+ * left "جديدة" by itself (Android 360 audit, 2026-11-12), and keeping only two
+ * words then split "كلمة مرور" (password) across lines (owner's review of
+ * #328). Three words keep "كلمة مرور جديدة" and "Reset your password" whole.
+ * No character changes (no no-break space): the text read by every check and
+ * by the reviewer is the dictionary's own.
  */
-function keepLastTwo(text: string) {
-  const last = text.lastIndexOf(' ');
-  const cut = last > 0 ? text.lastIndexOf(' ', last - 1) : -1;
-  if (cut < 0) return text;
+function keepLastThree(text: string) {
+  let cut = text.length;
+  for (let i = 0; i < 3; i++) {
+    cut = cut > 0 ? text.lastIndexOf(' ', cut - 1) : -1;
+    if (cut < 0) return text;
+  }
   return (
     <>
       {text.slice(0, cut + 1)}

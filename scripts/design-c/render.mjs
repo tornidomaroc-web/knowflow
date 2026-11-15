@@ -155,8 +155,10 @@
  * ANDROID AT 360 (android360.mjs) adds the touched screens at 360 x 800, DPR
  * 3, an Android Chrome user agent, on the web (Android has no app), and
  * CHECK 19 (every render: a row of stat tiles keeps its numbers on one
- * bottom) and CHECK 20 (sign-up: the note never ends on one word alone),
- * each with a forced case the run must catch; check 17 allows the ready
+ * bottom) and CHECK 20 (sign-up: the note never ends on one word alone,
+ * never splits "كلمة مرور", never overflows, its kept piece fits), each
+ * with a forced case the run must catch (check 20 two: a word alone, and on
+ * Arabic the term split); check 17 allows the ready
  * question two balanced lines, and its new forced case is main's cut line.
  *
  * Usage: node scripts/design-c/render.mjs --out DIR
@@ -165,8 +167,9 @@
  *      @fontsource/rubik package folder). KF_DESIGN_C_ONLY: a regular
  *      expression on the job name (e.g. "a360|subject"): a LOCAL partial run;
  *      the run-wide "was it ever forced" assertions are then reported, not
- *      failed, since the screens that force them may be left out. CI never
- *      sets it.
+ *      failed, since the screens that force them may be left out. The run
+ *      FAILS at start if it is set while CI or GITHUB_ACTIONS is "true", so a
+ *      partial run can never pass a forced case in CI.
  */
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
@@ -179,7 +182,7 @@ import { activation5Screens, a5Prepare, a5Act, askPathCheck, askPathPlant, dropZ
 import { latinRunsCheck, latinRunsPlant } from './latin-runs.mjs';
 import { authErrorScreens, authPrepare, authAct, authErrorCheck, authErrorPlant, isAuthPage } from './auth-errors.mjs';
 import { sampleScreens, sampleMode, sampleCheck, samplePlant, sampleWholeMode, sampleWholeCheck, sampleWholePlant, sampleWholeRevert } from './sample.mjs';
-import { android360Screens, statRowCheck, statRowPlant, signupNoteCheck, signupNotePlant, chipCutPlant } from './android360.mjs';
+import { android360Screens, statRowCheck, statRowPlant, signupNoteCheck, signupNotePlant, signupTermPlant, chipCutPlant } from './android360.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -300,6 +303,11 @@ for (const locale of ['ar', 'en']) for (const theme of ['light', 'dark']) for (c
 // The default: no ?theme=, no cookie (a fresh browser context per job). Light
 // on both sides since PR 1 (main has had it since #299).
 for (const locale of ['ar', 'en']) for (const k of ['landing', 'login-app', 'settings-app']) JOBS.push({ locale, theme: null, s: byKey(k), name: `${locale}-default-${k}` });
+// A partial run downgrades the run-wide forced-case assertions, so it is refused in CI (owner's review of #328).
+if (process.env.KF_DESIGN_C_ONLY && (process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true')) {
+  console.log(`FAIL KF_DESIGN_C_ONLY is set (${JSON.stringify(process.env.KF_DESIGN_C_ONLY)}) while CI=${process.env.CI ?? ''} GITHUB_ACTIONS=${process.env.GITHUB_ACTIONS ?? ''}: a partial run is local only; unset it`);
+  process.exit(1);
+}
 const ONLY = process.env.KF_DESIGN_C_ONLY ? new RegExp(process.env.KF_DESIGN_C_ONLY) : null;
 if (ONLY) JOBS.splice(0, JOBS.length, ...JOBS.filter((j) => ONLY.test(j.name)));
 if (ONLY) console.log(`KF_DESIGN_C_ONLY=${ONLY.source}: a partial local run of ${JOBS.length} job(s); the run-wide forced-case assertions are reported, not failed`);
@@ -983,7 +991,7 @@ const sampleForced = {};
 // Check 18 (sample.mjs): per mode, the AFTER renders whose forced wrong case was caught.
 const wholeForced = {};
 // Checks 19, 20 and check 17's cut case (android360.mjs): the AFTER renders whose forced case was caught.
-const a360Forced = { stats: 0, note: 0, chipCut: 0 };
+const a360Forced = { stats: 0, note: 0, term: 0, chipCut: 0 };
 
 async function shoot(side, job) {
   const ctx = await browser.createBrowserContext();
@@ -1106,6 +1114,7 @@ async function shoot(side, job) {
   if (signup) await tab.evaluate(`window.signupNoteCheck = ${signupNoteCheck.toString()}`);
   const note20 = signup ? await tab.evaluate(signupNoteCheck) : null;
   const note20Plant = signup && side === 'after' ? await tab.evaluate(signupNotePlant) : null;
+  const term20Plant = signup && side === 'after' && job.locale === 'ar' ? await tab.evaluate(signupTermPlant) : null;
   const chipCut = mode17 === 'ask' && side === 'after' ? await tab.evaluate(chipCutPlant, job.locale) : null;
   // The owner's review of #315, check 14: a drop zone error state has a way to pick another file.
   if (job.s.dzError) await tab.evaluate(`window.dropZoneErrorCheck = ${dropZoneErrorCheck.toString()}`);
@@ -1142,7 +1151,7 @@ async function shoot(side, job) {
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, chipCut };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut };
 }
 
 for (const job of JOBS) {
@@ -1210,6 +1219,7 @@ for (const job of JOBS) {
       ...(r.stats19Plant?.finding ? [`stats: ${r.stats19Plant.finding}`] : []),
       ...(r.note20?.finding ? [`signup note: ${r.note20.finding}`] : []),
       ...(r.note20Plant?.finding ? [`signup note: ${r.note20Plant.finding}`] : []),
+      ...(r.term20Plant?.finding ? [`signup note: ${r.term20Plant.finding}`] : []),
       ...(r.chipCut?.finding ? [`sample: ${r.chipCut.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
@@ -1222,6 +1232,7 @@ for (const job of JOBS) {
     if (side === 'after' && r.whole18Plant?.caught) wholeForced[r.whole18Plant.mode] = (wholeForced[r.whole18Plant.mode] || 0) + 1;
     if (side === 'after' && r.stats19Plant?.caught) a360Forced.stats++;
     if (side === 'after' && r.note20Plant?.caught) a360Forced.note++;
+    if (side === 'after' && r.term20Plant?.caught) a360Forced.term++;
     if (side === 'after' && r.chipCut?.caught) a360Forced.chipCut++;
     if (side === 'after' && r.whole18Revert?.flagged) console.log(`       check 18 on d9647f5's layout (${job.name}): ${r.whole18Revert.finding}`);
     const tmin = Math.min(...r.a.text.map((t) => t.got));
@@ -1251,7 +1262,7 @@ for (const job of JOBS) {
       ...(r.whole18 ? { whole18: { ...r.whole18.measured, finding: r.whole18.finding, ...(r.whole18Plant ? { forcedCaught: r.whole18Plant.caught, forced: r.whole18Plant.forced } : {}), ...(r.whole18Revert ? { d9647f5: { flagged: r.whole18Revert.flagged, finding: r.whole18Revert.finding } } : {}) } } : {}),
       ...(r.sample17 ? { sample: { mode: r.sample17.mode, ...r.sample17.measured, finding: r.sample17.finding, ...(r.sample17Plant ? { forcedCaught: r.sample17Plant.caught, forced: r.sample17Plant.forced } : {}) } } : {}),
       stats19: { rows: r.stats19.rows, tiles: r.stats19.tiles, finding: r.stats19.finding, ...(r.stats19Plant ? { forcedCaught: r.stats19Plant.caught } : {}) },
-      ...(r.note20 ? { signupNote: { ...r.note20, ...(r.note20Plant ? { forcedCaught: r.note20Plant.caught } : {}) } } : {}),
+      ...(r.note20 ? { signupNote: { ...r.note20, ...(r.note20Plant ? { forcedCaught: r.note20Plant.caught } : {}), ...(r.term20Plant ? { termForcedCaught: r.term20Plant.caught } : {}) } } : {}),
       ...(r.chipCut ? { chipCutForcedCaught: r.chipCut.caught } : {}),
       ...(job.s.native ? { app: { appleButtons: r.gate.apple.length, googleButtons: r.gate.google.length, purchaseWords: words } } : {}),
     };
@@ -1281,7 +1292,7 @@ for (const m of ['home', 'home-desk', 'ask']) {
   if (!wholeForced[m]) { never(`check 18 was never forced in mode ${m}: no AFTER render caught its wrong case`);}
   else console.log(`check 18's forced case (${m}) was caught on ${wholeForced[m]} AFTER render(s)`);
 }
-for (const [k, what] of [['stats', "check 19 (one bottom for a stat row's numbers)"], ['note', "check 20 (the sign-up note's last line)"], ['chipCut', "check 17's cut ready question"]]) {
+for (const [k, what] of [['stats', "check 19 (one bottom for a stat row's numbers)"], ['note', "check 20 (the sign-up note's last line)"], ['term', 'check 20 ("كلمة مرور" on one line, Arabic)'], ['chipCut', "check 17's cut ready question"]]) {
   if (!a360Forced[k]) never(`${what} was never forced: no AFTER render caught its wrong case`);
   else console.log(`${what}: forced case caught on ${a360Forced[k]} AFTER render(s)`);
 }
