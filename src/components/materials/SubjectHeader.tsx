@@ -60,13 +60,17 @@ export function SubjectHeader({
       </div>
       <dl className="mt-5 grid grid-cols-3 gap-2 sm:max-w-md">
         {items.map(({ Icon, value, label }) => (
-          <div key={label} className="kf-tile rounded-xl bg-raised p-3">
-            <dt className="flex items-center gap-1.5 text-xs">
+          // A column: the number is pinned to the tile's bottom (mt-auto), so the
+          // numbers of one row share a baseline however many lines a label takes
+          // ("لها اختبار" wrapped at 360 and dropped its number 15 px). Below sm
+          // the icon sits above its label, as on the subjects list's Stat.
+          <div key={label} data-kf-stat="" className="kf-tile flex flex-col rounded-xl bg-raised p-3">
+            <dt className="flex flex-col items-start gap-1 text-xs sm:flex-row sm:items-center sm:gap-1.5">
               {/* A fixed box that never shrinks beside a long label (design "C", PR 3). */}
               <span data-kf-stat-icon="" className="inline-flex h-[18px] w-[18px] shrink-0"><Icon width={18} height={18} /></span>
               <span className="text-muted-foreground">{label}</span>
             </dt>
-            <dd className="mt-1 text-2xl font-bold leading-none text-foreground">{value}</dd>
+            <dd className="mt-auto pt-1 text-2xl font-bold leading-none text-foreground">{value}</dd>
           </div>
         ))}
       </dl>

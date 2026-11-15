@@ -12,7 +12,10 @@ name: design-c
 # audited (contrast, control edges, 44 pt targets, Arabic shaping, no line of
 # one word and no line starting with a separator, the app's gates: no Apple
 # or Google button and no plan, price, upgrade or free word; shadows, no
-# backdrop-filter); a finding fails the run. The contrast table of every text
+# backdrop-filter); a finding fails the run. Android at 360 (android360.mjs):
+# the screens a 360 pt fix touches are also drawn at 360 x 800, DPR 3, with an
+# Android Chrome user agent, on the web (Android has no app), through every
+# check above plus checks 19 and 20; 56 more renders in the same run. The contrast table of every text
 # and ground token pair is regenerated and must equal the committed
 # docs/design/design-c/contrast.md.
 #

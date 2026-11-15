@@ -418,10 +418,13 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
             type="button"
             onClick={() => { setInput(sampleQuestion); fieldRef.current?.focus(); }}
             data-kf-sample-question=""
-            className="kf-pill pressable mt-2 inline-flex min-h-[2.75rem] max-w-full items-center gap-2 rounded-full px-4 text-start text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="kf-pill pressable mt-2 inline-flex min-h-[2.75rem] max-w-full items-center gap-2 rounded-full px-4 py-1.5 text-start text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ClaySpark width={20} height={20} className="shrink-0" />
-            <span className="min-w-0 truncate">{sampleQuestion}</span>
+            {/* Never cut: at 360 pt "...in the ce…" lost the question's end. One
+                line where it fits, else two balanced lines (no word alone); the
+                clamp is only a safety for a far narrower screen. */}
+            <span className="line-clamp-2 min-w-0 text-balance">{sampleQuestion}</span>
           </button>
         )}
         {/* Only where a keyboard is likely: md and up, and only once the platform

@@ -116,6 +116,26 @@ export async function sampleCheck(mode, locale) {
   const label = chip.querySelector('span') || chip;
   const b = box(chip);
   const lh = parseFloat(getComputedStyle(label).lineHeight) || 20;
+  // Android 360: two balanced lines are allowed, never three, never a word
+  // alone on the second, and never a cut (main's "...in the ce…").
+  const qLines = (() => {
+    const lines = [];
+    const tw = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
+    for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+      const re = /\S+/g;
+      for (let m = re.exec(n.data); m; m = re.exec(n.data)) {
+        const r = document.createRange();
+        r.setStart(n, m.index);
+        r.setEnd(n, m.index + m[0].length);
+        const rc = r.getClientRects()[0];
+        if (!rc || !(rc.width > 0)) continue;
+        const mid = (rc.top + rc.bottom) / 2;
+        const l = lines.find((x) => mid >= x.top && mid <= x.bottom);
+        if (l) { l.n++; l.top = Math.min(l.top, rc.top); l.bottom = Math.max(l.bottom, rc.bottom); } else lines.push({ top: rc.top, bottom: rc.bottom, n: 1 });
+      }
+    }
+    return lines.sort((a, c) => a.top - c.top);
+  })();
   const field = document.querySelector('[data-kf-composer] textarea');
   // The press: the question goes into the field and nothing is sent.
   const realFetch = window.fetch;
@@ -144,15 +164,16 @@ export async function sampleCheck(mode, locale) {
     ...(all.length === 1 ? [] : [`${all.length} ready questions on the page, want 1`]),
     ...(seen(chip) ? [] : ['the chip is not visible']),
     ...(text(chip) === TEXT.question ? [] : [`the chip reads "${text(chip)}", want "${TEXT.question}"`]),
-    ...(label.getBoundingClientRect().height <= lh * 1.5 ? [] : ['the question is on more than one line']),
-    ...(label.scrollWidth <= label.clientWidth + 0.5 ? [] : [`the question is cut (${label.scrollWidth} > ${label.clientWidth})`]),
+    ...(label.getBoundingClientRect().height <= lh * 2.5 ? [] : ['the question takes more than two lines']),
+    ...(qLines.length > 1 && qLines[qLines.length - 1].n === 1 ? ['the question leaves one word alone on its last line'] : []),
+    ...(label.scrollWidth <= label.clientWidth + 0.5 && label.scrollHeight <= label.clientHeight + 0.5 ? [] : [`the question is cut (${label.scrollWidth} x ${label.scrollHeight} > ${label.clientWidth} x ${label.clientHeight})`]),
     ...(!phone || b.h >= 44 ? [] : [`the chip is ${b.h} tall, under 44`]),
     ...(inFirstView(chip) ? [] : [`the chip is not fully inside the first ${W} x ${H} view above the tab bar (top ${b.top}, bottom ${b.bottom}, usable bottom ${b.limit})`]),
     ...(filled === TEXT.question ? [] : [`pressed, the field holds "${filled}", want the question`]),
     ...(requests === 0 ? [] : [`pressed, ${requests} request(s) left the page; the chip must send nothing`]),
     ...(chipAfter && bubblesAfter === bubblesBefore ? [] : ['pressed, the conversation changed; the chip must only fill the field']),
   ];
-  return done({ chip: b, text: text(chip), filled, requests }, bad, 'ready question');
+  return done({ chip: b, text: text(chip), lines: qLines.length, filled, requests }, bad, 'ready question');
 }
 
 /** Its forced wrong cases, measured with the same function; each must be flagged. */

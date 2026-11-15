@@ -263,17 +263,40 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
               open on this path. So the line is shown to everyone and reveals
               nothing about anyone.
             */}
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            <p data-kf-signup-note="" className="mt-1 text-xs leading-relaxed text-muted-foreground">
               {t.auth.signupRepeatPassword}{' '}
               <Link
                 href={`/${locale}/forgot-password`}
                 className="font-medium text-foreground underline underline-offset-2 transition-colors hover:text-accent"
               >
-                {t.auth.signupRepeatPasswordLink}
+                {keepLastThree(t.auth.signupRepeatPasswordLink)}
               </Link>
             </p>
         </div>
       </form>
     </div>
+  );
+}
+
+/**
+ * The link's last three words drawn as one unbreakable piece, so the note never
+ * ends on a word alone and never splits a phrase: at 360 pt the Arabic link
+ * left "جديدة" by itself (Android 360 audit, 2026-11-12), and keeping only two
+ * words then split "كلمة مرور" (password) across lines (owner's review of
+ * #328). Three words keep "كلمة مرور جديدة" and "Reset your password" whole.
+ * No character changes (no no-break space): the text read by every check and
+ * by the reviewer is the dictionary's own.
+ */
+function keepLastThree(text: string) {
+  let cut = text.length;
+  for (let i = 0; i < 3; i++) {
+    cut = cut > 0 ? text.lastIndexOf(' ', cut - 1) : -1;
+    if (cut < 0) return text;
+  }
+  return (
+    <>
+      {text.slice(0, cut + 1)}
+      <span data-kf-keep="" className="whitespace-nowrap">{text.slice(cut + 1)}</span>
+    </>
   );
 }
