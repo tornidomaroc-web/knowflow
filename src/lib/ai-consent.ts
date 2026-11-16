@@ -7,10 +7,13 @@ import { useTranslation as dictionaryFor, type Locale } from '@/lib/i18n';
  * shared with third parties, including with third-party AI, and obtain
  * explicit permission before doing so"; docs/store/STORE_PATH.md S4).
  *
- * Four routes send a student's content to Anthropic or Voyage AI: /api/ingest
+ * Five routes send a student's content to Anthropic or Voyage AI: /api/ingest
  * (the file's text, through the ingestion service, to Voyage AI), /api/agent
  * (the question to both), /api/summarize and /api/quiz/generate (the
- * material's text to Anthropic). Each one refuses with 403 and
+ * material's text to Anthropic), and /api/page-read (photos of the student's
+ * pages to Anthropic, then their text to Voyage AI like any upload; the
+ * consent copy names text only, so it must name photos before a screen sends
+ * any, see docs/copy-drafts/page_reader.md). Each one refuses with 403 and
  * `code: AI_CONSENT_REFUSAL` until the account carries the permission, and the
  * refusal comes BEFORE the usage counter, the storage upload and any call out,
  * so a refused request costs nothing and sends nothing. A summary or quiz that
@@ -31,7 +34,7 @@ import { useTranslation as dictionaryFor, type Locale } from '@/lib/i18n';
  */
 export const AI_CONSENT_VERSION = 1;
 
-/** The `code` of the 403 the four routes send without the permission. */
+/** The `code` of the 403 those routes send without the permission. */
 export const AI_CONSENT_REFUSAL = 'ai_consent_required';
 
 type MaybeUser = { user_metadata?: Record<string, unknown> | null } | null | undefined;

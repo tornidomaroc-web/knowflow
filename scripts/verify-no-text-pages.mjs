@@ -138,7 +138,9 @@ await attempt('copy loads', async () => {
 
 console.log('4. The wiring');
 {
-  const route = read('src/app/api/ingest/route.ts');
+  // feat/page-reader: /api/ingest's code after its gates is src/lib/ingest-material.ts (moved unchanged).
+  const route = read('src/lib/ingest-material.ts');
+  check('/api/ingest still ends in the shared path', /return await ingestMaterial\(/.test(read('src/app/api/ingest/route.ts')));
   check('the route forwards pages_total and pages_no_text as numbers or null', /pages_total: pageCount\(ack\.pages_total\)/.test(route) && /pages_no_text: pageCount\(ack\.pages_no_text\)/.test(route) && /Number\.isInteger\(v\) && v >= 0 \? v : null/.test(route));
   const drop = read('src/components/upload/DropZone.tsx');
   check('the upload box reads the counts through pagesWithoutText', /pagesWithoutText\(\{[\s\S]{0,200}pages_total: data\.pages_total, pages_no_text: data\.pages_no_text/.test(drop));

@@ -56,8 +56,14 @@ export function allowanceWindowStart(now: Date = new Date()): Date {
  */
 export const AI_ALLOWANCE_REFUSAL = 'ai-allowance-used';
 
-/** The paid calls, one ledger row each. The SQL check holds the same list. */
-export const AI_SPEND_KINDS = ['answer', 'summary', 'quiz', 'query_embed', 'upload_embed'] as const;
+/**
+ * The paid calls, one ledger row each. The SQL check holds the same list: the
+ * newest migration that sets ai_spend_kind_check
+ * (supabase/migrations/20261116_ai_spend_page_read.sql, which added
+ * `page_read`: one row per /api/page-read call that Anthropic billed; an
+ * unbilled refusal or a failed call has none, a cut-off or empty page has one).
+ */
+export const AI_SPEND_KINDS = ['answer', 'summary', 'quiz', 'query_embed', 'upload_embed', 'page_read'] as const;
 export type AiSpendKind = (typeof AI_SPEND_KINDS)[number];
 
 /**
@@ -81,9 +87,23 @@ export interface AllowanceVerdict {
   allowed: boolean;
   reason?: 'used' | 'unread';
 }
-export function allowanceVerdict(spent: number | null, tier: Tier): AllowanceVerdict {
+/**
+ * `reserveUsd` is what the request is about to spend at most, set aside
+ * BEFORE anything is sent (the page reader: 0.0025 USD per photo,
+ * src/lib/page-reader.ts). With a reserve the call is allowed only while the
+ * spend plus the reserve stays within the ceiling; with none (every other
+ * route) the rule is unchanged: at or over the ceiling is refused. Compared in
+ * whole micro-dollars, the ledger's own precision (numeric(12, 6)), so no
+ * floating-point remainder decides a refusal.
+ */
+export function allowanceVerdict(spent: number | null, tier: Tier, reserveUsd = 0): AllowanceVerdict {
   if (spent === null || !Number.isFinite(spent)) return { allowed: false, reason: 'unread' };
-  return spent >= AI_ALLOWANCE_USD[tier] ? { allowed: false, reason: 'used' } : { allowed: true };
+  const micro = (usd: number) => Math.round(usd * 1_000_000);
+  const reserve = Number.isFinite(reserveUsd) && reserveUsd > 0 ? micro(reserveUsd) : 0;
+  const ceiling = micro(AI_ALLOWANCE_USD[tier]);
+  const used = micro(spent);
+  if (used >= ceiling || used + reserve > ceiling) return { allowed: false, reason: 'used' };
+  return { allowed: true };
 }
 
 /** The refusal sentence (DRAFT until approved: docs/copy-drafts/ai_monthly_allowance.md). */
@@ -96,6 +116,50 @@ export function aiAllowanceRefusalMessage(locale: Locale): string {
 /** Claude Haiku 4.5, from the response's `usage` (src/lib/usage-cost.ts). */
 export function anthropicUsd(t: UsageTokens): number {
   return usageUsd(t);
+}
+
+/**
+ * Claude Haiku 5.5 (the page reader, src/lib/page-reader.ts), in USD per
+ * MILLION tokens: 0.10 input and 0.50 output when the prompt is 100,000
+ * tokens or fewer, 0.50 and 2.50 above that; cache reads 0.1x input, 5-minute
+ * cache writes 1.25x (Claude API skill, "Migrating to Claude Haiku 5.5", read
+ * 2026-11-16; G2's runner priced the short card the same). A page's prompt is
+ * about 5,000 tokens, so the long card is here only so the price stays right
+ * if that ever changes. NOT usageUsd: that is Haiku 4.5's card.
+ */
+export const HAIKU_55_USD_PER_MTOK = {
+  short: { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 },
+  long: { input: 0.5, output: 2.5, cacheRead: 0.05, cacheWrite: 0.625 },
+  longAbovePromptTokens: 100_000,
+} as const;
+
+/** The fields of an Anthropic `usage` object the price reads. Missing or bad counts read as 0. */
+export interface AnthropicUsage {
+  input_tokens?: number | null;
+  output_tokens?: number | null;
+  cache_read_input_tokens?: number | null;
+  cache_creation_input_tokens?: number | null;
+}
+
+/**
+ * One Claude Haiku 5.5 call's real price, from its `usage`, in USD rounded to
+ * the ledger's 6 places. Summed in whole nano-dollars (every rate above is a
+ * whole number of them per token), so a price that falls exactly between two
+ * micro-dollars (4,915 in + 4,000 out = 0.0024915) always rounds up, instead
+ * of whichever way binary floating point lands.
+ */
+export function haiku55Usd(usage: AnthropicUsage | null | undefined): number {
+  const n = (v: unknown): number => (typeof v === 'number' && Number.isInteger(v) && v > 0 ? v : 0);
+  const input = n(usage?.input_tokens);
+  const output = n(usage?.output_tokens);
+  const cacheRead = n(usage?.cache_read_input_tokens);
+  const cacheWrite = n(usage?.cache_creation_input_tokens);
+  const r = HAIKU_55_USD_PER_MTOK;
+  const card = input + cacheRead + cacheWrite > r.longAbovePromptTokens ? r.long : r.short;
+  const nano = (rate: number) => Math.round(rate * 1000); // USD per million tokens -> nano-USD per token
+  const totalNano =
+    input * nano(card.input) + output * nano(card.output) + cacheRead * nano(card.cacheRead) + cacheWrite * nano(card.cacheWrite);
+  return Math.round(totalNano / 1000) / 1_000_000;
 }
 
 /**

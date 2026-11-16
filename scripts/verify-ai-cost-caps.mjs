@@ -264,7 +264,9 @@ await attempt('the mapping loads', async () => {
   }
   check('en too-much-text is the drafted sentence', uploadRefusalMessage('en', 'too-much-text') === DRAFT.file.en, uploadRefusalMessage('en', 'too-much-text'));
   check('ar too-much-text is the drafted sentence', uploadRefusalMessage('ar', 'too-much-text') === DRAFT.file.ar, uploadRefusalMessage('ar', 'too-much-text'));
-  const route = read('src/app/api/ingest/route.ts');
+  // feat/page-reader: /api/ingest's code after its gates is src/lib/ingest-material.ts (moved unchanged).
+  const route = read('src/lib/ingest-material.ts');
+  check('/api/ingest still ends in the shared path', /return await ingestMaterial\(/.test(read('src/app/api/ingest/route.ts')));
   check('the route answers a content-cap refusal with too-much-text and 422',
     /if \(isContentCapRefusal\(pyResponse\.status, detail\)\)[\s\S]{0,300}uploadRefusalMessage\(safeLocale, 'too-much-text'\)[\s\S]{0,80}status: 422/.test(route));
   check('...after the guarded error write, which still runs for it', /await failIfStillProcessing\(upstream\);(\s*\/\/[^\n]*)*\s*if \(isContentCapRefusal/.test(route));

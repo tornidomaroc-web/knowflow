@@ -415,6 +415,22 @@ jobs:
       - name: Verify the monthly AI allowance refuses before any provider call and records what was billed
         run: node --experimental-strip-types scripts/verify-ai-allowance.mjs
 
+      # feat/page-reader ("photograph your pages"): POST /api/page-read reads up
+      # to ten photos the app put in the student's own storage folder with
+      # Claude Haiku 5.5 (G2's settings, mocked here: no model call) and hands
+      # ONE .md file to the shared ingestion. Held: the model's text reaches
+      # the material byte for byte (G2's two silent edits, unfixed and
+      # unedited); image bombs and HEIC refused from the header before any
+      # decoder; EXIF orientation applied and stripped; a foreign key refused
+      # before anything is read or deleted; the allowance reserves 0.0025 USD
+      # a photo before anything is sent; an unreadable ledger is a 503; every
+      # billed call is recorded at its real price; the real SDK 0.39 puts the
+      # route's request on the wire unchanged. --self-test plants ten edits
+      # the byte-exact check must catch. The ledger kind's SQL is
+      # public-grants section 6.
+      - name: Verify the page reader keeps the model's text exactly, refuses unsafe photos and reserves before it reads
+        run: node --experimental-strip-types scripts/verify-page-reader.mjs && node --experimental-strip-types scripts/verify-page-reader.mjs --self-test
+
   # Register #125 (the proof of #72). Drives the REAL readEntitlement through the
   # REAL supabase-js against a throwaway Postgres + PostgREST in Docker holding
   # the subscriptions table's exact definition: a paying user with two rows must
