@@ -120,3 +120,9 @@
 # (if not exists, drop ... if exists before add, create or replace), and
 # scripts/verify-public-grants.mjs section 5 asserts the result.
 20261115_ai_spend.sql  apply
+# 20261116 widens the ledger's kind check by one kind, page_read (one row per
+# /api/page-read call to Claude Haiku 5.5 that Anthropic billed). Nothing else on
+# public.ai_spend changes. `apply`: re-runnable (drop constraint if exists,
+# then add, in one transaction); scripts/verify-public-grants.mjs section 6
+# asserts the result. It must run after 20261115, which sets the older check.
+20261116_ai_spend_page_read.sql  apply

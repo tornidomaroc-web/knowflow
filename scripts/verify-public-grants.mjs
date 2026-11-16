@@ -539,6 +539,46 @@ console.log('5. the AI allowance ledger: a student reads their own rows and can 
   check("deleting B's account removes B's rows (on delete cascade), service_role's missing DELETE notwithstanding", cascade === '0', cascade);
 }
 
+// --- 6. the ledger's page_read kind (20261116) ------------------------------------------
+console.log('');
+console.log('6. the ledger learns page_read (one row per photographed page the page reader billed); nothing else on ai_spend changes:');
+{
+  const MIG = 'supabase/migrations/20261116_ai_spend_page_read.sql';
+  const migText = readFileSync(resolvePath(ROOT, MIG), 'utf8');
+  // Section 5 ran 20261115 again, which put the five-kind check back: running
+  // this file now is the manifest's own order, and running it twice proves it
+  // re-runnable.
+  for (const time of ['once', 'a second time']) {
+    let err = null;
+    try { psqlAs('postgres', migText); } catch (e) { err = String(e.stderr || e.message).split('\n')[0]; }
+    check(`${MIG} runs ${time} without error`, err === null, err ?? 'ok', true);
+  }
+  const lines = migText.split(/\r?\n/);
+  const q0 = lines.findIndex((l) => l.startsWith('-- VERIFY'));
+  const e0 = lines.findIndex((l) => l.startsWith('-- Expected rows'));
+  const verifySql = lines.slice(q0 + 1, e0).map((l) => l.replace(/^-- ?/, '')).join('\n').trim();
+  const want = lines.slice(e0 + 1).filter((l) => /^-- {3}\w/.test(l)).map((l) => l.replace(/^-- {3}/, '').replace(/\s+\|\s+/, '|').trim());
+  const got = admin(verifySql).trim().split(/\r?\n/).map((l) => l.trim());
+  check(`${MIG}'s VERIFY query returns exactly its ${want.length} expected rows (grants, policy, usd check and function unchanged; the kind check has six kinds)`, JSON.stringify(got) === JSON.stringify(want),
+    `got:\n          ${got.join('\n          ')}\n        want:\n          ${want.join('\n          ')}`, true);
+  check('the "Expected rows (N)" header counts the rows listed', lines[e0] === `-- Expected rows (${want.length}):`, lines[e0]);
+
+  const asService = clientFor(tokenFor(null, 'service_role'));
+  const windowStart = new Date(Date.now() - 30 * 86400000).toISOString();
+  await allowed('the server (service_role) appends a page_read row (src/lib/page-reader-server.ts, recordAiSpend)',
+    () => asService.from('ai_spend').insert({ user_id: A, kind: 'page_read', usd: 0.000759, estimated: false }), () => true);
+  const r = await asService.rpc('ai_spend_since', { p_user: A, p_since: windowStart });
+  check("A's window now sums 0.006013 (section 5's 0.005254 + the page read's 0.000759)", r.error === null && Number(r.data) === 0.006013, r.error ? `${r.error.code} ${r.error.message}` : `returned ${r.data}`);
+  {
+    const res = await asService.from('ai_spend').insert({ user_id: A, kind: 'page_reads', usd: 0 });
+    check('a kind outside the six is still refused by ai_spend_kind_check (23514)', res.error?.code === '23514', res.error ? `${res.error.code} ${res.error.message}` : 'no error');
+  }
+  await refused('A INSERTs a page_read row of their own (usd 0)', () => asA.from('ai_spend').insert({ user_id: A, kind: 'page_read', usd: 0 }));
+  await refused('the server UPDATEs the page_read row down to 0 (append-only still)', () => asService.from('ai_spend').update({ usd: 0 }).eq('kind', 'page_read').select());
+  const total = admin(`select sum(usd)::text || '/' || count(*) from public.ai_spend;`).trim();
+  check("the ledger holds A's two earlier rows and the page read: 0.006013/3", total === '0.006013/3', total);
+}
+
 const total = pass + failures.length;
 console.log('');
 console.log(`${pass} passed, ${failures.length} failed, ${total} total (${since()})`);

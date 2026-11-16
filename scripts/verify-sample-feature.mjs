@@ -322,8 +322,13 @@ check(db.rpc === 0 && fetches === 0, `across every case: ${db.rpc} rpc call(s), 
   check(!/handleSend\(sampleQuestion\)/.test(box), 'ChatBox: the ready question must not be sent by its chip');
   const sel = read('src/components/agent/KBSelector.tsx');
   check(/sampleQuestion=\{sampleQuestionFor\(selectedKb\.id, sampleKbIds, t\.dashboard\.agent\.sampleQuestion\)\}/.test(sel), 'KBSelector: the ready question must be offered through sampleQuestionFor, for a sample subject only');
-  const ingest = read('src/app/api/ingest/route.ts');
+  // feat/page-reader: the day's-uploads read moved, unchanged, into todaysKeptUploads
+  // (src/lib/ingest-material.ts), which /api/ingest and /api/page-read both hand the counter.
+  const ingest = read('src/lib/ingest-material.ts');
   check(/keptUploadsToday\(markSampleRows\(data, sampleIds\)\)/.test(ingest), '/api/ingest: the day\'s uploads must leave the sample out');
+  for (const r of ['src/app/api/ingest/route.ts', 'src/app/api/page-read/route.ts']) {
+    check(/enforceUploadLimit\(user\.id, safeLocale, platformFromRequest\(request\), \(\) => todaysKeptUploads\(supabase\)\)/.test(read(r)), `${r}: the day's uploads must be read by todaysKeptUploads, which leaves the sample out`);
+  }
   const dash = read('src/app/[locale]/dashboard/page.tsx');
   check(/keptUploadsToday\(markSampleRows\(/.test(dash), 'the home: the uploads ring must leave the sample out');
   const mig = read('supabase/migrations/20261112_documents_is_sample.sql').replace(/^--.*$/gm, '');

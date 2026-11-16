@@ -330,9 +330,15 @@ realLog('4. /api/quiz/generate and /api/ingest, in order');
   let o = order(quiz, ['hasAiConsent(user)', 'checkAiAllowance(user.id', "enforceLimit(user.id, 'quiz'", 'anthropic.messages.create(', "recordAiSpend(user.id, 'quiz'"]);
   check('quiz: consent, allowance, daily counter, model, then the spend', o === null, o ?? '');
   check('quiz: the refusal carries the code', /code: allowance\.code/.test(quiz));
-  const ingest = read('src/app/api/ingest/route.ts');
-  o = order(ingest, ['hasAiConsent(user)', 'checkAiAllowance(user.id', 'enforceUploadLimit(user.id', 'fetch(`${pythonServiceUrl}/ingest`', "recordAiSpend(user.id, 'upload_embed'"]);
-  check('ingest: consent, allowance, daily counter, storage and the service, then the spend', o === null, o ?? '');
+  // feat/page-reader: everything after /api/ingest's gates moved, unchanged, to
+  // src/lib/ingest-material.ts (shared with /api/page-read). The route keeps the
+  // gates and ends in the one call; the module holds the service and the spend.
+  const ingestRoute = read('src/app/api/ingest/route.ts');
+  const ingest = read('src/lib/ingest-material.ts');
+  o = order(ingestRoute, ['hasAiConsent(user)', 'checkAiAllowance(user.id', 'enforceUploadLimit(user.id', 'ingestMaterial({']);
+  check('ingest: consent, allowance, daily counter, then the shared path (src/lib/ingest-material.ts)', o === null, o ?? '');
+  o = order(ingest, ['.upload(filePath, file, { upsert: false })', 'fetch(`${pythonServiceUrl}/ingest`', "recordAiSpend(user.id, 'upload_embed'"]);
+  check('...and in it: storage and the service, then the spend', o === null, o ?? '');
   check('ingest: the spend is Voyage\'s reported tokens, else the estimate', /uploadEmbedSpend\(ack\.voyage_tokens, ack\.chunk_count, file\.size\)/.test(ingest));
   check('ingest: a failed ingestion that reports Voyage tokens is still recorded, inside the failure branch',
     /if \(!pyResponse\.ok\) \{[\s\S]*?reportedTokens\(\(JSON\.parse\(detail\)[\s\S]{0,200}recordAiSpend\(user\.id, 'upload_embed', voyageUsd\(failedTokens\)\)[\s\S]{0,300}uploadRefusalMessage\(safeLocale, 'unconfirmed'\)/.test(ingest));

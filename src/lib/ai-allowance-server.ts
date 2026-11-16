@@ -12,7 +12,9 @@
  *
  * ORDER IN EVERY ROUTE: consent, then `checkAiAllowance`, then the daily
  * counter, then the provider. A refused call is never recorded and never
- * counted against the day.
+ * counted against the day. /api/page-read sends several calls per request, so
+ * it reserves their worst case up front (`reserveUsd`) and records each call
+ * as it is billed.
  *
  * KNOWN BOUND: the check and the write are not one transaction, so requests
  * already in flight when the ceiling is crossed still finish and are
@@ -67,11 +69,13 @@ export async function spentInWindow(userId: string, now: Date = new Date()): Pro
 
 /**
  * Before every paid call. Fails CLOSED: an unreadable ledger refuses with 503,
- * as `enforceLimit` does for an unreadable counter.
+ * as `enforceLimit` does for an unreadable counter. `reserveUsd`: what the
+ * request will spend at most (the page reader, 0.0025 USD per photo); the
+ * spend plus it must stay within the ceiling (allowanceVerdict).
  */
-export async function checkAiAllowance(userId: string, locale: Locale): Promise<AllowanceCheck> {
+export async function checkAiAllowance(userId: string, locale: Locale, reserveUsd = 0): Promise<AllowanceCheck> {
   const { tier } = await getEntitlement(userId);
-  const verdict = allowanceVerdict(await spentInWindow(userId), tier);
+  const verdict = allowanceVerdict(await spentInWindow(userId), tier, reserveUsd);
   if (verdict.allowed) return { allowed: true };
   if (verdict.reason === 'unread') {
     return { allowed: false, status: 503, error: TEMPORARILY_UNAVAILABLE[locale] };

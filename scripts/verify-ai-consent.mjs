@@ -42,7 +42,7 @@
 import { registerHooks } from 'node:module';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { dirname, resolve as resolvePath } from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -297,6 +297,29 @@ for (const [file, request] of callSites) {
   const req = s.indexOf(request);
   need(gate > 0 && req > 0 && gate < req, `${file}: the sheet is awaited before ${request}`);
   need(/aiConsent\.declined/.test(s), `${file}: a declined sheet shows the declined sentence`);
+}
+// feat/page-reader: EVERY route that can send a student's content to Anthropic
+// or Voyage AI checks the permission, not only the four driven above, so a new
+// one cannot be added without it. A route can reach them by the Anthropic SDK,
+// by the shared ingestion path (src/lib/ingest-material.ts: the file's text to
+// Voyage AI) or by the query embedding. /api/page-read (photos to Anthropic,
+// then the .md through the shared path) is the fifth; its refusal is driven,
+// with nothing listed, downloaded, sent, recorded or counted, by
+// scripts/verify-page-reader.mjs section 4.
+{
+  const apiRoutes = [];
+  const walk = (d) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const p = resolvePath(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name === 'route.ts') apiRoutes.push(p.slice(ROOT.length + 1).replace(/\\/g, '/'));
+    }
+  };
+  walk(resolvePath(ROOT, 'src/app/api'));
+  const senders = apiRoutes.filter((p) => /from '@anthropic-ai\/sdk'|from '@\/lib\/ingest-material'|embedQuery\(/.test(src(p))).sort();
+  const want = ['src/app/api/agent/route.ts', 'src/app/api/ingest/route.ts', 'src/app/api/page-read/route.ts', 'src/app/api/quiz/generate/route.ts', 'src/app/api/summarize/route.ts'];
+  need(JSON.stringify(senders) === JSON.stringify(want), `the routes that can reach Anthropic or Voyage AI are the five known ones (got ${senders.join(', ')})`);
+  for (const p of senders) need(/if \(!hasAiConsent\(user\)\)/.test(src(p)), `${p}: refuses without the AI permission (hasAiConsent)`);
 }
 const layout = src('src/app/[locale]/dashboard/layout.tsx');
 need(/<AiConsentProvider[\s\S]*initialConsented=\{hasAiConsent\(user\)\}/.test(layout), 'the dashboard layout mounts the provider with the account\'s permission');
