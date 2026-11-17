@@ -431,6 +431,18 @@ jobs:
       - name: Verify the page reader keeps the model's text exactly, refuses unsafe photos and reserves before it reads
         run: node --experimental-strip-types scripts/verify-page-reader.mjs && node --experimental-strip-types scripts/verify-page-reader.mjs --self-test
 
+      # fix/page-photo-sweep: a camera batch whose POST never came stays in
+      # storage (no delete policy). After the answer, /api/page-read (once the
+      # keys are the caller's) and /api/ingest (once the session is checked)
+      # remove the CALLER'S OWN batches whose newest photo is an hour old.
+      # Held: the current batch and a fresher one kept; another user's prefix
+      # never listed; nothing outside {userId}/page-photos/{uuid}/ removed;
+      # at most 5 batches / 50 photos / 6 lists (inside 3 s) / 1 remove per
+      # request; a malformed id lists nothing; every storage failure is logged;
+      # the routes only schedule it with after(), so their answer is unchanged.
+      - name: Verify the page-photo sweep removes only the caller's own stale batches and never changes an answer
+        run: node --experimental-strip-types scripts/verify-page-photo-sweep.mjs
+
   # Register #125 (the proof of #72). Drives the REAL readEntitlement through the
   # REAL supabase-js against a throwaway Postgres + PostgREST in Docker holding
   # the subscriptions table's exact definition: a paying user with two rows must

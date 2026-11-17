@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
 import { checkDocumentLimit } from '@/lib/limits-server';
@@ -22,6 +22,7 @@ import {
   type PhotoOutcome,
 } from '@/lib/page-reader';
 import { readPagePhotos, removePagePhotos } from '@/lib/page-reader-server';
+import { sweepStalePagePhotos } from '@/lib/page-photo-sweep';
 
 /**
  * POST /api/page-read: "photograph your pages" (صوّر صفحاتك), the server half.
@@ -102,6 +103,12 @@ export async function POST(request: Request) {
       );
     }
     owned = b.keys as string[];
+    // The caller's OTHER abandoned batches (src/lib/page-photo-sweep.ts), after
+    // the answer: never this batch, never anyone else's folder, never a reason
+    // for this request to fail or wait.
+    const folder = batch.folder as string;
+    const currentBatch = folder.slice(folder.lastIndexOf('/') + 1);
+    after(() => sweepStalePagePhotos(user.id, currentBatch));
 
     // Apple 5.1.2(i) (src/lib/ai-consent.ts): no permission, nothing read.
     if (!hasAiConsent(user)) {

@@ -118,7 +118,9 @@ export default class Anthropic {
 }`;
 
 installTsxHooks(ROOT, {
-  'next/server': `export const NextResponse = { json(body, init) { return new Response(JSON.stringify(body), { status: (init && init.status) || 200, headers: { 'content-type': 'application/json' } }); } };`,
+  // fix/page-photo-sweep: after() schedules the photo sweep, proved in
+  // scripts/verify-page-photo-sweep.mjs and never run here.
+  'next/server': `export const NextResponse = { json(body, init) { return new Response(JSON.stringify(body), { status: (init && init.status) || 200, headers: { 'content-type': 'application/json' } }); } }; export function after() {}`,
   '@anthropic-ai/sdk': ANTHROPIC_STUB,
   '@/lib/supabase/server': SUPABASE_STUB,
   '@/lib/entitlement': `export async function getEntitlement() { return { tier: 'free' }; }`,
