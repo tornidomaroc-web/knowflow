@@ -70,7 +70,8 @@ BEGIN {
     SAFE[3]  = "^delete from " QUALIFIED
     SAFE[4]  = "^truncate (table )?" QUALIFIED
     # `if exists` (drop only) leaves the `on <qualified>` target pinned
-    # (20261118_storage_insert_lockdown.sql, its re-runnable drops).
+    # (20261118_storage_insert_lockdown.sql and
+    # 20261118_storage_lockdown_production.sql, their re-runnable drops).
     SAFE[5]  = "^(create|alter|drop) (policy|trigger|rule) (if exists )?[a-z_0-9]+ on (only )?" QUALIFIED
     SAFE[6]  = "^create (or replace )?(unlogged )?(table|view|materialized view|sequence) (if not exists )?" QUALIFIED
     SAFE[7]  = "^alter (table|view|materialized view|sequence) (if exists )?(only )?" QUALIFIED

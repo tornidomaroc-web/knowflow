@@ -19,12 +19,15 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * A trigger cannot call that API, so it could only ever orphan the files it
  * claimed to delete -- precisely the failure this module exists to prevent.
  *
- * SERVICE ROLE IS REQUIRED, NOT PREFERRED. `002_storage.sql` grants storage
- * policies for INSERT ("Users can upload to their own folder") and SELECT
- * ("Users can read own files") ONLY. There is no DELETE policy, so a user's own
- * session cannot delete their own files -- RLS denies it. This must therefore be
- * called with a service-role client (as `api/paddle/webhook/route.ts` does), and
- * consequently must NEVER run in the browser.
+ * SERVICE ROLE IS REQUIRED, NOT PREFERRED. A user's own session can delete
+ * only their own camera photos: `20261118_storage_lockdown_production.sql`
+ * narrows production's hand-made "Users delete own files" policy (any own
+ * object) to `{userId}/page-photos/`. Every material's file is outside it, and
+ * RLS denies that delete. (Corrected 2026-11-18: this said `002_storage.sql`
+ * left no DELETE policy at all; production had the hand-made one.) This must
+ * therefore be called with a service-role client (as
+ * `api/paddle/webhook/route.ts` does), and consequently must NEVER run in the
+ * browser.
  *
  * Layout in the `documents` bucket is `{userId}/{kbId}/{documentId}/{name}` for
  * every upload since #110, and `{userId}/{kbId}/{name}` for files uploaded before

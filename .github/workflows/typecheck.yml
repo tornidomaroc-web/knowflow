@@ -581,17 +581,22 @@ jobs:
       - name: Verify the write grants of schema public, the policy set, every forbidden write refused and every real write path alive (register #137)
         run: node --experimental-strip-types scripts/verify-public-grants.mjs
 
-  # Storage insert lockdown, stage 2: supabase/migrations/20261118_storage_insert_lockdown.sql
-  # (applied to production BY HAND, after stage 1 is live) against Supabase's
-  # postgres image AND the real Storage API (supabase/storage-api v1.89.5,
-  # pinned by digest), which creates the storage schema the bare image lacks.
-  # Uploads go over HTTP with run-only JWTs: before it, the hole (any key, 30
-  # MiB, no delete); after it, a student upload outside
-  # {own uid}/page-photos/{uuid}/{name} refused, inside allowed, the 101st
-  # refused, 25 MiB + 1 refused for every role, the service role otherwise
-  # unaffected, SELECT unchanged, and the migration's VERIFY query answering
-  # its three expected rows. Its own job, NOT required (a new check proves
-  # itself on main first, as public-grants did).
+  # Storage lockdown, stage 2: supabase/migrations/20261118_storage_lockdown_production.sql
+  # (supersedes the never-applied 20261118_storage_insert_lockdown.sql; applied
+  # to production BY HAND) against Supabase's postgres image AND the real
+  # Storage API (supabase/storage-api v1.89.5, pinned by digest), which creates
+  # the storage schema the bare image lacks. It STARTS FROM PRODUCTION'S FIVE
+  # POLICIES (two from 002_storage.sql, three made by hand, from the
+  # migration's PRODUCTION-BEFORE record). Uploads and deletes go over HTTP
+  # with run-only JWTs: before it, the holes (any key, 30 MiB, a material's
+  # file deleted by its student); after it, both student INSERT policies gone,
+  # an upload outside {own uid}/page-photos/{uuid}/{name} refused, inside
+  # allowed, the 101st refused, a student delete only of their own photos, 25
+  # MiB + 1 refused for every role, the service role otherwise unaffected,
+  # reads through "Users can read own files" alone, and the migration's VERIFY
+  # query answering its seven expected rows. Then the same proof with no
+  # migration and with the superseded file must FAIL. Its own job, NOT
+  # required (a new check proves itself on main first, as public-grants did).
   storage-lockdown:
     needs: detect
     if: ${{ !cancelled() && needs.detect.outputs.code != 'no' }}
@@ -606,5 +611,14 @@ jobs:
         with:
           node-version: 22.23.1
 
-      - name: Verify the storage insert lockdown against the real Storage API (student uploads camera photos only, 100 at most, 25 MiB bucket limit)
+      - name: Verify the storage lockdown from production's five policies against the real Storage API (camera-only student uploads, 100 at most, student deletes of own photos only, 25 MiB bucket limit)
         run: node --experimental-strip-types scripts/verify-storage-lockdown.mjs
+
+      - name: The same proof must FAIL with no migration, and with the superseded 20261118_storage_insert_lockdown.sql instead
+        run: |
+          for plant in skip old; do
+            if KF_LOCKDOWN_PLANT=$plant node --experimental-strip-types scripts/verify-storage-lockdown.mjs > "plant-$plant.log" 2>&1; then
+              echo "KF_LOCKDOWN_PLANT=$plant PASSED: the proof does not depend on the migration"; cat "plant-$plant.log"; exit 1
+            fi
+            echo "KF_LOCKDOWN_PLANT=$plant failed, as it must:"; grep -E '^PLANT|FAIL|passed,' "plant-$plant.log"
+          done
