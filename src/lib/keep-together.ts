@@ -6,10 +6,13 @@
  * A phrase that sits inside a longer word ("بالذكاء الاصطناعي") is matched
  * there too, since the space is the same space.
  *
+ * "صوّر الصفحات" joined the list in the owner's review of #336 at 60e9ce6
+ * (2026-11-18): the camera's none-read message broke "صوّر / الصفحات".
+ *
  * scripts/design-c/pr4.mjs reads this list (KEEP_TOGETHER) and fails a render
  * on which any of these phrases spans two lines.
  */
-export const KEEP_TOGETHER = ['الذكاء الاصطناعي', 'أيّ منهما', 'أيٌّ منهما', 'a ready question', 'سؤال جاهز'] as const;
+export const KEEP_TOGETHER = ['الذكاء الاصطناعي', 'أيّ منهما', 'أيٌّ منهما', 'a ready question', 'سؤال جاهز', 'صوّر الصفحات'] as const;
 
 const PATTERN = new RegExp(KEEP_TOGETHER.map((p) => p.split(' ').join('[ \\u00A0]+')).join('|'), 'g');
 

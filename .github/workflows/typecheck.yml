@@ -455,6 +455,26 @@ jobs:
       - name: Verify every stored file is written by the server after the caller's checks, and no student-session storage write is left
         run: node --experimental-strip-types scripts/verify-storage-server-writes.mjs && node --experimental-strip-types scripts/verify-storage-server-writes.mjs --self-test
 
+      # feat/camera-screen ("صوّر صفحاتك", the app only): the camera tile is
+      # rendered for the app at shell 2 (KnowFlowApp/2, which declares
+      # NSCameraUsageDescription) and never for the web or build 8, whose
+      # markup stays byte for byte; every key uploaded matches the INSERT and
+      # DELETE policies production has (read from the applied migration);
+      # ONE POST per batch, a retry is a new batch, giving up deletes it; only
+      # /api/page-read needs the photos permission (version 2); EXIF read and
+      # every orientation's transform; the new strings' rules.
+      - name: Verify the camera screen is gated to shell 2, uploads only policy keys and posts each batch once
+        run: node --experimental-strip-types scripts/verify-camera-screen.mjs
+
+      # The camera screen's encoder in a real browser (Chromium, as design-c):
+      # photos tagged EXIF 1, 3, 6 and 8 come out upright (read from their own
+      # pixels), 2300 px on the long side, baseline JPEG, no EXIF; and the
+      # module's own transform turns stored pixels upright for all eight.
+      - name: Install puppeteer-core for the encoder proof (outside the app)
+        run: npm install --prefix "$RUNNER_TEMP/pp" --no-audit --no-fund --ignore-scripts puppeteer-core@23.11.1
+      - name: Verify the camera screen's encoder turns photos upright, fits them to 2300 px and writes baseline JPEG
+        run: CHROME="$(command -v google-chrome)" PUPPETEER_DIR="$RUNNER_TEMP/pp" node scripts/verify-page-photo-encode.mjs
+
   # Register #125 (the proof of #72). Drives the REAL readEntitlement through the
   # REAL supabase-js against a throwaway Postgres + PostgREST in Docker holding
   # the subscriptions table's exact definition: a paying user with two rows must

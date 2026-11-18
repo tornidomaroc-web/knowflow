@@ -31,24 +31,37 @@ import { useTranslation as dictionaryFor, type Locale } from '@/lib/i18n';
  *
  * `version` lets a later change of providers or of what they receive ask
  * again: raise AI_CONSENT_VERSION and every earlier permission stops counting.
+ *
+ * PHOTOS (the camera screen): version 2 is the same permission with one more
+ * sentence on the sheet, naming photos of pages sent to Anthropic. Only
+ * /api/page-read requires it (PAGE_READ_CONSENT_VERSION); every other route
+ * keeps requiring 1, so no student is asked again until they first send
+ * photos, and a version-2 permission counts everywhere a version-1 one does.
  */
 export const AI_CONSENT_VERSION = 1;
+
+/** The permission /api/page-read requires: the sheet that named photos. */
+export const PAGE_READ_CONSENT_VERSION = 2;
 
 /** The `code` of the 403 those routes send without the permission. */
 export const AI_CONSENT_REFUSAL = 'ai_consent_required';
 
 type MaybeUser = { user_metadata?: Record<string, unknown> | null } | null | undefined;
 
-export function hasAiConsent(user: MaybeUser): boolean {
+/** Whether the account holds the permission at `atLeast` (AI_CONSENT_VERSION unless a route asks for more). */
+export function hasAiConsent(user: MaybeUser, atLeast: number = AI_CONSENT_VERSION): boolean {
   const consent = user?.user_metadata?.ai_consent;
   if (!consent || typeof consent !== 'object') return false;
   const version = (consent as { version?: unknown }).version;
-  return typeof version === 'number' && version >= AI_CONSENT_VERSION;
+  return typeof version === 'number' && version >= atLeast;
 }
 
-/** What the sheet writes into `user_metadata` when the student agrees. */
-export function aiConsentGrant(now: Date): { ai_consent: { version: number; at: string } } {
-  return { ai_consent: { version: AI_CONSENT_VERSION, at: now.toISOString() } };
+/**
+ * What the sheet writes into `user_metadata` when the student agrees: the
+ * version of the sheet they read (PAGE_READ_CONSENT_VERSION when it named photos).
+ */
+export function aiConsentGrant(now: Date, version: number = AI_CONSENT_VERSION): { ai_consent: { version: number; at: string } } {
+  return { ai_consent: { version, at: now.toISOString() } };
 }
 
 /** What Settings writes when the student withdraws. */

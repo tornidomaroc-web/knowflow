@@ -102,6 +102,41 @@ export function purchaseLinksAllowed(platform: Platform): boolean {
 }
 
 /**
+ * THE SHELL'S VERSION, `<n>` in `KnowFlowApp/<n>`: 0 on the web (no marker),
+ * and 1 for a client that only sets `x-kf-platform: native` (it names no
+ * version, so it gets what the first shell got).
+ *
+ * The version exists for ONE reason so far: the camera. Build 8 (1.0, the
+ * shell on the App Store, `KnowFlowApp/1`) carries no
+ * `NSCameraUsageDescription`, and iOS ends an app that opens the camera
+ * without one. A page served to that shell must therefore never offer the
+ * camera; only a shell that declares the text (`KnowFlowApp/2` onward,
+ * ios/App/App/Info.plist) may. The web keeps the file tile alone.
+ *
+ * THIS ONE READING ADDS A CONTROL, where the others remove one (the header
+ * comment above). What it adds is a tile that photographs pages and calls
+ * POST /api/page-read, a route every signed-in session may already call with
+ * the same checks; a forged `KnowFlowApp/2` in a browser gains a button and
+ * nothing the server would not give it anyway. No entitlement, limit or data
+ * depends on it. `scripts/verify-camera-screen.mjs` holds the readings.
+ */
+const NATIVE_SHELL_VERSION = /\bKnowFlowApp\/(\d{1,4})(?!\d)/;
+
+export function shellVersionFromHeaders(get: (name: string) => string | null | undefined): number {
+  const m = NATIVE_SHELL_VERSION.exec(get('user-agent') ?? '');
+  if (m) return Number(m[1]);
+  return get(PLATFORM_HEADER) === 'native' ? 1 : 0;
+}
+
+/** The first shell that declares the camera's permission text. */
+export const CAMERA_SHELL_VERSION = 2;
+
+/** Whether the camera tile may be offered: the app, from shell 2 on. Never the web. */
+export function cameraAllowed(shellVersion: number): boolean {
+  return Number.isInteger(shellVersion) && shellVersion >= CAMERA_SHELL_VERSION;
+}
+
+/**
  * Whether the Google sign-in button may be shown. Hidden in the app until
  * native sign-in ships (STORE_PATH.md S1): Google refuses OAuth inside an
  * embedded web view, so the button would only fail there.

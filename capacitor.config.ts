@@ -44,13 +44,17 @@ const config: CapacitorConfig = {
   },
   ios: {
     // The marker the server reads (`NATIVE_USER_AGENT_TOKEN` in src/lib/platform.ts
-    // followed by a digit). Applied to every request the web view makes:
-    // document loads, the router's fetches and the API calls alike.
-    appendUserAgent: 'KnowFlowApp/1',
+    // followed by the shell's version). Applied to every request the web view
+    // makes: document loads, the router's fetches and the API calls alike.
+    // VERSION 2 (the camera screen): this shell declares the camera's purpose
+    // string (Info.plist NSCameraUsageDescription), so the server may offer
+    // the camera to it (`cameraAllowed`); build 8 says 1 and is never offered
+    // it, because iOS ends an app that opens the camera without that string.
+    appendUserAgent: 'KnowFlowApp/2',
     contentInset: 'automatic',
   },
   android: {
-    appendUserAgent: 'KnowFlowApp/1',
+    appendUserAgent: 'KnowFlowApp/2',
   },
 };
 

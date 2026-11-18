@@ -10,7 +10,7 @@ import { FileName } from '@/components/ui/FileName';
 import { LatinText } from '@/components/ui/LatinText';
 import { ClayUploadFile } from '@/components/clay/ClayIcons';
 import { createClient } from '@/lib/supabase/client';
-import { AI_CONSENT_WITHDRAWN, aiConsentGrant } from '@/lib/ai-consent';
+import { AI_CONSENT_VERSION, AI_CONSENT_WITHDRAWN, aiConsentGrant, PAGE_READ_CONSENT_VERSION } from '@/lib/ai-consent';
 import type { useTranslation } from '@/lib/i18n';
 
 export type AiConsentLabels = ReturnType<typeof useTranslation>['dashboard']['aiConsent'];
@@ -23,8 +23,11 @@ interface AiConsentValue {
    * content to Anthropic or Voyage AI awaits this before the request leaves.
    * `held` (activation 5, cause #7): the picked file waiting on the answer,
    * named on the sheet so the student sees it is kept.
+   * `photos` (the camera screen): the permission must be the one whose sheet
+   * named photos (PAGE_READ_CONSENT_VERSION); a student who gave only the
+   * text permission is asked once more, with the photos sentence added.
    */
-  ensure: (held?: { name: string }) => Promise<boolean>;
+  ensure: (held?: { name: string } | null, opts?: { photos?: boolean }) => Promise<boolean>;
   /** Removes the permission from the account; resolves whether it was saved. */
   withdraw: () => Promise<boolean>;
   labels: AiConsentLabels | null;
@@ -77,6 +80,8 @@ export function AiConsentProvider({
   privacyHref,
   preview = false,
   previewHeld,
+  initialPhotosConsented = false,
+  previewPhotos = false,
   children,
 }: {
   initialConsented: boolean;
@@ -85,16 +90,24 @@ export function AiConsentProvider({
   preview?: boolean;
   /** PREVIEW ONLY: the sheet opens holding a picked file of this name. */
   previewHeld?: string;
+  /** The account already holds the permission that named photos (version 2). */
+  initialPhotosConsented?: boolean;
+  /** PREVIEW ONLY: the sheet opens as the camera screen asks, with the photos sentence. */
+  previewPhotos?: boolean;
   children: ReactNode;
 }) {
   const [consented, setConsented] = useState(initialConsented);
   const consentedRef = useRef(initialConsented);
-  const [open, setOpen] = useState(preview && !initialConsented);
+  const [open, setOpen] = useState(preview && (!initialConsented || (previewPhotos && !initialPhotosConsented)));
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   // Activation 5 (cause #7): the file the open sheet is holding, if any.
   const [held, setHeld] = useState<string | null>(preview && previewHeld ? previewHeld : null);
   const pending = useRef<((ok: boolean) => void) | null>(null);
+  // The camera screen's ask: the sheet adds the photos sentence and "I agree"
+  // writes PAGE_READ_CONSENT_VERSION.
+  const photosRef = useRef(initialPhotosConsented);
+  const [askPhotos, setAskPhotos] = useState(preview && previewPhotos);
 
   const persist = useCallback(
     (data: Record<string, unknown>) => (preview ? Promise.resolve(true) : saveToAccount(data)),
@@ -108,9 +121,11 @@ export function AiConsentProvider({
     resolve?.(ok);
   }, []);
 
-  const ensure = useCallback((file?: { name: string }) => {
-    if (consentedRef.current) return Promise.resolve(true);
+  const ensure = useCallback((file?: { name: string } | null, opts?: { photos?: boolean }) => {
+    const photos = Boolean(opts?.photos);
+    if (photos ? photosRef.current : consentedRef.current) return Promise.resolve(true);
     setHeld(file?.name ?? null);
+    setAskPhotos(photos);
     return new Promise<boolean>((resolve) => {
       // A second ask while the sheet is up supersedes the first, which is
       // answered "not given" so its caller does not wait forever.
@@ -124,13 +139,17 @@ export function AiConsentProvider({
   const accept = async () => {
     setBusy(true);
     setFailed(false);
-    const ok = await persist(aiConsentGrant(new Date()));
+    // The version of the sheet the student read; never lower than one they
+    // already gave (a photos permission is not taken back by the text sheet).
+    const version = askPhotos || photosRef.current ? PAGE_READ_CONSENT_VERSION : AI_CONSENT_VERSION;
+    const ok = await persist(aiConsentGrant(new Date(), version));
     setBusy(false);
     if (!ok) {
       setFailed(true);
       return;
     }
     consentedRef.current = true;
+    if (version >= PAGE_READ_CONSENT_VERSION) photosRef.current = true;
     setConsented(true);
     settle(true);
   };
@@ -139,6 +158,7 @@ export function AiConsentProvider({
     const ok = await persist({ ...AI_CONSENT_WITHDRAWN });
     if (ok) {
       consentedRef.current = false;
+      photosRef.current = false;
       setConsented(false);
     }
     return ok;
@@ -175,6 +195,11 @@ export function AiConsentProvider({
             <p className="mt-3 text-sm text-muted-foreground"><LatinText text={keepTogether(labels.intro)} /></p>
             <ul className="mt-3 space-y-2 text-sm text-foreground">
               <li className="kf-well rounded-2xl px-3.5 py-2.5"><LatinText text={keepTogether(labels.anthropic)} /></li>
+              {askPhotos && (
+                /* The camera screen (PAGE_READ_CONSENT_VERSION): photos of
+                   pages go to Anthropic, which a text-only sentence did not say. */
+                <li data-kf-consent-photos="" className="kf-well rounded-2xl px-3.5 py-2.5"><LatinText text={keepTogether(labels.photos)} /></li>
+              )}
               <li className="kf-well rounded-2xl px-3.5 py-2.5"><LatinText text={keepTogether(labels.voyage)} /></li>
             </ul>
             <p className="mt-3 text-sm text-foreground"><LatinText text={keepTogether(labels.notSent)} /></p>

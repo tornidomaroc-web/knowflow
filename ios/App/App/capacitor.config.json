@@ -10,11 +10,11 @@
 		"errorPath": "offline.html"
 	},
 	"ios": {
-		"appendUserAgent": "KnowFlowApp/1",
+		"appendUserAgent": "KnowFlowApp/2",
 		"contentInset": "automatic"
 	},
 	"android": {
-		"appendUserAgent": "KnowFlowApp/1"
+		"appendUserAgent": "KnowFlowApp/2"
 	},
 	"packageClassList": [
 		"LocalNotificationsPlugin"

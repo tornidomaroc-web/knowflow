@@ -5,7 +5,7 @@ import { checkDocumentLimit } from '@/lib/limits-server';
 import { enforceUploadLimit } from '@/lib/rate-limit';
 import { defaultLocale, resolveLocale, type Locale } from '@/lib/i18n';
 import { platformFromRequest } from '@/lib/platform';
-import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
+import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent, PAGE_READ_CONSENT_VERSION } from '@/lib/ai-consent';
 import { subjectMaterialsMessage, TEMPORARILY_UNAVAILABLE, uploadRefusalMessage } from '@/lib/limit-messages';
 import { checkAiAllowance } from '@/lib/ai-allowance-server';
 import { ingestMaterial, todaysKeptUploads, type IngestTrace } from '@/lib/ingest-material';
@@ -110,8 +110,10 @@ export async function POST(request: Request) {
     const currentBatch = folder.slice(folder.lastIndexOf('/') + 1);
     after(() => sweepStalePagePhotos(user.id, currentBatch));
 
-    // Apple 5.1.2(i) (src/lib/ai-consent.ts): no permission, nothing read.
-    if (!hasAiConsent(user)) {
+    // Apple 5.1.2(i) (src/lib/ai-consent.ts): no permission, nothing read. The
+    // permission must be the one whose sheet named photos (version 2); a
+    // version-1 permission covered text only.
+    if (!hasAiConsent(user, PAGE_READ_CONSENT_VERSION)) {
       return NextResponse.json(
         { success: false, error: aiConsentRefusalMessage(safeLocale), code: AI_CONSENT_REFUSAL },
         { status: 403 }

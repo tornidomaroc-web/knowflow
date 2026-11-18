@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-11-15 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **453 Arabic strings.**
+Generated 2026-11-18 by `scripts/export-arabic-strings.mjs` from
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **481 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -520,6 +520,7 @@ file is not read by the app.
 | `dashboard.aiConsent.title` | إذنك قبل أن يقرأ الذكاء الاصطناعي ملفاتك | Your permission before AI reads your material |
 | `dashboard.aiConsent.intro` | لنجيب عن أسئلتك ونلخّص ملفاتك ونعدّ لك الاختبارات، نرسل المحتوى إلى شركتين للذكاء الاصطناعي: | To answer your questions, summarise your materials and make quizzes, we send content to two AI companies: |
 | `dashboard.aiConsent.anthropic` | شركة Anthropic تتلقى نص ملفاتك وأسئلتك، وتكتب الإجابات والملخصات والاختبارات. | Anthropic receives the text of your materials and your questions, and writes the answers, summaries and quizzes. |
+| `dashboard.aiConsent.photos` | وعندما تصوّر صفحاتك، تتلقى شركة Anthropic الصور أيضًا لتقرأ نصّها. | When you photograph your pages, Anthropic also receives the photos, to read their text. |
 | `dashboard.aiConsent.voyage` | شركة Voyage AI تتلقى النص نفسه، وتحوّله إلى الصيغة التي يستعملها بحثنا للعثور على المقطع المناسب. | Voyage AI receives the same text and turns it into the form our search uses to find the right passage. |
 | `dashboard.aiConsent.notSent` | لا تتلقى أيّ منهما اسمك ولا بريدك الإلكتروني، ولا تستعمل أيّ منهما محتواك لتدريب نماذجها. | Neither receives your name or your email address, and neither uses your content to train its models. |
 | `dashboard.aiConsent.withdrawHint` | يمكنك سحب هذا الإذن في أي وقت من الإعدادات. | You can withdraw this permission at any time in Settings. |
@@ -602,6 +603,33 @@ file is not read by the app.
 | `dashboard.upload.tryAnother` | اختر ملفًا آخر وجرّب مرة أخرى. | Choose another file to try again. |
 | `dashboard.upload.ready` | جاهز ✓ | Ready ✓ |
 | `dashboard.upload.error` | لم ينجح | Error |
+| `dashboard.upload.camera.addMaterial` | أضف مادة | Add a material |
+| `dashboard.upload.camera.title` | صوّر صفحاتك | Scan pages |
+| `dashboard.upload.camera.desc` | صوّر صفحات الكتاب أو الدفتر، ونقرأ نصّها. | Snap a book or notebook and we read the text. |
+| `dashboard.upload.camera.hint` | صفحة واحدة في كل صورة، حتى {max} صفحات. | One page per photo, up to {max} pages. |
+| `dashboard.upload.camera.firstPage` | صوّر الصفحة الأولى | Photograph the first page |
+| `dashboard.upload.camera.addPage` | أضف صفحة | Add a page |
+| `dashboard.upload.camera.count` | {n} من {max} | {n} of {max} |
+| `dashboard.upload.camera.page` | الصفحة {n} | Page {n} |
+| `dashboard.upload.camera.removePage` | احذف الصفحة {n} | Remove page {n} |
+| `dashboard.upload.camera.full` | بلغت {max} صفحات. اقرأها أولًا، ثم صوّر الباقي. | That is {max} pages. Read these first, then photograph the rest. |
+| `dashboard.upload.camera.read` | اقرأ الصفحات | Read the pages |
+| `dashboard.upload.camera.preparing` | نجهّز الصورة… | Preparing the photo… |
+| `dashboard.upload.camera.uploading` | نرسل الصفحات… {n} من {total} | Sending the pages… {n} of {total} |
+| `dashboard.upload.camera.reading` | نقرأ الصفحات… | Reading the pages… |
+| `dashboard.upload.camera.readingNote` | قد يستغرق هذا دقيقة. أبقِ هذه الشاشة مفتوحة. | This can take a minute. Keep this screen open. |
+| `dashboard.upload.camera.photoUnreadable` | لم نتمكن من فتح هذه الصورة. صوّر الصفحة مرة أخرى. | We could not open this photo. Photograph the page again. |
+| `dashboard.upload.camera.uploadFailed` | لم تصل الصور. تحقّق من اتصالك ثم أعد المحاولة. | The photos did not arrive. Check your connection and try again. |
+| `dashboard.upload.camera.unconfirmed` | لم نتمكن من التأكد من قراءة الصفحات. حدّث الشاشة لترى إن وصلت المادة، وأعد المحاولة إن لم تصل. | We could not confirm that the pages were read. Refresh the screen to see whether the material arrived, and try again if it did not. |
+| `dashboard.upload.camera.noneRead` | لم نتمكن من قراءة أي صفحة، ولم نحفظ شيئًا. صوّر الصفحات في ضوء أوضح ثم أعد المحاولة. | We could not read any page, so nothing was saved. Photograph the pages in better light and try again. |
+| `dashboard.upload.camera.someUnread` | حفظنا المادة دون هذه الصفحات: | Saved without these pages: |
+| `dashboard.upload.camera.problemOpen` | لم نتمكن من فتح الصورة. | The photo could not be opened. |
+| `dashboard.upload.camera.problemNoText` | لم نجد فيها نصًا. | No text was found on it. |
+| `dashboard.upload.camera.problemTooLong` | نصّها أطول مما نقرؤه في صورة واحدة. | Its text is too long to read in one photo. |
+| `dashboard.upload.camera.problemNotRead` | لم تكتمل قراءتها. صوّرها مرة أخرى. | Not read. Take it again. |
+| `dashboard.upload.camera.retry` | أعد المحاولة | Try again |
+| `dashboard.upload.camera.close` | إغلاق | Close |
+| `dashboard.upload.camera.defaultName` | صفحات مصوّرة | Photographed pages |
 
 
 ## Keys with no English counterpart

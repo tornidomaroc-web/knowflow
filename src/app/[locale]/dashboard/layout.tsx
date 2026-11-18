@@ -7,10 +7,10 @@ import { getEntitlement } from '@/lib/entitlement';
 import { PASSWORD_REPLACED_COOKIE } from '@/lib/auth/password-replaced';
 import { redirect } from 'next/navigation';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
-import { currentPlatform } from '@/lib/platform-server';
+import { currentPlatform, currentShellVersion } from '@/lib/platform-server';
 import { PlatformProvider } from '@/components/platform/PlatformProvider';
 import { AiConsentProvider } from '@/components/ai-consent/AiConsentProvider';
-import { hasAiConsent } from '@/lib/ai-consent';
+import { hasAiConsent, PAGE_READ_CONSENT_VERSION } from '@/lib/ai-consent';
 
 export default async function DashboardLayout({
   children,
@@ -51,6 +51,9 @@ export default async function DashboardLayout({
   // page's refusal sentence) through context, so server markup and hydration
   // agree. Apple 3.1.1(a); src/lib/platform.ts.
   const platform = await currentPlatform();
+  // The shell's version decides one thing: whether the camera tile may be
+  // offered (KnowFlowApp/2 onward declares the camera's permission text).
+  const shell = await currentShellVersion();
 
   const labels = {
     dashboard: t.dashboard.nav.dashboard,
@@ -64,11 +67,12 @@ export default async function DashboardLayout({
   };
 
   return (
-    <PlatformProvider platform={platform}>
+    <PlatformProvider platform={platform} shell={shell}>
     {/* Apple 5.1.2(i): the permission as the account holds it now (getUser()
         above reads the auth server), and the sheet that asks for it. */}
     <AiConsentProvider
       initialConsented={hasAiConsent(user)}
+      initialPhotosConsented={hasAiConsent(user, PAGE_READ_CONSENT_VERSION)}
       labels={t.dashboard.aiConsent}
       privacyHref={`/${safeLocale}/privacy`}
     >

@@ -84,10 +84,14 @@ app_manifest = load(app_manifest_path) if os.path.isfile(app_manifest_path) else
 need(app_manifest.get('NSPrivacyTracking') is False, f'NSPrivacyTracking is false: {app_manifest.get("NSPrivacyTracking")}')
 need(app_manifest.get('NSPrivacyTrackingDomains') == [], f'no tracking domain: {app_manifest.get("NSPrivacyTrackingDomains")}')
 collected = {d.get('NSPrivacyCollectedDataType'): d for d in app_manifest.get('NSPrivacyCollectedDataTypes', []) or []}
-# The six types and the purposes the App Privacy label declares
+# The seven types and the purposes the App Privacy label declares
 # (docs/store/ASC_ANSWERS.md section 1): the manifest and the label must say
-# the same thing, so the expected purposes are spelled out per type.
+# the same thing, so the expected purposes are spelled out per type. Photos or
+# Videos came with the camera screen (shell 2): the label in App Store Connect
+# must gain it before a shell-2 build is submitted.
 EXPECTED = {
+    # The camera screen (shell 2): photos of pages, read by Anthropic, then deleted.
+    'PhotosorVideos': ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
     'EmailAddress': ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
     'Name': ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
     'OtherUserContent': ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
@@ -95,7 +99,7 @@ EXPECTED = {
     'ProductInteraction': ['NSPrivacyCollectedDataTypePurposeAppFunctionality', 'NSPrivacyCollectedDataTypePurposeAnalytics'],
     'OtherDiagnosticData': ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
 }
-need(set(collected) == {'NSPrivacyCollectedDataType' + t for t in EXPECTED}, f'exactly the six declared types: {sorted(collected)}')
+need(set(collected) == {'NSPrivacyCollectedDataType' + t for t in EXPECTED}, f'exactly the seven declared types: {sorted(collected)}')
 for t, purposes in EXPECTED.items():
     d = collected.get('NSPrivacyCollectedDataType' + t)
     need(bool(d) and d.get('NSPrivacyCollectedDataTypeLinked') is True and d.get('NSPrivacyCollectedDataTypeTracking') is False

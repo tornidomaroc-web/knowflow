@@ -161,6 +161,16 @@
  * Arabic the term split); check 17 allows the ready
  * question two balanced lines, and its new forced case is main's cut line.
  *
+ * THE CAMERA SCREEN (camera.mjs, feat/camera-screen) adds the app at shell 2
+ * (KnowFlowApp/2: the upload button, the two-tile sheet, the camera screen
+ * empty, with ten pages and after a 422, a material saved without pages, the
+ * photos permission sheet; at 390 and at 360) beside shell 1 (build 8) and
+ * the web (390 and 1280), which must show today's tile and no camera. CHECK
+ * 21 reads the gate, the two equal tiles, the camera title on one line and
+ * the pages grid, with a forced case (the title let wrap); CHECK 22 holds
+ * every existing drop-zone screen drawn with shell 1 or the web to the SAME
+ * picture before and after (3/255 per channel).
+ *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
  *      http://127.0.0.1:3000), CHROME, PUPPETEER_DIR, FONT_DIR (the
@@ -183,6 +193,7 @@ import { latinRunsCheck, latinRunsPlant } from './latin-runs.mjs';
 import { authErrorScreens, authPrepare, authAct, authErrorCheck, authErrorPlant, isAuthPage } from './auth-errors.mjs';
 import { sampleScreens, sampleMode, sampleCheck, samplePlant, sampleWholeMode, sampleWholeCheck, sampleWholePlant, sampleWholeRevert } from './sample.mjs';
 import { android360Screens, statRowCheck, statRowPlant, signupNoteCheck, signupNotePlant, signupTermPlant, chipCutPlant } from './android360.mjs';
+import { cameraScreens, cameraCheck, cameraPlant, sameCheck } from './camera.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -282,6 +293,8 @@ authErrorScreens(add, { APP, SAFARI, DESK, DESKTOP });
 sampleScreens(add, { APP, DESK, DESKTOP }, byKeyEarly);
 // Android at 360 (android360.mjs): the touched screens on the web at 360 x 800.
 android360Screens(add);
+// The camera screen (camera.mjs): shell 2, shell 1 and the web; check 22 marks the drop-zone screens above.
+cameraScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
 const KEEP = keepTogetherList(resolve('.'));
 // Check 18's protected units: the keep-together phrases, the kept names (KEEP_WHOLE) and "Anthropic".
 const KEEP18 = [...KEEP, ...[...(/KEEP_WHOLE = \[([^\]]*)\]/.exec(readFileSync(resolve('src/lib/keep-together.ts'), 'utf8'))?.[1] || '').matchAll(/'([^']+)'/g)].map((x) => x[1]), 'Anthropic'];
@@ -992,6 +1005,9 @@ const sampleForced = {};
 const wholeForced = {};
 // Checks 19, 20 and check 17's cut case (android360.mjs): the AFTER renders whose forced case was caught.
 const a360Forced = { stats: 0, note: 0, term: 0, chipCut: 0 };
+// Check 21 (camera.mjs): the AFTER renders whose forced case was caught; check 22: the screens compared.
+let cameraForced = 0;
+const sameSeen = { compared: 0, same: 0 };
 
 async function shoot(side, job) {
   const ctx = await browser.createBrowserContext();
@@ -1122,6 +1138,9 @@ async function shoot(side, job) {
   const dzPlant = job.s.dzError ? await tab.evaluate(dropZoneErrorPlant) : null;
   // Activation fix 3: the link to the other auth page, in the first view.
   const crossLink = job.s.crossLink ? await tab.evaluate(crossLinkRead, job.s.crossLink) : null;
+  // Check 21 (camera.mjs): who sees the camera, the sheet's two tiles, the title on one line, the pages.
+  if (job.s.camera) await tab.evaluate(`window.cameraCheck = ${cameraCheck.toString()}`);
+  const camera21 = job.s.camera ? await tab.evaluate(cameraCheck, job.s.camera) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -1141,6 +1160,8 @@ async function shoot(side, job) {
   // A subject with no file (`empty`, and `new`, activation fix 1) has no Delete to force.
   const plant = /preview\/subject$/.test(job.s.path) && !['empty', 'new'].includes(job.s.q.view) ? await tab.evaluate(deletePlant) : null;
   const ring = job.s.pr4 === 'consent' ? await keyRing(tab) : null;
+  // Check 21's forced case, after the shot, on AFTER (camera.mjs, cameraPlant).
+  const camera21Plant = job.s.camera && job.s.camera.shell >= 2 && side === 'after' ? await tab.evaluate(cameraPlant) : null;
   // G2: check 9's forced wrong cases, after the shot (pr4.mjs, pageLabelPlant).
   const labelPlant = job.s.pr4 === 'ask' ? await tab.evaluate(pageLabelPlant) : null;
   // Finding (b): check 10's forced wrong cases, after the shot (pr4.mjs, latinPlant).
@@ -1151,7 +1172,7 @@ async function shoot(side, job) {
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant };
 }
 
 for (const job of JOBS) {
@@ -1221,6 +1242,9 @@ for (const job of JOBS) {
       ...(r.note20Plant?.finding ? [`signup note: ${r.note20Plant.finding}`] : []),
       ...(r.term20Plant?.finding ? [`signup note: ${r.term20Plant.finding}`] : []),
       ...(r.chipCut?.finding ? [`sample: ${r.chipCut.finding}`] : []),
+      // Check 21 (camera.mjs), and its forced case on AFTER.
+      ...(r.camera21?.finding ? [`camera: ${r.camera21.finding}`] : []),
+      ...(r.camera21Plant?.finding ? [`camera: ${r.camera21Plant.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -1234,6 +1258,7 @@ for (const job of JOBS) {
     if (side === 'after' && r.note20Plant?.caught) a360Forced.note++;
     if (side === 'after' && r.term20Plant?.caught) a360Forced.term++;
     if (side === 'after' && r.chipCut?.caught) a360Forced.chipCut++;
+    if (side === 'after' && r.camera21Plant?.caught) cameraForced++;
     if (side === 'after' && r.whole18Revert?.flagged) console.log(`       check 18 on d9647f5's layout (${job.name}): ${r.whole18Revert.finding}`);
     const tmin = Math.min(...r.a.text.map((t) => t.got));
     row.sides[side] = {
@@ -1264,6 +1289,7 @@ for (const job of JOBS) {
       stats19: { rows: r.stats19.rows, tiles: r.stats19.tiles, finding: r.stats19.finding, ...(r.stats19Plant ? { forcedCaught: r.stats19Plant.caught } : {}) },
       ...(r.note20 ? { signupNote: { ...r.note20, ...(r.note20Plant ? { forcedCaught: r.note20Plant.caught } : {}), ...(r.term20Plant ? { termForcedCaught: r.term20Plant.caught } : {}) } } : {}),
       ...(r.chipCut ? { chipCutForcedCaught: r.chipCut.caught } : {}),
+      ...(r.camera21 ? { camera: { expect: job.s.camera, ...r.camera21.measured, finding: r.camera21.finding, ...(r.camera21Plant ? { forced: r.camera21Plant.forced, forcedCaught: r.camera21Plant.caught ?? null } : {}) } } : {}),
       ...(job.s.native ? { app: { appleButtons: r.gate.apple.length, googleButtons: r.gate.google.length, purchaseWords: words } } : {}),
     };
     console.log(`${side === 'after' && bad.length ? 'FAIL' : 'ok  '} ${side.padEnd(6)} ${job.name}: theme ${r.theme}, ${r.fonts.loaded.length} static faces, text worst ${tmin.toFixed(2)}:1, ${bad.length} finding(s)`);
@@ -1273,6 +1299,14 @@ for (const job of JOBS) {
     // Check 11 on the glue undone (94195ab's shape), printed, not failed: the head this PR fixes.
     if (side === 'after' && r.markers?.unglued?.length) for (const u of r.markers.unglued) console.log(`       glue undone (94195ab): ${u}`);
     if (side === 'after' && r.orphans?.unpretty?.length) for (const u of r.orphans.unpretty) console.log(`       text-wrap: pretty undone (main's rule): ${u}`);
+  }
+  // Check 22 (camera.mjs): a drop-zone screen drawn with shell 1 or the web is the same picture on both sides.
+  if (job.s.same) {
+    const same = await sameCheck(browser, join(out, 'before', `${job.name}.png`), join(out, 'after', `${job.name}.png`));
+    sameSeen.compared++;
+    if (same.same) sameSeen.same++;
+    else { failures++; console.log(`FAIL same   ${job.name}: check 22, shell 1 or the web changed: ${same.why}`); }
+    row.same = { same: same.same, pixels: same.pixels, off: same.off, worst: same.worst, why: same.why };
   }
   results.push(row);
 }
@@ -1296,6 +1330,10 @@ for (const [k, what] of [['stats', "check 19 (one bottom for a stat row's number
   if (!a360Forced[k]) never(`${what} was never forced: no AFTER render caught its wrong case`);
   else console.log(`${what}: forced case caught on ${a360Forced[k]} AFTER render(s)`);
 }
+if (!cameraForced) never('check 21 was never forced: no AFTER render caught the camera title let wrap');
+else console.log(`check 21 (the camera title on one line): forced case caught on ${cameraForced} AFTER render(s)`);
+if (!sameSeen.compared) never('check 22 compared no screen');
+else console.log(`check 22 (shell 1 and the web unchanged): ${sameSeen.same} of ${sameSeen.compared} screen(s) the same picture before and after`);
 writeFileSync(join(out, 'report.json'), JSON.stringify({ fonts: { family: FAMILY, package: '@fontsource/rubik@5.2.5', weights: WEIGHTS, files: fontHashes }, results }, null, 2) + '\n');
 console.log(`\nfonts: one static set on every page (${[...fontSets][0]}), ${Object.keys(fontHashes).length} files hashed`);
 console.log(`${failures} failure(s) on AFTER across ${JOBS.length} screens (${JOBS.length * 2} renders)`);

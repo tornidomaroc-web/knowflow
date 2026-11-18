@@ -12,7 +12,9 @@ name: ios-smoke
 #   1. the marker reaches the server: the first page is a /native/ twin (no
 #      Google button), sign-up on a fresh install or login once the device
 #      holds the kf-seen mark (src/lib/first-screen.ts, activation fix 3), and
-#      the user agent in the page carries KnowFlowApp/1;
+#      the user agent in the page carries KnowFlowApp/2, the shell that
+#      declares the camera's purpose string (src/lib/platform.ts,
+#      cameraAllowed);
 #   2. the Capacitor bridge is present in a document served from
 #      tryknowflow.com (window.Capacitor.isNativePlatform() true, platform
 #      "ios"), the one reading that decides the architecture (§8.3 of the
@@ -181,9 +183,13 @@ jobs:
           test -n "$app" || { echo "no App.app was built"; tail -n 60 "$RUNNER_TEMP/build.log"; exit 1; }
           echo "APP_PATH=$app" >> "$GITHUB_ENV"
           echo "built: $app"
-          # ITMS-90683's lesson: no purpose string for a permission the app does
-          # not use, and none is used in this step.
-          if /usr/libexec/PlistBuddy -c 'Print' "$app/Info.plist" | grep -q 'UsageDescription'; then echo "FAIL: a purpose string is in Info.plist but no permission is used"; exit 1; fi
+          # ITMS-90683's lesson, now with the camera screen (shell 2): exactly ONE
+          # purpose string, the camera's, non-empty; a second one would be a
+          # permission the app does not use. The text is
+          # docs/copy-drafts/camera_screen.md.
+          purposes=$(/usr/libexec/PlistBuddy -c 'Print' "$app/Info.plist" | grep -o '[A-Za-z]*UsageDescription' | sort -u | tr '\n' ' ')
+          test "$purposes" = "NSCameraUsageDescription " || { echo "FAIL: the purpose strings are [$purposes], not the camera's alone"; exit 1; }
+          test -n "$(/usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$app/Info.plist")" || { echo "FAIL: the camera's purpose string is empty"; exit 1; }
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist"
           /usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$app/Info.plist"
 
@@ -223,6 +229,9 @@ jobs:
           echo "lproj folders: $(cd "$DEVICE_APP" && ls -d *.lproj | tr '\n' ' ')"
           for l in en ar; do
             test -f "$DEVICE_APP/$l.lproj/InfoPlist.strings" || { echo "FAIL: no $l.lproj/InfoPlist.strings in the device build"; exit 1; }
+            # The camera's purpose string in both languages (the system shows it
+            # in the phone's language when the camera is first opened).
+            plutil -p "$DEVICE_APP/$l.lproj/InfoPlist.strings" | grep -q '"NSCameraUsageDescription"' || { echo "FAIL: $l.lproj/InfoPlist.strings has no NSCameraUsageDescription"; exit 1; }
             /usr/libexec/PlistBuddy -c 'Print :CFBundleLocalizations' "$plist" | grep -qx "[[:space:]]*$l" || { echo "FAIL: CFBundleLocalizations does not name $l"; exit 1; }
           done
           echo "CFBundleLocalizations: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleLocalizations' "$plist" | tr -s ' \n' ' ')"
@@ -434,7 +443,8 @@ jobs:
           need(re.match(r"^https://tryknowflow\.com/(en|ar)/(signup|login)$", first), f"1. the first page is the sign-up or the login twin: {L.get('href')}")
           print(f"info first screen of a fresh install: {first.rsplit('/', 1)[-1]}")
           need(L.get("google") == 0, f"1. no Google button in the first page (twin, not the web page): google={L.get('google')}")
-          need(L.get("marker") is True, f"1. the page's user agent carries KnowFlowApp/1: {L.get('marker')}")
+          need(L.get("marker") is True, f"1. the page's user agent carries the KnowFlowApp marker: {L.get('marker')}")
+          need(L.get("shell") == "2", f"1. ...at version 2, the shell that declares the camera's purpose string: shell={L.get('shell')}")
           need(L.get("bridge") is True and L.get("platform") == "ios", f"2. the Capacitor bridge is present in a page from tryknowflow.com: bridge={L.get('bridge')} platform={L.get('platform')}")
           TL = by.get("to-login", {})
           TP = TL.get("probe", {})

@@ -523,6 +523,26 @@ export const ClayUploadFile = (p: P) => (
 );
 
 /**
+ * The camera tile's picture (upload-sheet.dc.html, its "photograph your
+ * pages" choice), drawn as the file tile's twin: a cream camera body with a
+ * taupe hump, a gold lens ringed in cream with an ink pupil and a catchlight,
+ * a small gold page peeking behind it, on the same soft shadow.
+ */
+export const ClayCamera = (p: P) => (
+  <svg {...base(p, 48, 48, '0 0 48 48')}>
+    <ellipse cx="24" cy="45" rx="14" ry="2.5" fill="#B57A12" fillOpacity="0.22" />
+    <rect x="27" y="3" width="15" height="19" rx="3" fill={G('gold')} transform="rotate(12 34.5 12.5)" />
+    <path d="M16.5 10.5l2.2-3.6A3 3 0 0 1 21.3 5.5h5.4a3 3 0 0 1 2.6 1.4l2.2 3.6z" fill={G('taupe')} />
+    <rect x="4" y="10" width="40" height="30" rx="7" fill={G('cream')} />
+    <rect x="8" y="14" width="6" height="3.5" rx="1.75" fill="#BFB29D" />
+    <circle cx="24" cy="25.5" r="10" fill="#D9CDB8" />
+    <circle cx="24" cy="25.5" r="7.5" fill={G('gold')} />
+    <circle cx="24" cy="25.5" r="3.6" fill="#1A1611" />
+    <ellipse cx="21.6" cy="22.6" rx="1.8" ry="1.1" fill="#FFFFFF" fillOpacity="0.7" />
+  </svg>
+);
+
+/**
  * A material's type tile: a page in its type's tone (peach a PDF, blue a
  * Word file, violet slides, green a sheet, gold the rest), its corner folded,
  * two white lines, a catchlight. The caller sets the size.

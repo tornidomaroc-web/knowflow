@@ -276,8 +276,13 @@ jobs:
           echo "archived: bundle $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist") version $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Info.plist") build $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Info.plist") encryption-exempt $(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$app/Info.plist")"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")" = "com.knowflow.app"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Info.plist")" = "${{ github.run_number }}"
-          # ITMS-90683's lesson: no purpose string for a permission the app does not use.
-          if /usr/libexec/PlistBuddy -c 'Print' "$app/Info.plist" | grep -q 'UsageDescription'; then echo "FAIL: a purpose string is in Info.plist but no permission is used"; exit 1; fi
+          # ITMS-90683's lesson, now with the camera screen (shell 2): exactly ONE
+          # purpose string, the camera's, non-empty; a second one would be a
+          # permission the app does not use. The text is
+          # docs/copy-drafts/camera_screen.md.
+          purposes=$(/usr/libexec/PlistBuddy -c 'Print' "$app/Info.plist" | grep -o '[A-Za-z]*UsageDescription' | sort -u | tr '\n' ' ')
+          test "$purposes" = "NSCameraUsageDescription " || { echo "FAIL: the purpose strings are [$purposes], not the camera's alone"; exit 1; }
+          test -n "$(/usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$app/Info.plist")" || { echo "FAIL: the camera's purpose string is empty"; exit 1; }
           echo "linked frameworks (otool -L):"; otool -L "$app/App" | tee "$RUNNER_TEMP/otool.txt"
           grep -q "UIKit.framework" "$RUNNER_TEMP/otool.txt" || { echo "otool -L named no UIKit: the reading is empty, not clean"; exit 1; }
           # ITMS-91053, before the upload rather than in Apple's e-mail after it.

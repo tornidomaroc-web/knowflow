@@ -1,5 +1,5 @@
 import { headers } from 'next/headers';
-import { platformFromHeaders, type Platform } from '@/lib/platform';
+import { platformFromHeaders, shellVersionFromHeaders, type Platform } from '@/lib/platform';
 
 /**
  * The platform of the request a server component is rendering for.
@@ -16,4 +16,10 @@ import { platformFromHeaders, type Platform } from '@/lib/platform';
 export async function currentPlatform(): Promise<Platform> {
   const h = await headers();
   return platformFromHeaders((name) => h.get(name));
+}
+
+/** The shell's version (`KnowFlowApp/<n>`, 0 on the web), read the same way. */
+export async function currentShellVersion(): Promise<number> {
+  const h = await headers();
+  return shellVersionFromHeaders((name) => h.get(name));
 }

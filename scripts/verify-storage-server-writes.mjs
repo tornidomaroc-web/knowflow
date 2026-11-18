@@ -36,6 +36,14 @@
  *      copy, update, signed upload URL) except through a client named `admin`
  *      in the five files allowed to hold one. --self-test plants six writes
  *      the guard must catch.
+ *      ONE EXCEPTION, the camera screen (src/components/upload/CameraPages.tsx):
+ *      it uploads the student's page photos and, on giving up, deletes them,
+ *      with the STUDENT'S session, as production's storage policies were
+ *      changed to allow (20261118_storage_lockdown_production.sql: a student
+ *      may insert only {uid}/page-photos/{uuid}/{name}, under 100 objects, and
+ *      delete only under {uid}/page-photos/). Only that file, only `upload`
+ *      and `remove`; the self-test plants the same calls elsewhere and a
+ *      `move` there, and each must be caught.
  *
  * RED ON 56ee9f7..d675b6c: ingestMaterial and /api/sample upload with the
  * student's session, the sample rollback cannot remove the file, and the
@@ -64,6 +72,10 @@ const STORAGE_WRITERS = new Set([
   'src/lib/material-deletion.ts',       // a material's file on delete
   'src/lib/account-deletion/storage.ts', // every file of a deleted account
 ]);
+// The camera screen's session writes (the exception above): file -> methods.
+const SESSION_PAGE_PHOTO_WRITERS = new Map([
+  ['src/components/upload/CameraPages.tsx', new Set(['upload', 'remove'])],
+]);
 const WRITE_METHODS = ['upload', 'update', 'remove', 'move', 'copy', 'createSignedUploadUrl', 'uploadToSignedUrl', 'emptyBucket', 'deleteBucket', 'createBucket', 'updateBucket'];
 const READ_METHODS = new Set(['list', 'download', 'createSignedUrl', 'createSignedUrls', 'getPublicUrl', 'exists', 'info']);
 
@@ -79,7 +91,9 @@ export function storageWriteViolations(rel, source) {
     const method = /^\.from\((?:[^()]|\([^()]*\))*\)(?:as[\w<>{}\[\]|&,:'" ]+)?\.(\w+)\(/.exec(after)?.[1] ?? null;
     const writes = method === null ? null : !READ_METHODS.has(method);
     if (receiver !== 'admin') {
-      // A session (or any other) client: reads only, and only spelled in full.
+      // A session (or any other) client: reads only, and only spelled in full;
+      // the camera screen's page-photo upload and remove are the one exception.
+      if (writes === true && SESSION_PAGE_PHOTO_WRITERS.get(rel)?.has(method)) continue;
       if (writes !== false) out.push(`${rel}:${line(m.index)} ${receiver}.storage${method ? `…${method}(` : ' (method not visible)'}: only a service-role client named admin may write`);
     } else if (!STORAGE_WRITERS.has(rel)) {
       out.push(`${rel}:${line(m.index)} admin.storage in a file not allowed to write storage`);
@@ -115,6 +129,12 @@ if (process.argv.includes('--self-test')) {
     ['src/lib/x.ts', "const bucket = supabase.storage.from('documents'); await bucket.upload(k, f);"],
     ['src/lib/y.ts', "await admin.storage.from('documents').upload(k, f);"],
     ['src/lib/z.ts', "const { data } = await supabase.storage.from('documents').createSignedUploadUrl(k);"],
+    // The camera's exception does not travel: the same calls in another file,
+    // and another write in the camera's file.
+    ['src/components/upload/DropZone.tsx', "const { error } = await supabase.storage.from('documents').upload(key, photo, { contentType: 'image/jpeg', upsert: false });"],
+    ['src/lib/page-photos.ts', "await supabase.storage.from('documents').remove(keys);"],
+    ['src/components/upload/CameraPages.tsx', "await supabase.storage.from('documents').move(a, b);"],
+    ['src/components/upload/CameraPages.tsx', "await supabase.storage.from('documents').update(key, photo);"],
   ];
   let bad = 0;
   for (const [rel, code] of PLANTS) {
@@ -123,12 +143,14 @@ if (process.argv.includes('--self-test')) {
     if (!v.length) bad++;
   }
   const allowedReads = [
+    ['src/components/upload/CameraPages.tsx', "const { error } = await supabase.storage.from('documents').upload(key, photo, { contentType: 'image/jpeg', upsert: false });"],
+    ['src/components/upload/CameraPages.tsx', "await supabase.storage.from('documents').remove(keys);"],
     ['src/lib/page-reader-server.ts', 'const { data } = await supabase.storage\n  .from(DOCUMENTS_BUCKET)\n  .list(folder, { limit: 100 });'],
     ['src/lib/page-reader-server.ts', 'const { data } = await supabase.storage.from(DOCUMENTS_BUCKET).download(keys[i], {}, { signal });'],
   ];
   for (const [rel, code] of allowedReads) {
     const v = storageWriteViolations(rel, code);
-    console.log(`  ${v.length ? 'WRONGLY CAUGHT' : 'allowed'}  ${rel}: a session read`);
+    console.log(`  ${v.length ? 'WRONGLY CAUGHT' : 'allowed'}  ${rel}: a session read, or the camera screen's own write`);
     if (v.length) bad++;
   }
   console.log(bad ? `\nself-test FAILED: ${bad}` : '\nself-test: every planted write caught, every session read allowed');

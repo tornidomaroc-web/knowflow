@@ -5,8 +5,11 @@ import { useRouter, useParams } from 'next/navigation';
 import { AlertTriangle, CheckCircle2, FileText, Upload } from 'lucide-react';
 import { buttonVariants } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { usePlatform } from '@/components/platform/PlatformProvider';
-import { ClayUploadFile } from '@/components/clay/ClayIcons';
+import { useCameraAllowed, usePlatform } from '@/components/platform/PlatformProvider';
+import { ClayCamera, ClayUploadFile } from '@/components/clay/ClayIcons';
+import { Sheet } from '@/components/ui';
+import { CameraPages, type CameraDone, type CameraPagesHandle, type CameraPreview } from '@/components/upload/CameraPages';
+import type { PhotoProblem } from '@/lib/page-photos';
 import { FileName } from '@/components/ui/FileName';
 import { LatinText } from '@/components/ui/LatinText';
 import type { Document } from '@/types';
@@ -29,6 +32,13 @@ interface DropZoneProps {
    * `pagesNoText` (Option C) start it on that result, as an upload would.
    */
   previewFile?: { name: string; size: number; noText?: boolean; pagesNoText?: { n: number; total: number } | null; state?: PreviewState };
+  /**
+   * PREVIEW ONLY (`/[locale]/preview/camera`), and only where the camera is
+   * allowed: `choice` opens the two-tile sheet, `camera` the camera screen
+   * with the given drawn pages, `unread` the finished state of a material
+   * saved without some pages. Nothing is sent.
+   */
+  previewCamera?: { open: 'choice' } | { open: 'camera'; camera: CameraPreview } | { open: 'unread'; name: string; unread: readonly { n: number; problem: PhotoProblem }[] };
 }
 
 /**
@@ -63,7 +73,7 @@ type UploadState = 'idle' | 'consent' | 'uploading' | 'processing' | 'ready' | '
  * The refusals, the size and type checks, and the reply parsing are exactly
  * what shipped for #50 and #111; only the transport and what is shown changed.
  */
-export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
+export function DropZone({ kbId, onSuccess, previewFile, previewCamera }: DropZoneProps) {
   const router = useRouter();
   const params = useParams<{ locale: Locale }>();
   const safeLocale: Locale = resolveLocale(params.locale);
@@ -71,7 +81,7 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
   const u = t.dashboard.upload;
   const ps = previewFile?.state;
   const [state, setState] = useState<UploadState>(
-    !previewFile ? 'idle' : ps === 'processing' ? 'processing' : ps === 'failed' ? 'error' : ps === 'consent' ? 'consent' : ps === 'declined' ? 'idle' : 'ready'
+    previewCamera?.open === 'unread' ? 'ready' : !previewFile ? 'idle' : ps === 'processing' ? 'processing' : ps === 'failed' ? 'error' : ps === 'consent' ? 'consent' : ps === 'declined' ? 'idle' : 'ready'
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(ps === 'failed' ? uploadRefusalMessage(safeLocale, 'unconfirmed') : null);
   // Activation 5 (cause #7): "Not now" on the permission sheet. Not a failure:
@@ -81,7 +91,10 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
   const [noText, setNoText] = useState(previewFile?.noText ?? false);
   // Option C: the file arrived and SOME of its pages have no text.
   const [pagesNoText, setPagesNoText] = useState<{ n: number; total: number } | null>(previewFile?.pagesNoText ?? null);
-  const [file, setFile] = useState<{ name: string; size: number } | null>(previewFile && ps !== 'declined' && ps !== 'failed' ? { name: previewFile.name, size: previewFile.size } : null);
+  const [file, setFile] = useState<{ name: string; size: number } | null>(
+    previewCamera?.open === 'unread' ? { name: previewCamera.name, size: 0 }
+      : previewFile && ps !== 'declined' && ps !== 'failed' ? { name: previewFile.name, size: previewFile.size } : null
+  );
   const [sent, setSent] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(ps === 'processing' ? 0 : null);
   const [now, setNow] = useState(ps === 'processing' ? PREVIEW_ELAPSED_MS : 0);
@@ -96,6 +109,17 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
   // the consent, the transport and every state after the pick are unchanged.
   // The sheet comes back in 1.1 with the scan tile beside this one.
   const buttonFirst = usePlatform() === 'native';
+  // THE CAMERA (shell 2 onward, src/lib/platform.ts `cameraAllowed`): the idle
+  // control becomes ONE button that opens the upload sheet with its two equal
+  // tiles, the file and the camera (upload-sheet.dc.html; the sheet the owner
+  // held back in 1.0 until there was a second choice). The web and shell 1
+  // (build 8, which cannot open the camera) render exactly what they did.
+  const camera = useCameraAllowed();
+  const [choiceOpen, setChoiceOpen] = useState(previewCamera?.open === 'choice');
+  const [cameraOpen, setCameraOpen] = useState(previewCamera?.open === 'camera');
+  const cameraRef = useRef<CameraPagesHandle>(null);
+  // A material made from photos, saved without some of its pages.
+  const [unread, setUnread] = useState<{ n: number; problem: PhotoProblem }[]>(previewCamera?.open === 'unread' ? [...previewCamera.unread] : []);
   const [touch, setTouch] = useState(false);
   useEffect(() => {
     try { setTouch(window.matchMedia('(pointer: coarse)').matches); } catch { /* no matchMedia: a keyboard and a mouse */ }
@@ -217,6 +241,21 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
     if (!empty && !some) setTimeout(() => setState('idle'), 3000);
   };
 
+  // The camera screen's 200: the new material, shown as any finished upload.
+  const cameraDone = ({ doc, unread: missing }: CameraDone) => {
+    setCameraOpen(false);
+    setNotice(null);
+    setErrorMsg(null);
+    setNoText(doc.chunk_count === 0);
+    setPagesNoText(null);
+    setUnread(missing);
+    setFile({ name: doc.filename, size: 0 });
+    setState('ready');
+    if (onSuccess) onSuccess(doc);
+    else router.refresh();
+    if (doc.chunk_count !== 0 && missing.length === 0) setTimeout(() => setState('idle'), 3000);
+  };
+
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
@@ -224,6 +263,7 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
 
   const busy = state === 'uploading' || state === 'processing';
   const warn = state === 'ready' && (noText || pagesNoText !== null);
+  const cameraLabels = u.camera;
   const elapsedMs = startedAt !== null ? now - startedAt : 0;
   const stage = file ? processingStage(elapsedMs, file.size) : 'reading';
   const fraction = state === 'uploading' && file
@@ -282,6 +322,19 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
               <LatinText text={t.dashboard.aiConsent.declined} />
             </p>
           )}
+          {camera ? (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setChoiceOpen(true); }}
+              data-kf-upload="add"
+              aria-haspopup="dialog"
+              className="kf-streak pressable flex min-h-[4.75rem] w-full items-center gap-3.5 rounded-[1.375rem] px-4 py-3.5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ClayUploadFile className="shrink-0" />
+              <span className="min-w-0 flex-1 text-[1.0625rem] font-extrabold text-foreground">{cameraLabels.addMaterial}</span>
+              <ClayCamera width={36} height={36} className="shrink-0" />
+            </button>
+          ) : (
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
@@ -294,6 +347,7 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
               <span data-kf-upload-desc="" className="mt-0.5 block text-[0.8125rem] font-medium text-[color:var(--clay-streak-muted)]">{u.fromDeviceDesc}</span>
             </span>
           </button>
+          )}
           {/* The web keeps its drop target: the whole zone takes a dropped file,
               and this line says so ("tap" on a touch screen). */}
           {!buttonFirst && <p className="text-sm font-medium text-foreground">{touch ? u.dropHereTouch : u.dropHere}</p>}
@@ -349,6 +403,20 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
             />
           </div>
 
+          {state === 'ready' && unread.length > 0 && (
+            <div data-kf-camera-unread="" className="mt-2 text-xs text-foreground">
+              <p><LatinText text={cameraLabels.someUnread} /></p>
+              <ul className="mt-1 space-y-0.5">
+                {unread.map((m) => (
+                  <li key={m.n}>
+                    <span className="font-semibold">{cameraLabels.page.replace('{n}', String(m.n))}</span>{' '}
+                    {m.problem === 'open' ? cameraLabels.problemOpen : m.problem === 'no-text' ? cameraLabels.problemNoText : m.problem === 'too-long' ? cameraLabels.problemTooLong : cameraLabels.problemNotRead}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {warn && (
             <>
               <p className="mt-2 text-xs text-muted-foreground" data-kf-text-fix=""><LatinText text={t.dashboard.subjectDetail.noTextFix} /></p>
@@ -374,6 +442,60 @@ export function DropZone({ kbId, onSuccess, previewFile }: DropZoneProps) {
         </div>
       )}
 
+      {camera && (
+        <>
+          {/* The upload sheet: two equal tiles. Each acts inside its own tap, so
+              the file picker and the camera open from it (a file input opens
+              only in a user activation). */}
+          <Sheet
+            open={choiceOpen}
+            onClose={() => setChoiceOpen(false)}
+            side="bottom"
+            label={cameraLabels.addMaterial}
+            initialFocus="panel"
+            className="kf-clay mx-auto max-w-lg rounded-t-[1.75rem]"
+          >
+            {choiceOpen && (
+              <div data-kf-upload-sheet="open" className="px-5 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] [text-wrap:balance]">
+                <h2 className="text-[1.0625rem] font-extrabold text-foreground">{cameraLabels.addMaterial}</h2>
+                <div className="mt-4 grid grid-cols-2 items-stretch gap-3">
+                  <button
+                    type="button"
+                    data-kf-upload="sheet-file"
+                    onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); setChoiceOpen(false); }}
+                    className="kf-streak pressable flex min-h-[9.5rem] flex-col items-start gap-2 rounded-[1.375rem] p-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <ClayUploadFile />
+                    <span data-kf-upload-title="" className="block min-h-12 text-base leading-6 font-extrabold text-foreground">{u.fromDevice}</span>
+                    <span data-kf-upload-desc="" className="block text-[0.8125rem] font-medium text-[color:var(--clay-streak-muted)]">{u.fromDeviceDesc}</span>
+                  </button>
+                  <button
+                    type="button"
+                    data-kf-upload="sheet-camera"
+                    onClick={(e) => { e.stopPropagation(); cameraRef.current?.capture(); setChoiceOpen(false); setCameraOpen(true); }}
+                    className="kf-streak pressable flex min-h-[9.5rem] flex-col items-start gap-2 rounded-[1.375rem] p-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <ClayCamera />
+                    <span data-kf-upload-title="" className={`block min-h-12 text-base leading-6 font-extrabold text-foreground ${safeLocale === 'ar' ? 'whitespace-nowrap' : ''}`}>{cameraLabels.title}</span>
+                    <span data-kf-upload-desc="" className="block text-[0.8125rem] font-medium text-[color:var(--clay-streak-muted)]">{cameraLabels.desc}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </Sheet>
+          <CameraPages
+            ref={cameraRef}
+            open={cameraOpen}
+            onClose={() => setCameraOpen(false)}
+            kbId={kbId}
+            locale={safeLocale}
+            labels={cameraLabels}
+            declined={t.dashboard.aiConsent.declined}
+            onDone={cameraDone}
+            preview={previewCamera?.open === 'camera' ? previewCamera.camera : undefined}
+          />
+        </>
+      )}
     </div>
   );
 }
