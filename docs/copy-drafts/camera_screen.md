@@ -1,13 +1,20 @@
-# The camera screen, "صوّر صفحاتك" (DRAFT, NOT APPROVED, WIRED FOR REVIEW)
+# The camera screen, "صوّر صفحاتك" (APPROVED 2026-11-18, SHIPPED)
 
-**Status: DRAFT for the owner, 2026-11-18.** Every line below is wired into
-the app so it can be looked at in the renders, and stays a draft until the
-owner approves it at review. An approved change is one edit here and one in
+**Shipped: the strings are in `ar.ts` and `en.ts`, recorded in `docs/copy/ARABIC_STRINGS_app_v11.md`.**
+
+**Status: APPROVED by the owner 2026-11-18**, every line as drafted, with ONE
+change: `dashboard.upload.camera.unconfirmed` says "حدّث الشاشة" (was "حدّث
+الصفحة"), and its English "Refresh the screen to see whether…" (was "Refresh to
+see whether…"). The tables below hold the approved text. The approved record
+for the dictionary keys is the batch file; this file stays for the context
+(where each line shows, the reused sentences, the purpose string and the
+privacy sentence, which are not dictionary keys). A later change is a
+`_fix` batch under `docs/copy/` and one edit in
 `src/lib/i18n/locales/{ar,en}.ts` (or the file named on the row).
 
-Two lines are NOT drafts: `camera.title` and `camera.desc` in Arabic are the
+Two lines were never drafts: `camera.title` and `camera.desc` in Arabic are the
 camera tile of the approved upload-sheet artboard (`upload-sheet.dc.html`),
-as the owner's prompt quotes them. Their English twins are drafts. The file
+as the owner's prompt quotes them. Their English twins were drafts, approved 2026-11-18. The file
 tile reuses the approved `dashboard.upload.fromDevice` and `fromDeviceDesc`.
 
 Rules held by `scripts/verify-camera-screen.mjs`: Modern Standard Arabic; no
@@ -42,7 +49,7 @@ them.
 | `dashboard.upload.camera.readingNote` | قد يستغرق هذا دقيقة. أبقِ هذه الشاشة مفتوحة. | This can take a minute. Keep this screen open. | under it |
 | `dashboard.upload.camera.photoUnreadable` | لم نتمكن من فتح هذه الصورة. صوّر الصفحة مرة أخرى. | We could not open this photo. Photograph the page again. | a shot the phone could not decode or re-encode |
 | `dashboard.upload.camera.uploadFailed` | لم تصل الصور. تحقّق من اتصالك ثم أعد المحاولة. | The photos did not arrive. Check your connection and try again. | both upload attempts failed |
-| `dashboard.upload.camera.unconfirmed` | لم نتمكن من التأكد من قراءة الصفحات. حدّث الصفحة لترى إن وصلت المادة، وأعد المحاولة إن لم تصل. | We could not confirm that the pages were read. Refresh to see whether the material arrived, and try again if it did not. | the request left and no answer came (or an answer that is not ours) |
+| `dashboard.upload.camera.unconfirmed` | لم نتمكن من التأكد من قراءة الصفحات. حدّث الشاشة لترى إن وصلت المادة، وأعد المحاولة إن لم تصل. | We could not confirm that the pages were read. Refresh the screen to see whether the material arrived, and try again if it did not. | the request left and no answer came (or an answer that is not ours) |
 | `dashboard.upload.camera.noneRead` | لم نتمكن من قراءة أي صفحة، ولم نحفظ شيئًا. صوّر الصفحات في ضوء أوضح ثم أعد المحاولة. | We could not read any page, so nothing was saved. Photograph the pages in better light and try again. | 422 `pages-unread` |
 | `dashboard.upload.camera.someUnread` | حفظنا المادة دون هذه الصفحات: | Saved without these pages: | 200 with some photos not read, above the list |
 | `dashboard.upload.camera.problemOpen` | لم نتمكن من فتح الصورة. | The photo could not be opened. | `photo-heic`, `photo-type`, `photo-unreadable`, `photo-too-large`, `photo-too-many-pixels`, `photo-odd-shape` |

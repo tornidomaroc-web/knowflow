@@ -30,7 +30,7 @@
  *     AI allowance added dashboard.aiAllowance.used, a DRAFT wired for review,
  *     docs/copy-drafts/ai_monthly_allowance.md; 481 after the camera screen
  *     added the 27 of dashboard.upload.camera and dashboard.aiConsent.photos,
- *     DRAFTS wired for review, docs/copy-drafts/camera_screen.md).
+ *     approved 2026-11-18 in app v11).
  *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
  *     ruling that removed it. Its rows stay in the batch files, which are the
  *     owner's approved record and are never edited; they are read and checked

@@ -308,7 +308,13 @@ if (cam.en && cam.ar) {
   check(true, `${all.length} strings: no dash, no purchase word, Western digits (any failure is listed above)`);
   const ph = (s) => JSON.stringify((s.match(/\{[a-z]+\}/g) || []).sort());
   check(keys.every((k) => ph(cam.en[k]) === ph(cam.ar[k])), 'every pair has the same placeholders');
-  check(read('docs/copy-drafts/camera_screen.md').includes('DRAFT') && keys.every((k) => read('docs/copy-drafts/camera_screen.md').includes(`camera.${k}\``)), 'every key is listed in docs/copy-drafts/camera_screen.md as a draft');
+  // Approved 2026-11-18: the record is the batch file, whose rows
+  // verify-arabic-copy holds ar.ts to; the draft file is marked approved.
+  const batch = read('docs/copy/ARABIC_STRINGS_app_v11.md');
+  check(keys.every((k) => batch.includes(`| \`dashboard.upload.camera.${k}\` | ${cam.ar[k]} |`)) && batch.includes(`| \`dashboard.aiConsent.photos\` | ${ar.dashboard.aiConsent.photos} |`), 'every key and aiConsent.photos is a row of docs/copy/ARABIC_STRINGS_app_v11.md at its ar.ts value (approved 2026-11-18)');
+  check(keys.every((k) => batch.includes(`- \`dashboard.upload.camera.${k}\`: ${cam.en[k]}\n`)), 'every English twin is listed in the batch file at its en.ts value');
+  check(/APPROVED 2026-11-18/.test(read('docs/copy-drafts/camera_screen.md')) && keys.every((k) => read('docs/copy-drafts/camera_screen.md').includes(`camera.${k}\``)), 'docs/copy-drafts/camera_screen.md lists every key and is marked approved 2026-11-18');
+  check(cam.ar.unconfirmed.includes('حدّث الشاشة') && !cam.ar.unconfirmed.includes('حدّث الصفحة') && cam.en.unconfirmed.includes('Refresh the screen to see whether'), 'unconfirmed says the screen, not the page (the owner\'s one change)');
 }
 const titleSpans = (read('src/components/upload/CameraPages.tsx') + read('src/components/upload/DropZone.tsx')).match(/<span[^>]*>\{(?:cameraLabels|labels)\.title\}<\/span>/g) || [];
 check(titleSpans.length >= 2 && titleSpans.every((s) => /(safeLocale|locale) === 'ar' \? 'whitespace-nowrap'/.test(s)), '"صوّر صفحاتك" is rendered whitespace-nowrap in Arabic wherever it is a title (the tile and the screen): never split (design-c check 21 measures it)');

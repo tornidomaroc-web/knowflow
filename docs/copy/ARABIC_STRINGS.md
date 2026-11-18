@@ -605,7 +605,7 @@ file is not read by the app.
 | `dashboard.upload.error` | لم ينجح | Error |
 | `dashboard.upload.camera.addMaterial` | أضف مادة | Add a material |
 | `dashboard.upload.camera.title` | صوّر صفحاتك | Photograph your pages |
-| `dashboard.upload.camera.desc` | صوّر صفحات الكتاب أو الدفتر، ونقرأ نصّها. | Photograph pages of a book or notebook, and we read their text. |
+| `dashboard.upload.camera.desc` | صوّر صفحات الكتاب أو الدفتر، ونقرأ نصّها. | Snap a book or notebook and we read the text. |
 | `dashboard.upload.camera.hint` | صفحة واحدة في كل صورة، حتى {max} صفحات. | One page per photo, up to {max} pages. |
 | `dashboard.upload.camera.firstPage` | صوّر الصفحة الأولى | Photograph the first page |
 | `dashboard.upload.camera.addPage` | أضف صفحة | Add a page |
@@ -620,13 +620,13 @@ file is not read by the app.
 | `dashboard.upload.camera.readingNote` | قد يستغرق هذا دقيقة. أبقِ هذه الشاشة مفتوحة. | This can take a minute. Keep this screen open. |
 | `dashboard.upload.camera.photoUnreadable` | لم نتمكن من فتح هذه الصورة. صوّر الصفحة مرة أخرى. | We could not open this photo. Photograph the page again. |
 | `dashboard.upload.camera.uploadFailed` | لم تصل الصور. تحقّق من اتصالك ثم أعد المحاولة. | The photos did not arrive. Check your connection and try again. |
-| `dashboard.upload.camera.unconfirmed` | لم نتمكن من التأكد من قراءة الصفحات. حدّث الصفحة لترى إن وصلت المادة، وأعد المحاولة إن لم تصل. | We could not confirm that the pages were read. Refresh to see whether the material arrived, and try again if it did not. |
+| `dashboard.upload.camera.unconfirmed` | لم نتمكن من التأكد من قراءة الصفحات. حدّث الشاشة لترى إن وصلت المادة، وأعد المحاولة إن لم تصل. | We could not confirm that the pages were read. Refresh the screen to see whether the material arrived, and try again if it did not. |
 | `dashboard.upload.camera.noneRead` | لم نتمكن من قراءة أي صفحة، ولم نحفظ شيئًا. صوّر الصفحات في ضوء أوضح ثم أعد المحاولة. | We could not read any page, so nothing was saved. Photograph the pages in better light and try again. |
 | `dashboard.upload.camera.someUnread` | حفظنا المادة دون هذه الصفحات: | Saved without these pages: |
 | `dashboard.upload.camera.problemOpen` | لم نتمكن من فتح الصورة. | The photo could not be opened. |
 | `dashboard.upload.camera.problemNoText` | لم نجد فيها نصًا. | No text was found on it. |
 | `dashboard.upload.camera.problemTooLong` | نصّها أطول مما نقرؤه في صورة واحدة. | Its text is too long to read in one photo. |
-| `dashboard.upload.camera.problemNotRead` | لم تكتمل قراءتها. صوّرها مرة أخرى. | It was not read. Photograph it again. |
+| `dashboard.upload.camera.problemNotRead` | لم تكتمل قراءتها. صوّرها مرة أخرى. | Not read. Take it again. |
 | `dashboard.upload.camera.retry` | أعد المحاولة | Try again |
 | `dashboard.upload.camera.close` | إغلاق | Close |
 | `dashboard.upload.camera.defaultName` | صفحات مصوّرة | Photographed pages |

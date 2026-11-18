@@ -637,7 +637,7 @@ export const en = {
         readingNote: "This can take a minute. Keep this screen open.",
         photoUnreadable: "We could not open this photo. Photograph the page again.",
         uploadFailed: "The photos did not arrive. Check your connection and try again.",
-        unconfirmed: "We could not confirm that the pages were read. Refresh to see whether the material arrived, and try again if it did not.",
+        unconfirmed: "We could not confirm that the pages were read. Refresh the screen to see whether the material arrived, and try again if it did not.",
         noneRead: "We could not read any page, so nothing was saved. Photograph the pages in better light and try again.",
         someUnread: "Saved without these pages:",
         problemOpen: "The photo could not be opened.",
