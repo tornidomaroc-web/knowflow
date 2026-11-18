@@ -152,6 +152,7 @@ export default async function SettingsPreview({
               <CancelSubscriptionCard labels={withSupportEmail(s.cancelSubscription)} accessUntil={renewsOn} alreadyScheduled={false} />
             ) : null
           }
+          iapMarked={iap}
           proOfferCard={iap && !isPro ? <ProOfferCard title={t.dashboard.iap.title} body={t.dashboard.iap.offerBody} button={t.dashboard.iap.offerButton} /> : undefined}
           signOutRow={<SignOutButton locale={safeLocale} label={t.dashboard.nav.signOut} variant="row" />}
           deleteCard={<DeleteAccountCard homeHref={`/${safeLocale}`} showBillingNote={isPro && !apple} labels={withSupportEmail(s.deleteAccount)} appleNote={apple ? <AppStoreDeleteNote labels={t.dashboard.iap} /> : undefined} />}

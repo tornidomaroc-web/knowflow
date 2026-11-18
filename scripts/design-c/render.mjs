@@ -312,7 +312,13 @@ function byKeyEarly(k) { return SCREENS.find((x) => x.key === k); }
 // Activation fix 5: the check-inbox notice's one-word Arabic line was known
 // at 6ad142e; the owner's review of #315 balanced the notice, so it is held
 // by check 1 like every other line and nothing is let through.
-const KNOWN = [];
+const KNOWN = [
+  // In-app Pro (iap.mjs): an account that bought Pro in build 9 and opens build 8.
+  // The Pro plan card's status (owner ruling, Step Wording-1: Pro-only management
+  // wording stays in the app) and the App Store lines (R1; R2 is Apple 5.1.1(v))
+  // name the subscription. Build 8 cannot buy, so only such an account sees this.
+  { screen: /-settings-apple-app1$/, finding: /^wording \[/, why: 'build 8, Pro bought in build 9: Pro-only management wording (owner ruling) and the 5.1.1(v) line' },
+];
 
 const JOBS = [];
 for (const locale of ['ar', 'en']) for (const theme of ['light', 'dark']) for (const s of SCREENS) JOBS.push({ locale, theme, s, name: `${locale}-${theme}-${s.key}` });

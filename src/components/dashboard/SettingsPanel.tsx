@@ -56,6 +56,14 @@ export interface SettingsPanelProps {
    * nothing until the StoreKit plugin answers (src/components/iap/ProOffer.tsx).
    */
   proOfferCard?: ReactNode;
+  /**
+   * Shell 2 (iapAllowed): the plan card's Pro status and the subscription
+   * card are purchase management, so they sit inside elements marked
+   * data-kf-iap, the only place the shell-2 wording rule lets those words
+   * stand (scripts/lib/app-wording.mjs, KF_PURCHASE_SRC). Build 8 and the web
+   * render exactly as before.
+   */
+  iapMarked?: boolean;
   deleteCard: ReactNode;
   /**
    * Step Redesign-2: the sign-out row in the Account card. The app has no top
@@ -88,6 +96,7 @@ export function SettingsPanel({
   consentCard,
   subscriptionCard,
   proOfferCard,
+  iapMarked = false,
   deleteCard,
   signOutRow,
 }: SettingsPanelProps) {
@@ -132,7 +141,7 @@ export function SettingsPanel({
             everywhere: the renewal and cancellation status is management, not
             a call to action. */}
         {(isPro || upgradeHref) && (
-        <Card className="p-5">
+        <Card className="p-5" {...(iapMarked ? { 'data-kf-iap': 'status' } : {})}>
           <div className="flex items-center justify-between gap-3">
             <ClaySectionTitle icon={<ClayStar />}>{labels.plan}</ClaySectionTitle>
             <Badge variant={isPro ? 'primary' : 'neutral'}>{isPro ? labels.pro : labels.free}</Badge>
@@ -191,7 +200,7 @@ export function SettingsPanel({
 
         {consentCard}
 
-        {subscriptionCard}
+        {iapMarked && subscriptionCard ? <div data-kf-iap="subscription" className="space-y-6">{subscriptionCard}</div> : subscriptionCard}
 
         {/* ── Help and legal. Apple 5.1.1(i): the privacy policy must be reachable
             inside the app; the terms and a support address belong beside it. ── */}

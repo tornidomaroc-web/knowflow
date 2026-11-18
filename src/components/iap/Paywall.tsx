@@ -128,11 +128,11 @@ export function Paywall({ labels, figures, userId, pro, termsHref, privacyHref, 
 
   return (
     <div data-kf-iap="paywall" data-kf-paywall={state} className="mx-auto max-w-lg space-y-5 [text-wrap:pretty]">
-      <header className="flex items-center gap-3">
+      <header className="flex flex-col items-start gap-3">
         <span aria-hidden="true" className="kf-chip inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-subtle">
           <ClayStar />
         </span>
-        <div className="min-w-0">
+        <div className="w-full min-w-0">
           <h1 className="kf-title text-2xl font-bold text-foreground">
             <LatinText text={labels.title} />
           </h1>
@@ -170,7 +170,7 @@ export function Paywall({ labels, figures, userId, pro, termsHref, privacyHref, 
               <Button
                 variant="secondary"
                 data-kf-iap-manage=""
-                className="mt-4 w-full"
+                className="mt-4 flex w-full"
                 onClick={async () => {
                   setManageFailed(false);
                   try {
@@ -203,17 +203,17 @@ export function Paywall({ labels, figures, userId, pro, termsHref, privacyHref, 
             </p>
           )}
           {price && CAN_BUY.includes(state) && (
-            <Button className="mt-4 w-full" data-kf-paywall-buy="" onClick={() => run('purchase')}>
+            <Button className="mt-4 flex w-full" data-kf-paywall-buy="" onClick={() => run('purchase')}>
               <LatinText text={labels.subscribe} />
             </Button>
           )}
           {BUSY.includes(state) && state !== 'loading' && (
-            <Button className="mt-4 w-full" disabled aria-busy="true">
+            <Button className="mt-4 flex w-full" disabled aria-busy="true">
               <LatinText text={labels.subscribe} />
             </Button>
           )}
           {CAN_RESTORE.includes(state) && (
-            <Button variant="ghost" className="mt-2 w-full" data-kf-paywall-restore="" onClick={() => run('restore')}>
+            <Button variant="ghost" className="mt-2 flex w-full" data-kf-paywall-restore="" onClick={() => run('restore')}>
               <LatinText text={labels.restore} />
             </Button>
           )}

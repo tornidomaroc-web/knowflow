@@ -290,6 +290,20 @@ if (SP && DC && CC && PO && AM && i18n && site) {
     check(appleWeb.includes('data-kf-apple-manage') && text(appleWeb).includes(text(iapL.manageWeb).slice(0, 30)) && !appleWeb.includes('data-kf-iap-manage') && !appleWeb.includes(text(s.cancelSubscription.openButton)), `${locale}: R1 on the web, Apple-only Pro: the App Store line as plain text, no button, no Paddle cancel card`);
     const appleApp2 = renderToStaticMarkup(shell2(panel({ isPro: true, sub: h(AM.AppStoreManageCard, { labels: iapL }) }), { locale }));
     check(/data-kf-iap="manage"/.test(appleApp2) && appleApp2.includes('data-kf-iap-manage') && text(appleApp2).includes(text(iapL.manageApp).slice(0, 30)), `${locale}: R1 in shell 2: the card is marked and carries Manage in the App Store`);
+    // Shell 2, a Pro account (Apple, or Paddle with its cancel card and billing line): the plan card's
+    // status and the subscription cards are purchase management, marked, so the page is clean.
+    for (const [who, sub] of [['Apple', h(AM.AppStoreManageCard, { labels: iapL })], ['Paddle', cancel]]) {
+      const pro2 = renderToStaticMarkup(shell2(h(SP.SettingsPanel, {
+        email: 'student@example.com', isPro: true, renewsOn: null, cancelsOn: null, upgradeHref: null, locale, pathname: `/${locale}/dashboard/settings`,
+        privacyHref: `/${locale}/privacy`, termsHref: `/${locale}/terms`, supportEmail: site.SUPPORT_EMAIL, labels: { ...labels, subtitle: s.subtitleApp },
+        subscriptionCard: sub, iapMarked: true,
+        deleteCard: h(DC.DeleteAccountCard, { homeHref: `/${locale}`, labels: site.withSupportEmail(s.deleteAccount), showBillingNote: who === 'Paddle', appleNote: who === 'Apple' ? h(AM.AppStoreDeleteNote, { labels: iapL }) : undefined }),
+      }), { locale }));
+      const rr = kfPurchaseHtml(pro2, 2);
+      check(/data-kf-iap="status"/.test(pro2) && /data-kf-iap="subscription"/.test(pro2) && !purchaseViolation(rr), `${locale}: shell 2, ${who} Pro Settings: status and subscription cards marked, nothing outside: ${JSON.stringify(rr.words)}`);
+    }
+    const unmarked1 = renderToStaticMarkup(h(PP.PlatformProvider, { platform: 'native', shell: 1 }, panel({ isPro: true, sub: cancel, billing: true })));
+    check(!/data-kf-iap/.test(unmarked1), `${locale}: build 8 Pro Settings carries no marker (iapMarked is shell 2 only)`);
     const paddleWeb = renderToStaticMarkup(h(PP.PlatformProvider, { platform: 'web' }, panel({ isPro: true, upgradeHref: `/${locale}/pricing`, native: false, sub: cancel })));
     check(paddleWeb.includes(text(s.cancelSubscription.openButton)) && !paddleWeb.includes('data-kf-apple-manage'), `${locale}: Paddle Pro keeps the Paddle cancel card, and no App Store card`);
     // R2.

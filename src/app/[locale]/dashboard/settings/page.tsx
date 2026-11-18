@@ -147,6 +147,7 @@ export default async function SettingsPage({
       // Shell 2, a free account: the offer card in the plan card's place. It
       // shows only once the StoreKit plugin answers (the Android shell also
       // says KnowFlowApp/2 and has none).
+      iapMarked={iap}
       proOfferCard={iap && !isPro ? (
         <ProOfferCard title={t.dashboard.iap.title} body={t.dashboard.iap.offerBody} button={t.dashboard.iap.offerButton} />
       ) : undefined}
