@@ -90,7 +90,7 @@ function fake({ purchase, restore = [], pending = [], products = [{ id: 'com.kno
   const call = async (method, options) => {
     log.push(['call', method, options]);
     if (method === 'purchase') { if (purchase instanceof Error) throw purchase; return purchase; }
-    if (method === 'restore') return { transactions: restore };
+    if (method === 'restore') { if (restore instanceof Error) throw restore; return { transactions: restore }; }
     if (method === 'pending') return { transactions: pending };
     if (method === 'products') { if (products instanceof Error) throw products; return { products }; }
     if (method === 'finish') return { finished: true };
@@ -143,6 +143,13 @@ if (flow) {
     check(s2 === 'restore-none' && h.finished().length === 1, `Restore of an expired one (200, tier free): 'restore-none', finished because the server recorded it (${s2})`);
     const k = fake({ restore: [tx(5)], verify: { 'jws-5': { status: 409, body: { error: 'other-account' } } } });
     check((await flow.restoreFlow(k.deps)) === 'other-account' && k.finished().length === 0, 'Restore of another account\'s subscription: \'other-account\', not finished');
+    const x = fake({ restore: new Error('sync') });
+    const sx = await flow.restoreFlow(x.deps);
+    check(sx === 'restore-failed' && x.finished().length === 0 && !x.log.some((l) => l[0] === 'verify'), `a restore whose bridge call throws: 'restore-failed', nothing verified, nothing finished (${sx})`);
+    // The purchase's own failure text ("you were not charged") never follows a restore.
+    const outs = [];
+    for (const r of [new Error('sync'), [], [tx(9)]]) for (const v of [ok(), ok('free'), { status: 409, body: { error: 'other-account' } }, { status: 403, body: { error: 'not-this-account' } }, { status: 500, body: { error: 'write-failed' } }, { status: 0, body: null }]) outs.push(await flow.restoreFlow(fake({ restore: r, verify: { 'jws-9': v } }).deps));
+    check(outs.length === 18 && !outs.includes('failed'), `no restore outcome is the purchase's 'failed' (${[...new Set(outs)].join(', ')})`);
   }
   {
     const f = fake({ pending: [tx(6), tx(7)], verify: { 'jws-6': ok(), 'jws-7': { status: 409, body: { error: 'other-account' } } } });
@@ -157,7 +164,7 @@ if (flow) {
     check((await flow.loadProduct(fake({ products: [] }).deps.call)) === null, 'no product (agreement not active, unsupported storefront): no price, so \'unavailable\'');
     check((await flow.loadProduct(fake({ products: new Error('net') }).deps.call)) === null, 'a failed product read: no price');
   }
-  check(flow.PAYWALL_STATES.length === 14, `the paywall has its 14 states (${flow.PAYWALL_STATES.join(', ')})`);
+  check(flow.PAYWALL_STATES.length === 15, `the paywall has its 15 states (${flow.PAYWALL_STATES.join(', ')})`);
 }
 
 // ---- 3. the price and the product id -----------------------------------------------------
@@ -219,9 +226,9 @@ if (PW && i18n && PP && IP && flow && F) {
       const restore = html.includes('data-kf-paywall-restore');
       const manage = html.includes('data-kf-iap-manage');
       const disclosure = html.includes('data-kf-paywall-disclosure');
-      const wantBuy = ['ready', 'failed', 'restore-none'].includes(state);
+      const wantBuy = ['ready', 'failed', 'restore-none', 'restore-failed'].includes(state);
       if (buy !== wantBuy) bad.push(`buy button ${buy}, want ${wantBuy}`);
-      const wantRestore = ['ready', 'unavailable', 'failed', 'verify-failed', 'restore-none', 'pending', 'other-account', 'not-this-account'].includes(state);
+      const wantRestore = ['ready', 'unavailable', 'failed', 'verify-failed', 'restore-none', 'restore-failed', 'pending', 'other-account', 'not-this-account'].includes(state);
       if (restore !== wantRestore) bad.push(`restore ${restore}, want ${wantRestore}`);
       if (manage !== (state === 'pro-apple')) bad.push(`manage ${manage}`);
       if (price && !pro && state !== 'success') {
@@ -231,8 +238,10 @@ if (PW && i18n && PP && IP && flow && F) {
         if (!t.includes(L.pricePerMonth.split('{price}')[0].trim() || '$9.99')) bad.push('no price per month');
       }
       if (!price && (html.includes('data-kf-paywall-price') || disclosure)) bad.push('a price or disclosure without a StoreKit price');
-      const msgKey = { loading: 'loading', unavailable: 'unavailable', purchasing: 'purchasing', restoring: 'restoring', pending: 'pending', success: 'success', failed: 'failed', 'verify-failed': 'verifyFailed', 'restore-none': 'restoreNone', 'other-account': 'otherAccount', 'not-this-account': 'notThisAccount' }[state];
+      const msgKey = { loading: 'loading', unavailable: 'unavailable', purchasing: 'purchasing', restoring: 'restoring', pending: 'pending', success: 'success', failed: 'failed', 'verify-failed': 'verifyFailed', 'restore-none': 'restoreNone', 'restore-failed': 'restoreFailed', 'other-account': 'otherAccount', 'not-this-account': 'notThisAccount' }[state];
       if (msgKey && !squash(t).includes(squash(L[msgKey]).slice(0, 30))) bad.push(`its message (${msgKey}) is not shown`);
+      if (state === 'restore-failed' && squash(t).includes(squash(L.failed))) bad.push('a failed restore shows the purchase\'s failure text');
+      if (state === 'restore-failed' && !/class="[^"]*text-danger[^"]*" data-kf-paywall-message="restore-failed"/.test(html)) bad.push('a failed restore is not in the error tone');
       if (state === 'pro-web') {
         if (buy || restore || manage) bad.push('Pro from the web shows a purchase or manage control');
         const where = /\b(web|website|online|paddle|app store|apple|stripe|card)\b|الموقع|الويب|متجر|بطاقة/i;

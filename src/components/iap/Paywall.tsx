@@ -43,9 +43,9 @@ export interface PaywallProps {
 
 const BUSY: PaywallState[] = ['loading', 'purchasing', 'restoring'];
 /** States after which the buy button stays (a retry is possible). */
-const CAN_BUY: PaywallState[] = ['ready', 'failed', 'restore-none'];
+const CAN_BUY: PaywallState[] = ['ready', 'failed', 'restore-none', 'restore-failed'];
 /** States that keep Restore Purchases on screen. */
-const CAN_RESTORE: PaywallState[] = ['ready', 'unavailable', 'failed', 'verify-failed', 'restore-none', 'pending', 'other-account', 'not-this-account'];
+const CAN_RESTORE: PaywallState[] = ['ready', 'unavailable', 'failed', 'verify-failed', 'restore-none', 'restore-failed', 'pending', 'other-account', 'not-this-account'];
 
 const fill = (s: string, k: string, v: string | number) => s.split(`{${k}}`).join(String(v));
 
@@ -112,10 +112,11 @@ export function Paywall({ labels, figures, userId, pro, termsHref, privacyHref, 
     failed: labels.failed,
     'verify-failed': labels.verifyFailed,
     'restore-none': labels.restoreNone,
+    'restore-failed': labels.restoreFailed,
     'other-account': labels.otherAccount,
     'not-this-account': labels.notThisAccount,
   };
-  const tone = (['failed', 'verify-failed', 'other-account', 'not-this-account'] as PaywallState[]).includes(state)
+  const tone = (['failed', 'restore-failed', 'verify-failed', 'other-account', 'not-this-account'] as PaywallState[]).includes(state)
     ? 'text-danger'
     : state === 'success'
       ? 'text-success'

@@ -37,6 +37,7 @@ export type PaywallState =
   | 'verify-failed'
   | 'restoring'
   | 'restore-none'
+  | 'restore-failed'
   | 'other-account'
   | 'not-this-account'
   | 'pro-apple'
@@ -44,7 +45,7 @@ export type PaywallState =
 
 export const PAYWALL_STATES: readonly PaywallState[] = [
   'loading', 'unavailable', 'ready', 'purchasing', 'pending', 'success', 'failed', 'verify-failed',
-  'restoring', 'restore-none', 'other-account', 'not-this-account', 'pro-apple', 'pro-web',
+  'restoring', 'restore-none', 'restore-failed', 'other-account', 'not-this-account', 'pro-apple', 'pro-web',
 ];
 
 /** One transaction as the plugin reports it: its JWS and its id. */
@@ -161,7 +162,8 @@ export async function restoreFlow(deps: IapDeps): Promise<PaywallState> {
     const reply = (await deps.call('restore')) as { transactions?: NativeTransaction[] } | null;
     txs = (reply?.transactions ?? []).filter((t) => typeof t?.jws === 'string' && t.jws);
   } catch {
-    return 'failed';
+    // Its own state: 'failed' is the purchase's ("you were not charged"), wrong after a restore.
+    return 'restore-failed';
   }
   if (!txs.length) return 'restore-none';
   // The most telling answer wins: Pro on, else the account mismatch, else none.

@@ -6,7 +6,7 @@
  * Pro). Build 8 (`KnowFlowApp/1`) and the web keep today's screens EXACTLY.
  *
  * WHAT IS DRAWN, ar and en, light and dark:
- *   - the paywall in each of its 14 states (src/lib/iap/flow.ts,
+ *   - the paywall in each of its 15 states (src/lib/iap/flow.ts,
  *     PAYWALL_STATES), at 390 x 844 and at 360 x 800;
  *   - Settings at shell 2 for a free account (the offer card), and for a Pro
  *     bought in the app (R1: the App Store card; R2: the delete card's App
@@ -57,7 +57,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { A360 } from './android360.mjs';
 
-const STATES = ['loading', 'unavailable', 'ready', 'purchasing', 'pending', 'success', 'failed', 'verify-failed', 'restoring', 'restore-none', 'other-account', 'not-this-account', 'pro-apple', 'pro-web'];
+const STATES = ['loading', 'unavailable', 'ready', 'purchasing', 'pending', 'success', 'failed', 'verify-failed', 'restoring', 'restore-none', 'restore-failed', 'other-account', 'not-this-account', 'pro-apple', 'pro-web'];
 
 /** The preview's own price, StoreKit's US shape. */
 export const DEFAULT_PRICE = '$9.99';
@@ -241,8 +241,8 @@ export function iapCheck(expect) {
     const restore = !!document.querySelector('[data-kf-paywall-restore]');
     const price = !!document.querySelector('[data-kf-paywall-price]');
     const disclosure = !!document.querySelector('[data-kf-paywall-disclosure]');
-    const wantBuy = ['ready', 'failed', 'restore-none'].includes(expect.state);
-    const wantRestore = ['ready', 'unavailable', 'failed', 'verify-failed', 'restore-none', 'pending', 'other-account', 'not-this-account'].includes(expect.state);
+    const wantBuy = ['ready', 'failed', 'restore-none', 'restore-failed'].includes(expect.state);
+    const wantRestore = ['ready', 'unavailable', 'failed', 'verify-failed', 'restore-none', 'restore-failed', 'pending', 'other-account', 'not-this-account'].includes(expect.state);
     if (buy !== wantBuy) f.push(`check 24: buy button ${buy ? 'shown' : 'missing'} in ${expect.state}`);
     if (restore !== wantRestore) f.push(`check 24: Restore ${restore ? 'shown' : 'missing'} in ${expect.state}`);
     if (price !== disclosure) f.push('check 24: a price without the 3.1.2 disclosure, or the reverse');

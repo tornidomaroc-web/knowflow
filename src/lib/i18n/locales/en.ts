@@ -574,6 +574,7 @@ export const en = {
       failed: "The purchase did not finish, and you were not charged. Try again.",
       verifyFailed: "Payment received, but Pro is not on yet. Tap Restore Purchases.",
       restoreNone: "No active subscription on this Apple Account.",
+      restoreFailed: "Could not restore your purchases. Try again.",
       otherAccount: "This subscription belongs to another KnowFlow account. Sign in with that account.",
       notThisAccount: "This subscription belongs to another KnowFlow account. Sign in with that account.",
       active: "Pro is active.",

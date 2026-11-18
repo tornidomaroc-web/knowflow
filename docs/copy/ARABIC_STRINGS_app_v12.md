@@ -1,6 +1,6 @@
 # Arabic copy, app v12: in-app Pro, the app half (PR #338)
 
-Approved by the owner on 2026-11-18 (22:31Z, "موافق") for PR #338: the shorter set that replaces the 34 DRAFT strings of `docs/copy-drafts/iap_app_v1.md` (now marked superseded). The English twins were approved with them:
+Approved by the owner on 2026-11-18 (22:31Z, "موافق") for PR #338: the shorter set that replaces the 34 DRAFT strings of `docs/copy-drafts/iap_app_v1.md` (now marked superseded). The English twins were approved with them. One more key, `restoreFailed` (a restore that could not reach the App Store; before it, such a restore showed the purchase's "you were not charged"), was approved the same day at 23:16Z, making 35:
 
 - `dashboard.iap.title`: KnowFlow Pro
 - `dashboard.iap.lead`: More room for your studies.
@@ -25,6 +25,7 @@ Approved by the owner on 2026-11-18 (22:31Z, "موافق") for PR #338: the shor
 - `dashboard.iap.failed`: The purchase did not finish, and you were not charged. Try again.
 - `dashboard.iap.verifyFailed`: Payment received, but Pro is not on yet. Tap Restore Purchases.
 - `dashboard.iap.restoreNone`: No active subscription on this Apple Account.
+- `dashboard.iap.restoreFailed`: Could not restore your purchases. Try again.
 - `dashboard.iap.otherAccount`: This subscription belongs to another KnowFlow account. Sign in with that account.
 - `dashboard.iap.notThisAccount`: This subscription belongs to another KnowFlow account. Sign in with that account.
 - `dashboard.iap.active`: Pro is active.
@@ -64,6 +65,7 @@ Where they show: the app only, from shell 2 (`KnowFlowApp/2`, `iapAllowed`), eac
 | `dashboard.iap.failed` | لم يكتمل الشراء، ولم يُخصم أي مبلغ. حاول مجددًا. | (new key) |
 | `dashboard.iap.verifyFailed` | دُفع المبلغ، لكن الاحترافي لم يُفعَّل بعد. اضغط «استعادة المشتريات». | (new key) |
 | `dashboard.iap.restoreNone` | لا يوجد اشتراك نشط في حساب Apple هذا. | (new key) |
+| `dashboard.iap.restoreFailed` | تعذّرت استعادة المشتريات. حاول مجددًا. | (new key) |
 | `dashboard.iap.otherAccount` | هذا الاشتراك يخص حساب KnowFlow آخر. سجّل الدخول به. | (new key) |
 | `dashboard.iap.notThisAccount` | هذا الاشتراك يخص حساب KnowFlow آخر. سجّل الدخول به. | (new key) |
 | `dashboard.iap.active` | الاحترافي مفعّل. | (new key) |
