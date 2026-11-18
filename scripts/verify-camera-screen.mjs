@@ -320,6 +320,26 @@ if (cam.en && cam.ar) {
 const titleSpans = (read('src/components/upload/CameraPages.tsx') + read('src/components/upload/DropZone.tsx')).match(/<span[^>]*>\{(?:cameraLabels|labels)\.title\}<\/span>/g) || [];
 check(titleSpans.length >= 2 && titleSpans.every((s) => /(safeLocale|locale) === 'ar' \? 'whitespace-nowrap'/.test(s)), '"صوّر صفحاتك" is rendered whitespace-nowrap in Arabic wherever it is a title (the tile and the screen): never split (design-c check 21 measures it)');
 
+// ---- 7. the owner's review of 60e9ce6 (2026-11-18) --------------------------------------------
+section('7. A 422 pages-unread marks every page; the sheet tiles share one structure; "صوّر الصفحات" kept together');
+{
+  const cp = read('src/components/upload/CameraPages.tsx');
+  const pv = read('src/app/[locale]/preview/camera/page.tsx');
+  const dz = read('src/components/upload/DropZone.tsx');
+  const kt = read('src/lib/keep-together.ts');
+  // The route answers 422 pages-unread only when result.pages is empty, with
+  // one { n, read: false } per photo: the screen marks every page.
+  check(/code: PAGES_UNREAD, photos/.test(read('src/app/api/page-read/route.ts')) && /result\.pages\.length === 0/.test(read('src/app/api/page-read/route.ts')), 'the route answers 422 pages-unread only when no photo was read, with every photo\'s outcome');
+  check(/const noneRead = result\.status === 422 && reply\?\.code === PAGES_UNREAD/.test(cp) && /byN\.get\(i \+ 1\) \?\? \(noneRead \? 'not-read' : undefined\)/.test(cp), 'the camera screen marks EVERY page after a 422 pages-unread (a page the answer did not name reads "not read")');
+  const three = /view === 'three' \? \(\{ open: 'camera', camera: \{ pages: (\d+), problems: \{([^}]*)\}, message: 'noneRead' \}/.exec(pv);
+  const marks = three ? [...three[2].matchAll(/(\d+): '/g)].map((m) => Number(m[1])).sort((a, b) => a - b) : [];
+  check(!!three && marks.length === Number(three[1]) && marks.every((n, i) => n === i + 1), `the preview's "three" state is a real answer: the none-read message with every page marked (pages ${three ? three[1] : '?'}, marked ${JSON.stringify(marks)})`);
+  check(/data-kf-camera-message=\{message === labels\.noneRead \? 'none-read' : 'other'\}/.test(cp), 'the message box names the none-read message (design-c check 21 reads it)');
+  check(/<LatinText text=\{keepTogether\(message\)\} \/>/.test(cp) && kt.includes("'صوّر الصفحات'"), '"صوّر الصفحات" is a protected phrase and the message box keeps it together (design-c\'s no-split check reads KEEP_TOGETHER)');
+  const tiles = dz.match(/<span data-kf-upload-title=""[^>]*>\{(?:u\.fromDevice|cameraLabels\.title)\}<\/span>/g) || [];
+  check(tiles.length >= 3 && tiles.filter((s) => /min-h-12/.test(s) && /leading-6/.test(s)).length === 2, 'the sheet\'s two tile titles each reserve two lines (min-h-12 at leading-6), so both descriptions start at one y (design-c check 23 measures it)');
+}
+
 console.log(`\n${passed} passed, ${failures.length} failed`);
 if (failures.length) {
   for (const f of failures) console.log(`  ! ${f}`);

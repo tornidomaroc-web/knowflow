@@ -5,6 +5,7 @@ import { Button, Sheet } from '@/components/ui';
 import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
 import { ClayCamera } from '@/components/clay/ClayIcons';
 import { LatinText } from '@/components/ui/LatinText';
+import { keepTogether } from '@/lib/keep-together';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 import { createClient } from '@/lib/supabase/client';
 import type { Document } from '@/types';
@@ -210,11 +211,15 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
     }
 
     // Not saved. The photos stay, each marked with what the route said of it.
-    if (marked.length > 0) {
+    // A 422 pages-unread means NO photo was read (the route marks each one
+    // read: false), so every page shows its failure beside the none-read
+    // message; a page the answer did not name reads "not read".
+    const noneRead = result.status === 422 && reply?.code === PAGES_UNREAD;
+    if (marked.length > 0 || noneRead) {
       const byN = new Map(marked.map((m) => [m.n, m.problem]));
-      setPages((prev) => prev.map((p, i) => ({ ...p, problem: byN.get(i + 1) })));
+      setPages((prev) => prev.map((p, i) => ({ ...p, problem: byN.get(i + 1) ?? (noneRead ? 'not-read' : undefined) })));
     }
-    if (result.status === 422 && reply?.code === PAGES_UNREAD) return setMessage(labels.noneRead);
+    if (noneRead) return setMessage(labels.noneRead);
     if (result.status === 403 && reply?.code === AI_CONSENT_REFUSAL) return setMessage(declined);
     // 400, 401, 403, 404, 422 (too much text), 429, 500, 503: the route's own
     // sentence, already in the student's language and fit for the app.
@@ -298,7 +303,7 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
                       </button>
                     </div>
                     {p.problem && (
-                      <p data-kf-camera-problem={i + 1} className="mt-1 text-xs text-danger">{problemText(p.problem)}</p>
+                      <p data-kf-camera-problem={i + 1} className="mt-1 text-xs text-danger [text-wrap:balance]">{problemText(p.problem)}</p>
                     )}
                   </li>
                 ))}
@@ -327,8 +332,8 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
             )}
 
             {message && (
-              <p role="alert" data-kf-camera-message="" className="mt-3 rounded-2xl border border-danger-border bg-danger-subtle px-3.5 py-2.5 text-sm text-danger">
-                <LatinText text={message} />
+              <p role="alert" data-kf-camera-message={message === labels.noneRead ? 'none-read' : 'other'} className="mt-3 rounded-2xl border border-danger-border bg-danger-subtle px-3.5 py-2.5 text-sm text-danger">
+                <LatinText text={keepTogether(message)} />
               </p>
             )}
 

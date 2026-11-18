@@ -466,7 +466,7 @@ export function DropZone({ kbId, onSuccess, previewFile, previewCamera }: DropZo
                     className="kf-streak pressable flex min-h-[9.5rem] flex-col items-start gap-2 rounded-[1.375rem] p-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <ClayUploadFile />
-                    <span data-kf-upload-title="" className="block text-base font-extrabold text-foreground">{u.fromDevice}</span>
+                    <span data-kf-upload-title="" className="block min-h-12 text-base leading-6 font-extrabold text-foreground">{u.fromDevice}</span>
                     <span data-kf-upload-desc="" className="block text-[0.8125rem] font-medium text-[color:var(--clay-streak-muted)]">{u.fromDeviceDesc}</span>
                   </button>
                   <button
@@ -476,7 +476,7 @@ export function DropZone({ kbId, onSuccess, previewFile, previewCamera }: DropZo
                     className="kf-streak pressable flex min-h-[9.5rem] flex-col items-start gap-2 rounded-[1.375rem] p-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <ClayCamera />
-                    <span data-kf-upload-title="" className={`block text-base font-extrabold text-foreground ${safeLocale === 'ar' ? 'whitespace-nowrap' : ''}`}>{cameraLabels.title}</span>
+                    <span data-kf-upload-title="" className={`block min-h-12 text-base leading-6 font-extrabold text-foreground ${safeLocale === 'ar' ? 'whitespace-nowrap' : ''}`}>{cameraLabels.title}</span>
                     <span data-kf-upload-desc="" className="block text-[0.8125rem] font-medium text-[color:var(--clay-streak-muted)]">{cameraLabels.desc}</span>
                   </button>
                 </div>

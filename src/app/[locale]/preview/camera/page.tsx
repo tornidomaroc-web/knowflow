@@ -22,7 +22,9 @@ import { Locale, locales, useTranslation } from '@/lib/i18n'
  *   choice  the upload sheet open, its two tiles;
  *   empty   the camera screen with no page yet;
  *   ten     the camera screen with ten drawn pages (full);
- *   three   three drawn pages, the second and third marked by a 422;
+ *   three   three drawn pages after a 422 pages-unread: EVERY page marked,
+ *           as the route answers it (only when no photo was read, each one
+ *           read: false), beside the none-read message;
  *   unread  the finished state of a material saved without pages 2 and 4;
  *   consent the permission sheet as the camera's first send opens it, for a
  *           student who gave the text permission only (version 1).
@@ -74,7 +76,7 @@ export default async function CameraPreviewPage({
     view === 'choice' ? ({ open: 'choice' } as const)
       : view === 'empty' ? ({ open: 'camera', camera: { pages: 0 } } as const)
         : view === 'ten' ? ({ open: 'camera', camera: { pages: 10 } } as const)
-          : view === 'three' ? ({ open: 'camera', camera: { pages: 3, problems: { 2: 'no-text', 3: 'not-read' }, message: 'noneRead' } } as const)
+          : view === 'three' ? ({ open: 'camera', camera: { pages: 3, problems: { 1: 'not-read', 2: 'no-text', 3: 'not-read' }, message: 'noneRead' } } as const)
             : view === 'unread' ? ({ open: 'unread', name: `${t.dashboard.upload.camera.defaultName} 2026-11-18.md`, unread: [{ n: 2, problem: 'no-text' }, { n: 4, problem: 'not-read' }] } as const)
               : undefined
 

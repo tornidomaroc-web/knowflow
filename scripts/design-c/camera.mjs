@@ -11,10 +11,13 @@
  *   - shell 2: the subject page full and empty (the upload button in place of
  *     the tile), the upload sheet open (its two equal tiles), the camera
  *     screen empty, with ten drawn pages (full), with three pages after a
- *     422 (two marked), the finished state of a material saved without two
- *     pages, and the permission sheet as the camera's first send opens it
- *     (the photos line); the page, the sheet, the empty and the ten-page
- *     screens again at 360 x 800 (DPR 3);
+ *     422 pages-unread (EVERY page marked: the route answers it only when no
+ *     photo was read, and marks each one read: false), the finished state of
+ *     a material saved without two pages, and the permission sheet as the
+ *     camera's first send opens it (the photos line); the page, the sheet,
+ *     the empty, the ten-page and the three-page screens again at 360 x 800
+ *     (DPR 3); the sheet again at 1280 x 800 (the app's sheet on a wide
+ *     window);
  *   - shell 1 and the web: the camera preview's page and sheet views, which
  *     must show the tile and NO camera at all, and the web at 1280.
  * Every check render.mjs makes runs on them (contrast, 44 pt targets, shaping,
@@ -26,7 +29,13 @@
  * within 1 px, each title on ONE line in Arabic (the English file title two
  * at most) and not clipped; the camera title on one line wherever it is a
  * title, in both languages ("صوّر صفحاتك", "Scan pages"); the pages grid's cells equal; ten pages: no
- * add cell and the full line shown; empty: the first-page tile.
+ * add cell and the full line shown; empty: the first-page tile; the
+ * none-read message (a 422 pages-unread) shown only with EVERY page marked.
+ * CHECK 23 (in cameraCheck, the sheet): the two tiles share one structure,
+ * icon, a title block that reserves two lines, then the description, so
+ * both descriptions start at the same y within 1 px (360, 390 and 1280, ar
+ * and en, light and dark). Red on 60e9ce6: "A file from your device" took
+ * two lines and "Scan pages" one, and the descriptions started 24 px apart.
  * cameraPlant() lets the camera title wrap in a narrow box, and the check
  * must flag it, or the run fails (cameraForced in render.mjs).
  *
@@ -47,9 +56,11 @@ export function cameraScreens(add, { APP, SAFARI, DESK, DESKTOP }, screens) {
   for (const v of ['choice', 'empty', 'ten', 'three', 'unread', 'consent']) {
     c(`camera-${v}-app2`, 'preview/camera', { platform: 'native', view: v }, APP2, { camera: { shell: 2, view: v } });
   }
-  for (const v of ['page', 'choice', 'empty', 'ten']) {
+  for (const v of ['page', 'choice', 'empty', 'ten', 'three']) {
     c(`camera-${v}-app2-360`, 'preview/camera', { platform: 'native', view: v }, APP2, { view: A360, camera: { shell: 2, view: v } });
   }
+  // Check 23 at a wide window: the app's sheet (max-w-lg) at 1280.
+  c('camera-choice-app2-desk', 'preview/camera', { platform: 'native', view: 'choice' }, APP2, { view: DESKTOP, targets: false, camera: { shell: 2, view: 'choice' } });
   // Shell 1 (build 8) and the web: today's tile, no camera even when asked.
   for (const v of ['page', 'choice', 'ten']) {
     c(`camera-${v}-app1`, 'preview/camera', { platform: 'native', view: v }, APP, { camera: { shell: 1, view: v } });
@@ -109,6 +120,14 @@ export function cameraCheck(expect) {
         if (lines(t) > most) f.push(`check 21: the ${name} tile's title "${t.textContent}" takes ${lines(t)} lines (at most ${most})`);
         if (clipped(t) || box(t).right > box(el).right + 1 || box(t).left < box(el).left - 1) f.push(`check 21: the ${name} tile's title "${t.textContent}" is clipped or overflows its tile`);
       }
+      // Check 23: one structure in both tiles, so the descriptions start at
+      // the same y whatever each title's line count.
+      const da = a.querySelector('[data-kf-upload-desc]'), db = b.querySelector('[data-kf-upload-desc]');
+      if (!da || !db) f.push('check 23: a sheet tile has no description');
+      else {
+        measured.descTops = [box(da).top, box(db).top].map((n) => Math.round(n * 10) / 10);
+        if (Math.abs(box(da).top - box(db).top) > 1) f.push(`check 23: the two tiles' descriptions start at different heights (file ${box(da).top.toFixed(1)}, camera ${box(db).top.toFixed(1)})`);
+      }
     }
   }
   // The camera title on ONE line wherever it is a title, in both languages:
@@ -135,7 +154,15 @@ export function cameraCheck(expect) {
       if (document.querySelector('[data-kf-camera="add"]')) f.push('check 21: ten pages and the add cell is still there');
       if (!document.querySelector('[data-kf-camera-full]')) f.push('check 21: ten pages and the full line is not shown');
     }
-    if (expect.view === 'three' && q('[data-kf-camera-problem]').length !== 2) f.push(`check 21: ${q('[data-kf-camera-problem]').length} page(s) marked after the 422, want 2`);
+    // A 422 pages-unread is answered only when NO photo was read, each marked
+    // read: false: the none-read message never stands beside an unmarked page.
+    const marked = q('[data-kf-camera-problem]').length;
+    const msg = document.querySelector('[data-kf-camera-message]');
+    if (expect.view === 'three') {
+      if (!msg) f.push('check 21: three pages after a 422 pages-unread and no message');
+      if (marked !== pages.length) f.push(`check 21: ${marked} of ${pages.length} page(s) marked after a 422 pages-unread, want every page`);
+    }
+    if (msg && msg.getAttribute('data-kf-camera-message') === 'none-read' && marked !== pages.length) f.push(`check 21: the none-read message is shown with ${pages.length - marked} page(s) not marked`);
     const cells = q('[data-kf-camera-grid] > li > *:first-child');
     const sizes = cells.map((x) => [Math.round(box(x).width), Math.round(box(x).height)]);
     if (sizes.length > 1 && sizes.some((s) => Math.abs(s[0] - sizes[0][0]) > 1 || Math.abs(s[1] - sizes[0][1]) > 1)) f.push(`check 21: the page cells are not one size (${JSON.stringify(sizes)})`);
