@@ -18,7 +18,9 @@ import { proFigures } from '@/lib/iap/figures'
  * `?state=` draws one state (src/lib/iap/flow.ts, PAYWALL_STATES). The price
  * is a fixed string shaped like StoreKit's `displayPrice` for the US
  * storefront, the one value a preview must invent; the live page never types
- * a price. Like the live page, it answers 404 to any shell but 2 and to the
+ * a price. `?price=` replaces it with another storefront's shape (#338, check
+ * 25: "$9.99", "9,99 €", "US$9.99", "٣٫٦٧ ر.س.", "MAD 99.00"); at most 24
+ * characters. Like the live page, it answers 404 to any shell but 2 and to the
  * web: there is no shell-1 or web paywall to draw.
  *
  * The figures are the live ones (src/lib/iap/figures.ts), read from the
@@ -38,7 +40,7 @@ export default async function ProPreviewPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ state?: string }>
+  searchParams: Promise<{ state?: string; price?: string }>
 }) {
   if (process.env.VERCEL_ENV === 'production') notFound()
   if (!iapAllowed(await currentShellVersion())) notFound()
@@ -48,7 +50,8 @@ export default async function ProPreviewPage({
   const t = useTranslation(safeLocale)
   const sp = await searchParams
   const state: PaywallState = PAYWALL_STATES.includes(sp.state as PaywallState) ? (sp.state as PaywallState) : 'ready'
-  const price = state === 'loading' || state === 'unavailable' ? null : '$9.99'
+  const shape = typeof sp.price === 'string' && sp.price.length > 0 && sp.price.length <= 24 ? sp.price : '$9.99'
+  const price = state === 'loading' || state === 'unavailable' ? null : shape
 
   const labels = {
     dashboard: t.dashboard.nav.dashboard,

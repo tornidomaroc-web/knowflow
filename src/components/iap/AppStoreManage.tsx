@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button, Card } from '@/components/ui';
 import { LatinText } from '@/components/ui/LatinText';
+import { keepTogether } from '@/lib/keep-together';
 import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
 import { ClayStar } from '@/components/clay/ClayIcons';
 import { useIap, useStore } from './IapProvider';
@@ -41,7 +42,8 @@ function ManageButton({ label, failed }: { label: string; failed: string }) {
           }
         }}
       >
-        <LatinText text={label} />
+        {/* One flex item: as two (the text and the "App Store" isolate) the Button's gap-2 widened the space before "App Store" (the owner's review of #338 at 69f160f). */}
+        <span><LatinText text={label} /></span>
       </Button>
       {error && (
         <p role="alert" className="mt-2 text-xs text-danger">
@@ -91,7 +93,7 @@ export function AppStoreDeleteNote({ labels }: { labels: AppStoreManageLabels })
   return (
     <div data-kf-apple-delete-note="" {...marked} className="mb-4">
       <p className="text-xs font-medium text-foreground">
-        <LatinText text={labels.deleteNote} />
+        <LatinText text={keepTogether(labels.deleteNote)} />
       </p>
       <ManageButton label={labels.manage} failed={labels.manageFailed} />
     </div>

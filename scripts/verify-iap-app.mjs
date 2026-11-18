@@ -244,6 +244,65 @@ if (PW && i18n && PP && IP && flow && F) {
   }
 }
 
+// ---- 5b. the price, the buttons, the kept phrase (the owner's render review at 69f160f) ----
+section('5b. StoreKit price shapes as one isolate; one flex item per button; "من App Store" kept');
+const PT = await load('src/components/iap/PriceText.tsx');
+const DCI = await import(pathToFileURL(resolvePath(ROOT, 'scripts/design-c/iap.mjs')).href).catch((e) => { check(false, `scripts/design-c/iap.mjs loads (${String(e.message).split('\n')[0]})`); return null; });
+const unescape = (x) => x.replace(/&amp;/g, '&').replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+if (PT && DCI && PW && i18n) {
+  const SHAPES = [['$9.99', 'ltr'], ['9,99 €', 'ltr'], ['US$9.99', 'ltr'], ['٣٫٦٧ ر.س.', 'rtl'], ['MAD 99.00', 'ltr']];
+  check(JSON.stringify(SHAPES.slice(1).map(([p]) => p)) === JSON.stringify(DCI.PRICE_SHAPES.map(([, p]) => p)) && DCI.DEFAULT_PRICE === SHAPES[0][0], 'design-c draws the same five shapes this proof reads');
+  for (const [price, dir] of SHAPES) {
+    check(PT.priceDir(price) === dir && DCI.priceDirOf(price) === dir, `${JSON.stringify(price)}: direction ${dir} (the component and check 25 agree)`);
+    for (const locale of ['ar', 'en']) {
+      const L = i18n.useTranslation(locale).dashboard.iap;
+      for (const key of ['pricePerMonth', 'disclosure']) {
+        const html = renderToStaticMarkup(h(PT.PriceSentence, { template: L[key], price }));
+        const iso = html.match(/<bdi[^>]*data-kf-price[^>]*>[^<]*<\/bdi>/g) || [];
+        const want = `<bdi dir="${dir}" data-kf-price="" class="whitespace-nowrap">${price}</bdi>`;
+        const same = unescape(html.replace(/<[^>]+>/g, '')) === L[key].split('{price}').join(price);
+        check(iso.length === 1 && iso[0] === want && same, `${locale} ${key} ${JSON.stringify(price)}: one ${dir} isolate holding the price exactly, no character changed`);
+      }
+      const page = renderToStaticMarkup(shell2(h(PW.Paywall, { labels: L, figures: F, userId: UID, pro: null, termsHref: `/${locale}/terms`, privacyHref: `/${locale}/privacy`, preview: { state: 'ready', price } }), { locale }));
+      check((page.match(/data-kf-price=""/g) || []).length === 2, `${locale} ready paywall, ${JSON.stringify(price)}: the price isolated in the per-month line and the disclosure`);
+    }
+  }
+  // The double gap: a Button is inline-flex with gap-2, so each label is ONE flex item (a span).
+  for (const locale of ['ar', 'en']) {
+    const L = i18n.useTranslation(locale).dashboard.iap;
+    const pro = renderToStaticMarkup(shell2(h(PW.Paywall, { labels: L, figures: F, userId: UID, pro: 'apple', termsHref: `/${locale}/terms`, privacyHref: `/${locale}/privacy`, preview: { state: 'pro-apple', price: '$9.99' } }), { locale }));
+    const ready = renderToStaticMarkup(shell2(h(PW.Paywall, { labels: L, figures: F, userId: UID, pro: null, termsHref: `/${locale}/terms`, privacyHref: `/${locale}/privacy`, preview: { state: 'ready', price: '$9.99' } }), { locale }));
+    const buttons = [...(pro + ready).matchAll(/<button[^>]*>([^]*?)<\/button>/g)].map((m) => m[1]);
+    check(buttons.length >= 3 && buttons.every((b) => /^<span>[^]*<\/span>$/.test(b)), `${locale} paywall: every button's label is one span (${buttons.length} buttons)`);
+  }
+  // "من App Store" (keep-together.ts): the Arabic delete note holds it with a no-break space.
+  const KT = await load('src/lib/keep-together.ts');
+  const AMk = await load('src/components/iap/AppStoreManage.tsx');
+  if (KT && AMk) {
+    const arL = i18n.useTranslation('ar').dashboard.iap;
+    check(KT.KEEP_TOGETHER.includes('من App Store'), 'keep-together lists "من App Store"');
+    const note = renderToStaticMarkup(shell2(h(AMk.AppStoreDeleteNote, { labels: arL }), { locale: 'ar' }));
+    check(note.includes('من <bdi') && !/من <bdi/.test(note), 'the Arabic delete note draws "من" + no-break space + the "App Store" isolate');
+    check(/<button[^>]*data-kf-iap-manage[^>]*><span>[^]*?<\/span><\/button>/.test(note), 'the delete note\'s Manage button: its label is one span');
+  }
+  // The refusal sentences design-c answers in the page are the routes' own (iap.mjs, REFUSALS).
+  const lm2 = await load('src/lib/limit-messages.ts');
+  const al2 = await load('src/lib/ai-allowance.ts');
+  const rl2 = await load('src/lib/rate-limit.ts');
+  if (lm2 && al2 && rl2) {
+    const now = new Date('2026-11-18T19:00:00Z');
+    const drift = [];
+    for (const locale of ['ar', 'en']) {
+      for (const platform of ['native', 'web']) for (const kind of ['query', 'upload', 'summary', 'quiz']) {
+        const live = lm2.dailyLimitMessage(locale, kind, rl2.DAILY_CAPS.free[kind], 'free', lm2.nextDailyReset(now), now, platform);
+        if (DCI.REFUSALS[locale][platform][kind] !== live) drift.push(`${locale}.${platform}.${kind}`);
+      }
+      if (DCI.REFUSALS[locale].allowance !== al2.aiAllowanceRefusalMessage(locale)) drift.push(`${locale}.allowance`);
+    }
+    check(drift.length === 0, `design-c's refusal sentences equal dailyLimitMessage / aiAllowanceRefusalMessage (18 of them)${drift.length ? `; drifted: ${drift.join(', ')}` : ''}`);
+  }
+}
+
 // ---- 6. Settings ------------------------------------------------------------------------
 section('6. Settings: web and build 8 unchanged; shell 2 offer; R1 and R2');
 const SP = await load('src/components/dashboard/SettingsPanel.tsx');

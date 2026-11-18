@@ -42,7 +42,7 @@ export function ProOfferButton({ className }: { className?: string }) {
   return (
     <span data-kf-iap="offer" className={cn('mt-3 block', className)}>
       <Link href={paywallHref(locale)} className={cn(buttonVariants({ variant: 'secondary' }), 'w-full sm:w-auto')}>
-        <LatinText text={label} />
+        <span><LatinText text={label} /></span>
       </Link>
     </span>
   );
@@ -61,7 +61,7 @@ export function ProOfferCard({ title, body, button }: { title: string; body: str
         <LatinText text={body} />
       </p>
       <Link href={paywallHref(locale)} className={cn(buttonVariants({ variant: 'primary' }), 'mt-4 w-full sm:w-auto')}>
-        <LatinText text={button} />
+        <span><LatinText text={button} /></span>
       </Link>
     </Card>
   );

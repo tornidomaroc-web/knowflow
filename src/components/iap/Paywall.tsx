@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card } from '@/components/ui';
 import { LatinText } from '@/components/ui/LatinText';
+import { keepTogether } from '@/lib/keep-together';
+import { PriceSentence } from './PriceText';
 import { ClayStar } from '@/components/clay/ClayIcons';
 import { storeBridge } from '@/lib/iap/bridge';
 import {
@@ -180,7 +182,8 @@ export function Paywall({ labels, figures, userId, pro, termsHref, privacyHref, 
                   }
                 }}
               >
-                <LatinText text={labels.manage} />
+                {/* One flex item: the Button's gap-2 would sit between the Arabic text and the "App Store" isolate. */}
+                <span><LatinText text={labels.manage} /></span>
               </Button>
               {manageFailed && (
                 <p role="alert" className="mt-2 text-xs text-danger">
@@ -194,32 +197,32 @@ export function Paywall({ labels, figures, userId, pro, termsHref, privacyHref, 
         <Card className="p-5">
           {price && (
             <p className="text-center text-2xl font-extrabold text-foreground" data-kf-paywall-price="">
-              <LatinText text={fill(labels.pricePerMonth, 'price', price)} />
+              <PriceSentence template={labels.pricePerMonth} price={price} />
             </p>
           )}
           {message[state] && (
             <p role="status" aria-live="polite" className={`mt-3 text-center text-sm font-medium ${tone}`} data-kf-paywall-message={state}>
-              <LatinText text={message[state]!} />
+              <LatinText text={keepTogether(message[state]!)} />
             </p>
           )}
           {price && CAN_BUY.includes(state) && (
             <Button className="mt-4 flex w-full" data-kf-paywall-buy="" onClick={() => run('purchase')}>
-              <LatinText text={labels.subscribe} />
+              <span><LatinText text={labels.subscribe} /></span>
             </Button>
           )}
           {BUSY.includes(state) && state !== 'loading' && (
             <Button className="mt-4 flex w-full" disabled aria-busy="true">
-              <LatinText text={labels.subscribe} />
+              <span><LatinText text={labels.subscribe} /></span>
             </Button>
           )}
           {CAN_RESTORE.includes(state) && (
             <Button variant="ghost" className="mt-2 flex w-full" data-kf-paywall-restore="" onClick={() => run('restore')}>
-              <LatinText text={labels.restore} />
+              <span><LatinText text={labels.restore} /></span>
             </Button>
           )}
           {price && (
             <p className="mt-4 text-xs leading-5 text-muted-foreground" data-kf-paywall-disclosure="">
-              <LatinText text={fill(labels.disclosure, 'price', price)} />
+              <PriceSentence template={labels.disclosure} price={price} />
             </p>
           )}
         </Card>

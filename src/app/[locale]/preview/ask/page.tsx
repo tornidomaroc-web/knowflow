@@ -8,7 +8,9 @@ import { AgentEmptyState } from '@/components/agent/AgentEmptyState'
 import { AskTitle } from '@/components/agent/AskTitle'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { PlatformProvider } from '@/components/platform/PlatformProvider'
-import { resolvePlatform } from '@/lib/platform'
+import { iapAllowed, resolvePlatform } from '@/lib/platform'
+import { currentShellVersion } from '@/lib/platform-server'
+import { PreviewIap } from '@/components/iap/PreviewIap'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { PreviewHistory } from './PreviewHistory'
 import { PreviewSubjectChips } from './PreviewSubjectChips'
@@ -84,6 +86,8 @@ export default async function AskPreview({
   const sp = await searchParams
   const raw = sp.view
   const platform = resolvePlatform(sp.platform)
+  // In-app Pro (#338): at shell 2 the refusal's "See Pro" button, as the dashboard draws it.
+  const iap = platform === 'native' && iapAllowed(await currentShellVersion())
   const view: View = raw === 'none' || raw === 'zero' || raw === 'history' || raw === 'answer' || raw === 'subjects' || raw === 'noanswer' || raw === 'capture' || raw === 'app' ? raw : 'default'
 
   // #129 (c): five subjects and their files, through the real rule.
@@ -216,6 +220,7 @@ export default async function AskPreview({
         ))}
       </div>
       <PlatformProvider platform={platform}>
+      <PreviewIap on={iap} locale={safeLocale} offerLabel={t.dashboard.iap.offerButton}>
       <DashboardShell
         platform={platform}
         activeNav="agent"
@@ -311,6 +316,7 @@ export default async function AskPreview({
           </div>
         )}
       </DashboardShell>
+      </PreviewIap>
       </PlatformProvider>
     </div>
   )

@@ -5,7 +5,11 @@ import { AiConsentProvider } from '@/components/ai-consent/AiConsentProvider'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { PlatformProvider } from '@/components/platform/PlatformProvider'
 import { MaterialCard } from '@/components/materials/MaterialCard'
-import { resolvePlatform } from '@/lib/platform'
+import { iapAllowed, resolvePlatform } from '@/lib/platform'
+import { PreviewIap } from '@/components/iap/PreviewIap'
+import { dailyLimitMessage, nextDailyReset } from '@/lib/limit-messages'
+import { aiAllowanceRefusalMessage, AI_ALLOWANCE_REFUSAL } from '@/lib/ai-allowance'
+import { DAILY_CAPS, DAILY_LIMIT_REFUSAL } from '@/lib/rate-limit'
 import { currentShellVersion } from '@/lib/platform-server'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 
@@ -28,6 +32,11 @@ import { Locale, locales, useTranslation } from '@/lib/i18n'
  *   unread  the finished state of a material saved without pages 2 and 4;
  *   consent the permission sheet as the camera's first send opens it, for a
  *           student who gave the text permission only (version 1).
+ *   refused-daily, refused-allowance  (#338) three drawn pages after the
+ *           route's 429: a free account's daily upload limit (`daily-limit`)
+ *           or its 30-day AI allowance (`ai-allowance-used`), the route's
+ *           own sentence (at a fixed clock, so the picture is stable) and,
+ *           at shell 2, the "See Pro" button under it.
  * The drawn pages are SVG paper, not photos.
  */
 export const metadata: Metadata = {
@@ -39,7 +48,7 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }))
 }
 
-const VIEWS = ['page', 'choice', 'empty', 'ten', 'three', 'unread', 'consent'] as const
+const VIEWS = ['page', 'choice', 'empty', 'ten', 'three', 'unread', 'consent', 'refused-daily', 'refused-allowance'] as const
 type View = (typeof VIEWS)[number]
 
 export default async function CameraPreviewPage({
@@ -72,17 +81,26 @@ export default async function CameraPreviewPage({
     noTextFix: sd.noTextFix, checklist: sd.checklist, summaryDone: sd.summaryDone, summaryTodo: sd.summaryTodo,
     quizDone: sd.quizDone, quizTodo: sd.quizTodo, added: sd.added, fileTypes: sd.fileTypes,
   }
+  // #338: the route's 429 as /api/page-read sends it (enforceUploadLimit or the AI allowance), at a fixed clock.
+  const refusal = (v: 'refused-daily' | 'refused-allowance') => {
+    const now = new Date('2026-11-18T19:00:00Z')
+    return v === 'refused-daily'
+      ? { status: 429, code: DAILY_LIMIT_REFUSAL, error: dailyLimitMessage(safeLocale, 'upload', DAILY_CAPS.free.upload, 'free', nextDailyReset(now), now, 'native') }
+      : { status: 429, code: AI_ALLOWANCE_REFUSAL, error: aiAllowanceRefusalMessage(safeLocale) }
+  }
   const previewCamera =
     view === 'choice' ? ({ open: 'choice' } as const)
       : view === 'empty' ? ({ open: 'camera', camera: { pages: 0 } } as const)
         : view === 'ten' ? ({ open: 'camera', camera: { pages: 10 } } as const)
           : view === 'three' ? ({ open: 'camera', camera: { pages: 3, problems: { 1: 'not-read', 2: 'no-text', 3: 'not-read' }, message: 'noneRead' } } as const)
+            : view === 'refused-daily' || view === 'refused-allowance' ? ({ open: 'camera', camera: { pages: 3, refusal: refusal(view) } } as const)
             : view === 'unread' ? ({ open: 'unread', name: `${t.dashboard.upload.camera.defaultName} 2026-11-18.md`, unread: [{ n: 2, problem: 'no-text' }, { n: 4, problem: 'not-read' }] } as const)
               : undefined
 
   const page = (
     <div className="min-h-screen">
       <PlatformProvider platform={platform} shell={shell}>
+      <PreviewIap on={iapAllowed(shell)} locale={safeLocale} offerLabel={t.dashboard.iap.offerButton}>
       <DashboardShell
         platform={platform}
         activeNav="knowledge"
@@ -123,6 +141,7 @@ export default async function CameraPreviewPage({
           </section>
         </div>
       </DashboardShell>
+      </PreviewIap>
       </PlatformProvider>
     </div>
   )

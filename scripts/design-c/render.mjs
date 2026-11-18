@@ -186,7 +186,7 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { kfWording, KF_WORDING_SRC, KF_PURCHASE_SRC } from '../lib/app-wording.mjs';
-import { iapScreens, iapCheck, iapPlant, shellOf } from './iap.mjs';
+import { iapScreens, iapCheck, iapPlant, shellOf, refusalMock, refusalAct, splitButtons, splitPlant, priceCheck, pricePlant, priceExpect } from './iap.mjs';
 import { audit } from '../redesign-built/audit.mjs';
 import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing, pageLabelPlant, g2Rules, latinRules, latinPlant, markerLines, markerPlant, orphanLines, orphanPlant } from './pr4.mjs';
 import { activation5Screens, a5Prepare, a5Act, askPathCheck, askPathPlant, dropZoneErrorCheck, dropZoneErrorPlant } from './activation5.mjs';
@@ -1018,6 +1018,9 @@ const a360Forced = { stats: 0, note: 0, term: 0, chipCut: 0 };
 let cameraForced = 0;
 // Check 24's forced case (iap.mjs): the shell-2 AFTER renders where a planted purchase word was caught.
 let iapForced = 0;
+// #338 review: check 25's forced case (a price drawn with no isolate) and the split-button rule's.
+let priceForced = 0;
+let splitForced = 0;
 const sameSeen = { compared: 0, same: 0 };
 
 async function shoot(side, job) {
@@ -1030,6 +1033,8 @@ async function shoot(side, job) {
   const held = [];
   tab.on('request', (r) => {
     const u = r.url();
+    // #338 review: a refusal Pro lifts, the route's 429 answered in the page (iap.mjs).
+    if (job.s.refusal && refusalMock(job, r)) return;
     if (job.s.pr4 && pr4Mock(job, LONG, r, held)) return;
     if (u.startsWith(FONT_HOST)) {
       const body = fontFiles.get(u.slice(FONT_HOST.length));
@@ -1060,7 +1065,8 @@ async function shoot(side, job) {
   // are ended (a new bubble rises in, the drawer slides).
   const acted = job.s.act ? await pr4Act(tab, job, LONG).catch((e) => ({ act: job.s.act, error: String(e).slice(0, 200) }))
     : job.s.a5 ? await a5Act(tab, job).catch((e) => ({ act: job.s.a5, error: String(e).slice(0, 200) }))
-    : job.s.authErr ? await authAct(tab, job).catch((e) => ({ act: `auth-${job.s.authErr.form}-${job.s.authErr.id}`, error: String(e).slice(0, 200) })) : null;
+    : job.s.authErr ? await authAct(tab, job).catch((e) => ({ act: `auth-${job.s.authErr.form}-${job.s.authErr.id}`, error: String(e).slice(0, 200) }))
+    : job.s.refusal ? await refusalAct(tab, job, side).catch((e) => ({ act: `refusal-${job.s.refusal.surface}`, error: String(e).slice(0, 200) })) : null;
   // Finite animations are finished. An INFINITE one (a processing spinner,
   // Tailwind's `animate-spin`, which reduced motion does not stop: it is the
   // state itself) is paused at its first frame, the same on both sides, and
@@ -1156,7 +1162,11 @@ async function shoot(side, job) {
   // no data-kf-iap for build 8 and the web; shell 2: purchase words only inside data-kf-iap.
   await tab.evaluate(`window.kfWording = (${KF_WORDING_SRC}); window.kfPurchase = (${KF_PURCHASE_SRC});`);
   const iapExpect = job.s.iap || { shell: shellOf(job.s.ua) };
+  await tab.evaluate(`window.kfSplitButtons = ${splitButtons.toString()}; window.kfPriceCheck = ${priceCheck.toString()};`);
   const iap24 = await tab.evaluate(iapCheck, iapExpect);
+  // Check 25 (iap.mjs): StoreKit's price one isolate, in reading order, on one line, wherever the paywall draws it.
+  const want25 = priceExpect(job.s.iap);
+  const price25 = want25 ? await tab.evaluate(priceCheck, want25, false) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -1180,6 +1190,9 @@ async function shoot(side, job) {
   const camera21Plant = job.s.camera && job.s.camera.shell >= 2 && side === 'after' ? await tab.evaluate(cameraPlant) : null;
   // Check 24's forced case, after the shot, on a shell-2 AFTER render (iap.mjs, iapPlant).
   const iap24Plant = iapExpect.shell >= 2 && side === 'after' ? await tab.evaluate(iapPlant) : null;
+  // The split-button rule's forced case (the manage button as 69f160f drew it), then check 25's (the price with no isolate, Arabic, no letter in it).
+  const split24Plant = iapExpect.shell >= 2 && side === 'after' ? await tab.evaluate(splitPlant) : null;
+  const price25Plant = want25 && side === 'after' && job.locale === 'ar' && !/[A-Za-z\u0600-\u06FF]/.test(want25.price) ? await tab.evaluate(pricePlant, want25) : null;
   // G2: check 9's forced wrong cases, after the shot (pr4.mjs, pageLabelPlant).
   const labelPlant = job.s.pr4 === 'ask' ? await tab.evaluate(pageLabelPlant) : null;
   // Finding (b): check 10's forced wrong cases, after the shot (pr4.mjs, latinPlant).
@@ -1190,7 +1203,7 @@ async function shoot(side, job) {
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant, price25, price25Plant, split24Plant };
 }
 
 for (const job of JOBS) {
@@ -1267,6 +1280,9 @@ for (const job of JOBS) {
       // Check 24 (iap.mjs), and its forced case on a shell-2 AFTER render.
       ...(r.iap24?.finding ? [`iap: ${r.iap24.finding}`] : []),
       ...(r.iap24Plant?.finding ? [`iap: ${r.iap24Plant.finding}`] : []),
+      ...(r.price25?.finding ? [`price: ${r.price25.finding}`] : []),
+      ...(r.price25Plant?.finding ? [`price: ${r.price25Plant.finding}`] : []),
+      ...(r.split24Plant?.finding ? [`iap: ${r.split24Plant.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -1282,6 +1298,8 @@ for (const job of JOBS) {
     if (side === 'after' && r.chipCut?.caught) a360Forced.chipCut++;
     if (side === 'after' && r.camera21Plant?.caught) cameraForced++;
     if (side === 'after' && r.iap24Plant?.caught) iapForced++;
+    if (side === 'after' && r.price25Plant?.caught) priceForced++;
+    if (side === 'after' && r.split24Plant?.caught) splitForced++;
     if (side === 'after' && r.whole18Revert?.flagged) console.log(`       check 18 on d9647f5's layout (${job.name}): ${r.whole18Revert.finding}`);
     const tmin = Math.min(...r.a.text.map((t) => t.got));
     row.sides[side] = {
@@ -1314,7 +1332,8 @@ for (const job of JOBS) {
       ...(r.chipCut ? { chipCutForcedCaught: r.chipCut.caught } : {}),
       ...(r.camera21 ? { camera: { expect: job.s.camera, ...r.camera21.measured, finding: r.camera21.finding, ...(r.camera21Plant ? { forced: r.camera21Plant.forced, forcedCaught: r.camera21Plant.caught ?? null } : {}) } } : {}),
       // Check 24 (iap.mjs): read on every render, reported where a screen asked for it or found something.
-      ...(r.iap24 && (job.s.iap || r.iap24.finding) ? { iap: { expect: job.s.iap ?? null, ...r.iap24.measured, finding: r.iap24.finding, ...(r.iap24Plant ? { forcedCaught: r.iap24Plant.caught } : {}) } } : {}),
+      ...(r.iap24 && (job.s.iap || r.iap24.finding) ? { iap: { expect: job.s.iap ?? null, ...r.iap24.measured, finding: r.iap24.finding, ...(r.iap24Plant ? { forcedCaught: r.iap24Plant.caught } : {}), ...(r.split24Plant ? { splitForcedCaught: r.split24Plant.caught } : {}) } } : {}),
+      ...(r.price25 ? { price: { want: priceExpect(job.s.iap), ...r.price25.measured, finding: r.price25.finding, ...(r.price25Plant ? { forced: { caught: r.price25Plant.caught, drawn: r.price25Plant.drawn } } : {}) } } : {}),
       ...(job.s.native ? { app: { appleButtons: r.gate.apple.length, googleButtons: r.gate.google.length, purchaseWords: words } } : {}),
     };
     console.log(`${side === 'after' && bad.length ? 'FAIL' : 'ok  '} ${side.padEnd(6)} ${job.name}: theme ${r.theme}, ${r.fonts.loaded.length} static faces, text worst ${tmin.toFixed(2)}:1, ${bad.length} finding(s)`);
@@ -1359,6 +1378,10 @@ if (!cameraForced) never('check 21 was never forced: no AFTER render caught the 
 else console.log(`check 21 (the camera title on one line): forced case caught on ${cameraForced} AFTER render(s)`);
 if (!iapForced) never('check 24 was never forced: no shell-2 AFTER render caught a purchase word outside data-kf-iap');
 else console.log(`check 24 (purchase words only inside data-kf-iap in shell 2): forced case caught on ${iapForced} AFTER render(s)`);
+if (!priceForced) never('check 25 was never forced: no Arabic AFTER render caught its price drawn with no isolate');
+else console.log(`check 25 (StoreKit's price one isolate, in reading order): forced case caught on ${priceForced} AFTER render(s)`);
+if (!splitForced) never('the split-button rule was never forced: no AFTER render caught the manage button as two flex items');
+else console.log(`check 24, split-button rule (one flex item per button): forced case caught on ${splitForced} AFTER render(s)`);
 if (!sameSeen.compared) never('check 22 compared no screen');
 else console.log(`check 22 (shell 1 and the web unchanged): ${sameSeen.same} of ${sameSeen.compared} screen(s) the same picture before and after`);
 writeFileSync(join(out, 'report.json'), JSON.stringify({ fonts: { family: FAMILY, package: '@fontsource/rubik@5.2.5', weights: WEIGHTS, files: fontHashes }, results }, null, 2) + '\n');

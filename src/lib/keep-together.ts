@@ -9,10 +9,15 @@
  * "صوّر الصفحات" joined the list in the owner's review of #336 at 60e9ce6
  * (2026-11-18): the camera's none-read message broke "صوّر / الصفحات".
  *
+ * "من App Store" joined in the owner's review of #338 at 69f160f (2026-11-18):
+ * at 390 pt the Arabic delete note (dashboard.iap.deleteNote) ended a line on
+ * "من" and began the next with "App Store". The no-break space sits between
+ * "من" and the left-to-right isolate LatinText draws "App Store" in.
+ *
  * scripts/design-c/pr4.mjs reads this list (KEEP_TOGETHER) and fails a render
  * on which any of these phrases spans two lines.
  */
-export const KEEP_TOGETHER = ['الذكاء الاصطناعي', 'أيّ منهما', 'أيٌّ منهما', 'a ready question', 'سؤال جاهز', 'صوّر الصفحات'] as const;
+export const KEEP_TOGETHER = ['الذكاء الاصطناعي', 'أيّ منهما', 'أيٌّ منهما', 'a ready question', 'سؤال جاهز', 'صوّر الصفحات', 'من App Store'] as const;
 
 const PATTERN = new RegExp(KEEP_TOGETHER.map((p) => p.split(' ').join('[ \\u00A0]+')).join('|'), 'g');
 

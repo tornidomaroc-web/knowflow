@@ -55,6 +55,8 @@ export interface CameraPreview {
   pages: number;
   problems?: Record<number, PhotoProblem>;
   message?: 'noneRead';
+  /** #338: the route's refusal, drawn as the send path draws it (the sentence, and the offer when Pro lifts it). */
+  refusal?: { status: number; code: string; error: string };
 }
 
 /**
@@ -88,8 +90,8 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
 }>(function CameraPages({ open, onClose, kbId, locale, labels, declined, onDone, preview }, ref) {
   const [pages, setPages] = useState<Page[]>(() => (preview ? previewPages(preview) : []));
   const [phase, setPhase] = useState<Phase>('idle');
-  const [message, setMessage] = useState<string | null>(preview?.message === 'noneRead' ? labels.noneRead : null);
-  const [offer, setOffer] = useState(false);
+  const [message, setMessage] = useState<string | null>(preview?.refusal ? preview.refusal.error : preview?.message === 'noneRead' ? labels.noneRead : null);
+  const [offer, setOffer] = useState(preview?.refusal ? preview.refusal.status === 429 && offersPro(preview.refusal.code) : false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { ensure } = useAiConsent();
