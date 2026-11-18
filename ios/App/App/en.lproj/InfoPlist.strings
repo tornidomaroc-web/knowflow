@@ -6,5 +6,5 @@
 */
 "CFBundleDisplayName" = "KnowFlow";
 
-/* The camera screen ("Photograph your pages"). Approved 2026-11-18: docs/copy/ARABIC_STRINGS_app_v11.md. */
+/* The camera screen ("Scan pages"). Approved 2026-11-18: docs/copy/ARABIC_STRINGS_app_v11.md. */
 "NSCameraUsageDescription" = "KnowFlow uses the camera only when you photograph pages of your book or notebook, so it can read their text.";

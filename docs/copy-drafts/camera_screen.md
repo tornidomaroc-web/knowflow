@@ -33,7 +33,7 @@ them.
 | key | ar | en | where |
 |---|---|---|---|
 | `dashboard.upload.camera.addMaterial` | أضف مادة | Add a material | the subject page's upload button, and the upload sheet's title |
-| `dashboard.upload.camera.title` | صوّر صفحاتك (approved) | Photograph your pages | the camera tile; the camera screen's title |
+| `dashboard.upload.camera.title` | صوّر صفحاتك (approved) | Scan pages (approved 2026-11-18, replaces "Scan your pages" and "Photograph your pages") | the camera tile; the camera screen's title |
 | `dashboard.upload.camera.desc` | صوّر صفحات الكتاب أو الدفتر، ونقرأ نصّها. (approved) | Snap a book or notebook and we read the text. | under the camera tile |
 | `dashboard.upload.camera.hint` | صفحة واحدة في كل صورة، حتى {max} صفحات. | One page per photo, up to {max} pages. | under the screen's title |
 | `dashboard.upload.camera.firstPage` | صوّر الصفحة الأولى | Photograph the first page | the screen's big tile, no page yet |

@@ -23,8 +23,9 @@
  * CHECK 21 (cameraCheck, every camera screen): the gate (shell 2: the upload
  * button, no tile; shell 1 and the web: the tile, and no camera control,
  * sheet or screen anywhere); the sheet's two tiles equal in width and height
- * within 1 px, each title on ONE line in Arabic (two at most in English)
- * and not clipped; "صوّر صفحاتك" on one line wherever it is a title; the pages grid's cells equal; ten pages: no
+ * within 1 px, each title on ONE line in Arabic (the English file title two
+ * at most) and not clipped; the camera title on one line wherever it is a
+ * title, in both languages ("صوّر صفحاتك", "Scan pages"); the pages grid's cells equal; ten pages: no
  * add cell and the full line shown; empty: the first-page tile.
  * cameraPlant() lets the camera title wrap in a narrow box, and the check
  * must flag it, or the run fails (cameraForced in render.mjs).
@@ -97,10 +98,12 @@ export function cameraCheck(expect) {
       measured.tiles = [[A.width, A.height], [B.width, B.height]].map((x) => x.map((n) => Math.round(n * 10) / 10));
       if (Math.abs(A.width - B.width) > 1 || Math.abs(A.height - B.height) > 1) f.push(`check 21: the two tiles are not equal (${A.width.toFixed(1)} x ${A.height.toFixed(1)} and ${B.width.toFixed(1)} x ${B.height.toFixed(1)})`);
       if (Math.abs(A.top - B.top) > 1) f.push('check 21: the two tiles are not on one row');
-      // Arabic: each title one line. English: at most two (the approved "A
-      // file from your device" needs two in a half-width tile at 390 pt).
-      const most = ar ? 1 : 2;
+      // Arabic: each title one line. English: the file tile at most two (the
+      // approved "A file from your device" needs two in a half-width tile at
+      // 390 pt); the camera tile ONE ("Scan pages", approved 2026-11-18
+      // to stay on one line at 360 and 390).
       for (const [el, name] of [[a, 'file'], [b, 'camera']]) {
+        const most = ar || name === 'camera' ? 1 : 2;
         const t = el.querySelector('[data-kf-upload-title]');
         if (!t) { f.push(`check 21: the ${name} tile's title is missing`); continue; }
         if (lines(t) > most) f.push(`check 21: the ${name} tile's title "${t.textContent}" takes ${lines(t)} lines (at most ${most})`);
@@ -108,12 +111,15 @@ export function cameraCheck(expect) {
       }
     }
   }
-  // "صوّر صفحاتك" on one line wherever it is a title; the English twin at
-  // most two lines in the half-width tile, one on the screen.
+  // The camera title on ONE line wherever it is a title, in both languages:
+  // "صوّر صفحاتك" and "Scan pages" (the tile and the screen).
+  // measured.cameraTitleWidths: the title's own width beside its box's, so a
+  // near-wrap is visible in the report before it becomes a wrap.
   const titles = [...q('[data-kf-camera-title]'), ...q('[data-kf-upload="sheet-camera"] [data-kf-upload-title]')];
   measured.cameraTitles = titles.length;
   for (const t of titles) {
-    const most = ar || t.hasAttribute('data-kf-camera-title') ? 1 : 2;
+    const most = 1;
+    (measured.cameraTitleWidths ||= []).push([Math.round(t.scrollWidth * 10) / 10, Math.round(t.parentElement.getBoundingClientRect().width * 10) / 10, lines(t)]);
     if (lines(t) > most) f.push(`check 21: the camera title "${t.textContent}" is split over ${lines(t)} lines (at most ${most})`);
     if (clipped(t)) f.push(`check 21: the camera title "${t.textContent}" is clipped`);
   }

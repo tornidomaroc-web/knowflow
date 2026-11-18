@@ -604,7 +604,7 @@ file is not read by the app.
 | `dashboard.upload.ready` | جاهز ✓ | Ready ✓ |
 | `dashboard.upload.error` | لم ينجح | Error |
 | `dashboard.upload.camera.addMaterial` | أضف مادة | Add a material |
-| `dashboard.upload.camera.title` | صوّر صفحاتك | Photograph your pages |
+| `dashboard.upload.camera.title` | صوّر صفحاتك | Scan pages |
 | `dashboard.upload.camera.desc` | صوّر صفحات الكتاب أو الدفتر، ونقرأ نصّها. | Snap a book or notebook and we read the text. |
 | `dashboard.upload.camera.hint` | صفحة واحدة في كل صورة، حتى {max} صفحات. | One page per photo, up to {max} pages. |
 | `dashboard.upload.camera.firstPage` | صوّر الصفحة الأولى | Photograph the first page |

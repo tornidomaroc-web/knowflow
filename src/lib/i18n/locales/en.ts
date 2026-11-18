@@ -621,7 +621,7 @@ export const en = {
       // English twins and every other line are drafts.
       camera: {
         addMaterial: "Add a material",
-        title: "Photograph your pages",
+        title: "Scan pages",
         desc: "Snap a book or notebook and we read the text.",
         hint: "One page per photo, up to {max} pages.",
         firstPage: "Photograph the first page",

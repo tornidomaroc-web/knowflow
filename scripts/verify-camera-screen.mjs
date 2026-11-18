@@ -296,6 +296,7 @@ if (cam.en && cam.ar) {
   const keys = Object.keys(cam.en);
   check(JSON.stringify(Object.keys(cam.ar)) === JSON.stringify(keys), 'ar has the same keys in the same order');
   check(cam.ar.title === 'صوّر صفحاتك' && cam.ar.desc === 'صوّر صفحات الكتاب أو الدفتر، ونقرأ نصّها.', 'the camera tile\'s two approved Arabic lines, exactly');
+  check(cam.en.title === 'Scan pages', 'the English camera title is the one approved 2026-11-18, "Scan pages" (was "Scan your pages", before that "Photograph your pages"; design-c check 21 holds it to one line)');
   const all = [...keys.map((k) => ['en', k, cam.en[k]]), ...keys.map((k) => ['ar', k, cam.ar[k]]), ['en', 'photos', en.dashboard.aiConsent.photos], ['ar', 'photos', ar.dashboard.aiConsent.photos]];
   const BAN_EN = /\b(price|pricing|plans?|upgrade|subscri\w*|free|premium|pro)\b|\$/i;
   const BAN_AR = /باق[ةت]|اشترا?ك|ترقي|مجان|سعر|أسعار|احتراف|خط[ةت]/;

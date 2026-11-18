@@ -3,7 +3,7 @@
 Approved by the owner on 2026-11-18 for PR #336, as drafted in `docs/copy-drafts/camera_screen.md` (now marked approved), with ONE change: `dashboard.upload.camera.unconfirmed` says "حدّث الشاشة" instead of "حدّث الصفحة", because the student refreshes the app screen, not a page of the book. The English twins were approved with them, and the English of that key became "Refresh the screen to see whether the material arrived, and try again if it did not.":
 
 - `dashboard.upload.camera.addMaterial`: Add a material
-- `dashboard.upload.camera.title`: Photograph your pages
+- `dashboard.upload.camera.title`: Scan pages
 - `dashboard.upload.camera.desc`: Snap a book or notebook and we read the text.
 - `dashboard.upload.camera.hint`: One page per photo, up to {max} pages.
 - `dashboard.upload.camera.firstPage`: Photograph the first page
