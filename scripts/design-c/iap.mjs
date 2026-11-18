@@ -264,6 +264,11 @@ export function iapCheck(expect) {
   }
   // #338 review (the double gap): a flex button or link in the paywall or a data-kf-iap part holds ONE flex
   // item. A text node beside LatinText's "App Store" isolate makes two, and the button's gap widens the space.
+  // 3e40b56 (design-c 44380662481): "من Store App". Two Latin isolates side by side, nothing but spaces
+  // between them, are one Latin phrase cut in two; the Arabic line orders them right to left. Every shell.
+  const pairs = window.kfAdjacentIsolates();
+  measured.adjacentIsolates = pairs.length;
+  if (pairs.length) f.push(`check 24: Latin phrase(s) cut into two isolates, drawn in reverse: ${JSON.stringify(pairs)}`);
   if (expect.shell >= 2) {
     const split = window.kfSplitButtons();
     measured.splitButtons = split.length;
@@ -291,6 +296,39 @@ export function splitButtons() {
     if (items.length > 1 && items.some((n) => n.nodeType === 1 && n.matches('bdi[data-kf-latin]'))) out.push(el.textContent.trim().slice(0, 40));
   }
   return out;
+}
+
+/**
+ * Self-contained, set on window as kfAdjacentIsolates: LatinText isolates
+ * (bdi[data-kf-latin]) inside [data-kf-paywall] or [data-kf-iap] whose next
+ * sibling, past nothing but spaces or no-break spaces, is another one.
+ */
+export function adjacentIsolates() {
+  const out = [];
+  for (const b of document.querySelectorAll('[data-kf-paywall] bdi[data-kf-latin], [data-kf-iap] bdi[data-kf-latin], [data-kf-apple-manage] bdi[data-kf-latin], [data-kf-apple-delete-note] bdi[data-kf-latin]')) {
+    let n = b.nextSibling;
+    while (n && n.nodeType === 3 && /^[\s ]*$/.test(n.data)) n = n.nextSibling;
+    if (n && n.nodeType === 1 && n.matches('bdi[data-kf-latin]')) out.push(`${b.textContent}|${n.textContent}`);
+  }
+  return out;
+}
+
+/** The adjacent-isolate rule's forced case: the delete note's "App Store" cut as 3e40b56 cut it; it must be flagged. */
+export function adjacentPlant() {
+  const b = [...document.querySelectorAll('[data-kf-apple-delete-note] bdi[data-kf-latin]')].find((x) => x.textContent === 'App Store' || x.textContent === 'App Store');
+  if (!b) return null;
+  const second = b.cloneNode(false);
+  second.textContent = 'Store';
+  const keep = b.textContent;
+  b.textContent = 'App';
+  b.after(document.createTextNode(' '), second);
+  let caught;
+  try { caught = window.kfAdjacentIsolates().length > 0; } finally {
+    second.previousSibling.remove();
+    second.remove();
+    b.textContent = keep;
+  }
+  return { forced: true, caught, finding: caught ? null : 'the adjacent-isolate rule is blind: "App" + "Store" as two isolates was not flagged' };
 }
 
 /** The split rule's forced case: the manage button's one span unwrapped (main's 69f160f DOM); it must be flagged. */

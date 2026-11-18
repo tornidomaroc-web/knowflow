@@ -282,7 +282,8 @@ if (PT && DCI && PW && i18n) {
     const arL = i18n.useTranslation('ar').dashboard.iap;
     check(KT.KEEP_TOGETHER.includes('من App Store'), 'keep-together lists "من App Store"');
     const note = renderToStaticMarkup(shell2(h(AMk.AppStoreDeleteNote, { labels: arL }), { locale: 'ar' }));
-    check(note.includes('من <bdi') && !/من <bdi/.test(note), 'the Arabic delete note draws "من" + no-break space + the "App Store" isolate');
+    // 3e40b56 drew "من Store App": the no-break space inside "App Store" cut it into two isolates (latin-groups RUN).
+    check(/من <bdi dir="ltr"[^>]*>App[  ]Store<\/bdi>/.test(note) && !/<\/bdi>[\s ]*<bdi/.test(note), 'the Arabic delete note draws "من" + no-break space + ONE "App Store" isolate (not two)');
     check(/<button[^>]*data-kf-iap-manage[^>]*><span>[^]*?<\/span><\/button>/.test(note), 'the delete note\'s Manage button: its label is one span');
   }
   // The refusal sentences design-c answers in the page are the routes' own (iap.mjs, REFUSALS).

@@ -186,7 +186,7 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { kfWording, KF_WORDING_SRC, KF_PURCHASE_SRC } from '../lib/app-wording.mjs';
-import { iapScreens, iapCheck, iapPlant, shellOf, refusalMock, refusalAct, splitButtons, splitPlant, priceCheck, pricePlant, priceExpect } from './iap.mjs';
+import { iapScreens, iapCheck, iapPlant, shellOf, refusalMock, refusalAct, splitButtons, splitPlant, priceCheck, pricePlant, priceExpect, adjacentIsolates, adjacentPlant } from './iap.mjs';
 import { audit } from '../redesign-built/audit.mjs';
 import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing, pageLabelPlant, g2Rules, latinRules, latinPlant, markerLines, markerPlant, orphanLines, orphanPlant } from './pr4.mjs';
 import { activation5Screens, a5Prepare, a5Act, askPathCheck, askPathPlant, dropZoneErrorCheck, dropZoneErrorPlant } from './activation5.mjs';
@@ -1025,6 +1025,7 @@ let iapForced = 0;
 // #338 review: check 25's forced case (a price drawn with no isolate) and the split-button rule's.
 let priceForced = 0;
 let splitForced = 0;
+let adjacentForced = 0;
 const sameSeen = { compared: 0, same: 0 };
 
 async function shoot(side, job) {
@@ -1166,7 +1167,7 @@ async function shoot(side, job) {
   // no data-kf-iap for build 8 and the web; shell 2: purchase words only inside data-kf-iap.
   await tab.evaluate(`window.kfWording = (${KF_WORDING_SRC}); window.kfPurchase = (${KF_PURCHASE_SRC});`);
   const iapExpect = job.s.iap || { shell: shellOf(job.s.ua) };
-  await tab.evaluate(`window.kfSplitButtons = ${splitButtons.toString()}; window.kfPriceCheck = ${priceCheck.toString()};`);
+  await tab.evaluate(`window.kfSplitButtons = ${splitButtons.toString()}; window.kfPriceCheck = ${priceCheck.toString()}; window.kfAdjacentIsolates = ${adjacentIsolates.toString()};`);
   const iap24 = await tab.evaluate(iapCheck, iapExpect);
   // Check 25 (iap.mjs): StoreKit's price one isolate, in reading order, on one line, wherever the paywall draws it.
   const want25 = priceExpect(job.s.iap);
@@ -1196,6 +1197,8 @@ async function shoot(side, job) {
   const iap24Plant = iapExpect.shell >= 2 && side === 'after' ? await tab.evaluate(iapPlant) : null;
   // The split-button rule's forced case (the manage button as 69f160f drew it), then check 25's (the price with no isolate, Arabic, no letter in it).
   const split24Plant = iapExpect.shell >= 2 && side === 'after' ? await tab.evaluate(splitPlant) : null;
+  // The adjacent-isolate rule's forced case (3e40b56's "من Store App"), where an Arabic delete note is drawn.
+  const adjacent24Plant = side === 'after' && job.locale === 'ar' && /settings-apple/.test(job.s.key) ? await tab.evaluate(adjacentPlant) : null;
   const price25Plant = want25 && side === 'after' && job.locale === 'ar' && !/[A-Za-z\u0600-\u06FF]/.test(want25.price) ? await tab.evaluate(pricePlant, want25) : null;
   // G2: check 9's forced wrong cases, after the shot (pr4.mjs, pageLabelPlant).
   const labelPlant = job.s.pr4 === 'ask' ? await tab.evaluate(pageLabelPlant) : null;
@@ -1207,7 +1210,7 @@ async function shoot(side, job) {
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant, price25, price25Plant, split24Plant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant, price25, price25Plant, split24Plant, adjacent24Plant };
 }
 
 for (const job of JOBS) {
@@ -1287,6 +1290,7 @@ for (const job of JOBS) {
       ...(r.price25?.finding ? [`price: ${r.price25.finding}`] : []),
       ...(r.price25Plant?.finding ? [`price: ${r.price25Plant.finding}`] : []),
       ...(r.split24Plant?.finding ? [`iap: ${r.split24Plant.finding}`] : []),
+      ...(r.adjacent24Plant?.finding ? [`iap: ${r.adjacent24Plant.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -1304,6 +1308,7 @@ for (const job of JOBS) {
     if (side === 'after' && r.iap24Plant?.caught) iapForced++;
     if (side === 'after' && r.price25Plant?.caught) priceForced++;
     if (side === 'after' && r.split24Plant?.caught) splitForced++;
+    if (side === 'after' && r.adjacent24Plant?.caught) adjacentForced++;
     if (side === 'after' && r.whole18Revert?.flagged) console.log(`       check 18 on d9647f5's layout (${job.name}): ${r.whole18Revert.finding}`);
     const tmin = Math.min(...r.a.text.map((t) => t.got));
     row.sides[side] = {
@@ -1386,6 +1391,8 @@ if (!priceForced) never('check 25 was never forced: no Arabic AFTER render caugh
 else console.log(`check 25 (StoreKit's price one isolate, in reading order): forced case caught on ${priceForced} AFTER render(s)`);
 if (!splitForced) never('the split-button rule was never forced: no AFTER render caught the manage button as two flex items');
 else console.log(`check 24, split-button rule (one flex item per button): forced case caught on ${splitForced} AFTER render(s)`);
+if (!adjacentForced) never('the adjacent-isolate rule was never forced: no Arabic AFTER render caught "App" + "Store" as two isolates');
+else console.log(`check 24, adjacent-isolate rule (a Latin phrase is one isolate): forced case caught on ${adjacentForced} AFTER render(s)`);
 if (!sameSeen.compared) never('check 22 compared no screen');
 else console.log(`check 22 (shell 1 and the web unchanged): ${sameSeen.same} of ${sameSeen.compared} screen(s) the same picture before and after`);
 writeFileSync(join(out, 'report.json'), JSON.stringify({ fonts: { family: FAMILY, package: '@fontsource/rubik@5.2.5', weights: WEIGHTS, files: fontHashes }, results }, null, 2) + '\n');
