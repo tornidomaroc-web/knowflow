@@ -622,7 +622,7 @@ export const en = {
       camera: {
         addMaterial: "Add a material",
         title: "Photograph your pages",
-        desc: "Photograph pages of a book or notebook, and we read their text.",
+        desc: "Snap a book or notebook and we read the text.",
         hint: "One page per photo, up to {max} pages.",
         firstPage: "Photograph the first page",
         addPage: "Add a page",
@@ -643,7 +643,7 @@ export const en = {
         problemOpen: "The photo could not be opened.",
         problemNoText: "No text was found on it.",
         problemTooLong: "Its text is too long to read in one photo.",
-        problemNotRead: "It was not read. Photograph it again.",
+        problemNotRead: "Not read. Take it again.",
         retry: "Try again",
         close: "Close",
         defaultName: "Photographed pages"

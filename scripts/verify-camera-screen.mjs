@@ -311,7 +311,7 @@ if (cam.en && cam.ar) {
   check(read('docs/copy-drafts/camera_screen.md').includes('DRAFT') && keys.every((k) => read('docs/copy-drafts/camera_screen.md').includes(`camera.${k}\``)), 'every key is listed in docs/copy-drafts/camera_screen.md as a draft');
 }
 const titleSpans = (read('src/components/upload/CameraPages.tsx') + read('src/components/upload/DropZone.tsx')).match(/<span[^>]*>\{(?:cameraLabels|labels)\.title\}<\/span>/g) || [];
-check(titleSpans.length >= 2 && titleSpans.every((s) => /whitespace-nowrap/.test(s)), '"صوّر صفحاتك" is rendered whitespace-nowrap wherever it is a title (the tile and the screen): never split');
+check(titleSpans.length >= 2 && titleSpans.every((s) => /(safeLocale|locale) === 'ar' \? 'whitespace-nowrap'/.test(s)), '"صوّر صفحاتك" is rendered whitespace-nowrap in Arabic wherever it is a title (the tile and the screen): never split (design-c check 21 measures it)');
 
 console.log(`\n${passed} passed, ${failures.length} failed`);
 if (failures.length) {

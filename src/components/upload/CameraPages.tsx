@@ -255,7 +255,7 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
             className="max-h-[92dvh] overflow-y-auto px-5 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] [text-wrap:pretty]"
           >
             <ClaySectionTitle icon={<ClayCamera width={30} height={30} />}>
-              <span data-kf-camera-title="" className="whitespace-nowrap">{labels.title}</span>
+              <span data-kf-camera-title="" className={locale === 'ar' ? 'whitespace-nowrap' : undefined}>{labels.title}</span>
             </ClaySectionTitle>
             <p className="mt-2 text-sm text-muted-foreground [text-wrap:balance]">
               {labels.hint.replace('{max}', String(MAX_PAGE_PHOTOS))}

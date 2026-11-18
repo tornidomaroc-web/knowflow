@@ -13,7 +13,10 @@ tile reuses the approved `dashboard.upload.fromDevice` and `fromDeviceDesc`.
 Rules held by `scripts/verify-camera-screen.mjs`: Modern Standard Arabic; no
 em or en dash; no price, plan, upgrade, subscription or "free" word in either
 language; Western digits only; the placeholders of each pair the same;
-"صوّر صفحاتك" never split across lines (it is rendered `white-space: nowrap`).
+"صوّر صفحاتك" never split across lines (in Arabic it is rendered
+`white-space: nowrap`; the English twins may take two balanced lines in the
+half-width sheet tile, where "A file from your device", approved, needs two at
+390 pt as well).
 
 ## Where each line appears
 
@@ -24,7 +27,7 @@ them.
 |---|---|---|---|
 | `dashboard.upload.camera.addMaterial` | أضف مادة | Add a material | the subject page's upload button, and the upload sheet's title |
 | `dashboard.upload.camera.title` | صوّر صفحاتك (approved) | Photograph your pages | the camera tile; the camera screen's title |
-| `dashboard.upload.camera.desc` | صوّر صفحات الكتاب أو الدفتر، ونقرأ نصّها. (approved) | Photograph pages of a book or notebook, and we read their text. | under the camera tile |
+| `dashboard.upload.camera.desc` | صوّر صفحات الكتاب أو الدفتر، ونقرأ نصّها. (approved) | Snap a book or notebook and we read the text. | under the camera tile |
 | `dashboard.upload.camera.hint` | صفحة واحدة في كل صورة، حتى {max} صفحات. | One page per photo, up to {max} pages. | under the screen's title |
 | `dashboard.upload.camera.firstPage` | صوّر الصفحة الأولى | Photograph the first page | the screen's big tile, no page yet |
 | `dashboard.upload.camera.addPage` | أضف صفحة | Add a page | the cell after the last page |
@@ -45,7 +48,7 @@ them.
 | `dashboard.upload.camera.problemOpen` | لم نتمكن من فتح الصورة. | The photo could not be opened. | `photo-heic`, `photo-type`, `photo-unreadable`, `photo-too-large`, `photo-too-many-pixels`, `photo-odd-shape` |
 | `dashboard.upload.camera.problemNoText` | لم نجد فيها نصًا. | No text was found on it. | `read-empty` |
 | `dashboard.upload.camera.problemTooLong` | نصّها أطول مما نقرؤه في صورة واحدة. | Its text is too long to read in one photo. | `read-cut-off` |
-| `dashboard.upload.camera.problemNotRead` | لم تكتمل قراءتها. صوّرها مرة أخرى. | It was not read. Photograph it again. | `photo-missing`, `read-timeout`, `read-failed`, `read-refused`, any other |
+| `dashboard.upload.camera.problemNotRead` | لم تكتمل قراءتها. صوّرها مرة أخرى. | Not read. Take it again. | `photo-missing`, `read-timeout`, `read-failed`, `read-refused`, any other |
 | `dashboard.upload.camera.retry` | أعد المحاولة | Try again | the send button after a failure (the photos are kept) |
 | `dashboard.upload.camera.close` | إغلاق | Close | the screen's second button |
 | `dashboard.upload.camera.defaultName` | صفحات مصوّرة | Photographed pages | the new material's name, followed by the date (`صفحات مصوّرة 2026-11-18.md`) |
