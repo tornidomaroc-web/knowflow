@@ -101,10 +101,40 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { computeTier } from '@/lib/entitlement-core';
+import { APPLE_ENTITLED_STATUSES, type AppleStatus } from '@/lib/apple-iap/rules';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Entitlement, Tier } from '@/types';
 
 const TABLE = 'subscriptions';
+
+/**
+ * PRO FROM EITHER SOURCE (iOS 1.1, item 4d). Pro bought in the iPhone app
+ * lives in `apple_subscriptions` (20261118_apple_subscriptions.sql), a table of
+ * its own so the Paddle rows and the Apple rows never share a writer. The read
+ * below takes both and keeps the rule above: Pro iff ANY row is live, and
+ * `expiresAt` is the latest live end across both sources.
+ */
+const APPLE_TABLE = 'apple_subscriptions';
+
+/** One `apple_subscriptions` row, as the entitlement read selects it. */
+export interface AppleEntitlementRow {
+  status: string | null;
+  expires_at: string | null;
+}
+
+/**
+ * An Apple row in the shape `entitlementFromRows` reads. `active` and
+ * `grace_period` become the Paddle word `active` (entitling) and every other
+ * state `expired` (not entitling), so `computeTier`'s one rule, an entitling
+ * status AND a future end, decides both sources: an Apple row whose
+ * `expires_at` has passed lapses by the clock exactly as a Paddle row does.
+ */
+export function appleRowsAsEntitlementRows(rows: AppleEntitlementRow[] | null): EntitlementRow[] {
+  return (rows ?? []).map((row) => ({
+    status: APPLE_ENTITLED_STATUSES.has(row?.status as AppleStatus) ? 'active' : 'expired',
+    current_period_end: row?.expires_at ?? null,
+  }));
+}
 
 /** The two columns entitlement is derived from. One row of the plural read. */
 export interface EntitlementRow {
@@ -170,24 +200,39 @@ export async function readEntitlement(
   supabase: SupabaseClient,
   userId: string
 ): Promise<Entitlement> {
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select('status, current_period_end')
-    .eq('user_id', userId);
+  const [paddle, apple] = await Promise.all([
+    supabase.from(TABLE).select('status, current_period_end').eq('user_id', userId),
+    supabase.from(APPLE_TABLE).select('status, expires_at').eq('user_id', userId),
+  ]);
 
   // Checked before `data`, for the reason account-deletion/paddle.ts records:
   // a read that failed and a read that found nothing are different facts, and
   // only one of them may be reported to a paying customer as "free".
-  if (error) {
+  //
+  // Each source is judged alone. A failed Apple read is logged and leaves the
+  // Paddle answer exactly as it was before Apple existed (so a missing table
+  // can never change a Paddle customer's tier), and a failed Paddle read is
+  // logged as it always was and still resolves free unless the Apple read,
+  // which did succeed, holds a live row.
+  if (apple.error) {
+    console.error('entitlement read failed (apple_subscriptions); Apple rows ignored', {
+      userId,
+      code: apple.error.code,
+      message: apple.error.message,
+    });
+  }
+  const appleRows = apple.error ? [] : appleRowsAsEntitlementRows(apple.data as AppleEntitlementRow[] | null);
+
+  if (paddle.error) {
     console.error('entitlement read failed; resolving to free', {
       userId,
-      code: error.code,
-      message: error.message,
+      code: paddle.error.code,
+      message: paddle.error.message,
     });
-    return FREE;
+    return appleRows.length > 0 ? entitlementFromRows(appleRows) : FREE;
   }
 
-  return entitlementFromRows(data as EntitlementRow[] | null);
+  return entitlementFromRows([...((paddle.data as EntitlementRow[] | null) ?? []), ...appleRows]);
 }
 
 /**

@@ -151,3 +151,9 @@
 # Proved by scripts/verify-storage-lockdown.mjs against the real Storage API,
 # starting from those five policies. Applied by hand, with the owner's yes.
 20261118_storage_lockdown_production.sql  skip:targets-storage-schema-absent-on-bare-postgres
+# 20261118_apple_subscriptions is iOS 1.1 item 4d, server half: Pro bought in
+# the iPhone app (StoreKit 2) in a table of its own, beside public.subscriptions
+# (Paddle), which it does not touch. Proved by scripts/verify-apple-subscriptions-db.mjs
+# (the VERIFY query's twelve rows, grants, RLS, both routes' writes). Applied to
+# production by hand BEFORE the merge, with the owner's yes.
+20261118_apple_subscriptions.sql  apply

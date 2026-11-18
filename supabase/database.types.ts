@@ -72,6 +72,51 @@ export type Database = {
         }
         Relationships: []
       }
+      apple_subscriptions: {
+        Row: {
+          created_at: string
+          environment: string
+          expires_at: string | null
+          id: string
+          last_notification_uuid: string | null
+          last_signed_at: string
+          last_transaction_id: string
+          original_transaction_id: string
+          product_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          environment: string
+          expires_at?: string | null
+          id?: string
+          last_notification_uuid?: string | null
+          last_signed_at: string
+          last_transaction_id: string
+          original_transaction_id: string
+          product_id: string
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          expires_at?: string | null
+          id?: string
+          last_notification_uuid?: string | null
+          last_signed_at?: string
+          last_transaction_id?: string
+          original_transaction_id?: string
+          product_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chunks: {
         Row: {
           chunk_index: number

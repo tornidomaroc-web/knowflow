@@ -6,7 +6,7 @@
  * no production contact.
  *
  * WHAT IS ASSERTED.
- *   1. THE MATRIX. For each of the 14 tables and each API role (`anon`,
+ *   1. THE MATRIX. For each of the 15 tables and each API role (`anon`,
  *      `authenticated`, `service_role`), which of SELECT, INSERT, UPDATE,
  *      DELETE the role holds, read with `has_table_privilege` by the SAME
  *      statement the production read uses (`scripts/sql/read-public-grants.sql`,
@@ -78,6 +78,7 @@ $$;`;
 const INTENDED = {
   account_deletion_orphans: { anon: '',     authenticated: '',     service_role: 'rawd' }, // 20260904
   ai_spend:                 { anon: '',     authenticated: 'r',    service_role: 'ra' },   // 20261115, append-only
+  apple_subscriptions:      { anon: '',     authenticated: 'r',    service_role: 'raw' },  // 20261118, iOS 1.1 4d
   chunks:                   { anon: 'r',    authenticated: 'rawd', service_role: 'rawd' },
   conversations:            { anon: 'r',    authenticated: 'rawd', service_role: 'rawd' },
   documents:                { anon: 'r',    authenticated: 'rawd', service_role: 'rawd' },
@@ -98,6 +99,7 @@ const ROLES = ['anon', 'authenticated', 'service_role'];
 const POLICIES = {
   account_deletion_orphans: [],
   ai_spend: ['Users can read own ai spend'],
+  apple_subscriptions: ['Users can view own apple subscription'],
   chunks: ['Users can delete own chunks', 'Users can insert own chunks', 'Users can read own chunks'],
   conversations: ['Users can manage own conversations'],
   documents: ['Users can manage own documents'],
@@ -337,7 +339,7 @@ await refused('A DELETEs study_events', () => asA.from('study_events').delete().
 await refused('A INSERTs into account_deletion_orphans (20260904)', () => asA.from('account_deletion_orphans').insert({}));
 await refused('A INSERTs into subscriptions (20261004)', () => asA.from('subscriptions').insert({ user_id: A, status: 'active' }));
 const probeRow = {
-  account_deletion_orphans: {}, ai_spend: { user_id: A, kind: 'answer', usd: 0 }, chunks: { chunk_index: 0, content: 'x' }, conversations: { user_id: A }, documents: { filename: 'x' },
+  account_deletion_orphans: {}, ai_spend: { user_id: A, kind: 'answer', usd: 0 }, apple_subscriptions: { user_id: A, status: 'active' }, chunks: { chunk_index: 0, content: 'x' }, conversations: { user_id: A }, documents: { filename: 'x' },
   knowledge_bases: { user_id: A, name: 'x' }, messages: { role: 'user', content: 'x' }, profiles: { id: A, email: 'x@example.invalid' },
   quiz_items: { question: 'x', options: ['a'], correct_index: 0, position: 0 }, quizzes: {}, study_events: { user_id: A, kind: 'quiz_submitted' },
   subscriptions: { user_id: A, status: 'active' }, usage_counters: { user_id: A }, waitlist: { email: 'anon@example.invalid' },

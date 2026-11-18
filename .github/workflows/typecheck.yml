@@ -475,6 +475,17 @@ jobs:
       - name: Verify the camera screen's encoder turns photos upright, fits them to 2300 px and writes baseline JPEG
         run: CHROME="$(command -v google-chrome)" PUPPETEER_DIR="$RUNNER_TEMP/pp" node scripts/verify-page-photo-encode.mjs
 
+      # iOS 1.1 item 4d, server half: the App Store JWS verifier (chain to a
+      # pinned Apple Root CA - G3, ES256, marker OIDs, signedDate), the
+      # purchase rules (bundle, the one product, Production or an allowlisted
+      # Sandbox account, PURCHASED, appAccountToken = the account), every
+      # notification type's state, Pro from Paddle OR Apple, and both routes
+      # refusing a test-chain JWS because they can only use Apple's root. A
+      # throwaway chain is made with openssl per run; no key is committed.
+      # The database half is the apple-iap-db job.
+      - name: Verify App Store purchases verify to Apple's pinned root only, and grant the one Pro product to the account that bought it
+        run: node --experimental-strip-types scripts/verify-apple-iap.mjs
+
   # Register #125 (the proof of #72). Drives the REAL readEntitlement through the
   # REAL supabase-js against a throwaway Postgres + PostgREST in Docker holding
   # the subscriptions table's exact definition: a paying user with two rows must
@@ -555,7 +566,7 @@ jobs:
   # and role by role, against Supabase's own postgres image (db-types' digest)
   # with every migration applied in the manifest's order, and PostgREST with a
   # JWT secret generated for the run: the declared intended-writers matrix
-  # (14 tables x anon/authenticated/service_role x SELECT/INSERT/UPDATE/DELETE)
+  # (15 tables x anon/authenticated/service_role x SELECT/INSERT/UPDATE/DELETE)
   # is asserted line for line against the SAME statement the production read
   # uses (scripts/sql/read-public-grants.sql), so a migration that creates a
   # table and forgets its REVOKE, or a REVOKE that over-reaches, goes red; the
@@ -642,3 +653,44 @@ jobs:
             fi
             echo "KF_LOCKDOWN_PLANT=$plant failed, as it must:"; grep -E '^PLANT|FAIL|passed,' "plant-$plant.log"
           done
+
+  # iOS 1.1 item 4d, server half: supabase/migrations/20261118_apple_subscriptions.sql
+  # (applied to production BY HAND before the merge) against Supabase's postgres
+  # image with every migration in the manifest's order, and PostgREST with
+  # run-only JWTs. The migration's own VERIFY query must answer its twelve
+  # rows, twice (idempotent); no student or anon write and no service-role
+  # DELETE; the REAL handlers of POST /api/apple/iap/verify and POST
+  # /api/apple/notifications (with a throwaway root injected) grant, renew,
+  # grace, retry, expire, refund, revoke, ignore unknown types, refuse forged,
+  # foreign and Sandbox-off-list data, and stay idempotent and ordered under
+  # replay and out-of-order delivery; Paddle and Apple coexist on one account
+  # with the Paddle row byte-identical. Then the same proof with the migration
+  # left out must FAIL. Its own job, NOT required (a new check proves itself
+  # on main first, as public-grants did).
+  apple-iap-db:
+    needs: detect
+    if: ${{ !cancelled() && needs.detect.outputs.code != 'no' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22.23.1
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify the Apple subscriptions table, its grants and both Apple routes' writes on real Postgres, beside Paddle
+        run: node --experimental-strip-types scripts/verify-apple-subscriptions-db.mjs
+
+      - name: The same proof must FAIL without the migration
+        run: |
+          if KF_APPLE_PLANT=skip node --experimental-strip-types scripts/verify-apple-subscriptions-db.mjs > plant-skip.log 2>&1; then
+            echo "KF_APPLE_PLANT=skip PASSED: the proof does not depend on the migration"; cat plant-skip.log; exit 1
+          fi
+          echo "KF_APPLE_PLANT=skip failed, as it must:"; grep -E 'FAIL|passed,' plant-skip.log | head -40
