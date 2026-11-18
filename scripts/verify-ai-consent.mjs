@@ -54,10 +54,13 @@ const state = {
 };
 globalThis.__aiConsentStub = state;
 
+// fix/page-photo-sweep: the routes schedule the photo sweep with after(); it is
+// proved in scripts/verify-page-photo-sweep.mjs and never run here.
 const NEXT_SERVER = `
 export const NextResponse = {
   json(body, init) { return new Response(JSON.stringify(body), { status: (init && init.status) || 200, headers: { 'content-type': 'application/json' } }); },
-};`;
+};
+export function after() {}`;
 
 const SUPABASE_STUB = `
 const S = () => globalThis.__aiConsentStub;
@@ -142,6 +145,7 @@ registerHooks({
     // The AI allowance is proved by scripts/verify-ai-allowance.mjs; here it always allows and records nothing.
     if (spec === '@/lib/ai-allowance-server') return { url: inline('export async function checkAiAllowance() { return { allowed: true }; } export async function recordAiSpend() {}'), shortCircuit: true };
     if (spec === 'next/server') return { url: inline(NEXT_SERVER), shortCircuit: true };
+    if (spec === '@/lib/page-photo-sweep') return { url: inline('export async function sweepStalePagePhotos() { return { inspected: 0, batches: 0, removed: 0 }; }'), shortCircuit: true };
     if (spec === '@anthropic-ai/sdk') return { url: inline(ANTHROPIC_STUB), shortCircuit: true };
     if (spec === '@/lib/supabase/server') return { url: inline(SUPABASE_STUB), shortCircuit: true };
     if (spec === '@/lib/rate-limit') return { url: inline(RATE_LIMIT_STUB), shortCircuit: true };

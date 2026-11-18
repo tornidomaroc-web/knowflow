@@ -80,10 +80,13 @@ globalThis.__pr = state;
 
 // ---- stubs -------------------------------------------------------------------------
 
+// fix/page-photo-sweep: the routes schedule the photo sweep with after(); it is
+// proved in scripts/verify-page-photo-sweep.mjs and never run here.
 const NEXT_SERVER = `
 export const NextResponse = {
   json(body, init) { return new Response(JSON.stringify(body), { status: (init && init.status) || 200, headers: { 'content-type': 'application/json' } }); },
-};`;
+};
+export function after() {}`;
 const ENTITLEMENT_STUB = `export async function getEntitlement() { return { tier: globalThis.__pr.tier }; }`;
 const LIMITS_STUB = `
 export async function checkDocumentLimit() { globalThis.__pr.calls.docLimit++; return { allowed: !globalThis.__pr.docLimitReached, limit: 10, tier: globalThis.__pr.tier }; }`;

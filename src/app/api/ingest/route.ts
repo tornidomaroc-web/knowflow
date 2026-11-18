@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkDocumentLimit } from '@/lib/limits-server';
 import { enforceUploadLimit } from '@/lib/rate-limit';
@@ -9,6 +9,7 @@ import { fileTooLargeMessage, subjectMaterialsMessage, uploadRefusalMessage } fr
 import { isOverUploadLimit } from '@/lib/upload-limits';
 import { checkAiAllowance } from '@/lib/ai-allowance-server';
 import { ingestMaterial, todaysKeptUploads, type IngestTrace } from '@/lib/ingest-material';
+import { sweepStalePagePhotos } from '@/lib/page-photo-sweep';
 import { fileExtension, isAllowedFileType, type FileType } from '@/types';
 
 // B5a: upload allowlist — only the formats MarkItDown handles well. Maps each
@@ -102,6 +103,11 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
+
+    // A camera batch this student abandoned (src/lib/page-photo-sweep.ts) is
+    // removed after the answer, so a student who gave up on the camera and
+    // uploads a file instead is cleaned too. It cannot change this answer.
+    after(() => sweepStalePagePhotos(user.id, null));
 
     // Apple 5.1.2(i) (src/lib/ai-consent.ts): no permission, no upload. Before
     // the document count, the usage counter and the storage upload, so a
