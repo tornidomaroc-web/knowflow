@@ -123,11 +123,12 @@ check(resources.includes('PrivacyInfo.xcprivacy in Resources'), 'and it is in th
 check(/<key>NSPrivacyTracking<\/key>\s*<false\/>/.test(manifest), 'no tracking');
 check(/<key>NSPrivacyTrackingDomains<\/key>\s*<array\/>/.test(manifest), 'no tracking domain');
 check(/<key>NSPrivacyAccessedAPITypes<\/key>\s*<array\/>/.test(manifest), 'no required-reason API declared (the audit found none)');
-for (const t of ['EmailAddress', 'Name', 'OtherUserContent', 'UserID', 'ProductInteraction', 'OtherDiagnosticData']) {
+// PhotosorVideos since the camera screen (shell 2): photos of pages, read by Anthropic, then deleted.
+for (const t of ['PhotosorVideos', 'EmailAddress', 'Name', 'OtherUserContent', 'UserID', 'ProductInteraction', 'OtherDiagnosticData']) {
   check(manifest.includes(`<string>NSPrivacyCollectedDataType${t}</string>`), `collected: ${t}`);
 }
-check((manifest.match(/<key>NSPrivacyCollectedDataTypeTracking<\/key>\s*<false\/>/g) || []).length === 6, 'none of the six is used for tracking');
-check((manifest.match(/<key>NSPrivacyCollectedDataTypeLinked<\/key>\s*<true\/>/g) || []).length === 6, 'all six are linked to the student');
+check((manifest.match(/<key>NSPrivacyCollectedDataTypeTracking<\/key>\s*<false\/>/g) || []).length === 7, 'none of the seven is used for tracking');
+check((manifest.match(/<key>NSPrivacyCollectedDataTypeLinked<\/key>\s*<true\/>/g) || []).length === 7, 'all seven are linked to the student');
 check((read('ios/App/App/Info.plist').match(/<key>[A-Za-z]*UsageDescription<\/key>/g) || []).every((k) => k === '<key>NSCameraUsageDescription</key>'), 'Info.plist carries no purpose string for the reminder (local notifications need none; the camera screen\'s NSCameraUsageDescription is the only one)');
 
 if (failures.length === 0) {
