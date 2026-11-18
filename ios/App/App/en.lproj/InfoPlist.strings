@@ -5,3 +5,6 @@
   in both languages, as Info.plist sets it.
 */
 "CFBundleDisplayName" = "KnowFlow";
+
+/* The camera screen ("Photograph your pages"). DRAFT: docs/copy-drafts/camera_screen.md. */
+"NSCameraUsageDescription" = "KnowFlow uses the camera only when you photograph pages of your book or notebook, so it can read their text.";

@@ -522,6 +522,8 @@ export const en = {
       title: "Your permission before AI reads your material",
       intro: "To answer your questions, summarise your materials and make quizzes, we send content to two AI companies:",
       anthropic: "Anthropic receives the text of your materials and your questions, and writes the answers, summaries and quizzes.",
+      // DRAFT (the camera screen, consent version 2): docs/copy-drafts/camera_screen.md.
+      photos: "When you photograph your pages, Anthropic also receives the photos, to read their text.",
       voyage: "Voyage AI receives the same text and turns it into the form our search uses to find the right passage.",
       notSent: "Neither receives your name or your email address, and neither uses your content to train its models.",
       withdrawHint: "You can withdraw this permission at any time in Settings.",
@@ -613,7 +615,39 @@ export const en = {
       leaveNote: "Large files can take a minute or two. You can leave this page; the material appears after a refresh once it finishes.",
       tryAnother: "Choose another file to try again.",
       ready: "Ready ✓",
-      error: "Error"
+      error: "Error",
+      // DRAFT (the camera screen): docs/copy-drafts/camera_screen.md. `title`
+      // and `desc` are the Arabic of the approved upload-sheet artboard; the
+      // English twins and every other line are drafts.
+      camera: {
+        addMaterial: "Add a material",
+        title: "Photograph your pages",
+        desc: "Photograph pages of a book or notebook, and we read their text.",
+        hint: "One page per photo, up to {max} pages.",
+        firstPage: "Photograph the first page",
+        addPage: "Add a page",
+        count: "{n} of {max}",
+        page: "Page {n}",
+        removePage: "Remove page {n}",
+        full: "That is {max} pages. Read these first, then photograph the rest.",
+        read: "Read the pages",
+        preparing: "Preparing the photo…",
+        uploading: "Sending the pages… {n} of {total}",
+        reading: "Reading the pages…",
+        readingNote: "This can take a minute. Keep this screen open.",
+        photoUnreadable: "We could not open this photo. Photograph the page again.",
+        uploadFailed: "The photos did not arrive. Check your connection and try again.",
+        unconfirmed: "We could not confirm that the pages were read. Refresh to see whether the material arrived, and try again if it did not.",
+        noneRead: "We could not read any page, so nothing was saved. Photograph the pages in better light and try again.",
+        someUnread: "Saved without these pages:",
+        problemOpen: "The photo could not be opened.",
+        problemNoText: "No text was found on it.",
+        problemTooLong: "Its text is too long to read in one photo.",
+        problemNotRead: "It was not read. Photograph it again.",
+        retry: "Try again",
+        close: "Close",
+        defaultName: "Photographed pages"
+      }
     }
   }
 };

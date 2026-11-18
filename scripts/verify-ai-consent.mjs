@@ -328,7 +328,13 @@ for (const [file, request] of callSites) {
   const senders = apiRoutes.filter((p) => /from '@anthropic-ai\/sdk'|from '@\/lib\/ingest-material'|embedQuery\(/.test(src(p))).sort();
   const want = ['src/app/api/agent/route.ts', 'src/app/api/ingest/route.ts', 'src/app/api/page-read/route.ts', 'src/app/api/quiz/generate/route.ts', 'src/app/api/summarize/route.ts'];
   need(JSON.stringify(senders) === JSON.stringify(want), `the routes that can reach Anthropic or Voyage AI are the five known ones (got ${senders.join(', ')})`);
-  for (const p of senders) need(/if \(!hasAiConsent\(user\)\)/.test(src(p)), `${p}: refuses without the AI permission (hasAiConsent)`);
+  // The camera screen: /api/page-read alone requires the permission whose
+  // sheet named photos (PAGE_READ_CONSENT_VERSION); every other route the
+  // first one, so nobody is asked again until they send photos.
+  for (const p of senders) {
+    const photos = p === 'src/app/api/page-read/route.ts';
+    need(photos ? /if \(!hasAiConsent\(user, PAGE_READ_CONSENT_VERSION\)\)/.test(src(p)) : /if \(!hasAiConsent\(user\)\)/.test(src(p)), `${p}: refuses without the AI permission (hasAiConsent${photos ? ', version 2' : ''})`);
+  }
 }
 const layout = src('src/app/[locale]/dashboard/layout.tsx');
 need(/<AiConsentProvider[\s\S]*initialConsented=\{hasAiConsent\(user\)\}/.test(layout), 'the dashboard layout mounts the provider with the account\'s permission');
@@ -336,13 +342,15 @@ need(/<AiConsentCard \/>/.test(src('src/app/[locale]/dashboard/settings/page.tsx
 need(/\{consentCard\}/.test(src('src/components/dashboard/SettingsPanel.tsx')), 'the Settings panel renders it');
 
 const KEYS = Object.keys(en.dashboard.aiConsent);
-need(KEYS.length === 18, `the en sheet has 18 strings (got ${KEYS.length})`);
+// 19 since the camera screen added `photos`, the sentence the version-2 sheet adds.
+need(KEYS.length === 19, `the en sheet has 19 strings (got ${KEYS.length})`);
 need(JSON.stringify(Object.keys(ar.dashboard.aiConsent)) === JSON.stringify(KEYS), 'ar has the same keys in the same order');
 for (const [dict, l] of [[en, 'en'], [ar, 'ar']]) {
   const c = dict.dashboard.aiConsent;
   need(c.anthropic.includes('Anthropic'), `${l}: the sheet names Anthropic`);
   need(c.voyage.includes('Voyage AI'), `${l}: the sheet names Voyage AI`);
   need(c.declined.includes('Anthropic') && c.declined.includes('Voyage AI'), `${l}: the refusal names both`);
+  need(c.photos.includes('Anthropic'), `${l}: the photos sentence names Anthropic`);
   need(KEYS.every((k) => typeof c[k] === 'string' && c[k].trim().length > 0), `${l}: no empty string`);
   need(KEYS.every((k) => !/\u2014/.test(c[k])), `${l}: no em dash (VISUAL_LANGUAGE)`);
 }

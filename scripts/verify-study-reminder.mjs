@@ -22,7 +22,8 @@
  * 6. The manifest: the file is in the app target's resources, declares no
  *    tracking, no required-reason API (the audit found none), and the six
  *    collected data types of the App Privacy label (docs/store/ASC_ANSWERS.md
- *    section 1); Info.plist still has no purpose string.
+ *    section 1); Info.plist has no purpose string for it (the camera's,
+ *    added by the camera screen, is the only one, and is not this feature's).
  *
  * Tier 0: no network, no credential, no app.
  *
@@ -127,7 +128,7 @@ for (const t of ['EmailAddress', 'Name', 'OtherUserContent', 'UserID', 'ProductI
 }
 check((manifest.match(/<key>NSPrivacyCollectedDataTypeTracking<\/key>\s*<false\/>/g) || []).length === 6, 'none of the six is used for tracking');
 check((manifest.match(/<key>NSPrivacyCollectedDataTypeLinked<\/key>\s*<true\/>/g) || []).length === 6, 'all six are linked to the student');
-check(!/UsageDescription/.test(read('ios/App/App/Info.plist')), 'Info.plist carries no purpose string (local notifications need none)');
+check((read('ios/App/App/Info.plist').match(/<key>[A-Za-z]*UsageDescription<\/key>/g) || []).every((k) => k === '<key>NSCameraUsageDescription</key>'), 'Info.plist carries no purpose string for the reminder (local notifications need none; the camera screen\'s NSCameraUsageDescription is the only one)');
 
 if (failures.length === 0) {
   console.log(`PASS: ${passes} checks. The reminder is the app's alone, off at 19:00, asks only at the switch, carries no purchase word; the manifest is in the target and declares what the audit found.`);

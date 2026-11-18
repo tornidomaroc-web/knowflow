@@ -6,6 +6,7 @@ import { DropZone } from '@/components/upload/DropZone'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { PlatformProvider } from '@/components/platform/PlatformProvider'
 import { resolvePlatform } from '@/lib/platform'
+import { currentShellVersion } from '@/lib/platform-server'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { emptyStats } from '@/lib/subject-stats'
 import { withSupportEmail } from '@/lib/site'
@@ -59,6 +60,9 @@ export default async function SubjectPreview({
   const sample = view === 'sample'
   const home = t.dashboard.home
   const platform = resolvePlatform(rawPlatform)
+  // The camera screen: the shell's version from the request's own user agent
+  // (KnowFlowApp/2 offers the camera), as the dashboard layout reads it.
+  const shell = platform === 'native' ? await currentShellVersion() : 0
 
   const materials: { id: string; filename: string; type: string; status: string; added: string; summary: boolean; quiz: boolean; chunk_count?: number; embedding_status?: string }[] = [
     { id: 'd1', filename: ar ? 'مبادئ-الاقتصاد-الجزئي.md' : 'Microeconomics-Principles.pdf', type: ar ? 'md' : 'pdf', status: 'ready', added: '2026-09-23T21:30:00Z', summary: true, quiz: true },
@@ -110,7 +114,7 @@ export default async function SubjectPreview({
         <span className="font-semibold text-foreground">subject · preview</span>
         <span className="text-faint">{safeLocale}</span>
       </div>
-      <PlatformProvider platform={platform}>
+      <PlatformProvider platform={platform} shell={shell}>
       <DashboardShell
         platform={platform}
         activeNav="knowledge"

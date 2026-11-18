@@ -321,7 +321,7 @@ if (has('src/lib/upload-consent.ts')) {
   check(/e\.target\.value = ''/.test(src), 'DropZone: the file input must be emptied once read, so the same file can be picked again');
   check(!/setErrorMsg\(t\.dashboard\.aiConsent\.declined\)/.test(src), 'DropZone: "Not now" must not end in the failure box');
   const prov = read('src/components/ai-consent/AiConsentProvider.tsx');
-  check(/ensure: \(held\?: \{ name: string \}\) => Promise<boolean>/.test(prov) && /data-kf-consent-file/.test(prov), 'the permission sheet must name the held file');
+  check(/ensure: \(held\?: \{ name: string \}(?: \| null)?(?:, opts\?: \{ photos\?: boolean \})?\) => Promise<boolean>/.test(prov) && /data-kf-consent-file/.test(prov), 'the permission sheet must name the held file');
 
   // The drop zone's preview states, rendered by the real component.
   globalThis.__tsxHooksParams = { locale: 'ar' };

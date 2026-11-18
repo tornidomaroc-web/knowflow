@@ -364,10 +364,10 @@ const HEIC = Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x18]), Buffer.from('
 // ---- the harness state --------------------------------------------------------------------
 
 const near = (a, b) => Math.abs(a - b) < 1e-9;
-function reset({ tier = 'free', consent = true, user = true, spent = 0, ledgerDown = false, subject = true, docLimitReached = false } = {}) {
+function reset({ tier = 'free', consent = true, consentVersion = 2, user = true, spent = 0, ledgerDown = false, subject = true, docLimitReached = false } = {}) {
   Object.assign(state, {
     tier,
-    user: user ? { id: USER, user_metadata: consent ? { ai_consent: { version: 1, at: '2026-11-01T00:00:00.000Z' } } : {} } : null,
+    user: user ? { id: USER, user_metadata: consent ? { ai_consent: { version: consentVersion, at: '2026-11-01T00:00:00.000Z' } } : {} } : null,
     subject,
     subjectDown: false,
     docLimitReached,
@@ -766,6 +766,14 @@ await attempt('the route, its order and its refusals', async () => {
   nothingSpent('no permission');
   check('no permission: the photos are deleted (single use), exactly the ten keys, once', state.calls.remove.length === 1 && JSON.stringify(state.calls.remove[0].keys) === JSON.stringify(keys) && state.objects.size === 0);
 
+  // The camera screen: a version-1 permission named text only, so the route
+  // needs the one whose sheet named photos (PAGE_READ_CONSENT_VERSION, 2).
+  reset({ consentVersion: 1 });
+  keys = await ten();
+  out = await callRoute(POST, { kb_id: KB, keys, name: 'n', locale: 'en' });
+  check('with the text-only permission (version 1): 403 ai_consent_required, the declined sentence', out.status === 403 && out.body.code === AI_CONSENT_REFUSAL && out.body.error === en.dashboard.aiConsent.declined, JSON.stringify(out.body));
+  nothingSpent('version-1 permission');
+
   // The subject.
   reset({ subject: false });
   keys = await ten();
@@ -1045,7 +1053,7 @@ await attempt('the wiring', async () => {
   check('...and the time adds up: reading ends by its 120 s deadline (each call races it), the ingestion gets the rest less a 10 s margin to answer in JSON',
     H2.PAGE_READ_DEADLINE_MS < H2.PAGE_READ_MAX_DURATION_S * 1000 - H2.PAGE_READ_ANSWER_MARGIN_MS && /signal: AbortSignal\.timeout\(Math\.max\(1000, left\)\)/.test(route) && /PAGE_READ_MAX_DURATION_S \* 1000 - PAGE_READ_ANSWER_MARGIN_MS - \(Date\.now\(\) - startedAt\)/.test(route));
   const at = (s) => route.indexOf(s);
-  const order = ['supabase.auth.getUser()', 'checkPhotoKeys(user.id', 'hasAiConsent(user)', "from('knowledge_bases')", 'checkDocumentLimit(kbId', 'checkAiAllowance(user.id, safeLocale, pageReadReserveUsd(owned.length))', 'enforceUploadLimit(user.id', 'readPagePhotos(', 'ingestMaterial('];
+  const order = ['supabase.auth.getUser()', 'checkPhotoKeys(user.id', 'hasAiConsent(user, PAGE_READ_CONSENT_VERSION)', "from('knowledge_bases')", 'checkDocumentLimit(kbId', 'checkAiAllowance(user.id, safeLocale, pageReadReserveUsd(owned.length))', 'enforceUploadLimit(user.id', 'readPagePhotos(', 'ingestMaterial('];
   const pos = order.map(at);
   check('the route\'s order: session, keys, consent, subject, subject cap, allowance with the reserve, counter, read, ingest', pos.every((x, i) => x > 0 && (i === 0 || pos[i - 1] < x)), order.map((s, i) => `${s}@${pos[i]}`).join(' '));
   const ingest = read('src/app/api/ingest/route.ts');

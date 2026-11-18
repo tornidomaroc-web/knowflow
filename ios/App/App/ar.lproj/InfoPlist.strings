@@ -5,3 +5,6 @@
   in both languages, as Info.plist sets it.
 */
 "CFBundleDisplayName" = "KnowFlow";
+
+/* شاشة الكاميرا ("صوّر صفحاتك"). مسودة: docs/copy-drafts/camera_screen.md. */
+"NSCameraUsageDescription" = "يستعمل KnowFlow الكاميرا فقط عندما تصوّر صفحات كتابك أو دفترك، ليقرأ نصّها.";
