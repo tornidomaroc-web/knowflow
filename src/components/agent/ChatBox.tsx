@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { Fragment, useState, useRef, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { buttonVariants } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -14,12 +14,15 @@ import { UserName } from '@/components/ui/UserName';
 import { NO_MATERIAL_REFUSAL, subjectUploadHref } from '@/lib/ask-material';
 import { QUESTION_TOO_LONG } from '@/lib/question-cap';
 import { AskNoAnswerableSubject } from './SubjectChips';
+import { ProOfferButton, offersPro } from '@/components/iap/ProOffer';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   citations?: Citation[];
+  /** In-app Pro, shell 2: this refusal is one Pro lifts, so the offer follows it. */
+  offer?: boolean;
 }
 
 interface ChatBoxProps {
@@ -219,10 +222,12 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
 
       if (!res.ok) {
         const body = (await res.text()).trim();
+        const offer = res.status === 429 && offersPro(res.headers.get('X-KF-Refusal'));
         setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: body || t.dashboard.agent.connectionError,
+          ...(offer ? { offer } : {}),
         }]);
         setIsLoading(false);
         return;
@@ -306,8 +311,8 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
 
       <div data-kf-thread="" data-kf-ask-fit={fit ? '' : undefined} className={`kf-well mx-2 ${fit || (compact && noMaterial && messages.length === 0) ? 'flex-none' : 'flex-1'} space-y-6 overflow-y-auto rounded-[1.25rem] p-4 md:p-6`} ref={scrollRef}>
         {messages.map((m, i) => (
+          <Fragment key={m.id}>
           <MessageBubble
-            key={m.id}
             role={m.role}
             content={m.content}
             citations={m.citations}
@@ -317,6 +322,8 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
             readingDir={safeLocale === 'ar' ? 'rtl' : 'ltr'}
             isStreaming={isLoading && m.role === 'assistant' && i === messages.length - 1}
           />
+          {m.offer && <ProOfferButton />}
+          </Fragment>
         ))}
         {messages.length === 0 && noMaterial && (
           <AskNoAnswerableSubject kind="material" href={uploadPath.href} labels={uploadPath.labels} />

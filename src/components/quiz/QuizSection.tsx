@@ -5,7 +5,8 @@ import { useParams } from 'next/navigation';
 import { buttonVariants } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
-import { readServerLimitMessage } from '@/lib/limit-messages';
+import { readRefusalCode, readServerLimitMessage } from '@/lib/limit-messages';
+import { ProOfferButton, offersPro } from '@/components/iap/ProOffer';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 import { ClayChoiceEmpty, ClayChoicePicked, ClayChoiceRight, ClayChoiceWrong, ClayDoc, ClayQuiz } from '@/components/clay/ClayIcons';
 
@@ -95,6 +96,7 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
   const [score, setScore] = useState(0);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(previewEmpty ? q.errors.notEnoughText : null);
+  const [offer, setOffer] = useState(false);
 
   // Status map for POST /api/quiz/generate. Its real set, read from the route:
   // 400 (missing document_id — unreachable from this UI), 401, 404, 409, 422,
@@ -154,6 +156,8 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
         // A 403 is the route's own consent refusal (src/lib/ai-consent.ts).
         const fromServer = res.status === 429 || res.status === 403 ? await readServerLimitMessage(res) : null;
         setError(fromServer ?? generateError(res.status));
+        // In-app Pro, shell 2: the offer under a refusal Pro lifts.
+        setOffer(res.status === 429 && offersPro(await readRefusalCode(res)));
         setPhase('idle');
         return;
       }
@@ -264,6 +268,7 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
         ) : (
           error && <p className="mt-2 text-xs text-danger">{error}</p>
         )}
+        {error && offer && <ProOfferButton />}
       </div>
     );
   }

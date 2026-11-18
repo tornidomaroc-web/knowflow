@@ -5,7 +5,8 @@ import { useParams } from 'next/navigation';
 import { buttonVariants } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
-import { readServerLimitMessage } from '@/lib/limit-messages';
+import { readRefusalCode, readServerLimitMessage } from '@/lib/limit-messages';
+import { ProOfferButton, offersPro } from '@/components/iap/ProOffer';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 import { ClaySummary } from '@/components/clay/ClayIcons';
 
@@ -33,6 +34,7 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
   const [isPartial, setIsPartial] = useState<boolean>(doc.summary_is_partial ?? false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [offer, setOffer] = useState(false);
 
   const generate = async () => {
     if (isLoading) return;
@@ -72,6 +74,8 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
         // this student's language.
         const fromServer = res.status === 429 || res.status === 403 ? await readServerLimitMessage(res) : null;
         setError(fromServer ?? msg);
+        // In-app Pro, shell 2: the offer under a refusal Pro lifts.
+        setOffer(res.status === 429 && offersPro(await readRefusalCode(res)));
         setIsLoading(false);
         return;
       }
@@ -132,6 +136,7 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
         {isLoading ? s.generating : s.generate}
       </button>
       {error && <p className="mt-2 text-xs text-danger">{error}</p>}
+      {error && offer && <ProOfferButton />}
     </div>
   );
 }

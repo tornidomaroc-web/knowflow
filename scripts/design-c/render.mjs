@@ -185,7 +185,8 @@ import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { kfWording } from '../lib/app-wording.mjs';
+import { kfWording, KF_WORDING_SRC, KF_PURCHASE_SRC } from '../lib/app-wording.mjs';
+import { iapScreens, iapCheck, iapPlant, shellOf } from './iap.mjs';
 import { audit } from '../redesign-built/audit.mjs';
 import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing, pageLabelPlant, g2Rules, latinRules, latinPlant, markerLines, markerPlant, orphanLines, orphanPlant } from './pr4.mjs';
 import { activation5Screens, a5Prepare, a5Act, askPathCheck, askPathPlant, dropZoneErrorCheck, dropZoneErrorPlant } from './activation5.mjs';
@@ -295,6 +296,8 @@ sampleScreens(add, { APP, DESK, DESKTOP }, byKeyEarly);
 android360Screens(add);
 // The camera screen (camera.mjs): shell 2, shell 1 and the web; check 22 marks the drop-zone screens above.
 cameraScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
+// In-app Pro (iap.mjs): the paywall and its entry points at shell 2; check 22 widened to every build-8 and web screen above.
+iapScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
 const KEEP = keepTogetherList(resolve('.'));
 // Check 18's protected units: the keep-together phrases, the kept names (KEEP_WHOLE) and "Anthropic".
 const KEEP18 = [...KEEP, ...[...(/KEEP_WHOLE = \[([^\]]*)\]/.exec(readFileSync(resolve('src/lib/keep-together.ts'), 'utf8'))?.[1] || '').matchAll(/'([^']+)'/g)].map((x) => x[1]), 'Anthropic'];
@@ -1007,6 +1010,8 @@ const wholeForced = {};
 const a360Forced = { stats: 0, note: 0, term: 0, chipCut: 0 };
 // Check 21 (camera.mjs): the AFTER renders whose forced case was caught; check 22: the screens compared.
 let cameraForced = 0;
+// Check 24's forced case (iap.mjs): the shell-2 AFTER renders where a planted purchase word was caught.
+let iapForced = 0;
 const sameSeen = { compared: 0, same: 0 };
 
 async function shoot(side, job) {
@@ -1141,6 +1146,11 @@ async function shoot(side, job) {
   // Check 21 (camera.mjs): who sees the camera, the sheet's two tiles, the title on one line, the pages.
   if (job.s.camera) await tab.evaluate(`window.cameraCheck = ${cameraCheck.toString()}`);
   const camera21 = job.s.camera ? await tab.evaluate(cameraCheck, job.s.camera) : null;
+  // Check 24 (iap.mjs), on EVERY render: the shell's wording rule run in the page (KF_PURCHASE_SRC):
+  // no data-kf-iap for build 8 and the web; shell 2: purchase words only inside data-kf-iap.
+  await tab.evaluate(`window.kfWording = (${KF_WORDING_SRC}); window.kfPurchase = (${KF_PURCHASE_SRC});`);
+  const iapExpect = job.s.iap || { shell: shellOf(job.s.ua) };
+  const iap24 = await tab.evaluate(iapCheck, iapExpect);
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -1162,6 +1172,8 @@ async function shoot(side, job) {
   const ring = job.s.pr4 === 'consent' ? await keyRing(tab) : null;
   // Check 21's forced case, after the shot, on AFTER (camera.mjs, cameraPlant).
   const camera21Plant = job.s.camera && job.s.camera.shell >= 2 && side === 'after' ? await tab.evaluate(cameraPlant) : null;
+  // Check 24's forced case, after the shot, on a shell-2 AFTER render (iap.mjs, iapPlant).
+  const iap24Plant = iapExpect.shell >= 2 && side === 'after' ? await tab.evaluate(iapPlant) : null;
   // G2: check 9's forced wrong cases, after the shot (pr4.mjs, pageLabelPlant).
   const labelPlant = job.s.pr4 === 'ask' ? await tab.evaluate(pageLabelPlant) : null;
   // Finding (b): check 10's forced wrong cases, after the shot (pr4.mjs, latinPlant).
@@ -1172,7 +1184,7 @@ async function shoot(side, job) {
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant };
 }
 
 for (const job of JOBS) {
@@ -1193,7 +1205,8 @@ for (const job of JOBS) {
       ...(job.locale === 'ar' ? r.a.shaping.filter((s) => !s.ok).map((s) => `shaping not joined ${s.el}`) : []),
       ...(r.a.cost.maxLayers > 3 ? [`${r.a.cost.maxLayers} shadow layers on ${r.a.cost.heaviest}`] : []),
       ...r.a.cost.filters.map((f) => `filter or backdrop-filter on ${f}`),
-      ...(job.s.native && words.length ? [`wording ${JSON.stringify(words)}`] : []),
+      // Shell 2 reads the wording rule through check 24 (purchase words allowed inside data-kf-iap only).
+      ...(job.s.native && shellOf(job.s.ua) < 2 && words.length ? [`wording ${JSON.stringify(words)}`] : []),
       ...(r.gate ? [...r.gate.apple.map((n) => `app: an Apple button "${n}"`), ...r.gate.google.map((n) => `app: a Google button "${n}"`)] : []),
       ...r.home.map((h) => `home layout: ${h}`),
       ...r.lines.map((l) => `lines: ${l}`),
@@ -1245,6 +1258,9 @@ for (const job of JOBS) {
       // Check 21 (camera.mjs), and its forced case on AFTER.
       ...(r.camera21?.finding ? [`camera: ${r.camera21.finding}`] : []),
       ...(r.camera21Plant?.finding ? [`camera: ${r.camera21Plant.finding}`] : []),
+      // Check 24 (iap.mjs), and its forced case on a shell-2 AFTER render.
+      ...(r.iap24?.finding ? [`iap: ${r.iap24.finding}`] : []),
+      ...(r.iap24Plant?.finding ? [`iap: ${r.iap24Plant.finding}`] : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -1259,6 +1275,7 @@ for (const job of JOBS) {
     if (side === 'after' && r.term20Plant?.caught) a360Forced.term++;
     if (side === 'after' && r.chipCut?.caught) a360Forced.chipCut++;
     if (side === 'after' && r.camera21Plant?.caught) cameraForced++;
+    if (side === 'after' && r.iap24Plant?.caught) iapForced++;
     if (side === 'after' && r.whole18Revert?.flagged) console.log(`       check 18 on d9647f5's layout (${job.name}): ${r.whole18Revert.finding}`);
     const tmin = Math.min(...r.a.text.map((t) => t.got));
     row.sides[side] = {
@@ -1290,6 +1307,8 @@ for (const job of JOBS) {
       ...(r.note20 ? { signupNote: { ...r.note20, ...(r.note20Plant ? { forcedCaught: r.note20Plant.caught } : {}), ...(r.term20Plant ? { termForcedCaught: r.term20Plant.caught } : {}) } } : {}),
       ...(r.chipCut ? { chipCutForcedCaught: r.chipCut.caught } : {}),
       ...(r.camera21 ? { camera: { expect: job.s.camera, ...r.camera21.measured, finding: r.camera21.finding, ...(r.camera21Plant ? { forced: r.camera21Plant.forced, forcedCaught: r.camera21Plant.caught ?? null } : {}) } } : {}),
+      // Check 24 (iap.mjs): read on every render, reported where a screen asked for it or found something.
+      ...(r.iap24 && (job.s.iap || r.iap24.finding) ? { iap: { expect: job.s.iap ?? null, ...r.iap24.measured, finding: r.iap24.finding, ...(r.iap24Plant ? { forcedCaught: r.iap24Plant.caught } : {}) } } : {}),
       ...(job.s.native ? { app: { appleButtons: r.gate.apple.length, googleButtons: r.gate.google.length, purchaseWords: words } } : {}),
     };
     console.log(`${side === 'after' && bad.length ? 'FAIL' : 'ok  '} ${side.padEnd(6)} ${job.name}: theme ${r.theme}, ${r.fonts.loaded.length} static faces, text worst ${tmin.toFixed(2)}:1, ${bad.length} finding(s)`);
@@ -1332,6 +1351,8 @@ for (const [k, what] of [['stats', "check 19 (one bottom for a stat row's number
 }
 if (!cameraForced) never('check 21 was never forced: no AFTER render caught the camera title let wrap');
 else console.log(`check 21 (the camera title on one line): forced case caught on ${cameraForced} AFTER render(s)`);
+if (!iapForced) never('check 24 was never forced: no shell-2 AFTER render caught a purchase word outside data-kf-iap');
+else console.log(`check 24 (purchase words only inside data-kf-iap in shell 2): forced case caught on ${iapForced} AFTER render(s)`);
 if (!sameSeen.compared) never('check 22 compared no screen');
 else console.log(`check 22 (shell 1 and the web unchanged): ${sameSeen.same} of ${sameSeen.compared} screen(s) the same picture before and after`);
 writeFileSync(join(out, 'report.json'), JSON.stringify({ fonts: { family: FAMILY, package: '@fontsource/rubik@5.2.5', weights: WEIGHTS, files: fontHashes }, results }, null, 2) + '\n');

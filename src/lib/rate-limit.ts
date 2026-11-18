@@ -95,7 +95,18 @@ export interface LimitResult {
   count?: number;
   status?: 429 | 503;
   error?: string;
+  /**
+   * `daily-limit` on a refusal by the day's cap (never on the burst guard,
+   * the failed-uploads refusal or a 503). Read by the app's refusal surfaces
+   * in shell 2 to put the Pro offer under the message (src/components/iap/
+   * ProOffer.tsx); the routes send it as `code` (JSON) or `X-KF-Refusal`
+   * (the agent's text). The message itself is unchanged.
+   */
+  code?: typeof DAILY_LIMIT_REFUSAL;
 }
+
+/** The stable code of a refusal by the day's cap. */
+export const DAILY_LIMIT_REFUSAL = 'daily-limit';
 
 /**
  * Enforce burst + daily limits for `kind` and atomically record the usage.
@@ -150,6 +161,7 @@ export async function enforceLimit(
       allowed: false,
       status: 429,
       error: dailyLimitMessage(locale, kind, cap, tier, nextDailyReset(), new Date(), platform),
+      code: DAILY_LIMIT_REFUSAL,
     };
   }
 
@@ -182,6 +194,7 @@ export async function enforceUploadLimit(
     error: reason === 'failures'
       ? uploadFailuresMessage(locale, nextDailyReset(), new Date())
       : dailyLimitMessage(locale, 'upload', cap, tier, nextDailyReset(), new Date(), platform),
+    ...(reason === 'failures' ? {} : { code: DAILY_LIMIT_REFUSAL }),
   });
 
   const kept = await keptToday().catch(() => null);

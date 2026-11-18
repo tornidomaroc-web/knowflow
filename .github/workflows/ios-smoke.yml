@@ -276,6 +276,11 @@ jobs:
             {"name":"wording-baseline","wait":500,"js":"(function(){return location.pathname})()"},
             {"name":"wording-plant","wait":500,"js":"(function(){var p=document.createElement('p');p.id='kf-plant';p.textContent='Upgrade to our Pro plan · انتقل إلى باقتك واشتراكك';document.body.appendChild(p);return 'planted'})()"},
             {"name":"wording-unplant","wait":500,"js":"(function(){var p=document.getElementById('kf-plant');if(p){p.remove()}return p?'removed':'none'})()"},
+            {"name":"iap-plant-marked","wait":500,"js":"(function(){var d=document.createElement('div');d.id='kf-iap-plant';d.setAttribute('data-kf-iap','plant');d.textContent='Subscribe to Pro for $9.99 a month · اشترك في الاحترافي';document.body.appendChild(d);return 'planted marked'})()"},
+            {"name":"iap-plant-link","wait":500,"js":"(function(){var d=document.getElementById('kf-iap-plant');var a=document.createElement('a');a.href='/en/pricing';a.textContent='kf-iap-link';d.appendChild(a);return 'planted link inside the marked element'})()"},
+            {"name":"iap-unplant","wait":500,"js":"(function(){var d=document.getElementById('kf-iap-plant');if(d){d.remove()}return d?'removed':'none'})()"},
+            {"name":"store-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfStore='waiting';if(!C||!C.nativePromise){window.__kfStore='no bridge';return window.__kfStore}C.nativePromise('KnowFlowStore','products',{ids:['com.knowflow.app.pro.monthly']}).then(function(r){window.__kfStore=JSON.stringify(r)},function(e){window.__kfStore='rejected: '+String(e&&e.message||e)});return 'called products'})()"},
+            {"name":"store-read","wait":8000,"js":"(function(){return String(window.__kfStore)})()"},
             {"name":"live-terms","until":"/en/terms$","wait":4000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
             {"name":"dashboard-direct","until":"/(en|ar)/(signup|login)$","wait":3000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard');return 'assigned /'+l+'/dashboard'})()"},
             {"name":"live-refund","until":"/en/refund$","wait":4000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
@@ -305,7 +310,9 @@ jobs:
           # 600 s: Step Wording-1 added eight readings (the planted proof and the
           # live signed-out pages), about 18 s each with the acknowledgement;
           # at 300 s the loop ended mid-run on 2026-10-12 (run 38264230960).
-          for i in $(seq 1 600); do
+          # 720 s: in-app Pro added five readings (the plugin's call and the
+          # shell-2 wording plants), about 18 s each.
+          for i in $(seq 1 720); do
             f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
             if [ "$n" -gt "$seen" ]; then
               seen=$n
@@ -472,6 +479,23 @@ jobs:
           need(isinstance(WB, list), f"7. the probe reports its word list in the app: {WB}")
           need(isinstance(WP, list) and {"plan", "upgrade", "pro", "\u0628\u0627\u0642\u0629", "\u0627\u0634\u062a\u0631\u0627\u0643"} <= set(WP), f"7. a planted plan, upgrade, Pro, باقتك and اشتراكك sentence is caught in the web view: {WP}")
           need(WU == WB, f"7. ...and with it removed the reading is the baseline again: {WU} vs {WB}")
+          # In-app Pro (iOS 1.1, item 4d), the ONE stated purpose of this run for
+          # the plugin: the shell builds and launches with KnowFlowStore, and the
+          # bridge reaches it from a page of the live site (no purchase is made:
+          # `products` only asks StoreKit for the product, which a simulator
+          # without a StoreKit configuration answers with none).
+          need(L.get("store") is True, f"9. the KnowFlowStore plugin is registered in the shell: store={L.get('store')}")
+          SR = str(by.get("store-read", {}).get("result", ""))
+          need(SR.startswith('{"products":') or SR.startswith('{"message":'), f"9. ...and it answers a call from a page of tryknowflow.com: {SR[:160]}")
+          # The shell-2 wording rule (scripts/lib/app-wording.mjs, KF_PURCHASE_SRC):
+          # purchase words inside an element marked data-kf-iap are not hits in
+          # shell 2, and a pricing link is a hit even there.
+          IM = (by.get("iap-plant-marked", {}).get("probe", {}).get("purchase") or {})
+          IL = (by.get("iap-plant-link", {}).get("probe", {}).get("purchase") or {})
+          IU = (by.get("iap-unplant", {}).get("probe", {}).get("purchase") or {})
+          need(IM.get("words") == WB and (IM.get("marked") or 0) >= 1 and IM.get("outside") is False, f"9. shell 2: purchase words inside data-kf-iap are not counted: {IM}")
+          need("/en/pricing" in (IL.get("hrefs") or []), f"9. ...but a pricing link inside data-kf-iap still is: {IL.get('hrefs')}")
+          need(IU.get("words") == WB and (IU.get("hrefs") or []) == (by.get("wording-baseline", {}).get("probe", {}).get("purchase") or {}).get("hrefs"), f"9. ...and with it removed the reading is the baseline again: {IU}")
           # The live signed-out pages the app reaches, read with the new rule.
           # REPORTED here, not failed: this run reads the deployed site, which
           # carries the old copy until the pull request merges; the signed-in

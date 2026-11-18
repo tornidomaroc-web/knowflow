@@ -37,7 +37,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { installTsxHooks } from './lib/tsx-hooks.mjs';
-import { KF_WORDING_SRC, kfWording } from './lib/app-wording.mjs';
+import { KF_PURCHASE_SRC, KF_WORDING_SRC, kfWording } from './lib/app-wording.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 const failures = [];
@@ -62,7 +62,11 @@ for (const s of MUST_PASS) check(kfWording(s).length === 0, `the rule wrongly hi
   const swift = readFileSync(resolvePath(ROOT, 'ios/App/App/MainViewController.swift'), 'utf8');
   const embedded = KF_WORDING_SRC.replace(/\\/g, '\\\\');
   check(swift.includes(embedded), 'MainViewController.swift does not embed KF_WORDING_SRC verbatim (backslashes doubled): the in-app probe and this proof would read differently');
-  check(/purchase:\{words:kfWording\(T\)/.test(swift), 'the in-app probe does not report kfWording(T) as purchase.words, so ios-signed-in.yml would not fail on a hit');
+  // In-app Pro: the probe reports kfPurchase (KF_PURCHASE_SRC, the shell-2
+  // rule), whose `words` are kfWording over the page's text outside
+  // data-kf-iap; it must embed those bytes too.
+  check(swift.includes(KF_PURCHASE_SRC.replace(/\\/g, '\\\\')),'MainViewController.swift does not embed KF_PURCHASE_SRC verbatim: the in-app probe and the proofs would read the shell-2 rule differently');
+  check(/purchase:kfPurchase\(document,shellN\)/.test(swift), 'the in-app probe does not report kfPurchase(document, shell) as purchase, so ios-signed-in.yml would not fail on a hit');
 }
 
 // ── 3. Every app-reachable surface, rendered as the app renders it ───────────
@@ -237,6 +241,7 @@ const GATED = {
   'dashboard.settings.deleteAccount.billingNote': 'only with a cancellable subscription row (deletionWouldCancelBilling)',
   'dashboard.settings.deleteAccount.errorBillingCanceled': 'only after a deletion that cancelled a subscription (api/account, stage orphaned)',
   'dashboard.settings.deleteAccount.errorSubscriptionElsewhere': 'only when billing rows cannot be cancelled here (api/account, stage billing-unverifiable)',
+  'dashboard.iap.': 'in-app Pro: shell 2 only (iapAllowed), inside an element marked data-kf-iap (KF_PURCHASE_SRC); the App Store manage lines (R1, R2) only for an account with an Apple row; proven by scripts/verify-iap-app.mjs',
 };
 const gateFor = (key) => Object.entries(GATED).find(([k]) => (k.endsWith('.') ? key.startsWith(k) : key === k));
 const leaves = (o, p = [], out = []) => {

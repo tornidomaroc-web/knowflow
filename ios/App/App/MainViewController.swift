@@ -38,6 +38,13 @@ class MainViewController: CAPBridgeViewController {
     private var pageColour: NSKeyValueObservation?
 
     override open func capacitorDidLoad() {
+        // In-app Pro (iOS 1.1, item 4d): the StoreKit 2 plugin that lives in
+        // this target (KnowFlowStore.swift), registered the way Capacitor
+        // documents a local plugin, in every build. Its Transaction.updates
+        // listener starts here, at launch.
+        let store = KnowFlowStorePlugin()
+        bridge?.registerPluginInstance(store)
+        store.startListening()
         if let webView = bridge?.webView {
             pageColour = webView.observe(\.underPageBackgroundColor, options: [.initial, .new]) { webView, _ in
                 webView.scrollView.backgroundColor = webView.underPageBackgroundColor
@@ -125,12 +132,20 @@ private final class Smoke {
     // drift. Arabic is matched by normalised stem, so باقتك and اشتراكك count.
     // The workflows fail on any hit.
     //
+    // In-app Pro (iOS 1.1, item 4d): the reading is `kfPurchase`, the same
+    // file's KF_PURCHASE_SRC, also byte for byte. From shell 2 the words are
+    // read with every element marked `data-kf-iap` hidden (the paywall and its
+    // entry points, the only place purchase words may stand); in shell 1 any
+    // marked element is itself a hit (`outside`); a pricing, checkout, Paddle
+    // or upgrade link is a hit everywhere. `store` says whether the
+    // KnowFlowStore plugin answers in this web view.
+    //
     // Before anything is read or photographed, every leaf element whose text
     // is an e-mail address is masked to "[email]": the workflow screenshots
     // the screen right after each probe, and the Settings screen shows the
     // account's address, which must not reach a public artifact.
     private static let probe = """
-    (function(){try{var C=window.Capacitor;Array.prototype.slice.call(document.querySelectorAll('p,span,div,a,b,strong')).forEach(function(el){if(el.children.length===0&&/\\S+@\\S+\\.\\S+/.test(el.textContent||'')){el.textContent='[email]'}});var T=(document.body&&document.body.innerText||'');function kfWording(T){var h=[];var E=[['plan',/\\bplans?\\b/i],['subscription',/\\bsubscri(?:be|bed|bes|ber|bers|bing|ption|ptions)\\b/i],['upgrade',/\\bupgrad(?:e|es|ed|ing)\\b/i],['premium',/\\bpremium\\b/i],['pro',/\\bpro\\b/i],['price',/\\bpric(?:e|es|ed|ing)\\b/i],['free',/\\bfree\\b/i],['checkout',/\\bcheck-?out\\b/i],['currency',/\\$\\s?\\d|\\d\\s?(?:usd|eur|mad|dhs?|dirhams?)\\b|\\/\\s?mo(?:nth)?\\b|\\bper month\\b/i]];for(var i=0;i<E.length;i++){if(E[i][1].test(T))h.push(E[i][0])}var N=T.replace(/[ً-ٰٟـ]/g,'').replace(/[آأإٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي');var A=[['باقة',/باق[هتا]/],['اشتراك',/اشترا?ك/],['ترقية',/ترقي[هت]/],['مجاني',/مجان/],['سعر',/سعر|اسعار/],['احترافي',/احتراف/],['خطة',/(?:^|[^ء-ي])(?:ال|و|ب|ف|ل)?خط[هت]/],['شهريا',/شهريا/]];for(var j=0;j<A.length;j++){if(A[j][1].test(N))h.push(A[j][0])}return h}var hrefs=Array.prototype.slice.call(document.querySelectorAll('a[href]')).map(function(a){return a.getAttribute('href')||''}).filter(function(h){return /pricing|checkout|paddle|upgrade/i.test(h)});return JSON.stringify({ready:document.readyState,href:location.href,title:document.title,bridge:!!(C&&C.isNativePlatform&&C.isNativePlatform()),platform:(C&&C.getPlatform)?C.getPlatform():null,marker:/KnowFlowApp\\/\\d/.test(navigator.userAgent),shell:((navigator.userAgent.match(/KnowFlowApp\\/(\\d+)/)||[])[1]||null),google:document.querySelectorAll('[fill="#4285F4"]').length,pricing:document.querySelectorAll('a[href*="/pricing"]').length,nav:window.__kfNav||0,signedIn:!!document.querySelector('a[href$="/dashboard/settings"]'),purchase:{words:kfWording(T),hrefs:hrefs},text:T.replace(/\\s+/g,' ').slice(0,400)})}catch(e){return JSON.stringify({error:String(e)})}})()
+    (function(){try{var C=window.Capacitor;Array.prototype.slice.call(document.querySelectorAll('p,span,div,a,b,strong')).forEach(function(el){if(el.children.length===0&&/\\S+@\\S+\\.\\S+/.test(el.textContent||'')){el.textContent='[email]'}});var T=(document.body&&document.body.innerText||'');function kfWording(T){var h=[];var E=[['plan',/\\bplans?\\b/i],['subscription',/\\bsubscri(?:be|bed|bes|ber|bers|bing|ption|ptions)\\b/i],['upgrade',/\\bupgrad(?:e|es|ed|ing)\\b/i],['premium',/\\bpremium\\b/i],['pro',/\\bpro\\b/i],['price',/\\bpric(?:e|es|ed|ing)\\b/i],['free',/\\bfree\\b/i],['checkout',/\\bcheck-?out\\b/i],['currency',/\\$\\s?\\d|\\d\\s?(?:usd|eur|mad|dhs?|dirhams?)\\b|\\/\\s?mo(?:nth)?\\b|\\bper month\\b/i]];for(var i=0;i<E.length;i++){if(E[i][1].test(T))h.push(E[i][0])}var N=T.replace(/[ً-ٰٟـ]/g,'').replace(/[آأإٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي');var A=[['باقة',/باق[هتا]/],['اشتراك',/اشترا?ك/],['ترقية',/ترقي[هت]/],['مجاني',/مجان/],['سعر',/سعر|اسعار/],['احترافي',/احتراف/],['خطة',/(?:^|[^ء-ي])(?:ال|و|ب|ف|ل)?خط[هت]/],['شهريا',/شهريا/]];for(var j=0;j<A.length;j++){if(A[j][1].test(N))h.push(A[j][0])}return h}function kfPurchase(D,S){var M=D.querySelectorAll('[data-kf-iap]');var B=D.body;var T='';if(B){if(S>=2&&M.length){var k=[];for(var i=0;i<M.length;i++){k.push(M[i].style.getPropertyValue('display'));M[i].style.setProperty('display','none','important')}T=B.innerText;for(var j=0;j<M.length;j++){if(k[j]){M[j].style.setProperty('display',k[j])}else{M[j].style.removeProperty('display')}}}else{T=B.innerText}}var H=[];var A=D.querySelectorAll('a[href]');for(var n=0;n<A.length;n++){var h=A[n].getAttribute('href')||'';if(/pricing|checkout|paddle|upgrade/i.test(h))H.push(h)}return{words:kfWording(T),hrefs:H,marked:M.length,outside:S<2&&M.length>0}}var shellN=+(((navigator.userAgent.match(/KnowFlowApp\\/(\\d+)/)||[])[1])||0);return JSON.stringify({ready:document.readyState,href:location.href,title:document.title,bridge:!!(C&&C.isNativePlatform&&C.isNativePlatform()),platform:(C&&C.getPlatform)?C.getPlatform():null,marker:/KnowFlowApp\\/\\d/.test(navigator.userAgent),shell:((navigator.userAgent.match(/KnowFlowApp\\/(\\d+)/)||[])[1]||null),google:document.querySelectorAll('[fill="#4285F4"]').length,pricing:document.querySelectorAll('a[href*="/pricing"]').length,nav:window.__kfNav||0,signedIn:!!document.querySelector('a[href$="/dashboard/settings"]'),purchase:kfPurchase(document,shellN),store:!!(C&&C.isPluginAvailable&&C.isPluginAvailable('KnowFlowStore')),text:T.replace(/\\s+/g,' ').slice(0,400)})}catch(e){return JSON.stringify({error:String(e)})}})()
     """
 
     private func waitForPage(attempt: Int) {

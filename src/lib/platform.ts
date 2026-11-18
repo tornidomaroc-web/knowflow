@@ -137,6 +137,29 @@ export function cameraAllowed(shellVersion: number): boolean {
 }
 
 /**
+ * THE FIRST SHELL THAT MAY SELL PRO (iOS 1.1, item 4d, app half). Build 9 is
+ * the 1.1 submission and carries the camera AND the in-app purchase, so the
+ * gate is the camera's: `KnowFlowApp/2`. Build 8 (`KnowFlowApp/1`, 1.0 on the
+ * App Store) has no StoreKit code and must never be shown a paywall, and the
+ * web never is (it sells through Paddle on /pricing).
+ *
+ * LIKE THE CAMERA, THIS ADDS A CONTROL, AND THE SHELL VERSION IS NOT ENOUGH ON
+ * ITS OWN. The Android shell sends `KnowFlowApp/2` too, and Google Play's
+ * billing rules forbid offering Apple's purchase there (there is none to
+ * offer). So every purchase control also hides itself unless the native
+ * `KnowFlowStore` plugin answers in this web view (`src/lib/iap/bridge.ts`),
+ * and that plugin exists only in the iOS shell. A forged `KnowFlowApp/2` in a
+ * browser therefore gains nothing: no plugin, no button, and the server grants
+ * Pro only to a signed Apple transaction (`/api/apple/iap/verify`).
+ */
+export const IAP_SHELL_VERSION = 2;
+
+/** Whether this shell may be offered Pro through the App Store: shell 2 on. Never the web. */
+export function iapAllowed(shellVersion: number): boolean {
+  return Number.isInteger(shellVersion) && shellVersion >= IAP_SHELL_VERSION;
+}
+
+/**
  * Whether the Google sign-in button may be shown. Hidden in the app until
  * native sign-in ships (STORE_PATH.md S1): Google refuses OAuth inside an
  * embedded web view, so the button would only fail there.

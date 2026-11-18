@@ -208,6 +208,20 @@ jobs:
       - name: Verify the app shows no plan, subscription, upgrade, price or free wording (Step Wording-1)
         run: node --experimental-strip-types scripts/verify-app-wording.mjs
 
+      # In-app Pro, the app half (iOS 1.1, item 4d): shell 2 only; finish() only
+      # after the server's 200; the paywall in every state; R1 and R2; the
+      # shell-2 wording rule (purchase words only inside data-kf-iap) with its
+      # forced cases; the native plugin registered. The planted run comes first
+      # and MUST fail: a purchase word outside data-kf-iap on shell 2 Settings.
+      - name: Verify the in-app Pro proof fails on a purchase word outside data-kf-iap (in-app Pro)
+        run: |
+          if KF_IAP_PLANT=1 node --experimental-strip-types scripts/verify-iap-app.mjs; then
+            echo "the planted word was NOT caught: the shell-2 wording rule is blind"; exit 1
+          fi
+          echo "planted word caught, as it must be"
+      - name: Verify in-app Pro (paywall, StoreKit flow, R1, R2, shell 2 only)
+        run: node --experimental-strip-types scripts/verify-iap-app.mjs
+
       # Register #96, corrected: viewport-fit=cover is declared and every fixed bar
       # accounts for its safe-area inset.
       - name: Verify the iPhone safe areas are declared and used (register #96)

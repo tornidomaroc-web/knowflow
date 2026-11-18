@@ -14,6 +14,7 @@ import { uploadRefusalMessage } from '@/lib/limit-messages';
 import { parseUploadReply } from '@/lib/upload-limits';
 import { AI_CONSENT_REFUSAL } from '@/lib/ai-consent';
 import { PAGES_UNREAD } from '@/lib/page-reader';
+import { ProOfferButton, offersPro } from '@/components/iap/ProOffer';
 import {
   MAX_PAGE_PHOTOS,
   materialName,
@@ -88,6 +89,7 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
   const [pages, setPages] = useState<Page[]>(() => (preview ? previewPages(preview) : []));
   const [phase, setPhase] = useState<Phase>('idle');
   const [message, setMessage] = useState<string | null>(preview?.message === 'noneRead' ? labels.noneRead : null);
+  const [offer, setOffer] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { ensure } = useAiConsent();
@@ -105,6 +107,7 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
     const room = MAX_PAGE_PHOTOS - pages.length;
     if (room <= 0) return;
     setMessage(null);
+    setOffer(false);
     setPhase('preparing');
     const { reencodePagePhoto } = await import('@/lib/page-photo-encode');
     const added: Page[] = [];
@@ -134,12 +137,14 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
       return prev.filter((p) => p.id !== id);
     });
     setMessage(null);
+    setOffer(false);
   };
 
   const send = async () => {
     if (preview || pages.length === 0 || busy) return;
     const photos = pages.map((p) => p.blob).filter((b): b is Blob => b !== null);
     setMessage(null);
+    setOffer(false);
     setPages((prev) => prev.map((p) => ({ ...p, problem: undefined })));
 
     // Apple 5.1.2(i): the permission that names photos, before a byte leaves.
@@ -224,6 +229,8 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
     // 400, 401, 403, 404, 422 (too much text), 429, 500, 503: the route's own
     // sentence, already in the student's language and fit for the app.
     setMessage(typeof reply?.error === 'string' && reply.error ? reply.error : labels.unconfirmed);
+    // In-app Pro, shell 2: the offer under a refusal Pro lifts.
+    setOffer(result.status === 429 && offersPro(reply?.code));
   };
 
   const problemText = (p: PhotoProblem) =>
@@ -336,6 +343,7 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
                 <LatinText text={keepTogether(message)} />
               </p>
             )}
+            {message && offer && <ProOfferButton />}
 
             {(phase === 'uploading' || phase === 'reading') && (
               <div role="status" aria-live="polite" className="mt-3">

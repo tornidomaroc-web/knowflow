@@ -30,7 +30,8 @@
  *     AI allowance added dashboard.aiAllowance.used, a DRAFT wired for review,
  *     docs/copy-drafts/ai_monthly_allowance.md; 481 after the camera screen
  *     added the 27 of dashboard.upload.camera and dashboard.aiConsent.photos,
- *     approved 2026-11-18 in app v11).
+ *     approved 2026-11-18 in app v11; 515 after in-app Pro added the 34 of
+ *     dashboard.iap, a DRAFT wired for review, docs/copy-drafts/iap_app_v1.md).
  *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
  *     ruling that removed it. Its rows stay in the batch files, which are the
  *     owner's approved record and are never edited; they are read and checked
@@ -166,7 +167,7 @@ console.error(`${approved.size} keys asserted, ${superseded} earlier rows supers
   const onlyEn = [...E.keys()].filter((k) => !A.has(k)).sort();
   check(onlyAr.join() === [...pluralOnly].sort().join(), `keys only in ar.ts: ${onlyAr.join(', ') || '(none)'}; expected the four plural forms`);
   check(onlyEn.length === 0, `keys missing from ar.ts: ${onlyEn.join(', ')}`);
-  check(A.size === 481, `ar.ts has ${A.size} leaves, expected 481`);
+  check(A.size === 515, `ar.ts has ${A.size} leaves, expected 515`);
 }
 
 // 3. Placeholders on every key.

@@ -50,6 +50,12 @@ export interface SettingsPanelProps {
   reminderCard?: ReactNode;
   consentCard?: ReactNode;
   subscriptionCard?: ReactNode;
+  /**
+   * In-app Pro (iOS 1.1, item 4d): the app's offer card, shell 2 and a free
+   * account only (the page decides), in the plan card's place. It renders
+   * nothing until the StoreKit plugin answers (src/components/iap/ProOffer.tsx).
+   */
+  proOfferCard?: ReactNode;
   deleteCard: ReactNode;
   /**
    * Step Redesign-2: the sign-out row in the Account card. The app has no top
@@ -81,6 +87,7 @@ export function SettingsPanel({
   reminderCard,
   consentCard,
   subscriptionCard,
+  proOfferCard,
   deleteCard,
   signOutRow,
 }: SettingsPanelProps) {
@@ -160,6 +167,8 @@ export function SettingsPanel({
           )}
         </Card>
         )}
+
+        {!isPro && !upgradeHref && proOfferCard}
 
         {/* ── Preferences (design "C", PR 2, Prefs.dc.html): the clay sliders and
             the section's name, then each choice as two equal options in a

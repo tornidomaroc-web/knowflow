@@ -11,6 +11,8 @@ import { currentPlatform, currentShellVersion } from '@/lib/platform-server';
 import { PlatformProvider } from '@/components/platform/PlatformProvider';
 import { AiConsentProvider } from '@/components/ai-consent/AiConsentProvider';
 import { hasAiConsent, PAGE_READ_CONSENT_VERSION } from '@/lib/ai-consent';
+import { iapAllowed } from '@/lib/platform';
+import { IapProvider } from '@/components/iap/IapProvider';
 
 export default async function DashboardLayout({
   children,
@@ -83,7 +85,15 @@ export default async function DashboardLayout({
           labels={t.dashboard.passwordReplaced}
         />
       )}
-      {children}
+      {/* In-app Pro (iOS 1.1, item 4d): shell 2 on only. The web and build 8
+          render the tree they rendered before, with no provider at all. */}
+      {iapAllowed(shell) ? (
+        <IapProvider userId={user.id} offer={!isPro} locale={safeLocale} offerLabel={t.dashboard.iap.offerButton}>
+          {children}
+        </IapProvider>
+      ) : (
+        children
+      )}
     </DashboardShell>
     </AiConsentProvider>
     </PlatformProvider>

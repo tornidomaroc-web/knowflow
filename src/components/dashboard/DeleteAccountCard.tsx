@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button, Card, Input } from '@/components/ui';
 import { ClayBin } from '@/components/clay/ClayIcons';
 import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
@@ -38,6 +38,12 @@ export interface DeleteAccountCardProps {
    * caller can forget it; an account without one never reads the word.
    */
   showBillingNote: boolean;
+  /**
+   * R2 (Apple 5.1.1(v); #337): deleting the account does not cancel an App
+   * Store subscription. The page hands the line in only while Apple may still
+   * bill this account (src/components/iap/AppStoreManage.tsx).
+   */
+  appleNote?: ReactNode;
 }
 
 /**
@@ -54,7 +60,7 @@ export interface DeleteAccountCardProps {
  * input rather than beside the final button, where it would arrive after the
  * decision has already been made.
  */
-export function DeleteAccountCard({ labels, homeHref, showBillingNote }: DeleteAccountCardProps) {
+export function DeleteAccountCard({ labels, homeHref, showBillingNote, appleNote }: DeleteAccountCardProps) {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState(false);
@@ -145,6 +151,7 @@ export function DeleteAccountCard({ labels, homeHref, showBillingNote }: DeleteA
       <p className="mb-2 text-sm font-medium text-danger">{labels.permanentWarning}</p>
       <p className="mb-1 text-xs text-muted-foreground">{labels.whatIsRemoved}</p>
       {showBillingNote ? <p className="mb-4 text-xs text-muted-foreground">{labels.billingNote}</p> : null}
+      {appleNote ?? null}
 
       {error && (
         <p role="alert" className="mb-4 text-sm font-medium text-danger">

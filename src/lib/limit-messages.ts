@@ -503,6 +503,24 @@ export async function readServerLimitMessage(res: Response): Promise<string | nu
   }
 }
 
+/**
+ * A refusal's stable code: `code` in a JSON body, or the `X-KF-Refusal` header
+ * (the agent's text/plain answers). Null when there is none. In-app Pro reads
+ * it to put the Pro offer under a refusal Pro lifts (`daily-limit`,
+ * `ai-allowance-used`; src/components/iap/ProOffer.tsx).
+ */
+export async function readRefusalCode(res: Response): Promise<string | null> {
+  const header = res.headers?.get?.('X-KF-Refusal');
+  if (header) return header;
+  try {
+    const body = await res.clone().json();
+    const code = (body as { code?: unknown })?.code;
+    return typeof code === 'string' && code ? code : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Burst guard. Not a quota: the student is fine, they are just too fast. */
 export const TOO_FAST: Record<Locale, string> = {
   en: 'You are sending requests too quickly. Please wait a moment and try again.',

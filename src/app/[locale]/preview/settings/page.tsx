@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import type React from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { SettingsPanel } from '@/components/dashboard/SettingsPanel'
@@ -11,6 +12,11 @@ import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { SUPPORT_EMAIL, withSupportEmail } from '@/lib/site'
 import { formatDate } from '@/lib/format-date'
+import { iapAllowed } from '@/lib/platform'
+import { currentShellVersion } from '@/lib/platform-server'
+import { IapProvider } from '@/components/iap/IapProvider'
+import { ProOfferCard } from '@/components/iap/ProOffer'
+import { AppStoreDeleteNote, AppStoreManageCard } from '@/components/iap/AppStoreManage'
 
 /**
  * DESIGN PREVIEW for Settings (register #46), the same idea as
@@ -22,6 +28,13 @@ import { formatDate } from '@/lib/format-date'
  * `?platform=native` shows the plan card as the store build renders it, with
  * no purchase link (Apple 3.1.1(a)). The two cards below are client components
  * that only talk to the server when clicked, so they are safe to look at.
+ *
+ * In-app Pro (iOS 1.1, item 4d): with the app's user agent at shell 2
+ * (`KnowFlowApp/2`) the page draws what shell 2 draws, as if the StoreKit
+ * plugin answered: a free account gets the Pro offer card. `?plan=apple` is a
+ * Pro bought in the app (R1: the App Store manage card instead of the Paddle
+ * cancel card; R2: the delete card's App Store line), on every shell. Every
+ * URL that existed before draws exactly what it drew.
  */
 export const metadata: Metadata = {
   title: 'Settings: design preview',
@@ -48,8 +61,11 @@ export default async function SettingsPreview({
   const s = t.dashboard.settings
 
   const { plan, platform, theme, reminder } = await searchParams
-  const isPro = plan === 'pro'
+  const apple = plan === 'apple'
+  const isPro = plan === 'pro' || apple
   const native = platform === 'native'
+  // Shell 2 only, from the request's own user agent (the dashboard's reading).
+  const iap = native && iapAllowed(await currentShellVersion())
   const otherLocale: Locale = safeLocale === 'ar' ? 'en' : 'ar'
   const qs = (o: Record<string, string>) =>
     new URLSearchParams({ plan: isPro ? 'pro' : 'free', platform: native ? 'native' : 'web', theme: theme ?? 'dark', ...o }).toString()
@@ -86,11 +102,12 @@ export default async function SettingsPreview({
       </div>
 
       <PlatformProvider platform={native ? 'native' : 'web'}>
+      <MaybeIap on={iap} locale={safeLocale} offerLabel={t.dashboard.iap.offerButton}>
       <DashboardShell locale={safeLocale} email="student@example.com" isPro={isPro} labels={labels} activeNav="settings" platform={native ? 'native' : 'web'}>
         <SettingsPanel
           email="student@example.com"
           isPro={isPro}
-          renewsOn={isPro ? renewsOn : null}
+          renewsOn={isPro && !apple ? renewsOn : null}
           cancelsOn={null}
           upgradeHref={native ? null : `/${safeLocale}/pricing`}
           locale={safeLocale}
@@ -129,15 +146,29 @@ export default async function SettingsPreview({
           // in the page's language ("7:00 م" / "7:00 pm") beside the picker.
           reminderCard={native ? <StudyReminderCard labels={t.dashboard.studyReminder} locale={safeLocale} preview={reminder === 'on' ? 'on' : 'off'} /> : null}
           subscriptionCard={
-            isPro ? (
+            apple ? (
+              <AppStoreManageCard labels={t.dashboard.iap} />
+            ) : isPro ? (
               <CancelSubscriptionCard labels={withSupportEmail(s.cancelSubscription)} accessUntil={renewsOn} alreadyScheduled={false} />
             ) : null
           }
+          proOfferCard={iap && !isPro ? <ProOfferCard title={t.dashboard.iap.title} body={t.dashboard.iap.offerBody} button={t.dashboard.iap.offerButton} /> : undefined}
           signOutRow={<SignOutButton locale={safeLocale} label={t.dashboard.nav.signOut} variant="row" />}
-          deleteCard={<DeleteAccountCard homeHref={`/${safeLocale}`} showBillingNote={isPro} labels={withSupportEmail(s.deleteAccount)} />}
+          deleteCard={<DeleteAccountCard homeHref={`/${safeLocale}`} showBillingNote={isPro && !apple} labels={withSupportEmail(s.deleteAccount)} appleNote={apple ? <AppStoreDeleteNote labels={t.dashboard.iap} /> : undefined} />}
         />
       </DashboardShell>
+      </MaybeIap>
       </PlatformProvider>
     </div>
+  )
+}
+
+/** Shell 2's provider, as the dashboard layout mounts it; a bare fragment otherwise. */
+function MaybeIap({ on, locale, offerLabel, children }: { on: boolean; locale: string; offerLabel: string; children: React.ReactNode }) {
+  if (!on) return <>{children}</>
+  return (
+    <IapProvider userId="00000000-0000-4000-8000-000000000000" offer locale={locale} offerLabel={offerLabel} preview>
+      {children}
+    </IapProvider>
   )
 }

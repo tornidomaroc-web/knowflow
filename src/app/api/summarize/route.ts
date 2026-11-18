@@ -177,7 +177,7 @@ export async function POST(request: Request) {
 
     const limit = await enforceLimit(user.id, 'summary', lang, platformFromRequest(request));
     if (!limit.allowed) {
-      return NextResponse.json({ error: limit.error }, { status: limit.status });
+      return NextResponse.json({ error: limit.error, code: limit.code }, { status: limit.status });
     }
 
     // Long-document handling: single pass within the input cap. If the source is
