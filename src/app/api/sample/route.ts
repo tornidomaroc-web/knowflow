@@ -51,11 +51,14 @@ export const runtime = 'nodejs';
  * THE STORED FILE (storage insert lockdown, stage 1): the PDF is uploaded and,
  * on a failure, removed by the server with the service role
  * (src/lib/document-storage-server.ts), after the key and the subject are
- * proved the caller's. It used to go up with the student's session, which may
- * insert and read in the bucket (002_storage.sql) but not delete, so a failure
- * after the upload left the file behind; the removal is now real and checked,
- * and a file it could not remove is logged as `kf-storage-left`. Every
- * database row is still written with the student's session under RLS.
+ * proved the caller's. It used to go up with the student's session, and the
+ * rollback did not remove it, so a failure after the upload left the file
+ * behind; the removal is now real, with the service role, and checked, and a
+ * file it could not remove is logged as `kf-storage-left`. (The student's own
+ * DELETE is not used: production's hand-made policy allowed any own object,
+ * and after 20261118_storage_lockdown_production.sql it allows own
+ * page-photos only, never this file.) Every database row is still written
+ * with the student's session under RLS.
  *
  * Two requests at the same instant can both pass step 3 and create two
  * samples (accepted in the plan, section 5: the button disables on press and

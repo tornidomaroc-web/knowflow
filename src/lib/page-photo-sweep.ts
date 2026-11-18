@@ -4,10 +4,13 @@
  * WHY. The app uploads a batch of photos to `{userId}/page-photos/{batchId}/`
  * and then calls POST /api/page-read, which deletes them whatever happens. If
  * that POST never arrives (the app killed, the network gone, a client bug),
- * the photos stay: the student cannot delete them (002_storage.sql grants
- * storage INSERT and SELECT only) and nothing else removes them. Account
- * deletion does (src/lib/account-deletion/storage.ts walks the whole user
- * folder), but only then.
+ * the photos stay. The student's session could delete them (production has
+ * had a hand-made "Users delete own files" policy on any own object;
+ * 20261118_storage_lockdown_production.sql narrows it to
+ * {own uid}/page-photos/), but an app that never sent its POST will not send
+ * a delete either, and nothing else removes them. Account deletion does
+ * (src/lib/account-deletion/storage.ts walks the whole user folder), but
+ * only then.
  *
  * WHY NOT A CRON. GitHub drops most scheduled runs on this repository, and a
  * cron would need the service-role key as a repository secret. This sweep

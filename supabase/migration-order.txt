@@ -133,4 +133,21 @@
 # storage schema, which the bare postgres image leaves empty (storage-api
 # creates it). Proved instead by scripts/verify-storage-lockdown.mjs against
 # the real Storage API. Applied by hand ONLY after the stage 1 code is live.
-20261118_storage_insert_lockdown.sql  skip:targets-storage-schema-absent-on-bare-postgres
+# SUPERSEDED, NEVER APPLIED, NEVER TO BE APPLIED: production turned out to have
+# five storage.objects policies, three made by hand and absent from this folder
+# (the owner's read-only read, 2026-11-18). This file drops only one of the two
+# student INSERT policies, so the other kept the unlimited direct upload open,
+# and it leaves the hand-made student DELETE of any own object. Kept, unchanged,
+# because it was merged (#334); the CI proof applies it as a planted failure.
+20261118_storage_insert_lockdown.sql  skip:superseded-never-applied-see-20261118_storage_lockdown_production
+# 20261118_storage_lockdown_production is the storage lockdown, stage 2, for the
+# policies production really has: BOTH student INSERT policies dropped and one
+# camera-only INSERT ({own uid}/page-photos/{uuid}/{name}, at most 100); the
+# hand-made DELETE of any own object replaced by a DELETE of own page-photos
+# only; the hand-made duplicate SELECT dropped; the bucket's file_size_limit
+# 25 MiB. Its header records production's five policies as they were before it
+# (a comment, so it cannot reopen anything). Nothing in public. `skip`: it
+# targets the storage schema, which the bare postgres image leaves empty.
+# Proved by scripts/verify-storage-lockdown.mjs against the real Storage API,
+# starting from those five policies. Applied by hand, with the owner's yes.
+20261118_storage_lockdown_production.sql  skip:targets-storage-schema-absent-on-bare-postgres

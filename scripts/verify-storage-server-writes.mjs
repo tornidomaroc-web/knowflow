@@ -5,12 +5,14 @@
  * after the checks the session used to imply have passed on the server.
  *
  * WHY. supabase/migrations/002_storage.sql lets a signed-in student INSERT any
- * object whose first path segment is their id. /api/ingest and /api/sample
- * used that policy, so it could not be narrowed, and the same policy let a
- * student call the Storage API directly and store unlimited objects of any
- * size under their prefix, which nothing removes (no delete policy). Stage 2
- * (supabase/migrations/20261118_storage_insert_lockdown.sql, applied by hand
- * AFTER this code is live) narrows the student's INSERT to camera photos.
+ * object whose first path segment is their id (production has a hand-made
+ * twin). /api/ingest and /api/sample used that policy, so it could not be
+ * narrowed, and the same policy let a student call the Storage API directly
+ * and store unlimited objects of any size under their prefix. Stage 2
+ * (supabase/migrations/20261118_storage_lockdown_production.sql, applied by
+ * hand; it supersedes the never-applied 20261118_storage_insert_lockdown.sql)
+ * narrows the student's INSERT to camera photos and their DELETE to their own
+ * page-photos.
  *
  * WHAT IS ASSERTED.
  *   1. ingestMaterial (src/lib/ingest-material.ts, shared by /api/ingest and
@@ -25,8 +27,9 @@
  *      sentence with NOTHING written (no upload of either kind, no row).
  *   3. /api/sample, driven for real: the PDF is uploaded by the service client
  *      with { upsert: false, contentType: 'application/pdf' } at the normal
- *      key; a failure after the upload REMOVES the file (it could not before:
- *      a student has no delete policy), the row and the subject it made.
+ *      key; a failure after the upload REMOVES the file (it did not before:
+ *      the rollback never removed the session's upload), the row and the
+ *      subject it made.
  *   4. The module's key rule: the first segment must be the caller, the second
  *      the subject, then a document id and one flat name; nothing else.
  *   5. THE GUARD: no file under src/ writes to storage (upload, remove, move,

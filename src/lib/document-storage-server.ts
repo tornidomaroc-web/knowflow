@@ -3,14 +3,19 @@
  * (Storage insert lockdown, stage 1. Proof: scripts/verify-storage-server-writes.mjs.)
  *
  * supabase/migrations/002_storage.sql lets a signed-in student INSERT any
- * object whose first path segment is their own id. /api/ingest, /api/page-read
- * (through `ingestMaterial`) and /api/sample used that policy with the
- * student's session, so it could not be narrowed, and the same policy let
- * anyone signed in call the Storage API directly and store unlimited objects
- * of any size under their prefix, which nothing removed (students have no
- * delete policy). Stage 2 (supabase/migrations/20261118_storage_insert_lockdown.sql,
- * applied by hand once this code is live) narrows the student's INSERT to the
- * camera's `{uid}/page-photos/{uuid}/{name}` keys.
+ * object whose first path segment is their own id, and production also has a
+ * hand-made INSERT policy to the same effect. /api/ingest, /api/page-read
+ * (through `ingestMaterial`) and /api/sample used them with the student's
+ * session, so they could not be narrowed, and they let anyone signed in call
+ * the Storage API directly and store unlimited objects of any size under
+ * their prefix. Production's hand-made DELETE policy also let a student
+ * delete any own object, a material's stored file included, leaving its row
+ * pointing at nothing. Stage 2
+ * (supabase/migrations/20261118_storage_lockdown_production.sql, applied by
+ * hand; it supersedes the never-applied 20261118_storage_insert_lockdown.sql)
+ * drops both INSERT policies for one that admits only the camera's
+ * `{uid}/page-photos/{uuid}/{name}` keys, and narrows the student's DELETE to
+ * their own page-photos.
  *
  * So the bytes now go up with the service role, and what the session's policy
  * used to guarantee is checked here first, on the server, before any write:

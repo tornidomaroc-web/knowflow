@@ -5,8 +5,10 @@
  *
  * WHY IT EXISTS. A camera batch whose POST /api/page-read never arrives (the
  * app killed, the network gone) leaves photos at
- * `{userId}/page-photos/{batchId}/…` that the student cannot delete
- * (002_storage.sql has no delete policy) and nothing else removes. The sweep
+ * `{userId}/page-photos/{batchId}/…` that an app which never sent its POST
+ * will not delete either (the student's own DELETE, narrowed to page-photos
+ * by 20261118_storage_lockdown_production.sql, is not relied on) and nothing
+ * else removes. The sweep
  * removes the CALLER'S OWN stale batches, server side, whenever the caller
  * reaches either route.
  *

@@ -18,9 +18,11 @@
  *      (src/lib/page-photo-image.ts). The raw bytes are let go as soon as the
  *      photo is ready, so a request holds about three raw photos at most.
  *   3. The photos removed from storage, before the long part, with the
- *      service role (students have no storage delete policy, 002_storage.sql),
- *      and the removal checked rather than assumed: storage answers a path it
- *      did not delete with nothing, not with an error.
+ *      service role, which no policy limits (the student's own DELETE, any
+ *      own object on production today and own page-photos only after
+ *      20261118_storage_lockdown_production.sql, is not relied on), and the
+ *      removal checked rather than assumed: storage answers a path it did
+ *      not delete with nothing, not with an error.
  *   4. Reading, at most PAGE_READ_CONCURRENCY pages at once. Each call's own
  *      time limit is what is left of the deadline, so the SDK never abandons
  *      a slow page and sends it again; its retries are left for answers that
