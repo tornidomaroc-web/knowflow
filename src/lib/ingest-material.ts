@@ -29,6 +29,7 @@ import { recordStudyEvent } from '@/lib/study-events';
 import { reportedTokens, uploadEmbedSpend, voyageUsd } from '@/lib/ai-allowance';
 import { recordAiSpend } from '@/lib/ai-allowance-server';
 import { documentStorageKey } from '@/lib/storage-key';
+import { storeOwnDocumentFile } from '@/lib/document-storage-server';
 import type { FileType } from '@/types';
 
 /** The student's session client, as both routes create it (`@/lib/supabase/server`). */
@@ -133,16 +134,22 @@ export async function ingestMaterial(input: {
   // one somehow were not, and the key is stored on the row
   // (`documents.storage_path`) so nothing has to recompute it. The name part is
   // still B4's path-traversal fix (`@/lib/storage-key`).
+  //
+  // Storage insert lockdown, stage 1: the file is uploaded by the SERVER with
+  // the service role (`storeOwnDocumentFile`), after the key and the subject
+  // are proved the caller's, so the student's own storage INSERT policy can be
+  // narrowed to camera photos (stage 2). A subject that is not the caller's
+  // used to pass the storage policy (it checks only the first segment) and
+  // fail at the documents insert below, leaving a file with no row; now it is
+  // refused before anything is written, with the same answer as before.
   const documentId = crypto.randomUUID();
   const filePath = documentStorageKey(user.id, kbId, documentId, file.name);
-  const { error: storageError } = await supabase.storage
-    .from('documents')
-    .upload(filePath, file, { upsert: false });
+  const stored = await storeOwnDocumentFile({ session: supabase, userId: user.id, kbId, key: filePath, body: file });
 
-  if (storageError) {
+  if (!stored.ok) {
     // #111: the storage error text is logged, not shown; a student cannot act
     // on it, and it can name internals.
-    console.error('Storage upload failed:', storageError.message);
+    console.error('Storage upload failed:', stored.message);
     return NextResponse.json(
       { success: false, error: uploadRefusalMessage(safeLocale, 'nothing-saved') },
       { status: 500 }

@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import { checkKBLimit } from '@/lib/limits-server';
 import { AI_CONSENT_REFUSAL, aiConsentRefusalMessage, hasAiConsent } from '@/lib/ai-consent';
 import { resolveLocale, useTranslation as dictionaryFor, type Locale } from '@/lib/i18n';
-import { DOCUMENTS_BUCKET, documentStorageKey } from '@/lib/storage-key';
+import { documentStorageKey } from '@/lib/storage-key';
+import { removeOwnDocumentFile, storeOwnDocumentFile } from '@/lib/document-storage-server';
 import { sampleData } from '@/lib/sample-file-data';
 import {
   SAMPLE_FAILED,
@@ -23,8 +24,8 @@ export const runtime = 'nodejs';
 /**
  * POST /api/sample: THE SAMPLE FILE (audit cause 9, docs/plans/sample-file.md).
  *
- * Everything is written with the STUDENT'S OWN SESSION under RLS; there is no
- * service role here. Nothing is sent to the ingestion service, to Voyage AI or
+ * Every row is written with the STUDENT'S OWN SESSION under RLS; the stored
+ * PDF alone goes through the server's storage module (below). Nothing is sent to the ingestion service, to Voyage AI or
  * to Anthropic, `/api/ingest` is not called and no usage counter is
  * incremented: the chunks and their embeddings are the committed ones.
  *
@@ -44,13 +45,17 @@ export const runtime = 'nodejs';
  *     (ready, `is_sample`), and the chunks in one insert.
  *
  * A failure after the subject exists removes what this request created (the
- * document row, whose delete cascades to its chunks, and the subject if this
- * request made it) and answers 500 `sample_failed`. THE STORED FILE CANNOT BE
- * REMOVED HERE: a student's session may insert and read in the bucket
- * (supabase/migrations/002_storage.sql) but not delete, so a failure after
- * the upload can leave one 10 to 17 KB file with no row, the gap register
- * #111 already records for /api/ingest. The removal is still attempted, so it
- * starts working the day a policy allows it.
+ * document row, whose delete cascades to its chunks, the stored file, and the
+ * subject if this request made it) and answers 500 `sample_failed`.
+ *
+ * THE STORED FILE (storage insert lockdown, stage 1): the PDF is uploaded and,
+ * on a failure, removed by the server with the service role
+ * (src/lib/document-storage-server.ts), after the key and the subject are
+ * proved the caller's. It used to go up with the student's session, which may
+ * insert and read in the bucket (002_storage.sql) but not delete, so a failure
+ * after the upload left the file behind; the removal is now real and checked,
+ * and a file it could not remove is logged as `kf-storage-left`. Every
+ * database row is still written with the student's session under RLS.
  *
  * Two requests at the same instant can both pass step 3 and create two
  * samples (accepted in the plan, section 5: the button disables on press and
@@ -132,16 +137,17 @@ export async function POST(request: Request) {
     }
 
     // 5. From here on a failure undoes what this request created.
+    const subjectId: string = kbId;
     const documentId = crypto.randomUUID();
-    const storagePath = documentStorageKey(user.id, kbId, documentId, filename);
+    const storagePath = documentStorageKey(user.id, subjectId, documentId, filename);
     let uploaded = false;
     let documentInserted = false;
     const undo = async (step: string, message: string | undefined) => {
       console.error(`Sample: ${step} failed:`, message);
       if (documentInserted) await supabase.from('documents').delete().eq('id', documentId);
-      // Refused by the bucket's policies today (see the header); attempted anyway.
-      if (uploaded) await supabase.storage.from(DOCUMENTS_BUCKET).remove([storagePath]);
-      if (subjectCreated) await supabase.from('knowledge_bases').delete().eq('id', kbId);
+      // With the service role, and checked; a file left behind is logged (see the header).
+      if (uploaded) await removeOwnDocumentFile(user.id, subjectId, storagePath);
+      if (subjectCreated) await supabase.from('knowledge_bases').delete().eq('id', subjectId);
       return NextResponse.json({ success: false, code: SAMPLE_FAILED }, { status: 500 });
     };
 
@@ -152,10 +158,15 @@ export async function POST(request: Request) {
       return undo('reading the committed PDF', e instanceof Error ? e.message : String(e));
     }
 
-    const { error: storageError } = await supabase.storage
-      .from(DOCUMENTS_BUCKET)
-      .upload(storagePath, pdf, { upsert: false, contentType: 'application/pdf' });
-    if (storageError) return undo('the storage upload', storageError.message);
+    const stored = await storeOwnDocumentFile({
+      session: supabase,
+      userId: user.id,
+      kbId: subjectId,
+      key: storagePath,
+      body: pdf,
+      contentType: 'application/pdf',
+    });
+    if (!stored.ok) return undo('the storage upload', stored.message);
     uploaded = true;
 
     const { error: docError } = await supabase

@@ -126,3 +126,11 @@
 # then add, in one transaction); scripts/verify-public-grants.mjs section 6
 # asserts the result. It must run after 20261115, which sets the older check.
 20261116_ai_spend_page_read.sql  apply
+# 20261118 is the storage insert lockdown, stage 2: the student's INSERT policy
+# on storage.objects narrowed to {own uid}/page-photos/{uuid}/{name} with at
+# most 100 such objects, and the documents bucket's file_size_limit set to
+# 25 MiB. Nothing in public. `skip`: like 002_storage.sql it targets the
+# storage schema, which the bare postgres image leaves empty (storage-api
+# creates it). Proved instead by scripts/verify-storage-lockdown.mjs against
+# the real Storage API. Applied by hand ONLY after the stage 1 code is live.
+20261118_storage_insert_lockdown.sql  skip:targets-storage-schema-absent-on-bare-postgres

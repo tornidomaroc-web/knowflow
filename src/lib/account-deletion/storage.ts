@@ -12,9 +12,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * reason is mechanical rather than stylistic: a Postgres trigger can only
  * `DELETE FROM storage.objects`, which removes the METADATA ROW. The bytes live
  * in the storage backend and are removed by the Storage API, which is what the
- * upload path already uses (the `.upload(...)` call in `src/lib/ingest-material.ts`,
- * shared by /api/ingest and /api/page-read since the page reader; it was in
- * `api/ingest/route.ts` before).
+ * upload path already uses (`storeOwnDocumentFile` in
+ * `src/lib/document-storage-server.ts`, with the service role since the storage
+ * insert lockdown, called from `src/lib/ingest-material.ts` for /api/ingest and
+ * /api/page-read and from /api/sample).
  * A trigger cannot call that API, so it could only ever orphan the files it
  * claimed to delete -- precisely the failure this module exists to prevent.
  *

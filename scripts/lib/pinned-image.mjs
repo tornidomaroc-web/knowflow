@@ -45,6 +45,9 @@ export const SOURCES = {
   'supabase/postgres-meta': ['mirror.gcr.io/supabase/postgres-meta', 'public.ecr.aws/supabase/postgres-meta', 'docker.io/supabase/postgres-meta'],
   'postgrest/postgrest': ['mirror.gcr.io/postgrest/postgrest', 'public.ecr.aws/supabase/postgrest', 'docker.io/postgrest/postgrest'],
   postgres: ['mirror.gcr.io/library/postgres', 'public.ecr.aws/docker/library/postgres', 'docker.io/library/postgres'],
+  // fix/storage-server-writes (scripts/verify-storage-lockdown.mjs): v1.89.5,
+  // sha256:da559326…; all three served that digest on 2026-11-18.
+  'supabase/storage-api': ['mirror.gcr.io/supabase/storage-api', 'public.ecr.aws/supabase/storage-api', 'docker.io/supabase/storage-api'],
 };
 
 const ROUNDS = 3;
