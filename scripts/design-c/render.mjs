@@ -318,6 +318,10 @@ const KNOWN = [
   // wording stays in the app) and the App Store lines (R1; R2 is Apple 5.1.1(v))
   // name the subscription. Build 8 cannot buy, so only such an account sees this.
   { screen: /-settings-apple-app1$/, finding: /^wording \[/, why: 'build 8, Pro bought in build 9: Pro-only management wording (owner ruling) and the 5.1.1(v) line' },
+  // #338 review renders (design-c 44380662481): the Ask bubble breaks "الذكاء / الاصطناعي" in the Arabic AI-allowance
+  // refusal on EVERY shell, main included (BEFORE shows it). ChatBox does not keep-together a refusal; fixing it changes
+  // the web and build 8 picture, which this PR must keep byte-identical, so it is the owner's call (report, follow-up).
+  { screen: /^ar-(light|dark)-refusal-ask-allowance-(app1|app2|app2-360|web)$/, finding: /^pr4: the phrase "الذكاء الاصطناعي" splits across/, why: 'pre-existing on main: ChatBox does not keep-together the refusal sentence; fix proposed, owner decides (shell 1 and the web stay byte-identical here)' },
 ];
 
 const JOBS = [];

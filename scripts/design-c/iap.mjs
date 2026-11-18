@@ -64,7 +64,8 @@ export const DEFAULT_PRICE = '$9.99';
 /** Other storefronts' displayPrice shapes (check 25), drawn in the ready paywall. */
 export const PRICE_SHAPES = [['eur', '9,99 €'], ['us-prefix', 'US$9.99'], ['sar', '٣٫٦٧ ر.س.'], ['mad', 'MAD 99.00']];
 /** The states that draw a price (the per-month line and the 3.1.2 disclosure). */
-const PRICE_STATES = STATES.filter((s) => !['loading', 'unavailable', 'pro-apple', 'pro-web'].includes(s));
+// 'success' draws the Pro status card, not the price card (design-c 44380662481 flagged it when listed here).
+const PRICE_STATES = STATES.filter((s) => !['loading', 'unavailable', 'success', 'pro-apple', 'pro-web'].includes(s));
 
 /**
  * THE REFUSALS PRO LIFTS (#338 review): where they are drawn, which code the
