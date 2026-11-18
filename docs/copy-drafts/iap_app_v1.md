@@ -1,6 +1,12 @@
-# In-app Pro, app half: strings (DRAFT, NOT APPROVED, WIRED FOR REVIEW)
+# In-app Pro, app half: strings (SUPERSEDED)
 
-**Status: DRAFT for the owner, 2026-11-18.** Every string below is wired into
+**Superseded 2026-11-18.** The owner approved a shorter set instead of these
+drafts: `docs/copy/ARABIC_STRINGS_app_v12.md` holds every approved key in
+Arabic and English, and `src/lib/i18n/locales/en.ts` and `ar.ts` carry it.
+The strings below are the earlier drafts, kept as the record of what was
+reviewed; none of them ships.
+
+**Status was: DRAFT for the owner, 2026-11-18.** Every string below was wired into
 `dashboard.iap` in `src/lib/i18n/locales/en.ts` and `ar.ts` so the screens
 can be drawn and proved. None is approved until the owner says so; an approved
 change is one edit here and one in each dictionary, and

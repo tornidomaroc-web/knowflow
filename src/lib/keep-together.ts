@@ -12,7 +12,10 @@
  * "من App Store" joined in the owner's review of #338 at 69f160f (2026-11-18):
  * at 390 pt the Arabic delete note (dashboard.iap.deleteNote) ended a line on
  * "من" and began the next with "App Store". The no-break space sits between
- * "من" and the left-to-right isolate LatinText draws "App Store" in.
+ * "من" and the left-to-right isolate LatinText draws "App Store" in. The
+ * shorter set the owner approved the same day (docs/copy/ARABIC_STRINGS_app_v12.md)
+ * no longer says "من App Store"; the entry stays as a guard for the next
+ * string that does, and scripts/verify-iap-app.mjs proves it on a planted note.
  *
  * scripts/design-c/pr4.mjs reads this list (KEEP_TOGETHER) and fails a render
  * on which any of these phrases spans two lines.

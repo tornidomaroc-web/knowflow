@@ -227,7 +227,7 @@ if (PW && i18n && PP && IP && flow && F) {
       if (price && !pro && state !== 'success') {
         if (!disclosure) bad.push('no 3.1.2 disclosure');
         const d = L.disclosure.split('{price}').join('$9.99');
-        if (!t.includes(text(d).slice(0, 40))) bad.push('the disclosure text is not shown with the StoreKit price');
+        if (!squash(t).includes(squash(text(d)).slice(0, 40))) bad.push('the disclosure text is not shown with the StoreKit price');
         if (!t.includes(L.pricePerMonth.split('{price}')[0].trim() || '$9.99')) bad.push('no price per month');
       }
       if (!price && (html.includes('data-kf-paywall-price') || disclosure)) bad.push('a price or disclosure without a StoreKit price');
@@ -283,7 +283,11 @@ if (PT && DCI && PW && i18n) {
     check(KT.KEEP_TOGETHER.includes('من App Store'), 'keep-together lists "من App Store"');
     const note = renderToStaticMarkup(shell2(h(AMk.AppStoreDeleteNote, { labels: arL }), { locale: 'ar' }));
     // 3e40b56 drew "من Store App": the no-break space inside "App Store" cut it into two isolates (latin-groups RUN).
-    check(/من <bdi dir="ltr"[^>]*>App[  ]Store<\/bdi>/.test(note) && !/<\/bdi>[\s ]*<bdi/.test(note), 'the Arabic delete note draws "من" + no-break space + ONE "App Store" isolate (not two)');
+    // The approved v12 note (2026-11-18) no longer says "من App Store", so the real note is held to ONE
+    // isolate and the keep-together guard is proved on a planted note: the approved one plus " من App Store".
+    check(/<bdi dir="ltr"[^>]*>App[  ]Store<\/bdi>/.test(note) && !/<\/bdi>[\s ]*<bdi/.test(note), 'the Arabic delete note draws ONE "App Store" isolate (not two)');
+    const planted = renderToStaticMarkup(shell2(h(AMk.AppStoreDeleteNote, { labels: { ...arL, deleteNote: `${arL.deleteNote} من App Store` } }), { locale: 'ar' }));
+    check(/من <bdi dir="ltr"[^>]*>App[  ]Store<\/bdi>/.test(planted) && !/<\/bdi>[\s ]*<bdi/.test(planted), 'planted: a note ending "من App Store" draws "من" + no-break space + ONE "App Store" isolate (not two)');
     check(/<button[^>]*data-kf-iap-manage[^>]*><span>[^]*?<\/span><\/button>/.test(note), 'the delete note\'s Manage button: its label is one span');
   }
   // The refusal sentences design-c answers in the page are the routes' own (iap.mjs, REFUSALS).
@@ -347,9 +351,9 @@ if (SP && DC && CC && PO && AM && i18n && site) {
     // R1.
     const cancel = h(CC.CancelSubscriptionCard, { labels: site.withSupportEmail(s.cancelSubscription), accessUntil: '25 Oct', alreadyScheduled: false });
     const appleWeb = renderToStaticMarkup(h(PP.PlatformProvider, { platform: 'web' }, panel({ isPro: true, upgradeHref: `/${locale}/pricing`, native: false, sub: h(AM.AppStoreManageCard, { labels: iapL }) })));
-    check(appleWeb.includes('data-kf-apple-manage') && text(appleWeb).includes(text(iapL.manageWeb).slice(0, 30)) && !appleWeb.includes('data-kf-iap-manage') && !appleWeb.includes(text(s.cancelSubscription.openButton)), `${locale}: R1 on the web, Apple-only Pro: the App Store line as plain text, no button, no Paddle cancel card`);
+    check(appleWeb.includes('data-kf-apple-manage') && squash(text(appleWeb)).includes(squash(text(iapL.manageWeb)).slice(0, 30)) && !appleWeb.includes('data-kf-iap-manage') && !appleWeb.includes(text(s.cancelSubscription.openButton)), `${locale}: R1 on the web, Apple-only Pro: the App Store line as plain text, no button, no Paddle cancel card`);
     const appleApp2 = renderToStaticMarkup(shell2(panel({ isPro: true, sub: h(AM.AppStoreManageCard, { labels: iapL }) }), { locale }));
-    check(/data-kf-iap="manage"/.test(appleApp2) && appleApp2.includes('data-kf-iap-manage') && text(appleApp2).includes(text(iapL.manageApp).slice(0, 30)), `${locale}: R1 in shell 2: the card is marked and carries Manage in the App Store`);
+    check(/data-kf-iap="manage"/.test(appleApp2) && appleApp2.includes('data-kf-iap-manage') && squash(text(appleApp2)).includes(squash(text(iapL.manageApp)).slice(0, 30)), `${locale}: R1 in shell 2: the card is marked and carries Manage in the App Store`);
     // Shell 2, a Pro account (Apple, or Paddle with its cancel card and billing line): the plan card's
     // status and the subscription cards are purchase management, marked, so the page is clean.
     for (const [who, sub] of [['Apple', h(AM.AppStoreManageCard, { labels: iapL })], ['Paddle', cancel]]) {
@@ -501,8 +505,14 @@ if (i18n) {
   check(!all.some((v) => /—/.test(v)), 'no em dash');
   check(!Object.values(ar || {}).some((v) => /[٠-٩۰-۹]/.test(v)), 'Arabic uses Western digits');
   for (const [k, v] of Object.entries(en || {})) if (/\{price\}|\{n\}/.test(v)) check((ar[k].match(/\{price\}|\{n\}/g) || []).join() === (v.match(/\{price\}|\{n\}/g) || []).join(), `${k}: the same placeholders in both locales`);
+  // The owner approved the shorter set on 2026-11-18 (docs/copy/ARABIC_STRINGS_app_v12.md);
+  // the earlier drafts stay on record, marked superseded.
   const draft = read('docs/copy-drafts/iap_app_v1.md');
-  check(/DRAFT/.test(draft) && Object.keys(en || {}).every((k) => draft.includes(`\`${k}\``)), 'docs/copy-drafts/iap_app_v1.md lists every key, marked DRAFT (not approved)');
+  check(/^# .*\(SUPERSEDED\)/.test(draft) && draft.includes('docs/copy/ARABIC_STRINGS_app_v12.md'), 'docs/copy-drafts/iap_app_v1.md is marked superseded and points at the approved batch');
+  const batch = read('docs/copy/ARABIC_STRINGS_app_v12.md').split(/\r?\n/);
+  const enOk = Object.entries(en || {}).filter(([k, v]) => batch.includes(`- \`dashboard.iap.${k}\`: ${v}`)).length;
+  const arOk = Object.entries(ar || {}).filter(([k, v]) => batch.some((l) => l.startsWith(`| \`dashboard.iap.${k}\` | ${v} | `))).length;
+  check(enOk === Object.keys(en || {}).length && arOk === Object.keys(ar || {}).length, `docs/copy/ARABIC_STRINGS_app_v12.md approves every key at the dictionaries' exact value (en ${enOk}, ar ${arOk} of ${Object.keys(en || {}).length})`);
 }
 
 console.log(`\n${passed} passed, ${failures.length} failed`);
