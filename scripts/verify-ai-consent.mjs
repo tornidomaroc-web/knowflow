@@ -140,6 +140,10 @@ const withTs = (base) => {
   return resolvePath(base, 'index.ts');
 };
 
+// fix/storage-server-writes: the stored file goes through src/lib/document-storage-server.ts
+// (service role, after the key and subject checks), proved in
+// scripts/verify-storage-server-writes.mjs; here it forwards to this proof's session storage fake.
+const DOC_STORAGE_STUB = `export async function storeOwnDocumentFile({ session, key, body, contentType }) { const { error } = await session.storage.from(\x27documents\x27).upload(key, body, contentType === undefined ? { upsert: false } : { upsert: false, contentType }); return error ? { ok: false, reason: \x27storage\x27, message: error.message } : { ok: true, message: \x27\x27 }; } export async function removeOwnDocumentFile() { return true; } export function ownDocumentKey() { return true; }`;
 registerHooks({
   resolve(spec, ctx, next) {
     // The AI allowance is proved by scripts/verify-ai-allowance.mjs; here it always allows and records nothing.
@@ -147,6 +151,7 @@ registerHooks({
     if (spec === 'next/server') return { url: inline(NEXT_SERVER), shortCircuit: true };
     if (spec === '@/lib/page-photo-sweep') return { url: inline('export async function sweepStalePagePhotos() { return { inspected: 0, batches: 0, removed: 0 }; }'), shortCircuit: true };
     if (spec === '@anthropic-ai/sdk') return { url: inline(ANTHROPIC_STUB), shortCircuit: true };
+    if (spec === '@/lib/document-storage-server') return { url: inline(DOC_STORAGE_STUB), shortCircuit: true };
     if (spec === '@/lib/supabase/server') return { url: inline(SUPABASE_STUB), shortCircuit: true };
     if (spec === '@/lib/rate-limit') return { url: inline(RATE_LIMIT_STUB), shortCircuit: true };
     if (spec === '@/lib/limits-server') return { url: inline(LIMITS_SERVER_STUB), shortCircuit: true };

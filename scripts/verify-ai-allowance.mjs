@@ -337,7 +337,8 @@ realLog('4. /api/quiz/generate and /api/ingest, in order');
   const ingest = read('src/lib/ingest-material.ts');
   o = order(ingestRoute, ['hasAiConsent(user)', 'checkAiAllowance(user.id', 'enforceUploadLimit(user.id', 'ingestMaterial({']);
   check('ingest: consent, allowance, daily counter, then the shared path (src/lib/ingest-material.ts)', o === null, o ?? '');
-  o = order(ingest, ['.upload(filePath, file, { upsert: false })', 'fetch(`${pythonServiceUrl}/ingest`', "recordAiSpend(user.id, 'upload_embed'"]);
+  // fix/storage-server-writes: the file goes up through storeOwnDocumentFile (service role).
+  o = order(ingest, ['storeOwnDocumentFile({ session: supabase, userId: user.id, kbId, key: filePath, body: file })', 'fetch(`${pythonServiceUrl}/ingest`', "recordAiSpend(user.id, 'upload_embed'"]);
   check('...and in it: storage and the service, then the spend', o === null, o ?? '');
   check('ingest: the spend is Voyage\'s reported tokens, else the estimate', /uploadEmbedSpend\(ack\.voyage_tokens, ack\.chunk_count, file\.size\)/.test(ingest));
   check('ingest: a failed ingestion that reports Voyage tokens is still recorded, inside the failure branch',

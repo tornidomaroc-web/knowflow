@@ -69,13 +69,17 @@ BEGIN {
     SAFE[2]  = "^update " QUALIFIED
     SAFE[3]  = "^delete from " QUALIFIED
     SAFE[4]  = "^truncate (table )?" QUALIFIED
-    SAFE[5]  = "^(create|alter|drop) (policy|trigger|rule) [a-z_0-9]+ on (only )?" QUALIFIED
+    # `if exists` (drop only) leaves the `on <qualified>` target pinned
+    # (20261118_storage_insert_lockdown.sql, its re-runnable drops).
+    SAFE[5]  = "^(create|alter|drop) (policy|trigger|rule) (if exists )?[a-z_0-9]+ on (only )?" QUALIFIED
     SAFE[6]  = "^create (or replace )?(unlogged )?(table|view|materialized view|sequence) (if not exists )?" QUALIFIED
     SAFE[7]  = "^alter (table|view|materialized view|sequence) (if exists )?(only )?" QUALIFIED
     SAFE[8]  = "^drop (table|view|materialized view|sequence) (if exists )?" QUALIFIED
     SAFE[9]  = "^(grant|revoke) [a-z_0-9, ]+ on (table |sequence )?" QUALIFIED
     SAFE[10] = "^create schema (if not exists )?" SCHEMA "$"
-    NSAFE = 10
+    # Transaction control alone names no object at all (20261118).
+    SAFE[11] = "^(begin|commit)$"
+    NSAFE = 11
 
     rejected = 0
 }

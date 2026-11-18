@@ -117,11 +117,16 @@ export default class Anthropic {
   }
 }`;
 
+// fix/storage-server-writes: the stored file goes through src/lib/document-storage-server.ts
+// (service role, after the key and subject checks), proved in
+// scripts/verify-storage-server-writes.mjs; here it forwards to this proof's session storage fake.
+const DOC_STORAGE_STUB = `export async function storeOwnDocumentFile({ session, key, body, contentType }) { const { error } = await session.storage.from(\x27documents\x27).upload(key, body, contentType === undefined ? { upsert: false } : { upsert: false, contentType }); return error ? { ok: false, reason: \x27storage\x27, message: error.message } : { ok: true, message: \x27\x27 }; } export async function removeOwnDocumentFile() { return true; } export function ownDocumentKey() { return true; }`;
 installTsxHooks(ROOT, {
   // fix/page-photo-sweep: after() schedules the photo sweep, proved in
   // scripts/verify-page-photo-sweep.mjs and never run here.
   'next/server': `export const NextResponse = { json(body, init) { return new Response(JSON.stringify(body), { status: (init && init.status) || 200, headers: { 'content-type': 'application/json' } }); } }; export function after() {}`,
   '@anthropic-ai/sdk': ANTHROPIC_STUB,
+  '@/lib/document-storage-server': DOC_STORAGE_STUB,
   '@/lib/supabase/server': SUPABASE_STUB,
   '@/lib/entitlement': `export async function getEntitlement() { return { tier: 'free' }; }`,
   '@/lib/ingestion': `export async function embedQuery() { globalThis.__a5.embeds++; return [0]; } export function getServiceUrl() { return 'http://ingestion.invalid'; }`,

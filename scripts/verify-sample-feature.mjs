@@ -145,8 +145,13 @@ registerHooks({
     return next(url, ctx);
   },
 });
+// fix/storage-server-writes: the stored file goes through src/lib/document-storage-server.ts
+// (service role, after the key and subject checks), proved in
+// scripts/verify-storage-server-writes.mjs; here it forwards to this proof's storage fake.
+const DOC_STORAGE_STUB = `export async function storeOwnDocumentFile({ session, key, body, contentType }) { const { error } = await session.storage.from(\x27documents\x27).upload(key, body, contentType === undefined ? { upsert: false } : { upsert: false, contentType }); return error ? { ok: false, reason: \x27storage\x27, message: error.message } : { ok: true, message: \x27\x27 }; } export async function removeOwnDocumentFile(_u, _k, key) { globalThis.__sf.files.delete(key); return true; } export function ownDocumentKey() { return true; }`;
 installTsxHooks(ROOT, {
   'next/server': `export const NextResponse = { json(body, init) { return new Response(JSON.stringify(body), { status: (init && init.status) || 200, headers: { 'content-type': 'application/json' } }); } };`,
+  '@/lib/document-storage-server': DOC_STORAGE_STUB,
   '@/lib/supabase/server': SUPABASE_STUB,
   '@/lib/entitlement': `export async function getEntitlement() { return { tier: 'free' }; }`,
 });
@@ -302,7 +307,7 @@ check(db.rpc === 0 && fetches === 0, `across every case: ${db.rpc} rpc call(s), 
 {
   const src = read('src/app/api/sample/route.ts');
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  check(!/service[_-]?role|SERVICE_ROLE|createAdminClient|supabase\/admin/i.test(code), 'the route must not use the service role');
+  check(!/service[_-]?role|SERVICE_ROLE|createAdminClient|supabase\/admin/i.test(code), 'the route must not make a service-role client itself (only the stored file goes through src/lib/document-storage-server.ts)');
   check(!/api\/ingest|enforceUploadLimit|enforceLimit|increment_usage|\.rpc\(|fetch\(/.test(code), 'the route must not call /api/ingest, a usage counter, an rpc or any request');
   const at = (s) => code.indexOf(s);
   const firstWrite = Math.min(...['.insert(', '.upload(', '.delete('].map(at).filter((i) => i >= 0));
