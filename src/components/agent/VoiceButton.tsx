@@ -153,35 +153,43 @@ export function VoiceButton({ uiLocale, labels, onTranscript, lineSlot, resetKey
       aria-live="polite"
       className="mb-2 flex flex-col gap-1 rounded-2xl bg-background px-3 py-2 text-sm text-foreground"
     >
-      <div className="flex items-center gap-2">
-        <p className="min-w-0 flex-1 [text-wrap:pretty]">
-          {listening ? labels.listening : line ? labels[line] : null}
-          {listening && <span className="ms-2 whitespace-nowrap font-semibold tabular-nums text-muted-foreground" data-kf-voice-seconds="">{labels.seconds.replace('{n}', String(seconds))}</span>}
-        </p>
-        {showChip && (
-          <button
-            type="button"
-            onClick={switchLang}
-            disabled={busy}
-            data-kf-voice-lang={lang}
-            className="kf-pill pressable inline-flex min-h-[2.75rem] shrink-0 items-center rounded-full px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {langName}
-          </button>
-        )}
-        {line === 'denied' && !listening && (
-          <button
-            type="button"
-            onClick={() => { void bridge.call('openSettings').catch(() => {}); }}
-            data-kf-voice-settings=""
-            className="kf-pill pressable inline-flex min-h-[2.75rem] shrink-0 items-center rounded-full px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {labels.openSettings}
-          </button>
-        )}
-      </div>
+      <p data-kf-voice-text="" className="[text-wrap:pretty]">
+        {listening ? labels.listening : line ? labels[line] : null}
+        {listening && <span className="ms-2 whitespace-nowrap font-semibold tabular-nums text-muted-foreground" data-kf-voice-seconds="">{labels.seconds.replace('{n}', String(seconds))}</span>}
+      </p>
       {listening && partial && (
         <p data-kf-voice-partial="" dir="auto" className="line-clamp-3 text-muted-foreground">{partial}</p>
+      )}
+      {/* The control on its own row BELOW the message, at the reading start
+          (right in Arabic, left in English): the message keeps the full
+          width (the owner's review of PR #340: at 360 the denied sentence
+          wrapped six lines beside Open Settings). Last in the line, so it
+          stays put while a partial line grows above it (the composer is
+          pinned to the bottom and grows upward). Design-c check 28. */}
+      {(showChip || (line === 'denied' && !listening)) && (
+        <div data-kf-voice-controls="" className="flex flex-wrap justify-start gap-2 pt-1">
+          {showChip && (
+            <button
+              type="button"
+              onClick={switchLang}
+              disabled={busy}
+              data-kf-voice-lang={lang}
+              className="kf-pill pressable inline-flex min-h-[2.75rem] min-w-[2.75rem] shrink-0 items-center justify-center rounded-full px-4 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {langName}
+            </button>
+          )}
+          {line === 'denied' && !listening && (
+            <button
+              type="button"
+              onClick={() => { void bridge.call('openSettings').catch(() => {}); }}
+              data-kf-voice-settings=""
+              className="kf-pill pressable inline-flex min-h-[2.75rem] min-w-[2.75rem] shrink-0 items-center justify-center rounded-full px-4 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {labels.openSettings}
+            </button>
+          )}
+        </div>
       )}
     </div>,
     slot,

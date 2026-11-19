@@ -135,6 +135,15 @@ check(/speechShellAllowed\(/.test(vb) && /speechBridge\(/.test(vb), 'VoiceButton
 check(/useShellVersion\(\)/.test(vb) && /usePlatform\(\)/.test(vb) && /'native'/.test(vb), 'VoiceButton reads the shell and the platform from PlatformProvider (the server reading), not the user agent');
 check(!/navigator\.userAgent/.test(vb), 'VoiceButton does not sniff the user agent');
 check(/useEffect\(/.test(vb) && /availability/.test(vb), 'the microphone appears only after mount, once availability answers');
+// The owner's review of PR #340, fix 1: a control sits on its own row below the message (design-c check 28 measures it).
+const vText = vb.indexOf('data-kf-voice-text=""'), vCtl = vb.indexOf('data-kf-voice-controls=""');
+check(vText > -1 && vCtl > vText && vb.indexOf('data-kf-voice-lang=', vCtl) > vCtl && vb.indexOf('data-kf-voice-settings=""', vCtl) > vCtl, 'the language chip and Open Settings sit in their own row after the message');
+check(!/min-w-0 flex-1/.test(vb), 'the message is not a flex-1 item beside a control (0960b1a\'s row)');
+// Fix 2: the microphone is all clay, no outline stand.
+const clay = read('src/components/clay/ClayIcons.tsx');
+const micSvg = /export const ClayMic = [\s\S]*?<\/svg>/.exec(clay)?.[0] || '';
+check(!!micSvg && !/stroke/i.test(micSvg) && !/fill="none"/.test(micSvg), 'ClayMic draws no stroke and no unfilled shape');
+check(!!micSvg && !/#1A1611/i.test(micSvg) && /G\('taupe'\)/.test(micSvg) && /G\('cream'\)/.test(micSvg), 'ClayMic\'s stand is clay taupe (theme-following), not ink');
 const ask = read('src/app/[locale]/dashboard/agent/page.tsx') + read('src/app/[locale]/dashboard/layout.tsx');
 check(/PlatformProvider platform=\{platform\} shell=\{shell\}/.test(read('src/app/[locale]/dashboard/layout.tsx')), 'the dashboard\'s PlatformProvider carries the shell version (Ask is under it)');
 check(!!ask, 'the dashboard layout is read');

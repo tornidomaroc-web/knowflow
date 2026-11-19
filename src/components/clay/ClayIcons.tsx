@@ -645,18 +645,28 @@ export const ClaySend = (p: P) => (
 );
 
 /**
- * Voice input in Ask (iOS 1.1, item 4e): the microphone. A cream capsule
- * with a gold grille band and a catchlight, on an ink stand. Drawn in clay
- * like Send beside it (no outline glyph: design-c's pr4 check counts them).
+ * Voice input in Ask (iOS 1.1, item 4e): the microphone, all clay (the
+ * owner's review of PR #340: the first one stood a clay head on a thin black
+ * outline stand, two styles in one glyph). A cream capsule head with a gold
+ * grille band; a taupe cradle, stem and foot, each a FILLED shape with the
+ * same soft volume as the head (the radial gradient), a catchlight and a
+ * soft drop under the foot. Taupe follows the theme (globals.css
+ * --g-taupe-*), so the stand reads on the cream button in light and on the
+ * dark one in dark. No stroke anywhere (verify-voice-input.mjs checks).
  */
 export const ClayMic = (p: P) => (
   <svg {...base(p, 22, 22, '0 0 24 24')}>
-    <path d="M5.6 11.2a6.4 6.4 0 0 0 12.8 0" fill="none" stroke="#1A1611" strokeWidth="1.9" strokeLinecap="round" />
-    <path d="M12 17.8v3" stroke="#1A1611" strokeWidth="1.9" strokeLinecap="round" />
-    <rect x="8.4" y="20.1" width="7.2" height="1.9" rx="0.95" fill="#1A1611" />
-    <rect x="8.2" y="2" width="7.6" height="13.4" rx="3.8" fill={G('cream')} />
-    <rect x="8.2" y="7.4" width="7.6" height="2.6" fill={G('gold')} />
-    <ellipse cx="10.4" cy="4.6" rx="1.1" ry="1.5" fill="#FFFFFF" fillOpacity="0.85" />
+    <ellipse cx="12" cy="22.6" rx="5.4" ry="1" fill="#7E7262" fillOpacity="0.28" />
+    <path d="M4.6 10.4h2.4a5 5 0 0 0 10 0h2.4a7.4 7.4 0 0 1-14.8 0z" fill={G('taupe')} />
+    <circle cx="5.8" cy="10.4" r="1.2" fill={G('taupe')} />
+    <circle cx="18.2" cy="10.4" r="1.2" fill={G('taupe')} />
+    <rect x="10.7" y="17.2" width="2.6" height="3.4" fill={G('taupe')} />
+    <rect x="7.4" y="19.6" width="9.2" height="2.6" rx="1.3" fill={G('taupe')} />
+    <ellipse cx="6.3" cy="12.6" rx="0.7" ry="1.3" transform="rotate(-25 6.3 12.6)" fill="#FFFFFF" fillOpacity="0.55" />
+    <ellipse cx="10" cy="20.3" rx="1.6" ry="0.45" fill="#FFFFFF" fillOpacity="0.5" />
+    <rect x="8.2" y="2" width="7.6" height="13.2" rx="3.8" fill={G('cream')} />
+    <rect x="8.2" y="7.3" width="7.6" height="2.6" fill={G('gold')} />
+    <ellipse cx="10.3" cy="4.6" rx="1.1" ry="1.5" fill="#FFFFFF" fillOpacity="0.85" />
   </svg>
 );
 

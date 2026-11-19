@@ -38,6 +38,12 @@
  * toolong, by the Send tap. voicePlant() removes the mic where it must be and
  * plants one where it must not; check 27 must flag both, or the run fails.
  *
+ * CHECK 28 (voiceStackCheck, the owner's review of PR #340): recording,
+ * unsupported and denied draw the message full width and each control on
+ * its own row below it, at the reading start, 44 x 44; no message line holds
+ * one word. voiceStackPlant() puts 0960b1a's side-by-side row back; check 28
+ * must flag it on every render, or the run fails.
+ *
  * CHECK 22 (camera.mjs, sameCheck), widened again: every screen of shell 2
  * that existed before this change (no stub: build 9 before the plugin, and
  * the Android shell) must be the same picture as main, like build 8 and the
@@ -267,4 +273,104 @@ export function voicePlant(expect) {
   try { r = window.voiceCheck(expect); } finally { fake.remove(); }
   const caught = !!(r.finding && /check 27/.test(r.finding));
   return { forced: true, kind: 'planted', caught, finding: caught ? null : `check 27 is blind: a microphone planted on ${expect.view} where none may be was not flagged` };
+}
+
+/**
+ * CHECK 28 (the owner's review of PR #340, fix 1): in every voice state that
+ * carries a control (recording and unsupported: the language chip; denied:
+ * Open Settings), the message takes the full width of the line and each
+ * control sits on its own row BELOW it, at the reading start (right in
+ * Arabic, left in English), at least 44 x 44. The message: no line holding a
+ * single word, and the seconds counter never alone on a line (it is one
+ * unit, nowrap, inside the sentence). Self-contained: serialised into the page.
+ * Returns null where the view has no control.
+ */
+export const STACK_VIEWS = ['recording', 'unsupported', 'denied'];
+export function voiceStackCheck(expect) {
+  if (!expect.mic || !['recording', 'unsupported', 'denied'].includes(expect.view)) return null;
+  const f = [];
+  const line = document.querySelector('[data-kf-voice-line]');
+  const msg = line?.querySelector('[data-kf-voice-text]') || line?.querySelector('p');
+  const controls = line ? [...line.querySelectorAll('[data-kf-voice-lang], [data-kf-voice-settings]')] : [];
+  const m = { view: expect.view, controls: controls.length };
+  if (!line || !msg) return { finding: 'check 28: no voice line or no message to measure', measured: m };
+  if (!controls.length) return { finding: `check 28: ${expect.view} has no control to measure`, measured: m };
+  const L = line.getBoundingClientRect(), M = msg.getBoundingClientRect();
+  const cs = getComputedStyle(line);
+  const rtl = cs.direction === 'rtl';
+  const inner = { left: L.left + parseFloat(cs.paddingLeft), right: L.right - parseFloat(cs.paddingRight) };
+  m.dir = rtl ? 'rtl' : 'ltr';
+  m.messageBottom = +M.bottom.toFixed(1);
+  m.messageWidth = Math.round(M.width);
+  m.lineWidth = Math.round(inner.right - inner.left);
+  if (M.width < (inner.right - inner.left) - 1) f.push(`check 28: the message is ${M.width.toFixed(1)} wide of ${(inner.right - inner.left).toFixed(1)}: not the full width (${expect.view})`);
+  m.controlTops = [];
+  for (const c of controls) {
+    const C = c.getBoundingClientRect();
+    const name = c.hasAttribute('data-kf-voice-settings') ? 'Open Settings' : 'the language chip';
+    m.controlTops.push(+C.top.toFixed(1));
+    if (C.top < M.bottom - 0.5) f.push(`check 28: ${name}'s top ${C.top.toFixed(1)} is above the message's bottom ${M.bottom.toFixed(1)}: beside the message, not below it (${expect.view})`);
+    if (C.width < 44 || C.height < 44) f.push(`check 28: ${name} is ${C.width.toFixed(1)} x ${C.height.toFixed(1)}, under 44 x 44`);
+  }
+  // Reading start: the first control's start edge on the line's content start.
+  const first = controls[0].getBoundingClientRect();
+  m.startGap = +(rtl ? inner.right - first.right : first.left - inner.left).toFixed(1);
+  if (Math.abs(m.startGap) > 1) f.push(`check 28: the first control is ${m.startGap} px from the reading start (${rtl ? 'right' : 'left'})`);
+  // The message's lines, as units: words, and the seconds counter as one.
+  const units = [];
+  const secs = msg.querySelector('[data-kf-voice-seconds]');
+  const walk = document.createTreeWalker(msg, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    if (secs && secs.contains(n)) continue;
+    const re = /\S+/g;
+    for (let x = re.exec(n.data); x; x = re.exec(n.data)) {
+      const r = document.createRange();
+      r.setStart(n, x.index);
+      r.setEnd(n, x.index + x[0].length);
+      const rc = [...r.getClientRects()].filter((b) => b.width > 0);
+      if (rc.length) units.push({ w: x[0], top: rc[rc.length - 1].top, split: new Set(rc.map((b) => Math.round(b.top))).size > 1 });
+    }
+  }
+  if (secs) { const b = secs.getBoundingClientRect(); units.push({ w: secs.textContent, top: b.top, secs: true, split: secs.getClientRects().length > 1 }); }
+  const rows = [];
+  for (const u of units.sort((a, b) => a.top - b.top)) {
+    const row = rows.find((r) => Math.abs(r.top - u.top) < 4);
+    if (row) row.units.push(u); else rows.push({ top: u.top, units: [u] });
+  }
+  m.messageLines = rows.length;
+  m.wordsPerLine = rows.map((r) => r.units.length);
+  for (const u of units) if (u.split) f.push(`check 28: "${u.w}" is split across two lines`);
+  if (rows.length > 1) for (const r of rows) if (r.units.length === 1) f.push(`check 28: a message line holds one ${r.units[0].secs ? 'unit: the seconds counter alone' : `word: "${r.units[0].w}"`} (${expect.view})`);
+  return { finding: f.length ? f.join(' | ') : null, measured: m };
+}
+
+/**
+ * Check 28's forced case: the line put back the way 0960b1a drew it, the
+ * message and its controls in ONE flex row (items centred, the message
+ * flex-1), with inline styles so it does not depend on the bundle's classes.
+ * Check 28 must flag it on every render, or the run fails.
+ */
+export function voiceStackPlant(expect) {
+  if (!expect.mic || !['recording', 'unsupported', 'denied'].includes(expect.view)) return null;
+  const line = document.querySelector('[data-kf-voice-line]');
+  const msg = line?.querySelector('[data-kf-voice-text]');
+  const controls = line ? [...line.querySelectorAll('[data-kf-voice-lang], [data-kf-voice-settings]')] : [];
+  if (!msg || !controls.length) return { forced: false };
+  const home = controls.map((c) => [c, c.parentNode, c.nextSibling]);
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;align-items:center;gap:8px';
+  msg.parentNode.insertBefore(row, msg);
+  const old = msg.style.cssText;
+  msg.style.cssText = 'flex:1 1 0%;min-width:0';
+  row.appendChild(msg);
+  for (const c of controls) row.appendChild(c);
+  let r;
+  try { r = window.voiceStackCheck(expect); } finally {
+    row.parentNode.insertBefore(msg, row);
+    msg.style.cssText = old;
+    for (const [c, p, n] of home) p.insertBefore(c, n);
+    row.remove();
+  }
+  const caught = !!(r && r.finding && /beside the message, not below it/.test(r.finding));
+  return { forced: true, kind: 'sideBySide', caught, measured: r?.measured || null, finding: caught ? null : `check 28 is blind: the line put back side by side (0960b1a) on ${expect.view} was not flagged` };
 }
