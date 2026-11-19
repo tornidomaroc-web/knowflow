@@ -647,8 +647,10 @@ export const ClaySend = (p: P) => (
 /**
  * Voice input in Ask (iOS 1.1, item 4e): the microphone, all clay (the
  * owner's review of PR #340: the first one stood a clay head on a thin black
- * outline stand, two styles in one glyph). A cream capsule head with a gold
- * grille band; a taupe cradle, stem and foot, each a FILLED shape with the
+ * outline stand, two styles in one glyph). A GOLD capsule head (the one gold,
+ * #EBAE35's family) with a cream grille band, so the head reads on the cream
+ * button in light as on the dark one (a cream head was faint in light, review
+ * of 2f6c117); a taupe cradle, stem and foot, each a FILLED shape with the
  * same soft volume as the head (the radial gradient), a catchlight and a
  * soft drop under the foot. Taupe follows the theme (globals.css
  * --g-taupe-*), so the stand reads on the cream button in light and on the
@@ -664,8 +666,8 @@ export const ClayMic = (p: P) => (
     <rect x="7.4" y="19.6" width="9.2" height="2.6" rx="1.3" fill={G('taupe')} />
     <ellipse cx="6.3" cy="12.6" rx="0.7" ry="1.3" transform="rotate(-25 6.3 12.6)" fill="#FFFFFF" fillOpacity="0.55" />
     <ellipse cx="10" cy="20.3" rx="1.6" ry="0.45" fill="#FFFFFF" fillOpacity="0.5" />
-    <rect x="8.2" y="2" width="7.6" height="13.2" rx="3.8" fill={G('cream')} />
-    <rect x="8.2" y="7.3" width="7.6" height="2.6" fill={G('gold')} />
+    <rect x="8.2" y="2" width="7.6" height="13.2" rx="3.8" fill={G('gold')} />
+    <rect x="8.2" y="7.3" width="7.6" height="2.6" fill={G('cream')} />
     <ellipse cx="10.3" cy="4.6" rx="1.1" ry="1.5" fill="#FFFFFF" fillOpacity="0.85" />
   </svg>
 );

@@ -187,6 +187,20 @@ private final class Smoke {
         // scripts/ios/page_steps.py fails the step if it did not arrive. A
         // fixed wait alone let a slow load be read as the page before it (run
         // 38426358277: ar-terms read /ar/privacy after 8 s).
+        // A reading step may name `settle`, a script that returns "true" once
+        // what the step reads has arrived: it is evaluated every 250 ms, up
+        // to `timeout` ms (20 s by default), BEFORE `js` runs, and the
+        // reading carries `poll`: {settled, ms}. A fixed wait read voice
+        // availability as still "waiting" (ios-smoke run 44465856628).
+        if let condition = step["settle"] as? String {
+            let timeout = (step["timeout"] as? Double) ?? 20000
+            let began = Date()
+            pollUntil(condition, deadline: began.addingTimeInterval(timeout / 1000)) { settled in
+                let poll: [String: Any] = ["settled": settled, "ms": Int(Date().timeIntervalSince(began) * 1000)]
+                self.eval(js) { result in self.settle(name: name, result: result, wait: wait, nav: nil, poll: poll) }
+            }
+            return
+        }
         guard let until = step["until"] as? String else {
             eval(js) { result in self.settle(name: name, result: result, wait: wait, nav: nil) }
             return
@@ -203,10 +217,10 @@ private final class Smoke {
         }
     }
 
-    private func settle(name: String, result: String, wait: Double, nav: [String: Any]?) {
+    private func settle(name: String, result: String, wait: Double, nav: [String: Any]?, poll: [String: Any]? = nil) {
         DispatchQueue.main.asyncAfter(deadline: .now() + wait / 1000) {
             self.probeNow { probe in
-                self.record(step: name, result: result, probe: probe, nav: nav)
+                self.record(step: name, result: result, probe: probe, nav: nav, poll: poll)
                 // After the last step the app may be in the background (an
                 // external link opened Safari) and its timers suspended, so
                 // the done-file is written at once; nothing can overwrite
@@ -226,6 +240,18 @@ private final class Smoke {
                 done(pair[0], pair[1])
             } else {
                 done("", "")
+            }
+        }
+    }
+
+    private func pollUntil(_ condition: String, deadline: Date, _ done: @escaping (Bool) -> Void) {
+        eval(condition) { value in
+            if value == "true" {
+                done(true)
+            } else if Date() >= deadline {
+                done(false)
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.pollUntil(condition, deadline: deadline, done) }
             }
         }
     }
@@ -297,7 +323,7 @@ private final class Smoke {
         }
     }
 
-    private func record(step: String, result: String, probe: [String: Any], nav: [String: Any]? = nil) {
+    private func record(step: String, result: String, probe: [String: Any], nav: [String: Any]? = nil, poll: [String: Any]? = nil) {
         var line: [String: Any] = [
             "step": step,
             "result": String(result.prefix(4000)),
@@ -306,6 +332,7 @@ private final class Smoke {
             "probe": probe,
         ]
         if let nav = nav { line["nav"] = nav }
+        if let poll = poll { line["poll"] = poll }
         // The whole line is scrubbed: a probe's `text` on the Settings screen
         // carries the account's e-mail, which must not reach the artifact.
         if let data = try? JSONSerialization.data(withJSONObject: line), let raw = String(data: data, encoding: .utf8) {

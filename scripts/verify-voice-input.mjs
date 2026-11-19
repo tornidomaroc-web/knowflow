@@ -144,6 +144,7 @@ const clay = read('src/components/clay/ClayIcons.tsx');
 const micSvg = /export const ClayMic = [\s\S]*?<\/svg>/.exec(clay)?.[0] || '';
 check(!!micSvg && !/stroke/i.test(micSvg) && !/fill="none"/.test(micSvg), 'ClayMic draws no stroke and no unfilled shape');
 check(!!micSvg && !/#1A1611/i.test(micSvg) && /G\('taupe'\)/.test(micSvg) && /G\('cream'\)/.test(micSvg), 'ClayMic\'s stand is clay taupe (theme-following), not ink');
+check(/<rect x="8\.2" y="2" width="7\.6" height="13\.2" rx="3\.8" fill=\{G\('gold'\)\} \/>/.test(micSvg) && /<rect x="8\.2" y="7\.3" width="7\.6" height="2\.6" fill=\{G\('cream'\)\} \/>/.test(micSvg), 'ClayMic\'s head is gold clay with a cream band (reads on the cream button in light)');
 const ask = read('src/app/[locale]/dashboard/agent/page.tsx') + read('src/app/[locale]/dashboard/layout.tsx');
 check(/PlatformProvider platform=\{platform\} shell=\{shell\}/.test(read('src/app/[locale]/dashboard/layout.tsx')), 'the dashboard\'s PlatformProvider carries the shell version (Ask is under it)');
 check(!!ask, 'the dashboard layout is read');
@@ -371,6 +372,10 @@ check(/requestAuthorization/.test(sw) && /requestRecordPermission/.test(sw), 'st
 check(sw.indexOf('requestAuthorization') > -1 && sw.indexOf('requestAuthorization') < sw.indexOf('requestRecordPermission'), '...in that order');
 const availFn = /@objc func availability\(_ call: CAPPluginCall\) \{[\s\S]*?\n    \}/.exec(sw)?.[0] || '';
 check(!!availFn && !/request(Authorization|RecordPermission)/.test(availFn), 'availability() asks for nothing (no prompt)');
+check(/override public func load\(\)/.test(sw) && /warmLocales = \["en-US", "ar-SA"\]/.test(sw), 'both languages\' recognizers are made at launch (the speech daemon\'s cold start is not the student\'s wait)');
+check(/factsQueue\.async/.test(availFn) && !/DispatchQueue\.main/.test(availFn) && !/SFSpeechRecognizer\(locale/.test(availFn), 'availability() answers from the kept recognizer, off the main queue');
+const loadFn = /override public func load\(\) \{[\s\S]*?\n    \}/.exec(sw)?.[0] || '';
+check(!!loadFn && !/request(Authorization|RecordPermission)|authorizationStatus|recordPermission/.test(loadFn), 'the launch warm-up reads no permission and asks for none');
 check(/func restoreSession\(\)/.test(sw) && (sw.match(/restoreSession\(\)/g) || []).length >= 3, `the previous audio session is restored (restoreSession called on ${(sw.match(/restoreSession\(\)/g) || []).length - 1} path(s))`);
 check(/previousCategory/.test(sw) && /setCategory\(previous/.test(sw), 'the previous category, mode and options are what is restored');
 check(!/AVAudioFile|FileManager|\.write\(to:|createFile|AVAudioRecorder/.test(sw), 'no file is written, no recorder');

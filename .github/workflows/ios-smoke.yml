@@ -293,8 +293,8 @@ jobs:
             {"name":"iap-unplant","wait":500,"js":"(function(){var d=document.getElementById('kf-iap-plant');if(d){d.remove()}return d?'removed':'none'})()"},
             {"name":"store-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfStore='waiting';if(!C||!C.nativePromise){window.__kfStore='no bridge';return window.__kfStore}C.nativePromise('KnowFlowStore','products',{ids:['com.knowflow.app.pro.monthly']}).then(function(r){window.__kfStore=JSON.stringify(r)},function(e){window.__kfStore='rejected: '+String(e&&e.message||e)});return 'called products'})()"},
             {"name":"store-read","wait":8000,"js":"(function(){return String(window.__kfStore)})()"},
-            {"name":"speech-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfSpeech={};if(!C||!C.nativePromise){window.__kfSpeech={error:'no bridge'};return 'no bridge'}['en-US','ar-SA'].forEach(function(l){window.__kfSpeech[l]='waiting';C.nativePromise('KnowFlowSpeech','availability',{locale:l}).then(function(r){window.__kfSpeech[l]=r},function(e){window.__kfSpeech[l]='rejected: '+String(e&&e.message||e)})});return 'called availability en-US and ar-SA'})()"},
-            {"name":"speech-read","wait":3000,"js":"(function(){return JSON.stringify(window.__kfSpeech)})()"},
+            {"name":"speech-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfSpeech={};if(!C||!C.nativePromise){window.__kfSpeech={error:'no bridge'};return 'no bridge'}['en-US','ar-SA'].forEach(function(l){var t0=Date.now();window.__kfSpeech[l]='waiting';C.nativePromise('KnowFlowSpeech','availability',{locale:l}).then(function(r){r.ms=Date.now()-t0;window.__kfSpeech[l]=r},function(e){window.__kfSpeech[l]='rejected: '+String(e&&e.message||e)})});return 'called availability en-US and ar-SA'})()"},
+            {"name":"speech-read","settle":"(function(){var s=window.__kfSpeech||{};return ['en-US','ar-SA'].every(function(l){return s[l]&&s[l]!=='waiting'})?'true':'false'})()","timeout":20000,"wait":300,"js":"(function(){return JSON.stringify(window.__kfSpeech)})()"},
             {"name":"live-terms","until":"/en/terms$","wait":4000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
             {"name":"dashboard-direct","until":"/(en|ar)/(signup|login)$","wait":3000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard');return 'assigned /'+l+'/dashboard'})()"},
             {"name":"live-refund","until":"/en/refund$","wait":4000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
@@ -508,6 +508,11 @@ jobs:
           # still reads both permissions as never asked. `start` is NOT called
           # here (two system alerts no one can tap, no microphone input).
           need(L.get("speech") is True, f"10. the KnowFlowSpeech plugin is registered in the shell: speech={L.get('speech')}")
+          # speech-read waits (`settle`) until both languages have answered,
+          # up to 20 s; each answer carries `ms`, measured in the page from
+          # the call to the answer. Not settled = FAIL with the time waited.
+          SPOLL = by.get("speech-read", {}).get("poll") or {}
+          need(SPOLL.get("settled") is True, f"10. both availability answers (en-US, ar-SA) arrive within 20 s of the call: settled={SPOLL.get('settled')} after {SPOLL.get('ms')} ms")
           try:
               SP = json.loads(str(by.get("speech-read", {}).get("result", "")))
           except Exception:
@@ -517,7 +522,8 @@ jobs:
               ok = isinstance(a, dict) and isinstance(a.get("supported"), bool) and isinstance(a.get("onDevice"), bool) and a.get("locale") == loc
               need(ok, f"10. availability({loc}) answers well-formed from a page of tryknowflow.com: {str(a)[:200]}")
               need(isinstance(a, dict) and a.get("speech") == "notDetermined" and a.get("mic") == "notDetermined", f"10. ...and asks for nothing: speech and microphone still never asked on a fresh install ({loc}): speech={a.get('speech') if isinstance(a, dict) else None} mic={a.get('mic') if isinstance(a, dict) else None}")
-          print(f"info speech availability: {json.dumps(SP)[:400]}")
+          SMS = {l: (SP.get(l) or {}).get("ms") if isinstance(SP, dict) and isinstance(SP.get(l), dict) else None for l in ("en-US", "ar-SA")}
+          print(f"info speech availability: waited {SPOLL.get('ms')} ms for both; answered en-US in {SMS['en-US']} ms, ar-SA in {SMS['ar-SA']} ms; {json.dumps(SP)[:400]}")
           # The shell-2 wording rule (scripts/lib/app-wording.mjs, KF_PURCHASE_SRC):
           # purchase words inside an element marked data-kf-iap are not hits in
           # shell 2, and a pricing link is a hit even there.

@@ -73,41 +73,95 @@ public class KnowFlowSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
         observers.forEach { NotificationCenter.default.removeObserver($0) }
     }
 
+    /// THE FIRST TOUCH OF THE SPEECH SERVICE IS SLOW. Making a recognizer and
+    /// reading its facts asks the system's speech daemon
+    /// (com.apple.speech.localspeechrecognition) for the language's asset over
+    /// XPC; the first such call in a process waits for the daemon to wake:
+    /// 8.36 s in ios-smoke run 44465856628 (1.10 s in run 44457800015), then
+    /// 6 ms for the next language. The page draws the microphone only once
+    /// `availability` answers, so that wait was the student's.
+    ///
+    /// So the two languages the app offers are made here, at launch, on
+    /// `factsQueue` (serial, never the main queue), while the site loads, and
+    /// each recognizer is kept for the life of the app: `availability` and
+    /// `start` reuse it. Making a recognizer asks for no permission.
+    static let warmLocales = ["en-US", "ar-SA"]
+    private let factsQueue = DispatchQueue(label: "com.knowflow.speech.facts", qos: .userInitiated)
+    /// Read and written on `factsQueue` only. A nil value is a language the
+    /// phone does not support (also kept, so it is not asked again).
+    private var recognizers: [String: SFSpeechRecognizer?] = [:]
+
+    override public func load() {
+        for id in KnowFlowSpeechPlugin.warmLocales {
+            factsQueue.async { _ = self.recognizer(id) }
+        }
+    }
+
+    /// On `factsQueue` only: the language's recognizer, made at most once.
+    private func recognizer(_ id: String) -> SFSpeechRecognizer? {
+        if let kept = recognizers[id] { return kept }
+        let t0 = Date()
+        let made = SFSpeechRecognizer(locale: Locale(identifier: id))
+        let makeMs = KnowFlowSpeechPlugin.ms(since: t0)
+        let t1 = Date()
+        let onDevice = made?.supportsOnDeviceRecognition ?? false
+        let onDeviceMs = KnowFlowSpeechPlugin.ms(since: t1)
+        let t2 = Date()
+        let available = made?.isAvailable ?? false
+        let availableMs = KnowFlowSpeechPlugin.ms(since: t2)
+        NSLog("[KFSpeech] made %@: init %ld ms, supportsOnDeviceRecognition %ld ms (%@), isAvailable %ld ms (%@)",
+              id, makeMs, onDeviceMs, onDevice ? "yes" : "no", availableMs, available ? "yes" : "no")
+        recognizers[id] = .some(made)
+        return made
+    }
+
+    private static func ms(since: Date) -> Int { Int(Date().timeIntervalSince(since) * 1000) }
+
     /// `{ locale, supported, available, onDevice, speech, mic }`. Reads only:
     /// no permission is asked here, so the page can decide to draw the
-    /// microphone without an alert.
+    /// microphone without an alert. Answered from the recognizer made at
+    /// launch (or, for another language, made now), off the main queue.
     @objc func availability(_ call: CAPPluginCall) {
         let id = call.getString("locale") ?? "en-US"
-        let recognizer = SFSpeechRecognizer(locale: Locale(identifier: id))
-        call.resolve([
-            "locale": id,
-            "supported": recognizer != nil,
-            "available": recognizer?.isAvailable ?? false,
-            "onDevice": recognizer?.supportsOnDeviceRecognition ?? false,
-            "speech": KnowFlowSpeechPlugin.speechStatus(),
-            "mic": KnowFlowSpeechPlugin.micStatus(),
-        ])
+        let asked = Date()
+        factsQueue.async {
+            let recognizer = self.recognizer(id)
+            call.resolve([
+                "locale": id,
+                "supported": recognizer != nil,
+                "available": recognizer?.isAvailable ?? false,
+                "onDevice": recognizer?.supportsOnDeviceRecognition ?? false,
+                "speech": KnowFlowSpeechPlugin.speechStatus(),
+                "mic": KnowFlowSpeechPlugin.micStatus(),
+            ])
+            NSLog("[KFSpeech] availability %@ answered in %ld ms", id, KnowFlowSpeechPlugin.ms(since: asked))
+        }
     }
 
     /// `{ started: true, onDevice } | { started: false, error: denied | unsupported | failed | busy }`.
     /// Asks speech recognition, then the microphone, each only if never asked.
+    /// The recognizer comes from `factsQueue`, so the main queue never waits
+    /// for the speech daemon.
     @objc func start(_ call: CAPPluginCall) {
         let id = call.getString("locale") ?? "en-US"
-        DispatchQueue.main.async {
-            guard !self.active && !self.finishing else {
-                call.resolve(["started": false, "error": "busy"])
-                return
-            }
-            guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: id)) else {
-                call.resolve(["started": false, "error": "unsupported"])
-                return
-            }
-            self.authorize { granted in
-                guard granted else {
-                    call.resolve(["started": false, "error": "denied"])
+        factsQueue.async {
+            let made = self.recognizer(id)
+            DispatchQueue.main.async {
+                guard !self.active && !self.finishing else {
+                    call.resolve(["started": false, "error": "busy"])
                     return
                 }
-                self.begin(recognizer, call)
+                guard let recognizer = made else {
+                    call.resolve(["started": false, "error": "unsupported"])
+                    return
+                }
+                self.authorize { granted in
+                    guard granted else {
+                        call.resolve(["started": false, "error": "denied"])
+                        return
+                    }
+                    self.begin(recognizer, call)
+                }
             }
         }
     }
