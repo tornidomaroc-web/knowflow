@@ -30,8 +30,11 @@
  *  5. THE STRINGS. dashboard.agent.voice is the same key set in en and ar,
  *     placeholders equal, no em dash, Western digits, no hit of the app's
  *     wording rule (kfWording) in either language, the two purpose strings
- *     and the privacy sentence too; every one is in the draft file
- *     docs/copy-drafts/voice_input_v1.md with the bytes the code carries.
+ *     and the privacy sentence too; every one is, byte for byte, the owner's
+ *     approved text in docs/copy/ARABIC_STRINGS_app_v13.md (approved
+ *     2026-11-19): the Arabic table row and English bullet of each key, the
+ *     "(en)" and "(ar)" lines of the permission texts and the privacy
+ *     sentence. Exact equality, not "contained in".
  *  6. THE 413 PATH. ChatBox's QUESTION_TOO_LONG branch still puts the
  *     question back in the field, the field has no maxLength, and a field
  *     grown past 4,000 characters by takes is kept whole (the browser half
@@ -285,10 +288,15 @@ if (merge && en && ar) {
 }
 
 // ── 5. The strings ──────────────────────────────────────────────────────────
-section('5. The strings: both locales, the wording rule, the draft file');
+section('5. The strings: both locales, the wording rule, the approved batch (app v13)');
 const KEYS = ['start', 'stop', 'listening', 'seconds', 'langAr', 'langEn', 'check', 'denied', 'openSettings', 'noSpeech', 'unsupported', 'failed', 'limit'];
-const draft = read('docs/copy-drafts/voice_input_v1.md');
-check(!!draft, 'docs/copy-drafts/voice_input_v1.md exists');
+const batch = read('docs/copy/ARABIC_STRINGS_app_v13.md');
+check(!!batch && /APPROVED by the owner 2026-11-19/.test(batch), 'docs/copy/ARABIC_STRINGS_app_v13.md exists and is marked APPROVED 2026-11-19');
+const okAr = new Map([...batch.matchAll(/^\| `dashboard\.agent\.voice\.(\w+)` \| (.*?) \| (?:.*?) \|\s*$/gm)].map((m) => [m[1], m[2]]));
+const okEn = new Map([...batch.matchAll(/^- `dashboard\.agent\.voice\.(\w+)`: (.*)$/gm)].map((m) => [m[1], m[2].replace(/\r$/, '')]));
+const okOther = new Map([...batch.matchAll(/^- `([\w.]+)` \((en|ar)\): (.*)$/gm)].map((m) => [`${m[1]} ${m[2]}`, m[3].replace(/\r$/, '')]));
+check(okAr.size === KEYS.length && okEn.size === KEYS.length, `the batch holds ${KEYS.length} Arabic rows and ${KEYS.length} English bullets (${okAr.size}, ${okEn.size})`);
+check(okOther.size === 6, `the batch holds the (en) and (ar) lines of the two permission texts and the privacy sentence (${okOther.size})`);
 const plistEn = read('ios/App/App/en.lproj/InfoPlist.strings');
 const plistAr = read('ios/App/App/ar.lproj/InfoPlist.strings');
 const plist = read('ios/App/App/Info.plist');
@@ -297,6 +305,7 @@ const strOf = (src, key) => (new RegExp(`"${key}" = "([^"]*)";`).exec(src) || []
 const plistOf = (key) => (new RegExp(`<key>${key}</key>\\s*<string>([^<]*)</string>`).exec(plist) || [])[1];
 if (en && ar) {
   const V = { en: en.dashboard?.agent?.voice || {}, ar: ar.dashboard?.agent?.voice || {} };
+  const OK = { en: okEn, ar: okAr };
   check(JSON.stringify(Object.keys(V.en).sort()) === JSON.stringify([...KEYS].sort()), `en dashboard.agent.voice holds exactly the ${KEYS.length} keys: ${Object.keys(V.en).join(',')}`);
   check(JSON.stringify(Object.keys(V.ar).sort()) === JSON.stringify([...KEYS].sort()), `ar dashboard.agent.voice holds exactly the ${KEYS.length} keys: ${Object.keys(V.ar).join(',')}`);
   const ph = (s) => [...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
@@ -305,9 +314,9 @@ if (en && ar) {
     for (const L of ['en', 'ar']) {
       const s = V[L][k] || '';
       check(kfWording(s).length === 0, `${L}.${k} passes the wording rule: ${JSON.stringify(kfWording(s))}`);
-      check(!/[\u2014\u2013]/.test(s), `${L}.${k}: no em or en dash`);
-      check(!/[\u0660-\u0669\u06F0-\u06F9]/.test(s), `${L}.${k}: Western digits`);
-      check(draft.includes(s.replace(/\|/g, '\\|')), `${L}.${k} is in the draft file with the same bytes`);
+      check(!/[—–]/.test(s), `${L}.${k}: no em or en dash`);
+      check(!/[٠-٩۰-۹]/.test(s), `${L}.${k}: Western digits`);
+      check(!!s && s === OK[L].get(k), `${L}.${k} is the approved text, byte for byte`);
     }
   }
   check(String(V.en.seconds || '').includes('{n}') && String(V.ar.seconds || '').includes('{n}'), 'the seconds counter has its {n}');
@@ -318,14 +327,19 @@ for (const key of ['NSMicrophoneUsageDescription', 'NSSpeechRecognitionUsageDesc
   check(!!e && !!a && !!p, `${key} in Info.plist and both .lproj files`);
   check(p === e, `${key}: Info.plist carries the English text`);
   for (const [L, s] of [['en', e], ['ar', a]]) {
-    check(!!s && kfWording(s).length === 0 && !/[\u2014\u2013]/.test(s) && !/[\u0660-\u0669\u06F0-\u06F9]/.test(s), `${key} (${L}): wording rule, no dash, Western digits`);
-    check(!!s && draft.includes(s), `${key} (${L}) is in the draft file with the same bytes`);
+    check(!!s && kfWording(s).length === 0 && !/[—–]/.test(s) && !/[٠-٩۰-۹]/.test(s), `${key} (${L}): wording rule, no dash, Western digits`);
+    check(!!s && s === okOther.get(`${key} ${L}`), `${key} (${L}) is the approved text, byte for byte`);
   }
 }
-const pSentence = /data-kf-privacy-voice[^>]*>([\s\S]*?)<\/p>/.exec(privacy)?.[1]?.replace(/<[^>]+>/g, '').replace(/&apos;/g, "'").replace(/\s+/g, ' ').trim() || '';
-check(pSentence.length > 40 && /Apple speech recognition/.test(pSentence) && /never the recording/.test(pSentence), `the privacy page's sentence: ${pSentence.slice(0, 80)}...`);
-check(kfWording(pSentence).length === 0 && draft.includes(pSentence), 'the privacy sentence passes the wording rule and is the draft\'s English');
-check(/\| Privacy page sentence \|[^\n]*Apple[^\n]*\|[^\n]*Apple[^\n]*\|/.test(draft), 'the draft carries the privacy sentence in both languages');
+const pRaw = /data-kf-privacy-voice[^>]*>([\s\S]*?)<\/p>/.exec(privacy)?.[1] || '';
+const pSentence = pRaw.replace(/&apos;/g, "'");
+check(!/[<{]/.test(pRaw) && !/'/.test(pRaw), 'the privacy sentence is plain text, its apostrophes written &apos;');
+check(pSentence === okOther.get('privacy.voice en'), `the privacy page's sentence is the approved English, byte for byte: ${pSentence.slice(0, 80)}...`);
+check(kfWording(pSentence).length === 0, 'the privacy sentence passes the wording rule');
+const pAr = okOther.get('privacy.voice ar') || '';
+check(pAr.length > 40 && /Apple/.test(pAr) && /KnowFlow/.test(pAr) && kfWording(pAr).length === 0, 'the batch stores the Arabic privacy sentence for the future Arabic page');
+check(!/DRAFT \(voice input/.test(privacy), 'the privacy page carries no DRAFT comment for the voice sentence');
+check(!/copy-drafts\/voice_input_v1/.test(plistEn + plistAr + read('src/lib/i18n/locales/en.ts') + read('src/lib/i18n/locales/ar.ts')), 'no file the app ships points at the old draft');
 
 // ── 6. The 413 path ─────────────────────────────────────────────────────────
 section('6. A transcript over the cap comes back to the field');

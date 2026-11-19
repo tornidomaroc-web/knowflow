@@ -153,7 +153,8 @@ jobs:
       # overwrite: true, which deletes the first before re-uploading).
       - name: Side by side
         if: ${{ !cancelled() }}
-        timeout-minutes: 10
+        # 20, not 10: run 44474505384 composed all 998 side-by-sides and hit 10:00 as it finished.
+        timeout-minutes: 20
         working-directory: after
         env:
           BEFORE_LABEL: ${{ github.event.pull_request && 'main' || steps.before.outputs.ref }}

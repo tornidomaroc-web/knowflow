@@ -619,18 +619,18 @@ file is not read by the app.
 | `dashboard.agent.newConversation` | محادثة جديدة | New Conversation |
 | `dashboard.agent.noHistory` | لا محادثات بعد. | No history yet. |
 | `dashboard.agent.history` | محادثاتك | History |
-| `dashboard.agent.voice.start` | انطق سؤالك | Speak your question |
+| `dashboard.agent.voice.start` | اسأل بصوتك | Ask with your voice |
 | `dashboard.agent.voice.stop` | إيقاف | Stop |
-| `dashboard.agent.voice.listening` | أستمع إليك. اضغط للإيقاف. | Listening. Tap to stop. |
+| `dashboard.agent.voice.listening` | جارٍ الاستماع. اضغط للإيقاف. | Listening. Tap to stop. |
 | `dashboard.agent.voice.seconds` | {n} ث | {n} s |
 | `dashboard.agent.voice.langAr` | العربية | Arabic |
 | `dashboard.agent.voice.langEn` | الإنجليزية | English |
 | `dashboard.agent.voice.check` | راجع النص ثم أرسله. | Check the text, then send it. |
-| `dashboard.agent.voice.denied` | لا يستطيع KnowFlow سماعك. اسمح بالميكروفون والتعرف على الكلام لتطبيق KnowFlow في الإعدادات، ثم حاول مرة أخرى. | KnowFlow cannot hear you. Allow the microphone and speech recognition for KnowFlow in Settings, then try again. |
-| `dashboard.agent.voice.openSettings` | فتح الإعدادات | Open Settings |
-| `dashboard.agent.voice.noSpeech` | لم تُسمع أي كلمات. حاول مرة أخرى وأنت أقرب إلى الهاتف. | No words were heard. Try again a little closer to the phone. |
-| `dashboard.agent.voice.unsupported` | النطق غير متاح بهذه اللغة على هاتفك. يمكنك كتابة سؤالك. | Speaking is not available in this language on your phone. You can type your question. |
-| `dashboard.agent.voice.failed` | تعذّر تحويل كلامك إلى نص. حاول مرة أخرى أو اكتب سؤالك. | Your words could not be turned into text. Try again, or type your question. |
+| `dashboard.agent.voice.denied` | لا يستطيع KnowFlow سماعك. اسمح له باستخدام الميكروفون والتعرف على الكلام من الإعدادات، ثم حاول مجددًا. | KnowFlow cannot hear you. Allow it to use the microphone and speech recognition in Settings, then try again. |
+| `dashboard.agent.voice.openSettings` | افتح الإعدادات | Open Settings |
+| `dashboard.agent.voice.noSpeech` | لم يُسمع أي كلام. حاول مجددًا وأنت أقرب إلى الهاتف. | No words were heard. Try again a little closer to the phone. |
+| `dashboard.agent.voice.unsupported` | لا يدعم هاتفك تحويل الكلام إلى نص بهذه اللغة. يمكنك كتابة سؤالك. | Your phone cannot turn speech into text in this language. You can type your question. |
+| `dashboard.agent.voice.failed` | تعذّر تحويل كلامك إلى نص. حاول مجددًا أو اكتب سؤالك. | Your words could not be turned into text. Try again, or type your question. |
 | `dashboard.agent.voice.limit` | توقف التسجيل بعد 60 ثانية. راجع النص ثم أرسله. | Stopped after 60 seconds. Check the text, then send it. |
 
 ## Signed-in app: upload (`dashboard.upload`)

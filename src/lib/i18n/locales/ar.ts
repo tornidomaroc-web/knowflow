@@ -585,21 +585,22 @@ export const ar: Translation = {
       newConversation: "محادثة جديدة",
       noHistory: "لا محادثات بعد.",
       history: "محادثاتك",
-      // الإدخال الصوتي في صفحة الأسئلة (iOS 1.1، البند 4e). مسودات للمالك:
-      // docs/copy-drafts/voice_input_v1.md.
+      // Voice input in Ask (iOS 1.1, item 4e): the app at shell 2 with the
+      // KnowFlowSpeech plugin only. Approved by the owner 2026-11-19:
+      // docs/copy/ARABIC_STRINGS_app_v13.md.
       voice: {
-        start: "انطق سؤالك",
+        start: "اسأل بصوتك",
         stop: "إيقاف",
-        listening: "أستمع إليك. اضغط للإيقاف.",
+        listening: "جارٍ الاستماع. اضغط للإيقاف.",
         seconds: "{n} ث",
         langAr: "العربية",
         langEn: "الإنجليزية",
         check: "راجع النص ثم أرسله.",
-        denied: "لا يستطيع KnowFlow سماعك. اسمح بالميكروفون والتعرف على الكلام لتطبيق KnowFlow في الإعدادات، ثم حاول مرة أخرى.",
-        openSettings: "فتح الإعدادات",
-        noSpeech: "لم تُسمع أي كلمات. حاول مرة أخرى وأنت أقرب إلى الهاتف.",
-        unsupported: "النطق غير متاح بهذه اللغة على هاتفك. يمكنك كتابة سؤالك.",
-        failed: "تعذّر تحويل كلامك إلى نص. حاول مرة أخرى أو اكتب سؤالك.",
+        denied: "لا يستطيع KnowFlow سماعك. اسمح له باستخدام الميكروفون والتعرف على الكلام من الإعدادات، ثم حاول مجددًا.",
+        openSettings: "افتح الإعدادات",
+        noSpeech: "لم يُسمع أي كلام. حاول مجددًا وأنت أقرب إلى الهاتف.",
+        unsupported: "لا يدعم هاتفك تحويل الكلام إلى نص بهذه اللغة. يمكنك كتابة سؤالك.",
+        failed: "تعذّر تحويل كلامك إلى نص. حاول مجددًا أو اكتب سؤالك.",
         limit: "توقف التسجيل بعد 60 ثانية. راجع النص ثم أرسله."
       }
     },
