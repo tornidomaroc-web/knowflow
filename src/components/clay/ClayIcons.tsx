@@ -644,6 +644,30 @@ export const ClaySend = (p: P) => (
   </svg>
 );
 
+/**
+ * Voice input in Ask (iOS 1.1, item 4e): the microphone. A cream capsule
+ * with a gold grille band and a catchlight, on an ink stand. Drawn in clay
+ * like Send beside it (no outline glyph: design-c's pr4 check counts them).
+ */
+export const ClayMic = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 24 24')}>
+    <path d="M5.6 11.2a6.4 6.4 0 0 0 12.8 0" fill="none" stroke="#1A1611" strokeWidth="1.9" strokeLinecap="round" />
+    <path d="M12 17.8v3" stroke="#1A1611" strokeWidth="1.9" strokeLinecap="round" />
+    <rect x="8.4" y="20.1" width="7.2" height="1.9" rx="0.95" fill="#1A1611" />
+    <rect x="8.2" y="2" width="7.6" height="13.4" rx="3.8" fill={G('cream')} />
+    <rect x="8.2" y="7.4" width="7.6" height="2.6" fill={G('gold')} />
+    <ellipse cx="10.4" cy="4.6" rx="1.1" ry="1.5" fill="#FFFFFF" fillOpacity="0.85" />
+  </svg>
+);
+
+/** The microphone while it listens: a red clay square to tap to stop. */
+export const ClayStop = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 24 24')}>
+    <rect x="5" y="5" width="14" height="14" rx="4" fill={G('red')} />
+    <ellipse cx="9" cy="8.6" rx="2" ry="1.2" fill="#FFFFFF" fillOpacity="0.6" />
+  </svg>
+);
+
 /** A quiz choice not picked: a small pressed-in dimple. */
 export const ClayChoiceEmpty = (p: P) => (
   <svg {...base(p, 22, 22, '0 0 22 22')}>

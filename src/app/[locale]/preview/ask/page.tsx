@@ -87,7 +87,8 @@ export default async function AskPreview({
   const raw = sp.view
   const platform = resolvePlatform(sp.platform)
   // In-app Pro (#338): at shell 2 the refusal's "See Pro" button, as the dashboard draws it.
-  const iap = platform === 'native' && iapAllowed(await currentShellVersion())
+  const shell = await currentShellVersion()
+  const iap = platform === 'native' && iapAllowed(shell)
   const view: View = raw === 'none' || raw === 'zero' || raw === 'history' || raw === 'answer' || raw === 'subjects' || raw === 'noanswer' || raw === 'capture' || raw === 'app' ? raw : 'default'
 
   // #129 (c): five subjects and their files, through the real rule.
@@ -219,7 +220,10 @@ export default async function AskPreview({
           </Link>
         ))}
       </div>
-      <PlatformProvider platform={platform}>
+      {/* Voice input (item 4e): the shell, as the dashboard layout passes it, so the
+          microphone can appear at shell 2 when the KnowFlowSpeech plugin answers
+          (design-c stubs it; nothing else on this page reads the shell). */}
+      <PlatformProvider platform={platform} shell={platform === 'native' ? shell : 0}>
       <PreviewIap on={iap} locale={safeLocale} offerLabel={t.dashboard.iap.offerButton}>
       <DashboardShell
         platform={platform}

@@ -118,7 +118,10 @@ const capIos = read('ios/App/App/capacitor.config.json');
 check((capIos.match(/"appendUserAgent": "KnowFlowApp\/2"/g) || []).length === 2, 'the iOS copy of the config (what the shell reads) says KnowFlowApp/2');
 const plist = read('ios/App/App/Info.plist');
 const purposes = plist.match(/<key>[A-Za-z]*UsageDescription<\/key>/g) || [];
-check(purposes.length === 1 && purposes[0] === '<key>NSCameraUsageDescription</key>', 'Info.plist: exactly one purpose string, the camera\'s');
+// Voice input in Ask (item 4e) adds the microphone's and speech recognition's
+// (scripts/verify-voice-input.mjs holds their text); nothing else may join them.
+const ALLOWED_PURPOSES = ['<key>NSCameraUsageDescription</key>', '<key>NSMicrophoneUsageDescription</key>', '<key>NSSpeechRecognitionUsageDescription</key>'];
+check(purposes.length === 3 && ALLOWED_PURPOSES.every((k) => purposes.includes(k)), `Info.plist: exactly the camera's, the microphone's and speech recognition's purpose strings (${purposes.join(' ')})`);
 check(/<key>NSCameraUsageDescription<\/key>\s*<string>[^<]{20,}<\/string>/.test(plist), 'Info.plist: the camera\'s purpose string is a sentence');
 for (const l of ['en', 'ar']) {
   check(/^"NSCameraUsageDescription" = "[^"]{20,}";$/m.test(read(`ios/App/App/${l}.lproj/InfoPlist.strings`)), `${l}.lproj: the camera's purpose string in that language`);

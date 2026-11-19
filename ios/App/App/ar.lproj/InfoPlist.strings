@@ -8,3 +8,7 @@
 
 /* شاشة الكاميرا ("صوّر صفحاتك"). معتمد 2026-11-18: docs/copy/ARABIC_STRINGS_app_v11.md. */
 "NSCameraUsageDescription" = "يستعمل KnowFlow الكاميرا فقط عندما تصوّر صفحات كتابك أو دفترك، ليقرأ نصّها.";
+
+/* الإدخال الصوتي في صفحة الأسئلة (iOS 1.1، البند 4e). مسودة للمالك: docs/copy-drafts/voice_input_v1.md. */
+"NSMicrophoneUsageDescription" = "يستخدم KnowFlow الميكروفون فقط عندما تضغط على زر الميكروفون في «اسأل»، ليحوّل سؤالك المنطوق إلى نص يمكنك تعديله قبل إرساله.";
+"NSSpeechRecognitionUsageDescription" = "يحوّل التعرف على الكلام من Apple سؤالك المنطوق إلى نص، على هاتفك متى أمكن. لا يحتفظ KnowFlow بالتسجيل أبدًا.";

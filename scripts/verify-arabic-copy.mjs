@@ -32,7 +32,9 @@
  *     added the 27 of dashboard.upload.camera and dashboard.aiConsent.photos,
  *     approved 2026-11-18 in app v11; 515 after in-app Pro added the 34 of
  *     dashboard.iap, approved 2026-11-18 in app v12; 516 after the
- *     restore fix added dashboard.iap.restoreFailed, approved in app v12 too).
+ *     restore fix added dashboard.iap.restoreFailed, approved in app v12 too;
+ *     529 after voice input in Ask added the 13 of dashboard.agent.voice,
+ *     DRAFTS wired for review, docs/copy-drafts/voice_input_v1.md).
  *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
  *     ruling that removed it. Its rows stay in the batch files, which are the
  *     owner's approved record and are never edited; they are read and checked
@@ -168,7 +170,7 @@ console.error(`${approved.size} keys asserted, ${superseded} earlier rows supers
   const onlyEn = [...E.keys()].filter((k) => !A.has(k)).sort();
   check(onlyAr.join() === [...pluralOnly].sort().join(), `keys only in ar.ts: ${onlyAr.join(', ') || '(none)'}; expected the four plural forms`);
   check(onlyEn.length === 0, `keys missing from ar.ts: ${onlyEn.join(', ')}`);
-  check(A.size === 516, `ar.ts has ${A.size} leaves, expected 516`);
+  check(A.size === 529, `ar.ts has ${A.size} leaves, expected 529`);
 }
 
 // 3. Placeholders on every key.
