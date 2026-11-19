@@ -1211,7 +1211,7 @@ async function shoot(side, job) {
   const voice27 = job.s.voice && side === 'after' ? await tab.evaluate(voiceCheck, voiceExpect(job)) : null;
   // Check 28 (voice.mjs): a state with a control has the message full width and the control on its own row below it. AFTER only.
   const voice28 = job.s.voice && side === 'after' ? await tab.evaluate(voiceStackCheck, voiceExpect(job)) : null;
-  // Check 29 (voice.mjs): no voice message line ends on "or" and no KEEP_TOGETHER_VOICE phrase splits. AFTER only.
+  // Check 29 (voice.mjs): no voice message line ends on "try" or "or" (and twins) and no KEEP_TOGETHER_VOICE phrase splits. AFTER only.
   if (job.s.voice && side === 'after') await tab.evaluate(`window.kfPhraseChecks = ${phraseChecks.toString()}; window.voicePhraseCheck = ${voicePhraseCheck.toString()};`);
   const voice29 = job.s.voice && side === 'after' ? await tab.evaluate(voicePhraseCheck, voiceExpect(job), KEEP29) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
@@ -1352,7 +1352,7 @@ for (const job of JOBS) {
       ...(r.voice28Plant?.finding ? [`voice: ${r.voice28Plant.finding}`] : []),
       // Check 29 (voice.mjs), and its forced cases on AFTER.
       ...(r.voice29?.finding ? [`voice: ${r.voice29.finding}`] : []),
-      ...(r.voice29Plant || []).filter((x) => !x.caught).map((x) => `voice: check 29 is blind: "${x.phrase}" broken after its first word was not flagged on both rules (${x.finding || 'no finding'})`),
+      ...(r.voice29Plant || []).filter((x) => !x.caught).map((x) => `voice: check 29 is blind: "${x.phrase}" broken after "${x.after}" was not flagged on both rules (${x.finding || 'no finding'})`),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -1374,7 +1374,7 @@ for (const job of JOBS) {
     if (side === 'after') for (const x of r.keep26Plant || []) if (x.caught) keepForced[x.phrase] = (keepForced[x.phrase] || 0) + 1;
     if (side === 'after' && r.voice27Plant?.caught) voiceForced[r.voice27Plant.kind]++;
     if (side === 'after' && r.voice28Plant?.forced) { stackForced.ran++; if (r.voice28Plant.caught) stackForced.caught++; }
-    if (side === 'after') for (const x of r.voice29Plant || []) { const c = (phraseForced[x.phrase] ||= { ran: 0, caught: 0 }); c.ran++; if (x.caught) c.caught++; }
+    if (side === 'after') for (const x of r.voice29Plant || []) { const c = (phraseForced[x.phrase] ||= { ran: 0, caught: 0, after: {} }); c.ran++; c.after[x.after] = (c.after[x.after] || 0) + 1; if (x.caught) c.caught++; }
     if (side === 'after' && r.whole18Revert?.flagged) console.log(`       check 18 on d9647f5's layout (${job.name}): ${r.whole18Revert.finding}`);
     const tmin = Math.min(...r.a.text.map((t) => t.got));
     row.sides[side] = {
@@ -1474,8 +1474,8 @@ else console.log(`check 28 (a voice control on its own row below the message): f
 if (stackForced.ran !== stackForced.caught) never(`check 28's forced case was missed on ${stackForced.ran - stackForced.caught} AFTER render(s)`);
 for (const p of KEEP29) {
   const c = phraseForced[p];
-  if (!c || !c.caught) never(`check 29 was never forced for "${p}": no AFTER voice render caught it broken after its first word`);
-  else console.log(`check 29 (voice phrase "${p}" on one line, no line ending on its first word): forced case caught on ${c.caught} of ${c.ran} AFTER render(s)`);
+  if (!c || !c.caught) never(`check 29 was never forced for "${p}": no AFTER voice render caught it broken after its first word (or its joint word)`);
+  else console.log(`check 29 (voice phrase "${p}" on one line, no line ending on its first or joint word): forced cases caught ${c.caught} of ${c.ran} on AFTER renders (${Object.entries(c.after || {}).map(([w, n]) => `${n} after "${w}"`).join(', ')})`);
   if (c && c.ran !== c.caught) never(`check 29's forced case for "${p}" was missed on ${c.ran - c.caught} AFTER render(s)`);
 }
 if (!sameSeen.compared) never('check 22 compared no screen');

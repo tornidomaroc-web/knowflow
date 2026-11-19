@@ -343,25 +343,37 @@ check(!/copy-drafts\/voice_input_v1/.test(plistEn + plistAr + read('src/lib/i18n
 
 // ── 5b. The phrases kept on one line ─────────────────────────────────────────
 section("5b. The voice line's kept phrases (the owner's review of #340 at 3b2fe21)");
-// The phrases are the tails of the approved failed message, cut from the batch file here too: the Arabic
-// row's last three words and the English bullet's last four, the final full stop dropped.
-const tailOf = (s, n) => String(s || '').replace(/\.$/, '').split(' ').slice(-n).join(' ');
+// The phrases are cut from the approved batch file here too (the owner's review at 62c9f7a): per language,
+// the failed message's whole second sentence without its final full stop, then that sentence's first two
+// words ("Try again", a trailing comma dropped), which also guard denied and noSpeech. Long before short.
+const secondOf = (s) => { const p = String(s || '').split('. '); return p.length === 2 ? p[1].replace(/\.$/, '') : ''; };
+const head2 = (s) => s.split(' ').slice(0, 2).join(' ').replace(/,$/, '');
 const KT = await load('src/lib/keep-together.ts');
-const WANT_VOICE = [tailOf(okAr.get('failed'), 3), tailOf(okEn.get('failed'), 4)];
+const LONG = { ar: secondOf(okAr.get('failed')), en: secondOf(okEn.get('failed')) };
+const SHORT = { ar: head2(LONG.ar), en: head2(LONG.en) };
+const WANT_VOICE = [LONG.ar, SHORT.ar, LONG.en, SHORT.en];
 if (KT) {
   const NB = '\u00A0';
-  check(JSON.stringify([...(KT.KEEP_TOGETHER_VOICE || [])]) === JSON.stringify(WANT_VOICE), `KEEP_TOGETHER_VOICE is exactly the approved failed message's two tails, byte for byte (${(KT.KEEP_TOGETHER_VOICE || []).length} phrases)`);
-  check(WANT_VOICE[1] === 'or type your question' && WANT_VOICE[0].split(' ').length === 3, 'the tails cut from the batch are "or type your question" and a three-word Arabic phrase');
+  const nb = (p) => p.split(' ').join(NB);
+  check(JSON.stringify([...(KT.KEEP_TOGETHER_VOICE || [])]) === JSON.stringify(WANT_VOICE), `KEEP_TOGETHER_VOICE is exactly the approved failed message's second sentences and their "try again" heads, long before short, byte for byte (${(KT.KEEP_TOGETHER_VOICE || []).length} phrases)`);
+  check(LONG.en === 'Try again, or type your question' && SHORT.en === 'Try again' && LONG.ar.split(' ').length === 5 && SHORT.ar.split(' ').length === 2, 'the phrases cut from the batch are "Try again, or type your question", "Try again", a five-word and a two-word Arabic phrase');
+  check(WANT_VOICE.every((p) => p && !p.endsWith('.')), 'no kept phrase carries a final full stop');
+  for (const k of ['denied', 'noSpeech', 'failed']) check(String(okAr.get(k) || '').includes(SHORT.ar), `the approved Arabic ${k} holds the short Arabic phrase, so it is guarded too`);
   if (en && ar && typeof KT.keepTogetherVoice === 'function') {
     const V = { en: en.dashboard.agent.voice, ar: ar.dashboard.agent.voice };
-    for (const [i, L] of [[0, 'ar'], [1, 'en']]) {
-      const w = WANT_VOICE[i];
-      const out = KT.keepTogetherVoice(V[L].failed);
-      check(out.includes(w.split(' ').join(NB)), `${L}.failed: keepTogetherVoice joins its phrase with no-break spaces`);
-      check(out.replace(/\u00A0/g, ' ') === V[L].failed, `${L}.failed: keepTogetherVoice changes no character but the spaces inside the phrase`);
-      // Forced: keepTogether alone (main's path) leaves the phrase breakable, and the same test must fail.
-      const old = KT.keepTogether(V[L].failed);
-      check(!old.includes(w.split(' ').join(NB)), `forced: keepTogether alone leaves ${L}.failed's phrase breakable, and the test flags it`);
+    for (const L of ['ar', 'en']) {
+      for (const k of ['failed', 'denied', 'noSpeech']) {
+        const out = KT.keepTogetherVoice(V[L][k]);
+        check(out.replace(/\u00A0/g, ' ') === V[L][k], `${L}.${k}: keepTogetherVoice changes no character but spaces`);
+        const want = k === 'failed' ? LONG[L] : V[L][k].includes(SHORT[L]) ? SHORT[L] : null;
+        if (!want) { check(L === 'en' && k === 'denied', `${L}.${k}: holds no kept phrase (only en.denied may, its "try again" is lower case)`); continue; }
+        check(out.includes(nb(want)), `${L}.${k}: keepTogetherVoice joins "${L === 'ar' ? `ar ${k === 'failed' ? 'long' : 'short'}` : want}" with no-break spaces`);
+        // Forced: keepTogether alone (main's path) leaves the phrase breakable, and the same test must fail.
+        check(!KT.keepTogether(V[L][k]).includes(nb(want)), `forced: keepTogether alone leaves ${L}.${k}'s phrase breakable, and the test flags it`);
+      }
+      // The failed message's first sentence stays breakable: only the second sentence is held together.
+      const first = V[L].failed.split('. ')[0];
+      check(KT.keepTogetherVoice(V[L].failed).startsWith(first), `${L}.failed: the first sentence is untouched`);
     }
     check(KT.keepTogetherVoice('a ready question') === KT.keepTogether('a ready question'), "keepTogetherVoice keeps KEEP_TOGETHER's phrases too");
   } else check(false, 'keepTogetherVoice is exported from src/lib/keep-together.ts');

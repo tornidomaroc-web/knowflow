@@ -46,10 +46,13 @@
  *
  * CHECK 29 (voicePhraseCheck, the owner's review of PR #340 at 3b2fe21): on
  * every voice render with a line, ar and en, light and dark, 390 and 360, no
- * message line ends with the first word of a KEEP_TOGETHER_VOICE phrase ("or"
- * and its Arabic twin) and no such phrase spans two lines. voicePhrasePlant()
- * forces each phrase present onto two lines, broken after its first word;
- * check 29 must flag both rules on every such render, or the run fails.
+ * message line ends with the first word of a KEEP_TOGETHER_VOICE phrase ("Try"
+ * and its Arabic twin) or with the joint word after a shorter kept phrase
+ * inside a longer one ("or" and its Arabic twin; the owner's review at
+ * 62c9f7a), and no such phrase spans two lines. voicePhrasePlant() forces
+ * each phrase present onto two lines, broken after its first word and after
+ * its joint word; check 29 must flag both rules on every such render, or the
+ * run fails.
  *
  * CHECK 22 (camera.mjs, sameCheck), widened again: every screen of shell 2
  * that existed before this change (no stub: build 9 before the plugin, and
@@ -408,7 +411,15 @@ export function voicePhraseCheck(expect, list) {
   const msg = document.querySelector('[data-kf-voice-line] [data-kf-voice-text]');
   if (!msg) return null;
   const f = [];
-  const ends = [...new Set(list.map((p) => p.split(' ')[0].toLowerCase()))];
+  // Line-end words: each phrase's first word ("try"), and, where a kept phrase opens a longer one, the
+  // word that follows it there ("or" after "Try again,", its Arabic twin after the Arabic "try again").
+  const bare1 = (w) => w.replace(/[.,،؛:!?؟]+$/u, '').toLowerCase();
+  const ends = new Set(list.map((p) => bare1(p.split(' ')[0])));
+  for (const p of list) for (const q of list) {
+    if (p === q || !p.startsWith(q)) continue;
+    const next = p.slice(q.length).replace(/^[,،]?\s+/u, '').split(' ')[0];
+    if (next) ends.add(bare1(next));
+  }
   const secs = msg.querySelector('[data-kf-voice-seconds]');
   const units = [];
   const walk = document.createTreeWalker(msg, NodeFilter.SHOW_TEXT);
@@ -432,11 +443,11 @@ export function voicePhraseCheck(expect, list) {
   const lineEnds = rows.map((r) => r.units.reduce((a, b) => (b.i > a.i ? b : a)).w);
   for (const w of lineEnds) {
     const bare = w.replace(/[.,\u060C\u061B:!?\u061F]+$/u, '').toLowerCase();
-    if (ends.includes(bare)) f.push(`check 29: a message line ends on "${bare}" (${expect.view})`);
+    if (ends.has(bare)) f.push(`check 29: a message line ends on "${bare}" (${expect.view})`);
   }
   const ph = window.kfPhraseChecks(list, '[data-kf-voice-line] [data-kf-voice-text]');
   for (const x of ph.findings) f.push(`check 29: ${x} (${expect.view})`);
-  return { finding: f.length ? f.join(' | ') : null, measured: { view: expect.view, lines: rows.length, lineEnds, phrasesRead: ph.read } };
+  return { finding: f.length ? f.join(' | ') : null, measured: { view: expect.view, lines: rows.length, lineEnds, endWords: [...ends], phrasesRead: ph.read } };
 }
 
 /**
@@ -449,14 +460,30 @@ export function voicePhrasePlant(expect, list) {
   const msg = document.querySelector('[data-kf-voice-line] [data-kf-voice-text]');
   if (!expect.mic || !msg) return null;
   const rows = [];
+  const bare1 = (w) => w.replace(/[.,،؛:!?؟]+$/u, '').toLowerCase();
+  // Break points per phrase: after its first word, and after the joint word that follows a shorter
+  // kept phrase inside it ("or" in "Try again, or type your question"), as check 29 reads them.
+  const plan = [];
   for (const phrase of list) {
-    const first = phrase.split(' ')[0];
+    const n = phrase.split(' ').length;
+    plan.push({ phrase, k: 0 });
+    for (const q of list) {
+      if (q === phrase || !phrase.startsWith(q)) continue;
+      const k = q.split(' ').length;
+      if (k < n - 1) plan.push({ phrase, k });
+    }
+  }
+  for (const { phrase, k } of plan) {
+    const words = phrase.split(' ');
+    const first = words[k];
+    // The offset, inside a match, of the space after word k (words joined by single spaces).
+    const upTo = words.slice(0, k + 1).join(' ').length;
     const re = new RegExp(phrase.split(' ').join('[  ]+'));
     const tw = document.createTreeWalker(msg, NodeFilter.SHOW_TEXT);
     let hit = null;
     for (let n = tw.nextNode(); n && !hit; n = tw.nextNode()) {
       const m = re.exec(n.data);
-      if (m) hit = { n, at: m.index + first.length };
+      if (m) hit = { n, at: m.index + upTo };
     }
     if (!hit) continue;
     const { n, at } = hit;
@@ -472,8 +499,10 @@ export function voicePhrasePlant(expect, list) {
       n.data = keep;
     }
     const fd = r?.finding || '';
-    const caught = fd.includes(`ends on "${first.toLowerCase()}"`) && fd.includes(`"${phrase}" splits`);
-    rows.push({ phrase, caught, finding: fd || null });
+    // A short phrase inside a longer kept one is read as the longer one (the alternation takes it
+    // first), so the split may be reported under the phrase that holds it.
+    const caught = fd.includes(`ends on "${bare1(first)}"`) && list.some((q) => q.includes(phrase) && fd.includes(`"${q}" splits`));
+    rows.push({ phrase, after: bare1(first), caught, finding: fd || null });
   }
   return rows;
 }

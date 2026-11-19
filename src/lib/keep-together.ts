@@ -62,8 +62,13 @@ export function keepTogetherPaywall(text: string): string {
  * PHRASES KEPT ON ONE LINE IN THE VOICE LINE ONLY (the owner's review of PR
  * #340 at 3b2fe21, 2026-11-19): at 390 pt the Arabic failed message
  * (dashboard.agent.voice.failed) ended a line on its "or" and began the next
- * with "type your question". Both phrases are the tail of the approved failed
- * message (docs/copy/ARABIC_STRINGS_app_v13.md), cut from that file by script.
+ * with "type your question". Keeping that tail alone moved the break to
+ * "try" / "again" (the owner's review at 62c9f7a), so the list is now, per
+ * language, the failed message's whole second sentence without its full stop,
+ * then its "try again" head; the head also guards the denied and noSpeech
+ * messages. Each long phrase comes before the short one it contains, so the
+ * alternation takes the long one where both fit. The Arabic phrases are cut
+ * from the approved file (docs/copy/ARABIC_STRINGS_app_v13.md) by script.
  *
  * A list of its own, like KEEP_TOGETHER_PAYWALL: keepTogetherVoice() is called
  * by src/components/agent/VoiceButton.tsx alone, and the voice line is drawn
@@ -72,12 +77,13 @@ export function keepTogetherPaywall(text: string): string {
  * spaces inside a phrase become no-break spaces; no string is changed.
  *
  * scripts/design-c/voice.mjs (check 29) reads this list: a voice message line
- * that ends with a phrase's first word, or a phrase split across two lines,
- * fails; on every AFTER render each phrase present is forced onto two lines
+ * that ends with a phrase's first word ("try"), or with the word that follows
+ * a shorter kept phrase inside a longer one ("or"), or a phrase split across
+ * two lines, fails; on every AFTER render each phrase present is forced onto two lines
  * and must be flagged. scripts/verify-voice-input.mjs holds the list to the
  * approved file.
  */
-export const KEEP_TOGETHER_VOICE = ['أو اكتب سؤالك', 'or type your question'] as const;
+export const KEEP_TOGETHER_VOICE = ['حاول مجددًا أو اكتب سؤالك', 'حاول مجددًا', 'Try again, or type your question', 'Try again'] as const;
 
 const VOICE_PATTERN = new RegExp(KEEP_TOGETHER_VOICE.map((p) => p.split(' ').join('[ \\u00A0]+')).join('|'), 'g');
 
