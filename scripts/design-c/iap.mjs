@@ -51,8 +51,17 @@
  * CHECK 22, WIDENED: every screen drawn with build 8 or the web that existed
  * before this change must be the same picture before and after (camera.mjs,
  * sameCheck), not only the drop-zone screens.
+ *
+ * CHECK 26 (the owner's render review of #338's merge, design-c 44420154517):
+ * on every paywall render, no phrase of KEEP_TOGETHER_PAYWALL
+ * (src/lib/keep-together.ts: "بـ24 ساعة", "سجّل الدخول", "Apple Account",
+ * "Try again") spans two lines inside [data-kf-iap="paywall"] (pr4.mjs's
+ * phraseChecks, scoped). keepPlant() forces each phrase present on an AFTER
+ * paywall render onto two lines (its no-break space made a space, a <br>
+ * after it); each must be flagged, and each phrase must be caught on at least
+ * one render, or the run fails.
  */
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { A360 } from './android360.mjs';
@@ -212,6 +221,56 @@ export function iapScreens(add, { APP, SAFARI, DESK, DESKTOP }, screens) {
     c(`refusal-${surface}-${c2}-web`, path, q('web'), SAFARI, { ...shot, same: true, refusal: { surface, code }, iap: { shell: 0, refusal: surface } });
   }
   return APP2;
+}
+
+/** Check 26's phrases, read from src/lib/keep-together.ts (KEEP_TOGETHER_PAYWALL). */
+export function keepPaywallList(root) {
+  const src = readFileSync(join(root, 'src', 'lib', 'keep-together.ts'), 'utf8');
+  const m = /KEEP_TOGETHER_PAYWALL = \[([^\]]*)\]/.exec(src);
+  return m ? [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]) : [];
+}
+
+/** Where check 26 reads. */
+export const PAYWALL_SCOPE = '[data-kf-iap="paywall"]';
+
+/**
+ * Check 26's forced case. Self-contained; needs window.kfPhraseChecks. For
+ * each phrase found in the paywall's text (its words joined by a space or a
+ * no-break space, inside one text node), the joint is made a plain space with
+ * a <br> after it, the scoped phrase check is run for that phrase alone, and
+ * the node is put back. Returns one row per phrase found: caught or not.
+ */
+export function keepPlant(list, scope) {
+  const root = document.querySelector(scope);
+  if (!root) return null;
+  const rows = [];
+  for (const phrase of list) {
+    const first = phrase.split(' ')[0];
+    const re = new RegExp(phrase.split(' ').join('[ \u00A0]+'));
+    const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let hit = null;
+    for (let n = tw.nextNode(); n && !hit; n = tw.nextNode()) {
+      const m = re.exec(n.data);
+      if (m && n.parentElement && n.parentElement.getBoundingClientRect().width > 0) hit = { n, at: m.index + first.length };
+    }
+    if (!hit) continue;
+    const { n, at } = hit;
+    const keep = n.data;
+    const tail = n.splitText(at + 1);
+    n.data = n.data.slice(0, -1) + ' ';
+    const br = document.createElement('br');
+    n.after(br);
+    let caught = false;
+    try {
+      caught = window.kfPhraseChecks([phrase], scope).findings.some((f) => f.includes(`"${phrase}"`));
+    } finally {
+      br.remove();
+      tail.remove();
+      n.data = keep;
+    }
+    rows.push({ phrase, caught });
+  }
+  return rows;
 }
 
 /** The shell a user agent names: 0 for the web. */

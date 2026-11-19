@@ -299,6 +299,48 @@ if (PT && DCI && PW && i18n) {
     check(/من <bdi dir="ltr"[^>]*>App[  ]Store<\/bdi>/.test(planted) && !/<\/bdi>[\s ]*<bdi/.test(planted), 'planted: a note ending "من App Store" draws "من" + no-break space + ONE "App Store" isolate (not two)');
     check(/<button[^>]*data-kf-iap-manage[^>]*><span>[^]*?<\/span><\/button>/.test(note), 'the delete note\'s Manage button: its label is one span');
   }
+  // The paywall's own protected phrases (keep-together.ts, KEEP_TOGETHER_PAYWALL; the owner's render review of
+  // #338's merge, design-c 44420154517): "بـ24 ساعة" (ar disclosure, 360), "سجّل الدخول" (ar other-account and
+  // not-this-account, 390), "Apple Account" (en disclosure, twice), "Try again" (en unavailable, 390 and 360).
+  // Each is drawn with a no-break space in every paywall state that holds it; the forced case is main's path
+  // (keepTogether alone), on which each phrase keeps a breakable space and the same test must fail.
+  if (KT) {
+    const WANT = ['بـ24 ساعة', 'سجّل الدخول', 'Apple Account', 'Try again'];
+    check(JSON.stringify([...(KT.KEEP_TOGETHER_PAYWALL || [])]) === JSON.stringify(WANT), `KEEP_TOGETHER_PAYWALL is exactly the four phrases (${JSON.stringify(KT.KEEP_TOGETHER_PAYWALL)})`);
+    check(WANT.every((w) => !KT.KEEP_TOGETHER.includes(w)), 'none of the four is in KEEP_TOGETHER (that list is held on every screen; these stay inside the paywall)');
+    // Where each phrase stands: [locale, state, label key].
+    const AT = {
+      'بـ24 ساعة': [['ar', 'ready', 'disclosure'], ['ar', 'failed', 'disclosure'], ['ar', 'restore-none', 'disclosure']],
+      'سجّل الدخول': [['ar', 'other-account', 'otherAccount'], ['ar', 'not-this-account', 'notThisAccount']],
+      'Apple Account': [['en', 'ready', 'disclosure'], ['en', 'pending', 'disclosure'], ['en', 'restore-none', 'restoreNone']],
+      'Try again': [['en', 'unavailable', 'unavailable'], ['en', 'failed', 'failed'], ['en', 'restore-failed', 'restoreFailed']],
+    };
+    const words = (w) => w.split(' ');
+    // Joined: every occurrence of the phrase in the drawn text has a no-break space and none a plain one.
+    const joined = (txt, w) => txt.includes(words(w).join(' ')) && !txt.includes(w);
+    // Tags out, spaces as drawn (text() squashes s, which holds the no-break space).
+    const strip = (html) => html.replace(/<[^>]+>/g, '');
+    const drawn = (locale, state, labels) => strip(renderToStaticMarkup(shell2(h(PW.Paywall, { labels, figures: F, userId: UID, pro: null, termsHref: `/${locale}/terms`, privacyHref: `/${locale}/privacy`, preview: { state, price: '$9.99' } }), { locale })));
+    for (const w of WANT) {
+      for (const [locale, state, key] of AT[w]) {
+        const L = i18n.useTranslation(locale).dashboard.iap;
+        check(L[key].includes(w), `${locale}.${key} holds "${w}" (the approved string, unchanged)`);
+        check(joined(drawn(locale, state, L), w), `${locale} paywall "${state}": "${w}" is drawn with a no-break space (one line)`);
+        // Forced: main's path, keepTogether alone; the phrase keeps its plain space and the test must fail.
+        const old = KT.keepTogether(L[key]);
+        check(!joined(old, w), `forced: main's keepTogether leaves "${w}" breakable in ${locale}.${key}, and the test flags it`);
+      }
+    }
+    // Only the paywall: keepTogetherPaywall is imported by Paywall.tsx alone (shell 2), so the web and build 8 are unchanged.
+    const users = [];
+    const walk = (d) => { for (const f of readdirSync(d)) { const q = join(d, f); if (statSync(q).isDirectory()) walk(q); else if (/\.tsx?$/.test(f) && readFileSync(q, 'utf8').includes('keepTogetherPaywall')) users.push(q.replace(/\\/g, '/').replace(/^.*?src\//, 'src/')); } };
+    walk(join(ROOT, 'src'));
+    check(JSON.stringify(users.sort()) === JSON.stringify(['src/components/iap/Paywall.tsx', 'src/lib/keep-together.ts']), `keepTogetherPaywall is used by Paywall.tsx alone (${JSON.stringify(users)})`);
+    const pwSrc = readFileSync(join(ROOT, 'src/components/iap/Paywall.tsx'), 'utf8');
+    check(/<LatinText text=\{keepTogetherPaywall\(message\[state\]!\)\} \/>/.test(pwSrc) && /<PriceSentence template=\{keepTogetherPaywall\(labels\.disclosure\)\} price=\{price\} \/>/.test(pwSrc), 'Paywall.tsx: the status message and the 3.1.2 disclosure go through keepTogetherPaywall');
+    // keepTogetherPaywall adds to keepTogether, never takes away: KEEP_TOGETHER's own phrases still joined.
+    check(KT.keepTogetherPaywall('عن الذكاء الاصطناعي، سجّل الدخول') === 'عن الذكاء الاصطناعي، سجّل الدخول', 'keepTogetherPaywall keeps KEEP_TOGETHER\'s phrases too');
+  }
   // The refusal sentences design-c answers in the page are the routes' own (iap.mjs, REFUSALS).
   const lm2 = await load('src/lib/limit-messages.ts');
   const al2 = await load('src/lib/ai-allowance.ts');

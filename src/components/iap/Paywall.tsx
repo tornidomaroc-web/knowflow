@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card } from '@/components/ui';
 import { LatinText } from '@/components/ui/LatinText';
-import { keepTogether } from '@/lib/keep-together';
+import { keepTogetherPaywall } from '@/lib/keep-together';
 import { PriceSentence } from './PriceText';
 import { ClayStar } from '@/components/clay/ClayIcons';
 import { storeBridge } from '@/lib/iap/bridge';
@@ -203,7 +203,7 @@ export function Paywall({ labels, figures, userId, pro, termsHref, privacyHref, 
           )}
           {message[state] && (
             <p role="status" aria-live="polite" className={`mt-3 text-center text-sm font-medium ${tone}`} data-kf-paywall-message={state}>
-              <LatinText text={keepTogether(message[state]!)} />
+              <LatinText text={keepTogetherPaywall(message[state]!)} />
             </p>
           )}
           {price && CAN_BUY.includes(state) && (
@@ -223,7 +223,7 @@ export function Paywall({ labels, figures, userId, pro, termsHref, privacyHref, 
           )}
           {price && (
             <p className="mt-4 text-xs leading-5 text-muted-foreground" data-kf-paywall-disclosure="">
-              <PriceSentence template={labels.disclosure} price={price} />
+              <PriceSentence template={keepTogetherPaywall(labels.disclosure)} price={price} />
             </p>
           )}
         </Card>

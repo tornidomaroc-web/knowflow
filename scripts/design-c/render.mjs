@@ -186,7 +186,7 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { kfWording, KF_WORDING_SRC, KF_PURCHASE_SRC } from '../lib/app-wording.mjs';
-import { iapScreens, iapCheck, iapPlant, shellOf, refusalMock, refusalAct, splitButtons, splitPlant, priceCheck, pricePlant, priceExpect, adjacentIsolates, adjacentPlant } from './iap.mjs';
+import { iapScreens, iapCheck, iapPlant, shellOf, refusalMock, refusalAct, splitButtons, splitPlant, priceCheck, pricePlant, priceExpect, adjacentIsolates, adjacentPlant, keepPaywallList, keepPlant, PAYWALL_SCOPE } from './iap.mjs';
 import { audit } from '../redesign-built/audit.mjs';
 import { pr4Screens, pr4Mock, pr4Act, pr4Checks, phraseChecks, keepTogetherList, keyRing, pageLabelPlant, g2Rules, latinRules, latinPlant, markerLines, markerPlant, orphanLines, orphanPlant } from './pr4.mjs';
 import { activation5Screens, a5Prepare, a5Act, askPathCheck, askPathPlant, dropZoneErrorCheck, dropZoneErrorPlant } from './activation5.mjs';
@@ -299,6 +299,9 @@ cameraScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
 // In-app Pro (iap.mjs): the paywall and its entry points at shell 2; check 22 widened to every build-8 and web screen above.
 iapScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
 const KEEP = keepTogetherList(resolve('.'));
+// Check 26 (iap.mjs): the paywall's own protected phrases, read inside [data-kf-iap="paywall"] only.
+const KEEP26 = keepPaywallList(resolve('.'));
+if (!KEEP26.length) throw new Error('check 26: no KEEP_TOGETHER_PAYWALL list in src/lib/keep-together.ts');
 // Check 18's protected units: the keep-together phrases, the kept names (KEEP_WHOLE) and "Anthropic".
 const KEEP18 = [...KEEP, ...[...(/KEEP_WHOLE = \[([^\]]*)\]/.exec(readFileSync(resolve('src/lib/keep-together.ts'), 'utf8'))?.[1] || '').matchAll(/'([^']+)'/g)].map((x) => x[1]), 'Anthropic'];
 const byKey = (k) => SCREENS.find((x) => x.key === k);
@@ -1026,6 +1029,8 @@ let iapForced = 0;
 let priceForced = 0;
 let splitForced = 0;
 let adjacentForced = 0;
+// Check 26's forced cases: per phrase, the AFTER paywall renders where the phrase forced onto two lines was flagged.
+const keepForced = {};
 const sameSeen = { compared: 0, same: 0 };
 
 async function shoot(side, job) {
@@ -1172,6 +1177,8 @@ async function shoot(side, job) {
   // Check 25 (iap.mjs): StoreKit's price one isolate, in reading order, on one line, wherever the paywall draws it.
   const want25 = priceExpect(job.s.iap);
   const price25 = want25 ? await tab.evaluate(priceCheck, want25, false) : null;
+  // Check 26 (iap.mjs): no paywall phrase (KEEP_TOGETHER_PAYWALL) spans two lines inside the paywall.
+  const paywall26 = job.s.iap?.state ? await tab.evaluate(phraseChecks, KEEP26, PAYWALL_SCOPE) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -1200,6 +1207,9 @@ async function shoot(side, job) {
   // The adjacent-isolate rule's forced case (3e40b56's "من Store App"), where an Arabic delete note is drawn.
   const adjacent24Plant = side === 'after' && job.locale === 'ar' && /settings-apple/.test(job.s.key) ? await tab.evaluate(adjacentPlant) : null;
   const price25Plant = want25 && side === 'after' && job.locale === 'ar' && !/[A-Za-z\u0600-\u06FF]/.test(want25.price) ? await tab.evaluate(pricePlant, want25) : null;
+  // Check 26's forced cases, after the shot, on every AFTER paywall render: each phrase present forced onto two lines.
+  if (job.s.iap?.state && side === 'after') await tab.evaluate(`window.kfPhraseChecks = ${phraseChecks.toString()}`);
+  const keep26Plant = job.s.iap?.state && side === 'after' ? await tab.evaluate(keepPlant, KEEP26, PAYWALL_SCOPE) : null;
   // G2: check 9's forced wrong cases, after the shot (pr4.mjs, pageLabelPlant).
   const labelPlant = job.s.pr4 === 'ask' ? await tab.evaluate(pageLabelPlant) : null;
   // Finding (b): check 10's forced wrong cases, after the shot (pr4.mjs, latinPlant).
@@ -1210,7 +1220,7 @@ async function shoot(side, job) {
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant, price25, price25Plant, split24Plant, adjacent24Plant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant, price25, price25Plant, split24Plant, adjacent24Plant, paywall26, keep26Plant };
 }
 
 for (const job of JOBS) {
@@ -1291,6 +1301,8 @@ for (const job of JOBS) {
       ...(r.price25Plant?.finding ? [`price: ${r.price25Plant.finding}`] : []),
       ...(r.split24Plant?.finding ? [`iap: ${r.split24Plant.finding}`] : []),
       ...(r.adjacent24Plant?.finding ? [`iap: ${r.adjacent24Plant.finding}`] : []),
+      ...(r.paywall26 ? r.paywall26.findings.map((f) => `keep26: ${f}`) : []),
+      ...(r.keep26Plant || []).filter((x) => !x.caught).map((x) => `keep26: check 26 is blind: "${x.phrase}" forced onto two lines was not flagged`),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -1309,6 +1321,7 @@ for (const job of JOBS) {
     if (side === 'after' && r.price25Plant?.caught) priceForced++;
     if (side === 'after' && r.split24Plant?.caught) splitForced++;
     if (side === 'after' && r.adjacent24Plant?.caught) adjacentForced++;
+    if (side === 'after') for (const x of r.keep26Plant || []) if (x.caught) keepForced[x.phrase] = (keepForced[x.phrase] || 0) + 1;
     if (side === 'after' && r.whole18Revert?.flagged) console.log(`       check 18 on d9647f5's layout (${job.name}): ${r.whole18Revert.finding}`);
     const tmin = Math.min(...r.a.text.map((t) => t.got));
     row.sides[side] = {
@@ -1342,6 +1355,7 @@ for (const job of JOBS) {
       ...(r.camera21 ? { camera: { expect: job.s.camera, ...r.camera21.measured, finding: r.camera21.finding, ...(r.camera21Plant ? { forced: r.camera21Plant.forced, forcedCaught: r.camera21Plant.caught ?? null } : {}) } } : {}),
       // Check 24 (iap.mjs): read on every render, reported where a screen asked for it or found something.
       ...(r.iap24 && (job.s.iap || r.iap24.finding) ? { iap: { expect: job.s.iap ?? null, ...r.iap24.measured, finding: r.iap24.finding, ...(r.iap24Plant ? { forcedCaught: r.iap24Plant.caught } : {}), ...(r.split24Plant ? { splitForcedCaught: r.split24Plant.caught } : {}) } } : {}),
+      ...(r.paywall26 ? { keep26: { read: r.paywall26.read, findings: r.paywall26.findings, ...(r.keep26Plant ? { forced: r.keep26Plant } : {}) } } : {}),
       ...(r.price25 ? { price: { want: priceExpect(job.s.iap), ...r.price25.measured, finding: r.price25.finding, ...(r.price25Plant ? { forced: { caught: r.price25Plant.caught, drawn: r.price25Plant.drawn } } : {}) } } : {}),
       ...(job.s.native ? { app: { appleButtons: r.gate.apple.length, googleButtons: r.gate.google.length, purchaseWords: words } } : {}),
     };
@@ -1393,6 +1407,10 @@ if (!splitForced) never('the split-button rule was never forced: no AFTER render
 else console.log(`check 24, split-button rule (one flex item per button): forced case caught on ${splitForced} AFTER render(s)`);
 if (!adjacentForced) never('the adjacent-isolate rule was never forced: no Arabic AFTER render caught "App" + "Store" as two isolates');
 else console.log(`check 24, adjacent-isolate rule (a Latin phrase is one isolate): forced case caught on ${adjacentForced} AFTER render(s)`);
+for (const p of KEEP26) {
+  if (!keepForced[p]) never(`check 26 was never forced for "${p}": no AFTER paywall render caught it forced onto two lines`);
+  else console.log(`check 26 (paywall phrase "${p}" on one line): forced case caught on ${keepForced[p]} AFTER render(s)`);
+}
 if (!sameSeen.compared) never('check 22 compared no screen');
 else console.log(`check 22 (shell 1 and the web unchanged): ${sameSeen.same} of ${sameSeen.compared} screen(s) the same picture before and after`);
 writeFileSync(join(out, 'report.json'), JSON.stringify({ fonts: { family: FAMILY, package: '@fontsource/rubik@5.2.5', weights: WEIGHTS, files: fontHashes }, results }, null, 2) + '\n');
