@@ -341,6 +341,42 @@ check(pAr.length > 40 && /Apple/.test(pAr) && /KnowFlow/.test(pAr) && kfWording(
 check(!/DRAFT \(voice input/.test(privacy), 'the privacy page carries no DRAFT comment for the voice sentence');
 check(!/copy-drafts\/voice_input_v1/.test(plistEn + plistAr + read('src/lib/i18n/locales/en.ts') + read('src/lib/i18n/locales/ar.ts')), 'no file the app ships points at the old draft');
 
+// ── 5b. The phrases kept on one line ─────────────────────────────────────────
+section("5b. The voice line's kept phrases (the owner's review of #340 at 3b2fe21)");
+// The phrases are the tails of the approved failed message, cut from the batch file here too: the Arabic
+// row's last three words and the English bullet's last four, the final full stop dropped.
+const tailOf = (s, n) => String(s || '').replace(/\.$/, '').split(' ').slice(-n).join(' ');
+const KT = await load('src/lib/keep-together.ts');
+const WANT_VOICE = [tailOf(okAr.get('failed'), 3), tailOf(okEn.get('failed'), 4)];
+if (KT) {
+  const NB = '\u00A0';
+  check(JSON.stringify([...(KT.KEEP_TOGETHER_VOICE || [])]) === JSON.stringify(WANT_VOICE), `KEEP_TOGETHER_VOICE is exactly the approved failed message's two tails, byte for byte (${(KT.KEEP_TOGETHER_VOICE || []).length} phrases)`);
+  check(WANT_VOICE[1] === 'or type your question' && WANT_VOICE[0].split(' ').length === 3, 'the tails cut from the batch are "or type your question" and a three-word Arabic phrase');
+  if (en && ar && typeof KT.keepTogetherVoice === 'function') {
+    const V = { en: en.dashboard.agent.voice, ar: ar.dashboard.agent.voice };
+    for (const [i, L] of [[0, 'ar'], [1, 'en']]) {
+      const w = WANT_VOICE[i];
+      const out = KT.keepTogetherVoice(V[L].failed);
+      check(out.includes(w.split(' ').join(NB)), `${L}.failed: keepTogetherVoice joins its phrase with no-break spaces`);
+      check(out.replace(/\u00A0/g, ' ') === V[L].failed, `${L}.failed: keepTogetherVoice changes no character but the spaces inside the phrase`);
+      // Forced: keepTogether alone (main's path) leaves the phrase breakable, and the same test must fail.
+      const old = KT.keepTogether(V[L].failed);
+      check(!old.includes(w.split(' ').join(NB)), `forced: keepTogether alone leaves ${L}.failed's phrase breakable, and the test flags it`);
+    }
+    check(KT.keepTogetherVoice('a ready question') === KT.keepTogether('a ready question'), "keepTogetherVoice keeps KEEP_TOGETHER's phrases too");
+  } else check(false, 'keepTogetherVoice is exported from src/lib/keep-together.ts');
+}
+// Only the voice line: keepTogetherVoice is imported by VoiceButton.tsx alone, so the web and build 8 are unchanged.
+{
+  const { readdirSync, statSync } = await import('node:fs');
+  const { relative, sep } = await import('node:path');
+  const users = [];
+  const walk = (d) => { for (const f of readdirSync(d)) { const q = resolvePath(d, f); if (statSync(q).isDirectory()) walk(q); else if (/\.tsx?$/.test(f) && readFileSync(q, 'utf8').includes('keepTogetherVoice')) users.push(relative(ROOT, q).split(sep).join('/')); } };
+  walk(resolvePath(ROOT, 'src'));
+  check(JSON.stringify(users.sort()) === JSON.stringify(['src/components/agent/VoiceButton.tsx', 'src/lib/keep-together.ts']), `keepTogetherVoice is used by VoiceButton.tsx alone (${JSON.stringify(users)})`);
+  check(/keepTogetherVoice\(labels\[line\]\)/.test(vb), 'VoiceButton draws every line message through keepTogetherVoice');
+}
+
 // ── 6. The 413 path ─────────────────────────────────────────────────────────
 section('6. A transcript over the cap comes back to the field');
 const b413 = /if \(res\.status === 413 && res\.headers\.get\('X-KF-Refusal'\) === QUESTION_TOO_LONG\) \{[\s\S]*?\n      \}/.exec(chat)?.[0] || '';

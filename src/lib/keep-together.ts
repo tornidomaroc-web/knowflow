@@ -59,6 +59,34 @@ export function keepTogetherPaywall(text: string): string {
 }
 
 /**
+ * PHRASES KEPT ON ONE LINE IN THE VOICE LINE ONLY (the owner's review of PR
+ * #340 at 3b2fe21, 2026-11-19): at 390 pt the Arabic failed message
+ * (dashboard.agent.voice.failed) ended a line on its "or" and began the next
+ * with "type your question". Both phrases are the tail of the approved failed
+ * message (docs/copy/ARABIC_STRINGS_app_v13.md), cut from that file by script.
+ *
+ * A list of its own, like KEEP_TOGETHER_PAYWALL: keepTogetherVoice() is called
+ * by src/components/agent/VoiceButton.tsx alone, and the voice line is drawn
+ * only at shell 2 with the KnowFlowSpeech plugin, so the web and build 8 stay
+ * the same picture (design-c check 22). The method is KEEP_TOGETHER's: the
+ * spaces inside a phrase become no-break spaces; no string is changed.
+ *
+ * scripts/design-c/voice.mjs (check 29) reads this list: a voice message line
+ * that ends with a phrase's first word, or a phrase split across two lines,
+ * fails; on every AFTER render each phrase present is forced onto two lines
+ * and must be flagged. scripts/verify-voice-input.mjs holds the list to the
+ * approved file.
+ */
+export const KEEP_TOGETHER_VOICE = ['أو اكتب سؤالك', 'or type your question'] as const;
+
+const VOICE_PATTERN = new RegExp(KEEP_TOGETHER_VOICE.map((p) => p.split(' ').join('[ \\u00A0]+')).join('|'), 'g');
+
+/** keepTogether(), plus the voice line's own phrases. */
+export function keepTogetherVoice(text: string): string {
+  return keepTogether(text).replace(VOICE_PATTERN, (m) => m.replace(/ +/g, '\u00A0'));
+}
+
+/**
  * NAMES KEPT ON ONE LINE WITHOUT CHANGING A CHARACTER (the owner's review of
  * PR #322 at d9647f5, 2026-11-12): the en declined sentence broke "Voyage" /
  * "AI.". In a right-to-left sentence LatinText already draws "Voyage AI" as

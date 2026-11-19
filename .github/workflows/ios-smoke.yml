@@ -85,6 +85,9 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/ios-smoke.yml'
+      # Proof 7's purpose-string comparison and the approved texts it reads.
+      - '.github/scripts/ios-purpose-strings-check.py'
+      - 'docs/copy/ARABIC_STRINGS_app_v13.md'
   workflow_dispatch:
     inputs:
       scenario:
@@ -224,6 +227,9 @@ jobs:
           device_app=$(find "$RUNNER_TEMP/dd-device/Build/Products" -maxdepth 2 -name 'App.app' -type d | head -n 1)
           test -n "$device_app" || { echo "no device App.app was built"; tail -n 60 "$RUNNER_TEMP/build-device.log"; exit 1; }
           python3 .github/scripts/ios-privacy-check.py "$device_app" | tee "$RUNNER_TEMP/privacy-audit.txt"
+          # The voice permission texts in the device build (Info.plist, en.lproj,
+          # ar.lproj) are the owner's approved v13 values, byte for byte (#340).
+          python3 .github/scripts/ios-purpose-strings-check.py "$device_app" docs/copy/ARABIC_STRINGS_app_v13.md
           echo "DEVICE_APP=$device_app" >> "$GITHUB_ENV"
 
       # ASO-1.0.1. The App Store lists the languages the binary declares: its
@@ -291,8 +297,8 @@ jobs:
             {"name":"iap-plant-marked","wait":500,"js":"(function(){var d=document.createElement('div');d.id='kf-iap-plant';d.setAttribute('data-kf-iap','plant');d.textContent='Subscribe to Pro for $9.99 a month · اشترك في الاحترافي';document.body.appendChild(d);return 'planted marked'})()"},
             {"name":"iap-plant-link","wait":500,"js":"(function(){var d=document.getElementById('kf-iap-plant');var a=document.createElement('a');a.href='/en/pricing';a.textContent='kf-iap-link';d.appendChild(a);return 'planted link inside the marked element'})()"},
             {"name":"iap-unplant","wait":500,"js":"(function(){var d=document.getElementById('kf-iap-plant');if(d){d.remove()}return d?'removed':'none'})()"},
-            {"name":"store-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfStore='waiting';if(!C||!C.nativePromise){window.__kfStore='no bridge';return window.__kfStore}C.nativePromise('KnowFlowStore','products',{ids:['com.knowflow.app.pro.monthly']}).then(function(r){window.__kfStore=JSON.stringify(r)},function(e){window.__kfStore='rejected: '+String(e&&e.message||e)});return 'called products'})()"},
-            {"name":"store-read","wait":8000,"js":"(function(){return String(window.__kfStore)})()"},
+            {"name":"store-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfStore='waiting';if(!C||!C.nativePromise){window.__kfStore='no bridge';return window.__kfStore}var t0=Date.now();C.nativePromise('KnowFlowStore','products',{ids:['com.knowflow.app.pro.monthly']}).then(function(r){r=r||{};r.ms=Date.now()-t0;window.__kfStore=JSON.stringify(r)},function(e){window.__kfStore='rejected after '+(Date.now()-t0)+' ms: '+String(e&&e.message||e)});return 'called products'})()"},
+            {"name":"store-read","settle":"(function(){return window.__kfStore!=='waiting'?'true':'false'})()","timeout":20000,"wait":300,"js":"(function(){return String(window.__kfStore)})()"},
             {"name":"speech-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfSpeech={};if(!C||!C.nativePromise){window.__kfSpeech={error:'no bridge'};return 'no bridge'}['en-US','ar-SA'].forEach(function(l){var t0=Date.now();window.__kfSpeech[l]='waiting';C.nativePromise('KnowFlowSpeech','availability',{locale:l}).then(function(r){r.ms=Date.now()-t0;window.__kfSpeech[l]=r},function(e){window.__kfSpeech[l]='rejected: '+String(e&&e.message||e)})});return 'called availability en-US and ar-SA'})()"},
             {"name":"speech-read","settle":"(function(){var s=window.__kfSpeech||{};return ['en-US','ar-SA'].every(function(l){return s[l]&&s[l]!=='waiting'})?'true':'false'})()","timeout":20000,"wait":300,"js":"(function(){return JSON.stringify(window.__kfSpeech)})()"},
             {"name":"live-terms","until":"/en/terms$","wait":4000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
@@ -499,8 +505,19 @@ jobs:
           # `products` only asks StoreKit for the product, which a simulator
           # without a StoreKit configuration answers with none).
           need(L.get("store") is True, f"9. the KnowFlowStore plugin is registered in the shell: store={L.get('store')}")
+          # store-read waits (`settle`, like speech-read) until the products
+          # call has answered, up to 20 s (run 44485385765 read "waiting" after
+          # a fixed 8 s). The answer carries `ms`, the time from the call to the
+          # answer measured in the page. Not settled = FAIL with the time waited.
+          STPOLL = by.get("store-read", {}).get("poll") or {}
+          need(STPOLL.get("settled") is True, f"9. the KnowFlowStore products call answers within 20 s of the call: settled={STPOLL.get('settled')} after {STPOLL.get('ms')} ms")
           SR = str(by.get("store-read", {}).get("result", ""))
           need(SR.startswith('{"products":') or SR.startswith('{"message":'), f"9. ...and it answers a call from a page of tryknowflow.com: {SR[:160]}")
+          try:
+              STMS = json.loads(SR).get("ms")
+          except Exception:
+              STMS = None
+          print(f"info store products: waited {STPOLL.get('ms')} ms; answered in {STMS} ms (measured in the page from the call); {SR[:200]}")
           # Voice input in Ask (iOS 1.1, item 4e): the shell builds and launches
           # with the two new purpose strings and the KnowFlowSpeech plugin, and
           # the bridge reaches it from a page of the live site. Only

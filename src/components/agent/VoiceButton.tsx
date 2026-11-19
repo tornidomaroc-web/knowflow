@@ -7,6 +7,7 @@ import { usePlatform, useShellVersion } from '@/components/platform/PlatformProv
 import { speechBridge, speechShellAllowed, type SpeechBridge } from '@/lib/speech/bridge';
 import { parseAvailability, speechLocaleFor, takeOutcome, SPEECH_LOCALES, type SpeechLocale, type TakeEnd, type VoiceError } from '@/lib/speech/merge';
 import { startTake } from '@/lib/speech/take';
+import { keepTogetherVoice } from '@/lib/keep-together';
 import type { useTranslation } from '@/lib/i18n';
 
 type Labels = ReturnType<typeof useTranslation>['dashboard']['agent']['voice'];
@@ -154,7 +155,8 @@ export function VoiceButton({ uiLocale, labels, onTranscript, lineSlot, resetKey
       className="mb-2 flex flex-col gap-1 rounded-2xl bg-background px-3 py-2 text-sm text-foreground"
     >
       <p data-kf-voice-text="" className="[text-wrap:pretty]">
-        {listening ? labels.listening : line ? labels[line] : null}
+        {/* keepTogetherVoice: "or type your question" never split, and a line never ends on its "or" (design-c check 29). */}
+        {listening ? keepTogetherVoice(labels.listening) : line ? keepTogetherVoice(labels[line]) : null}
         {listening && <span className="ms-2 whitespace-nowrap font-semibold tabular-nums text-muted-foreground" data-kf-voice-seconds="">{labels.seconds.replace('{n}', String(seconds))}</span>}
       </p>
       {listening && partial && (

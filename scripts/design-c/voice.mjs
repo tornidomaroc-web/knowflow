@@ -44,11 +44,20 @@
  * one word. voiceStackPlant() puts 0960b1a's side-by-side row back; check 28
  * must flag it on every render, or the run fails.
  *
+ * CHECK 29 (voicePhraseCheck, the owner's review of PR #340 at 3b2fe21): on
+ * every voice render with a line, ar and en, light and dark, 390 and 360, no
+ * message line ends with the first word of a KEEP_TOGETHER_VOICE phrase ("or"
+ * and its Arabic twin) and no such phrase spans two lines. voicePhrasePlant()
+ * forces each phrase present onto two lines, broken after its first word;
+ * check 29 must flag both rules on every such render, or the run fails.
+ *
  * CHECK 22 (camera.mjs, sameCheck), widened again: every screen of shell 2
  * that existed before this change (no stub: build 9 before the plugin, and
  * the Android shell) must be the same picture as main, like build 8 and the
  * web; and so must shell 1 and the web WITH the stub.
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { A360 } from './android360.mjs';
 
 export const VIEWS = ['idle', 'recording', 'transcript', 'denied', 'noSpeech', 'unsupported', 'failed', 'limit', 'toolong'];
@@ -373,4 +382,98 @@ export function voiceStackPlant(expect) {
   }
   const caught = !!(r && r.finding && /beside the message, not below it/.test(r.finding));
   return { forced: true, kind: 'sideBySide', caught, measured: r?.measured || null, finding: caught ? null : `check 28 is blind: the line put back side by side (0960b1a) on ${expect.view} was not flagged` };
+}
+
+/** Check 29's phrases, read from src/lib/keep-together.ts (KEEP_TOGETHER_VOICE). */
+export function keepVoiceList(root) {
+  const src = readFileSync(join(root, 'src', 'lib', 'keep-together.ts'), 'utf8');
+  const m = /KEEP_TOGETHER_VOICE = \[([^\]]*)\]/.exec(src);
+  return m ? [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]) : [];
+}
+
+/** Where check 29 reads: the voice line's message. */
+export const VOICE_TEXT_SCOPE = '[data-kf-voice-text]';
+
+/**
+ * CHECK 29 (the owner's review of PR #340 at 3b2fe21: the Arabic failed
+ * message at 390 ended a line on its "or"). Self-contained: serialised into
+ * the page; needs window.kfPhraseChecks (pr4.mjs, phraseChecks). For the
+ * message of the voice line, wherever one is drawn: (a) no line of it ends
+ * with the first word of a KEEP_TOGETHER_VOICE phrase ("or", and the Arabic
+ * twin), a trailing comma or full stop ignored; (b) no such phrase spans two
+ * lines. Returns null where no line is drawn.
+ */
+export function voicePhraseCheck(expect, list) {
+  if (!expect.mic) return null;
+  const msg = document.querySelector('[data-kf-voice-line] [data-kf-voice-text]');
+  if (!msg) return null;
+  const f = [];
+  const ends = [...new Set(list.map((p) => p.split(' ')[0].toLowerCase()))];
+  const secs = msg.querySelector('[data-kf-voice-seconds]');
+  const units = [];
+  const walk = document.createTreeWalker(msg, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    if (secs && secs.contains(n)) continue;
+    const re = /\S+/g;
+    for (let x = re.exec(n.data); x; x = re.exec(n.data)) {
+      const r = document.createRange();
+      r.setStart(n, x.index);
+      r.setEnd(n, x.index + x[0].length);
+      const rc = [...r.getClientRects()].filter((b) => b.width > 0);
+      if (rc.length) units.push({ w: x[0], i: units.length, top: rc[rc.length - 1].top });
+    }
+  }
+  const rows = [];
+  for (const u of [...units].sort((a, b) => a.top - b.top)) {
+    const row = rows.find((r) => Math.abs(r.top - u.top) < 4);
+    if (row) row.units.push(u); else rows.push({ top: u.top, units: [u] });
+  }
+  // The last word of a line in reading order is the one latest in the DOM.
+  const lineEnds = rows.map((r) => r.units.reduce((a, b) => (b.i > a.i ? b : a)).w);
+  for (const w of lineEnds) {
+    const bare = w.replace(/[.,\u060C\u061B:!?\u061F]+$/u, '').toLowerCase();
+    if (ends.includes(bare)) f.push(`check 29: a message line ends on "${bare}" (${expect.view})`);
+  }
+  const ph = window.kfPhraseChecks(list, '[data-kf-voice-line] [data-kf-voice-text]');
+  for (const x of ph.findings) f.push(`check 29: ${x} (${expect.view})`);
+  return { finding: f.length ? f.join(' | ') : null, measured: { view: expect.view, lines: rows.length, lineEnds, phrasesRead: ph.read } };
+}
+
+/**
+ * Check 29's forced case, per phrase present in the message: the joint after
+ * its first word made a plain space with a <br> after it (check 26's method),
+ * check 29 run, the node put back. Caught only if BOTH rules flag it: the
+ * line ending on the first word and the phrase split.
+ */
+export function voicePhrasePlant(expect, list) {
+  const msg = document.querySelector('[data-kf-voice-line] [data-kf-voice-text]');
+  if (!expect.mic || !msg) return null;
+  const rows = [];
+  for (const phrase of list) {
+    const first = phrase.split(' ')[0];
+    const re = new RegExp(phrase.split(' ').join('[  ]+'));
+    const tw = document.createTreeWalker(msg, NodeFilter.SHOW_TEXT);
+    let hit = null;
+    for (let n = tw.nextNode(); n && !hit; n = tw.nextNode()) {
+      const m = re.exec(n.data);
+      if (m) hit = { n, at: m.index + first.length };
+    }
+    if (!hit) continue;
+    const { n, at } = hit;
+    const keep = n.data;
+    const tail = n.splitText(at + 1);
+    n.data = n.data.slice(0, -1) + ' ';
+    const br = document.createElement('br');
+    n.after(br);
+    let r = null;
+    try { r = window.voicePhraseCheck(expect, list); } finally {
+      br.remove();
+      tail.remove();
+      n.data = keep;
+    }
+    const fd = r?.finding || '';
+    const caught = fd.includes(`ends on "${first.toLowerCase()}"`) && fd.includes(`"${phrase}" splits`);
+    rows.push({ phrase, caught, finding: fd || null });
+  }
+  return rows;
 }
