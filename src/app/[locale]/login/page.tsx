@@ -6,10 +6,9 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { GoogleButton } from '@/components/auth/GoogleButton';
 import { GoogleAccountHint } from '@/components/auth/GoogleAccountHint';
-import { AppleButton } from '@/components/auth/AppleButton';
+import { AppleButton, useAppleSignIn } from '@/components/auth/AppleButton';
 import { BrandIcon } from '@/components/brand/BrandIcon';
 import { ClayDefs } from '@/components/clay/ClayIcons';
-import { APPLE_SIGNIN_ENABLED } from '@/lib/auth/providers';
 import { googleSignInAllowed } from '@/lib/platform';
 import { usePlatform } from '@/components/platform/PlatformProvider';
 import { AuthField, PasswordField } from '@/components/auth/AuthField';
@@ -21,10 +20,11 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
   const { locale } = use(params);
   const t = useTranslation(locale);
   // The "or" between the provider buttons and the e-mail form exists only
-  // when a provider button is shown; inside the app (STORE_PATH.md step a)
-  // the Google button is hidden and Apple is not enabled yet, so the divider
-  // would separate nothing. Read from the same context the button reads.
-  const providerShown = googleSignInAllowed(usePlatform()) || APPLE_SIGNIN_ENABLED;
+  // when a provider button is shown: Google on the web, Sign in with Apple in
+  // the app from shell 2 where the KnowFlowApple plugin answers (item 4f;
+  // known after mount only, so the server markup is today's everywhere).
+  const apple = useAppleSignIn();
+  const providerShown = googleSignInAllowed(usePlatform()) || apple !== null;
   const isRtl = locale === 'ar';
 
   const router = useRouter();
@@ -106,13 +106,11 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
           where it was for everyone who already has a password here.
         */}
         <div className="mt-2 flex flex-col gap-3.5 empty:hidden">
+          {/* Sign in with Apple FIRST (item 4f, the owner's decision): native,
+              in the app only (src/components/auth/AppleButton.tsx). Google is
+              never shown in the app, so on the web this slot is Google alone. */}
+          {apple && <AppleButton bridge={apple} label={t.auth.appleLogin} errorLabel={t.auth.appleUnfinished} locale={locale} onSignedIn={() => router.push(`/${locale}/dashboard`)} />}
           <GoogleButton label={t.auth.googleLogin} errorLabel={t.auth.googleFailed} />
-          {/* Apple guideline 4.8: Apple's own sign-in beside Google, with the same
-              weight. Shown only once the provider is enabled (#119, #121):
-              NEXT_PUBLIC_APPLE_SIGNIN=enabled, set by the owner after the console
-              steps, and the button appears on the next build. Off today: Sign in
-              with Apple ships natively in 1.1. */}
-          {APPLE_SIGNIN_ENABLED && <AppleButton label={t.auth.appleLogin} errorLabel={t.auth.appleFailed} />}
         </div>
 
         {providerShown && (

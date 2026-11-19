@@ -121,3 +121,26 @@ export function splitKeepWhole(text: string): Kept[] {
   if (at < text.length || !out.length) out.push(text.slice(at));
   return out;
 }
+
+/**
+ * PHRASES KEPT ON ONE LINE IN THE DELETE CARD'S APPLE LINES ONLY (Sign in with
+ * Apple, item 4f, PR 1): the names of Apple's own places in the iPhone
+ * Settings path (appleNotRevoked) and Apple's account name, so a student
+ * following the path reads each place whole. Longer phrases come before the
+ * shorter ones they contain. A list of its own, like KEEP_TOGETHER_VOICE:
+ * keepTogetherApple() is called by the delete card's Apple lines alone, which
+ * only an account with an Apple identity sees, so every other screen stays the
+ * same picture (design-c check 22). scripts/design-c/apple.mjs (check 30)
+ * reads this list: an Apple line on which one of these phrases spans two
+ * lines fails, and each phrase present is forced onto two lines on every AFTER
+ * render and must be flagged.
+ */
+export const KEEP_TOGETHER_APPLE = ['تسجيل الدخول باستخدام Apple', 'تسجيل الدخول والأمان', 'حساب Apple', 'Sign in with Apple', 'Sign-In & Security', 'Apple Account'] as const;
+
+const APPLE_PATTERN = new RegExp(KEEP_TOGETHER_APPLE.map((p) => p.split(' ').join('[ \u00A0]+')).join('|'), 'g');
+
+/** keepTogether(), plus the Apple lines' own phrases. */
+export function keepTogetherApple(text: string): string {
+  // The hyphen of Sign-In becomes a non-breaking one (U+2011): a line may break after an ordinary hyphen.
+  return keepTogether(text).replace(APPLE_PATTERN, (m) => m.replace(/ +/g, '\u00A0').replace(/-/g, '\u2011'));
+}

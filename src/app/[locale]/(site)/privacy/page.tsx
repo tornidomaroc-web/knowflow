@@ -32,6 +32,8 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
           <li><strong>Vercel</strong> hosts the website and handles every request made to it.</li>
           <li><strong>Railway</strong> runs the service that reads your uploaded file and turns it into text.</li>
           <li><strong>Google</strong>, only if you choose Sign in with Google. If you sign in with an email address and a password, Google is not involved.</li>
+          {/* DRAFT (Sign in with Apple, item 4f): docs/copy-drafts/siwa_v1.md. */}
+          <li><strong>Apple</strong>, only if you choose Sign in with Apple in the app. Apple gives KnowFlow an email address, which can be a private address that forwards to yours, and your name the first time you sign in. When you delete your account in the app, KnowFlow asks Apple to end its access.</li>
         </ul>
         <p className="mb-6"><strong>Anthropic and Voyage AI receive the text of your materials and your questions. They do not receive your name or your email address</strong>, because KnowFlow does not send those along with the text.</p>
         {/* DRAFT (the camera screen): docs/copy-drafts/camera_screen.md. */}

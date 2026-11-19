@@ -1,53 +1,89 @@
 'use client';
 
-import { useState } from 'react';
-import { startOAuth } from '@/lib/auth/oauth';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { appleBridge, signInWithApple, type AppleBridge, type AppleSupabase } from '@/lib/auth/apple-bridge';
+import { LatinText } from '@/components/ui/LatinText';
 
 /**
- * Sign in with Apple, beside Google on /login and /signup (Apple guideline
- * 4.8, PIVOT_PLAN.md §5: the moment a third-party login is offered in the
- * app, Apple's own must be offered too). The two pages differ only in the
- * label.
+ * SIGN IN WITH APPLE, NATIVE, IN THE APP ONLY (iOS 1.1, big item 4f). FIRST
+ * on /login and /signup, above Google (which the app never shows) and above
+ * the email card, which stays where it was. The web never shows it: there is
+ * no web OAuth for Apple any more (src/lib/auth/oauth.ts).
  *
- * THE BUTTON FOLLOWS APPLE'S HUMAN INTERFACE GUIDELINES FOR THIS CONTROL, and
- * that is a requirement, not taste: the Apple logo, the words "Sign in with
- * Apple" / "Continue with Apple", a solid black or white fill with the logo
- * and text in the opposite colour, a height at least 44pt. It is painted
- * `bg-foreground text-background`, which is cream on the dark theme and near-
- * black on the light one, so it is Apple's white button on dark and Apple's
- * black button on light without a theme branch.
+ * WHEN IT SHOWS: after mount, only where `appleBridge()` answers (shell 2,
+ * iOS, the KnowFlowApple plugin). Everywhere else this renders nothing, so
+ * the web, build 8 and a build 9 cut before PR 2 are the same picture as
+ * before (design-c check 22).
  *
- * THE CODE PATH IS LIVE BUT THE PROVIDER IS NOT ENABLED. `startOAuth('apple')`
- * is the same call Google makes; until the owner registers the Services ID and
- * the key with Apple and turns the provider on in Supabase (register #119),
- * Supabase refuses the start and the button shows `errorLabel`. That is the
- * honest state: the app is ready, the console work is the owner's.
+ * APPLE'S HUMAN INTERFACE GUIDELINES FOR THIS CONTROL, which App Review
+ * checks (https://developer.apple.com/design/human-interface-guidelines/sign-in-with-apple):
+ *  - Apple's own wording: "Sign in with Apple" / "Continue with Apple"
+ *    (auth.appleLogin / auth.appleSignup, unchanged since public v1).
+ *  - A solid BLACK button with white logo and title on the light theme, a
+ *    solid WHITE one with black on the dark theme (`kf-apple-button`,
+ *    globals.css). Pure #000 and #FFF, not the theme's ink and cream.
+ *  - The logo is "Use only the logo artwork downloaded from Apple Design
+ *    Resources": AppleLogo below is the one path of
+ *    "Logo - SIWA - Left-aligned - Black - Large.svg" from
+ *    https://devimages-cdn.apple.com/design/resources/download/Logo-Sign-in-with-Apple.dmg
+ *    (dmg sha256 99fba5c8a294a86653294b3766d7ce21dde47cc75a77367659c45ea168699af6,
+ *    svg sha256 038d2940e825dfb07101f6611f163b8954b9cf37b21bf2818e04b581b44442b1),
+ *    unchanged, in Apple's own 39 x 44 frame; only its fill follows the
+ *    button's title colour, which is Apple's black or white variant.
+ *    scripts/verify-apple-signin.mjs holds the path's sha256.
+ *  - 54 pt tall like the Google pill beside it on the web (HIG: at least 44).
  */
-export function AppleButton({ label, errorLabel }: { label: string; errorLabel: string }) {
+export function useAppleSignIn(): AppleBridge | null {
+  const [bridge, setBridge] = useState<AppleBridge | null>(null);
+  useEffect(() => {
+    setBridge(appleBridge());
+  }, []);
+  return bridge;
+}
+
+export function AppleButton({
+  bridge,
+  label,
+  errorLabel,
+  locale,
+  onSignedIn,
+}: {
+  bridge: AppleBridge;
+  label: string;
+  errorLabel: string;
+  locale: string;
+  onSignedIn: () => void;
+}) {
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const start = async () => {
     setFailed(false);
     setLoading(true);
-    const refusal = await startOAuth('apple');
-    // Reached only when the redirect never happened.
-    if (refusal) {
-      setFailed(true);
-      setLoading(false);
+    const result = await signInWithApple(bridge, createClient() as unknown as AppleSupabase, locale);
+    if (result === 'signed-in') {
+      onSignedIn();
+      return;
     }
+    // Cancel in Apple's sheet says nothing, the way a Google back-out does.
+    setFailed(result === 'failed');
+    setLoading(false);
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-kf-apple-signin="">
       <button
         type="button"
         onClick={start}
         disabled={loading}
-        className="pressable flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-foreground px-4 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="pressable kf-apple-button flex min-h-[3.375rem] w-full items-center justify-center rounded-full pe-5 text-base font-bold transition-opacity disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
-        <AppleMark />
-        <span>{label}</span>
+        <AppleLogo />
+        {/* "Apple" inside the Arabic title is a left-to-right isolate (LatinText); the English one is unchanged. */}
+        <span>
+          <LatinText text={label} />
+        </span>
       </button>
       {failed && (
         <p className="text-xs text-danger" role="alert">
@@ -58,11 +94,11 @@ export function AppleButton({ label, errorLabel }: { label: string; errorLabel: 
   );
 }
 
-/** Apple's logo, in the button's own text colour, as the HIG requires. */
-function AppleMark() {
+/** Apple's artwork, unchanged (see above), in the button's title colour. */
+function AppleLogo() {
   return (
-    <svg width="18" height="18" viewBox="0 0 814 1000" aria-hidden="true" fill="currentColor">
-      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57-155.5-127C46.7 790.7 0 663 0 541.8c0-194.4 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z" />
+    <svg width="39" height="44" viewBox="0 0 39 44" aria-hidden="true" className="shrink-0">
+      <path fill="currentColor" fillRule="nonzero" d="M19.8196726,13.1384615 C20.902953,13.1384615 22.2608678,12.406103 23.0695137,11.4296249 C23.8018722,10.5446917 24.3358837,9.30883662 24.3358837,8.07298156 C24.3358837,7.9051494 24.3206262,7.73731723 24.2901113,7.6 C23.0847711,7.64577241 21.6353115,8.4086459 20.7656357,9.43089638 C20.0790496,10.2090273 19.4534933,11.4296249 19.4534933,12.6807374 C19.4534933,12.8638271 19.4840083,13.0469167 19.4992657,13.1079466 C19.5755531,13.1232041 19.6976128,13.1384615 19.8196726,13.1384615 Z M16.0053051,31.6 C17.4852797,31.6 18.1413509,30.6082645 19.9875048,30.6082645 C21.8641736,30.6082645 22.2761252,31.5694851 23.923932,31.5694851 C25.5412238,31.5694851 26.6245041,30.074253 27.6467546,28.6095359 C28.7910648,26.9312142 29.2640464,25.2834075 29.2945613,25.2071202 C29.1877591,25.1766052 26.0904927,23.9102352 26.0904927,20.3552448 C26.0904927,17.2732359 28.5316879,15.8848061 28.6690051,15.7780038 C27.0517133,13.4588684 24.5952606,13.3978385 23.923932,13.3978385 C22.1082931,13.3978385 20.6283185,14.4963764 19.6976128,14.4963764 C18.6906198,14.4963764 17.36322,13.4588684 15.7917006,13.4588684 C12.8012365,13.4588684 9.765,15.9305785 9.765,20.5993643 C9.765,23.4982835 10.8940528,26.565035 12.2824825,28.548506 C13.4725652,30.2268277 14.5100731,31.6 16.0053051,31.6 Z" />
     </svg>
   );
 }

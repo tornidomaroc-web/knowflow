@@ -34,7 +34,10 @@
  *     dashboard.iap, approved 2026-11-18 in app v12; 516 after the
  *     restore fix added dashboard.iap.restoreFailed, approved in app v12 too;
  *     529 after voice input in Ask added the 13 of dashboard.agent.voice,
- *     approved 2026-11-19 in app v13).
+ *     approved 2026-11-19 in app v13; 533 after Sign in with Apple retired
+ *     auth.appleFailed and added auth.appleUnfinished and four of
+ *     dashboard.settings.deleteAccount, DRAFTS wired for review,
+ *     docs/copy-drafts/siwa_v1.md).
  *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
  *     ruling that removed it. Its rows stay in the batch files, which are the
  *     owner's approved record and are never edited; they are read and checked
@@ -105,6 +108,7 @@ const ph = (s) => (s.match(/\{[a-zA-Z]+\}/g) ?? []).sort().join(',');
 const RETIRED = new Map([
   ['dashboard.upload.processing', '#127: never read; the upload box shows the reading/preparing/stillWorking stages'],
   ['dashboard.kbDetail.chunks', '#127: the chunk count left the material card'],
+  ['auth.appleFailed', 'Sign in with Apple, item 4f (the owner-approved study siwa-study-daf888c, D1): its "could not open" was the web OAuth wording; auth.appleUnfinished replaces it'],
 ]);
 for (const [key, why] of RETIRED) {
   check(!A.has(key), `${key} is retired (${why}) but is still in ar.ts`);
@@ -175,7 +179,7 @@ console.error(`${approved.size} keys asserted, ${superseded} earlier rows supers
   const onlyEn = [...E.keys()].filter((k) => !A.has(k)).sort();
   check(onlyAr.join() === [...pluralOnly].sort().join(), `keys only in ar.ts: ${onlyAr.join(', ') || '(none)'}; expected the four plural forms`);
   check(onlyEn.length === 0, `keys missing from ar.ts: ${onlyEn.join(', ')}`);
-  check(A.size === 529, `ar.ts has ${A.size} leaves, expected 529`);
+  check(A.size === 533, `ar.ts has ${A.size} leaves, expected 533`);
 }
 
 // 3. Placeholders on every key.

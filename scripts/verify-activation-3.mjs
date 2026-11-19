@@ -132,15 +132,17 @@ check(stray.length === 0, `no request left the process except GoTrue's /user: ${
 // Confirm-email is on and the app has no universal links, so the mail link
 // opens in Safari and the app never holds that session. The sign-up page
 // therefore writes the mark itself on a successful signUp in the app. The
-// REAL page function runs with React's two hooks it calls answered in place
-// (useState -> its initial value, use -> the params), the Supabase browser
+// REAL page function runs with React's hooks it calls answered in place
+// (useState -> its initial value, use -> the params, useEffect -> nothing), the Supabase browser
 // client and usePlatform stubbed, `document.cookie` recorded; the form's own
 // onSubmit is called. Nothing renders and nothing leaves the process.
 const PAGE = pathToFileURL(resolvePath(ROOT, 'src/app/[locale]/signup/page.tsx')).href;
 registerHooks({
   resolve(spec, ctx, next) {
-    if (spec === 'react' && ctx.parentURL === PAGE) {
-      return { url: 'data:text/javascript,' + encodeURIComponent("export * from 'react'; export function useState(v) { return [v, () => {}]; } export function use(p) { return p; }"), shortCircuit: true };
+    // AppleButton.tsx too: the page calls its useAppleSignIn() (item 4f), which
+    // answers null here as on the server (the effect never runs).
+    if (spec === 'react' && (ctx.parentURL === PAGE || ctx.parentURL?.endsWith('/src/components/auth/AppleButton.tsx'))) {
+      return { url: 'data:text/javascript,' + encodeURIComponent("export * from 'react'; export function useState(v) { return [v, () => {}]; } export function use(p) { return p; } export function useEffect() {}"), shortCircuit: true };
     }
     return next(spec, ctx);
   },

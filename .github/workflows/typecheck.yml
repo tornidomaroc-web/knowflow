@@ -235,10 +235,12 @@ jobs:
       - name: Verify the iPhone safe areas are declared and used (register #96)
         run: node --experimental-strip-types scripts/verify-safe-areas.mjs
 
-      # Apple guideline 4.8 (register #119). Calls the real startOAuth with a recording
-      # Supabase stub (provider apple, the shared callback, a refusal returned not
-      # thrown) and renders the real Apple button; both auth pages must carry it.
-      - name: Verify Sign in with Apple stands beside Google (register #119)
+      # Sign in with Apple, item 4f PR 1 (native, app only, no web OAuth): the plugin
+      # gate, the nonce, signInWithIdToken and the first-sign-in name, the ES256 client
+      # secret, the code exchange and revoke against stubs (wrong sub, expired code,
+      # missing env, timeout all refuse without deleting), DELETE /api/account byte for
+      # byte as main for accounts without Apple, the delete card, the drafts.
+      - name: Verify Sign in with Apple (native gate, deletion confirmed by Apple, revoke)
         run: node --experimental-strip-types scripts/verify-apple-signin.mjs
 
       # Register #113. Imports the real upload estimate (measured rate, stages, the

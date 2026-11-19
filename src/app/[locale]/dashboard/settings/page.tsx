@@ -18,6 +18,7 @@ import { currentPlatform, currentShellVersion } from '@/lib/platform-server'
 import { ProOfferCard } from '@/components/iap/ProOffer'
 import { AppStoreDeleteNote, AppStoreManageCard } from '@/components/iap/AppStoreManage'
 import { formatDate } from '@/lib/format-date'
+import { appleConfirmConfigured } from '@/lib/auth/apple-revoke'
 
 // Thin server wrapper: auth + entitlement only. Presentation lives in the dumb
 // <SettingsPanel/> (Phase 8 reuse).
@@ -73,6 +74,11 @@ export default async function SettingsPage({
   const platform = await currentPlatform()
   // In-app Pro's surfaces exist from shell 2 on (src/lib/platform.ts, iapAllowed).
   const iap = iapAllowed(await currentShellVersion())
+  // Sign in with Apple (item 4f): an account with an Apple identity may
+  // confirm its deletion with Apple instead of typing its address, where the
+  // server holds the Apple key; the card decides after mount whether the
+  // plugin answers. Read from the session, never from the request.
+  const appleAccount = (user.identities ?? []).some((i) => i.provider === 'apple')
   return (
     <SettingsPanel
       email={user.email || ''}
@@ -160,6 +166,8 @@ export default async function SettingsPage({
           // R2 (Apple 5.1.1(v)): while Apple may still bill this account,
           // deleting it does not stop that billing, and the card says so.
           appleNote={sources.appleBilling ? <AppStoreDeleteNote labels={t.dashboard.iap} /> : undefined}
+          appleAccount={appleAccount}
+          appleConfirm={appleAccount && appleConfirmConfigured()}
         />
       }
     />
