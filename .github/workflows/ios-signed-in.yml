@@ -294,6 +294,7 @@ jobs:
             {"name":"consent","wait":15000,"js":"(function(){var d=document.querySelector('[data-kf-consent-sheet=open]');if(!d){return 'no consent sheet'}var t=d.innerText||'';var names=['Anthropic','Voyage AI'].filter(function(n){return t.indexOf(n)>=0});var b=d.querySelector('[data-kf-consent=accept]');if(!b){return 'no accept button'}b.click();return 'accepted: '+names.join(', ')})()"},
             {"name":"quiz","wait":2000,"js":"(function(){var b=Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(x){return /Check my answers|صحّح إجاباتي/.test(x.innerText||'')})[0];if(!b){return 'no quiz on screen'}b.scrollIntoView({block:'end'});return 'scrolled to quiz'})()"},
             {"name":"ask","until":"/dashboard/agent$","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/agent\"]');if(!a){return 'no Ask link'}a.click();return 'clicked Ask'})()"},
+            {"name":"ask-voice","wait":1500,"js":"(function(){var m=document.querySelector('[data-kf-voice=mic]');if(!m){return 'no mic'}var c=document.querySelector('[data-kf-composer]');return 'mic: '+(m.getAttribute('aria-label')||'')+(c&&c.contains(m)?' in the composer':' outside the composer')})()"},
             {"name":"settings","until":"/dashboard/settings$","wait":8000,"js":"(function(){var a=document.querySelector('a[href$=\"/dashboard/settings\"]');if(!a){return 'no Settings link'}a.click();return 'clicked Settings'})()"},
             {"name":"consent-on","wait":1500,"js":"(function(){var c=document.querySelector('[data-kf-consent-state]');if(!c){return 'no consent card'}c.scrollIntoView({block:'center'});return c.getAttribute('data-kf-consent-state')})()"},
             {"name":"consent-withdraw","wait":5000,"js":"(function(){var b=document.querySelector('[data-kf-consent=withdraw]');if(!b){return 'no withdraw button'}b.click();return 'clicked withdraw'})()"},
@@ -437,6 +438,12 @@ jobs:
           need(by.get("quiz", {}).get("result") == "scrolled to quiz", f"the quiz (served from its cache) is on screen with its answer button: {by.get('quiz', {}).get('result')}")
           A = P("ask")
           need(re.search(r"/dashboard/agent$", url(A)), f"the Ask screen opened: {A.get('href')}")
+          # Voice input in Ask (iOS 1.1, item 4e): this is shell 2 with the
+          # KnowFlowSpeech plugin, so the microphone is in the composer (it is
+          # not pressed: that would raise two system alerts). The purchase
+          # reading of the screen (every step) still finds nothing.
+          AV = by.get("ask-voice", {})
+          need(AV.get("probe", {}).get("speech") is True and str(AV.get("result", "")).startswith("mic: ") and str(AV.get("result", "")).endswith(" in the composer"), f"Ask in shell 2 shows the microphone in the composer, the plugin answering: {AV.get('result')} speech={AV.get('probe', {}).get('speech')}")
           T = P("settings")
           need(re.search(r"/dashboard/settings$", url(T)), f"Settings opened: {T.get('href')}")
           # Settings shows the permission as given, and withdrawing it is saved:

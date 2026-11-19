@@ -48,6 +48,12 @@ name: ios-smoke
 #      (.github/scripts/ios-privacy-check.py prints the audit table);
 #   8. the same device build declares English and Arabic (en.lproj and
 #      ar.lproj, CFBundleLocalizations) and carries MARKETING_VERSION.
+#   10. voice input in Ask (iOS 1.1, item 4e): the KnowFlowSpeech plugin is
+#      registered (`speech` in the probe) and answers `availability` for
+#      en-US and ar-SA from a page of the live site without asking for any
+#      permission (both still never asked); the build carries exactly the
+#      camera's, the microphone's and speech recognition's purpose strings,
+#      in Info.plist and both .lproj files. `start` is never called here.
 # A screenshot is taken at every new line of smoke.jsonl, and the app's log
 # is kept, so the record is pictures and text, not a green tick alone.
 #
@@ -79,6 +85,9 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/ios-smoke.yml'
+      # Proof 7's purpose-string comparison and the approved texts it reads.
+      - '.github/scripts/ios-purpose-strings-check.py'
+      - 'docs/copy/ARABIC_STRINGS_app_v13.md'
   workflow_dispatch:
     inputs:
       scenario:
@@ -183,13 +192,16 @@ jobs:
           test -n "$app" || { echo "no App.app was built"; tail -n 60 "$RUNNER_TEMP/build.log"; exit 1; }
           echo "APP_PATH=$app" >> "$GITHUB_ENV"
           echo "built: $app"
-          # ITMS-90683's lesson, now with the camera screen (shell 2): exactly ONE
-          # purpose string, the camera's, non-empty; a second one would be a
-          # permission the app does not use. The text is
-          # docs/copy-drafts/camera_screen.md.
+          # ITMS-90683's lesson, now with the camera screen and voice input
+          # (shell 2): exactly THREE purpose strings, the camera's, the
+          # microphone's and speech recognition's, each non-empty; any other
+          # would be a permission the app does not use. The texts are
+          # docs/copy-drafts/camera_screen.md and voice_input_v1.md.
           purposes=$(/usr/libexec/PlistBuddy -c 'Print' "$app/Info.plist" | grep -o '[A-Za-z]*UsageDescription' | sort -u | tr '\n' ' ')
-          test "$purposes" = "NSCameraUsageDescription " || { echo "FAIL: the purpose strings are [$purposes], not the camera's alone"; exit 1; }
-          test -n "$(/usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$app/Info.plist")" || { echo "FAIL: the camera's purpose string is empty"; exit 1; }
+          test "$purposes" = "NSCameraUsageDescription NSMicrophoneUsageDescription NSSpeechRecognitionUsageDescription " || { echo "FAIL: the purpose strings are [$purposes], not the camera's, the microphone's and speech recognition's"; exit 1; }
+          for k in NSCameraUsageDescription NSMicrophoneUsageDescription NSSpeechRecognitionUsageDescription; do
+            test -n "$(/usr/libexec/PlistBuddy -c "Print :$k" "$app/Info.plist")" || { echo "FAIL: $k is empty"; exit 1; }
+          done
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist"
           /usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$app/Info.plist"
 
@@ -215,6 +227,9 @@ jobs:
           device_app=$(find "$RUNNER_TEMP/dd-device/Build/Products" -maxdepth 2 -name 'App.app' -type d | head -n 1)
           test -n "$device_app" || { echo "no device App.app was built"; tail -n 60 "$RUNNER_TEMP/build-device.log"; exit 1; }
           python3 .github/scripts/ios-privacy-check.py "$device_app" | tee "$RUNNER_TEMP/privacy-audit.txt"
+          # The voice permission texts in the device build (Info.plist, en.lproj,
+          # ar.lproj) are the owner's approved v13 values, byte for byte (#340).
+          python3 .github/scripts/ios-purpose-strings-check.py "$device_app" docs/copy/ARABIC_STRINGS_app_v13.md
           echo "DEVICE_APP=$device_app" >> "$GITHUB_ENV"
 
       # ASO-1.0.1. The App Store lists the languages the binary declares: its
@@ -229,9 +244,12 @@ jobs:
           echo "lproj folders: $(cd "$DEVICE_APP" && ls -d *.lproj | tr '\n' ' ')"
           for l in en ar; do
             test -f "$DEVICE_APP/$l.lproj/InfoPlist.strings" || { echo "FAIL: no $l.lproj/InfoPlist.strings in the device build"; exit 1; }
-            # The camera's purpose string in both languages (the system shows it
-            # in the phone's language when the camera is first opened).
-            plutil -p "$DEVICE_APP/$l.lproj/InfoPlist.strings" | grep -q '"NSCameraUsageDescription"' || { echo "FAIL: $l.lproj/InfoPlist.strings has no NSCameraUsageDescription"; exit 1; }
+            # The three purpose strings in both languages (the system shows each
+            # in the phone's language when the camera, the microphone or speech
+            # recognition is first asked for).
+            for k in NSCameraUsageDescription NSMicrophoneUsageDescription NSSpeechRecognitionUsageDescription; do
+              plutil -p "$DEVICE_APP/$l.lproj/InfoPlist.strings" | grep -q "\"$k\"" || { echo "FAIL: $l.lproj/InfoPlist.strings has no $k"; exit 1; }
+            done
             /usr/libexec/PlistBuddy -c 'Print :CFBundleLocalizations' "$plist" | grep -qx "[[:space:]]*$l" || { echo "FAIL: CFBundleLocalizations does not name $l"; exit 1; }
           done
           echo "CFBundleLocalizations: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleLocalizations' "$plist" | tr -s ' \n' ' ')"
@@ -279,8 +297,10 @@ jobs:
             {"name":"iap-plant-marked","wait":500,"js":"(function(){var d=document.createElement('div');d.id='kf-iap-plant';d.setAttribute('data-kf-iap','plant');d.textContent='Subscribe to Pro for $9.99 a month · اشترك في الاحترافي';document.body.appendChild(d);return 'planted marked'})()"},
             {"name":"iap-plant-link","wait":500,"js":"(function(){var d=document.getElementById('kf-iap-plant');var a=document.createElement('a');a.href='/en/pricing';a.textContent='kf-iap-link';d.appendChild(a);return 'planted link inside the marked element'})()"},
             {"name":"iap-unplant","wait":500,"js":"(function(){var d=document.getElementById('kf-iap-plant');if(d){d.remove()}return d?'removed':'none'})()"},
-            {"name":"store-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfStore='waiting';if(!C||!C.nativePromise){window.__kfStore='no bridge';return window.__kfStore}C.nativePromise('KnowFlowStore','products',{ids:['com.knowflow.app.pro.monthly']}).then(function(r){window.__kfStore=JSON.stringify(r)},function(e){window.__kfStore='rejected: '+String(e&&e.message||e)});return 'called products'})()"},
-            {"name":"store-read","wait":8000,"js":"(function(){return String(window.__kfStore)})()"},
+            {"name":"store-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfStore='waiting';if(!C||!C.nativePromise){window.__kfStore='no bridge';return window.__kfStore}var t0=Date.now();C.nativePromise('KnowFlowStore','products',{ids:['com.knowflow.app.pro.monthly']}).then(function(r){r=r||{};r.ms=Date.now()-t0;window.__kfStore=JSON.stringify(r)},function(e){window.__kfStore='rejected after '+(Date.now()-t0)+' ms: '+String(e&&e.message||e)});return 'called products'})()"},
+            {"name":"store-read","settle":"(function(){return window.__kfStore!=='waiting'?'true':'false'})()","timeout":20000,"wait":300,"js":"(function(){return String(window.__kfStore)})()"},
+            {"name":"speech-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfSpeech={};if(!C||!C.nativePromise){window.__kfSpeech={error:'no bridge'};return 'no bridge'}['en-US','ar-SA'].forEach(function(l){var t0=Date.now();window.__kfSpeech[l]='waiting';C.nativePromise('KnowFlowSpeech','availability',{locale:l}).then(function(r){r.ms=Date.now()-t0;window.__kfSpeech[l]=r},function(e){window.__kfSpeech[l]='rejected: '+String(e&&e.message||e)})});return 'called availability en-US and ar-SA'})()"},
+            {"name":"speech-read","settle":"(function(){var s=window.__kfSpeech||{};return ['en-US','ar-SA'].every(function(l){return s[l]&&s[l]!=='waiting'})?'true':'false'})()","timeout":20000,"wait":300,"js":"(function(){return JSON.stringify(window.__kfSpeech)})()"},
             {"name":"live-terms","until":"/en/terms$","wait":4000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
             {"name":"dashboard-direct","until":"/(en|ar)/(signup|login)$","wait":3000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard');return 'assigned /'+l+'/dashboard'})()"},
             {"name":"live-refund","until":"/en/refund$","wait":4000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
@@ -485,8 +505,42 @@ jobs:
           # `products` only asks StoreKit for the product, which a simulator
           # without a StoreKit configuration answers with none).
           need(L.get("store") is True, f"9. the KnowFlowStore plugin is registered in the shell: store={L.get('store')}")
+          # store-read waits (`settle`, like speech-read) until the products
+          # call has answered, up to 20 s (run 44485385765 read "waiting" after
+          # a fixed 8 s). The answer carries `ms`, the time from the call to the
+          # answer measured in the page. Not settled = FAIL with the time waited.
+          STPOLL = by.get("store-read", {}).get("poll") or {}
+          need(STPOLL.get("settled") is True, f"9. the KnowFlowStore products call answers within 20 s of the call: settled={STPOLL.get('settled')} after {STPOLL.get('ms')} ms")
           SR = str(by.get("store-read", {}).get("result", ""))
           need(SR.startswith('{"products":') or SR.startswith('{"message":'), f"9. ...and it answers a call from a page of tryknowflow.com: {SR[:160]}")
+          try:
+              STMS = json.loads(SR).get("ms")
+          except Exception:
+              STMS = None
+          print(f"info store products: waited {STPOLL.get('ms')} ms; answered in {STMS} ms (measured in the page from the call); {SR[:200]}")
+          # Voice input in Ask (iOS 1.1, item 4e): the shell builds and launches
+          # with the two new purpose strings and the KnowFlowSpeech plugin, and
+          # the bridge reaches it from a page of the live site. Only
+          # `availability` is called: it asks for nothing, so a fresh install
+          # still reads both permissions as never asked. `start` is NOT called
+          # here (two system alerts no one can tap, no microphone input).
+          need(L.get("speech") is True, f"10. the KnowFlowSpeech plugin is registered in the shell: speech={L.get('speech')}")
+          # speech-read waits (`settle`) until both languages have answered,
+          # up to 20 s; each answer carries `ms`, measured in the page from
+          # the call to the answer. Not settled = FAIL with the time waited.
+          SPOLL = by.get("speech-read", {}).get("poll") or {}
+          need(SPOLL.get("settled") is True, f"10. both availability answers (en-US, ar-SA) arrive within 20 s of the call: settled={SPOLL.get('settled')} after {SPOLL.get('ms')} ms")
+          try:
+              SP = json.loads(str(by.get("speech-read", {}).get("result", "")))
+          except Exception:
+              SP = {}
+          for loc in ("en-US", "ar-SA"):
+              a = SP.get(loc) if isinstance(SP, dict) else None
+              ok = isinstance(a, dict) and isinstance(a.get("supported"), bool) and isinstance(a.get("onDevice"), bool) and a.get("locale") == loc
+              need(ok, f"10. availability({loc}) answers well-formed from a page of tryknowflow.com: {str(a)[:200]}")
+              need(isinstance(a, dict) and a.get("speech") == "notDetermined" and a.get("mic") == "notDetermined", f"10. ...and asks for nothing: speech and microphone still never asked on a fresh install ({loc}): speech={a.get('speech') if isinstance(a, dict) else None} mic={a.get('mic') if isinstance(a, dict) else None}")
+          SMS = {l: (SP.get(l) or {}).get("ms") if isinstance(SP, dict) and isinstance(SP.get(l), dict) else None for l in ("en-US", "ar-SA")}
+          print(f"info speech availability: waited {SPOLL.get('ms')} ms for both; answered en-US in {SMS['en-US']} ms, ar-SA in {SMS['ar-SA']} ms; {json.dumps(SP)[:400]}")
           # The shell-2 wording rule (scripts/lib/app-wording.mjs, KF_PURCHASE_SRC):
           # purchase words inside an element marked data-kf-iap are not hits in
           # shell 2, and a pricing link is a hit even there.

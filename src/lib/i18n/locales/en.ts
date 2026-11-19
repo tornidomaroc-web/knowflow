@@ -624,7 +624,25 @@ export const en = {
       connectionError: "Connection error.",
       newConversation: "New Conversation",
       noHistory: "No history yet.",
-      history: "History"
+      history: "History",
+      // Voice input in Ask (iOS 1.1, item 4e): the app at shell 2 with the
+      // KnowFlowSpeech plugin only. Approved by the owner 2026-11-19:
+      // docs/copy/ARABIC_STRINGS_app_v13.md.
+      voice: {
+        start: "Ask with your voice",
+        stop: "Stop",
+        listening: "Listening. Tap to stop.",
+        seconds: "{n} s",
+        langAr: "Arabic",
+        langEn: "English",
+        check: "Check the text, then send it.",
+        denied: "KnowFlow cannot hear you. Allow it to use the microphone and speech recognition in Settings, then try again.",
+        openSettings: "Open Settings",
+        noSpeech: "No words were heard. Try again a little closer to the phone.",
+        unsupported: "Your phone cannot turn speech into text in this language. You can type your question.",
+        failed: "Your words could not be turned into text. Try again, or type your question.",
+        limit: "Stopped after 60 seconds. Check the text, then send it."
+      }
     },
     upload: {
       uploadFailed: "We could not confirm that your file was uploaded. Refresh the page to see whether it arrived, and upload it again if it did not.",

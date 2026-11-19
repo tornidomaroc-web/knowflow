@@ -22,6 +22,12 @@
   and the owner reads those lines to measure cost per question. Other
   Diagnostic Data is the server's request and error logs (Vercel, kept up to
   a day), which carry the user id of a signed-in request.
+
+  No Audio Data, by design (voice input in Ask, iOS 1.1 item 4e): the
+  KnowFlowSpeech plugin feeds the microphone into Apple's SFSpeechRecognizer,
+  on the phone wherever it can, writes no file and hands the page text only;
+  the transcript the student chooses to send is a question (Other User
+  Content above). Neither KnowFlow nor its processors receive audio.
 -->
 <plist version="1.0">
 <dict>

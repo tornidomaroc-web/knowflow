@@ -222,6 +222,14 @@ jobs:
       - name: Verify in-app Pro (paywall, StoreKit flow, R1, R2, shell 2 only)
         run: node --experimental-strip-types scripts/verify-iap-app.mjs
 
+      # Voice input in Ask (iOS 1.1, item 4e): the bridge null on the web, in
+      # Android, without the plugin and behind a forged user agent; the take
+      # appended, never sent (fetch spied); every outcome's line in both
+      # locales; the 413 path; one server HTML for every shell; the native
+      # plugin, its registration, the purpose strings and the manifest.
+      - name: Verify voice input in Ask (shell 2 with the plugin, appended, never sent)
+        run: node --experimental-strip-types scripts/verify-voice-input.mjs
+
       # Register #96, corrected: viewport-fit=cover is declared and every fixed bar
       # accounts for its safe-area inset.
       - name: Verify the iPhone safe areas are declared and used (register #96)

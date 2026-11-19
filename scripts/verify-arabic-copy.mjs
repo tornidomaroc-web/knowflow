@@ -32,7 +32,9 @@
  *     added the 27 of dashboard.upload.camera and dashboard.aiConsent.photos,
  *     approved 2026-11-18 in app v11; 515 after in-app Pro added the 34 of
  *     dashboard.iap, approved 2026-11-18 in app v12; 516 after the
- *     restore fix added dashboard.iap.restoreFailed, approved in app v12 too).
+ *     restore fix added dashboard.iap.restoreFailed, approved in app v12 too;
+ *     529 after voice input in Ask added the 13 of dashboard.agent.voice,
+ *     approved 2026-11-19 in app v13).
  *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
  *     ruling that removed it. Its rows stay in the batch files, which are the
  *     owner's approved record and are never edited; they are read and checked
@@ -55,6 +57,11 @@
  *     docs/copy/ that is neither the export (ARABIC_STRINGS.md) nor a validly
  *     named batch fails the proof rather than being silently ignored, and so
  *     does a table row in a batch that does not parse.
+ *  8. ENGLISH TWINS. A batch that lists the approved English as bullets,
+ *     "- `full.dotted.key`: English", holds en.ts to it byte for byte, in the
+ *     same order (a later bullet for a key supersedes an earlier one). A
+ *     dotted key that is not in en.ts fails; a bullet naming a short name
+ *     (no dot, as in app v5's notes) is prose and is not read.
  *
  * A new batch or correction is landed by adding its file under docs/copy/;
  * this proof picks it up with no change here.
@@ -168,7 +175,7 @@ console.error(`${approved.size} keys asserted, ${superseded} earlier rows supers
   const onlyEn = [...E.keys()].filter((k) => !A.has(k)).sort();
   check(onlyAr.join() === [...pluralOnly].sort().join(), `keys only in ar.ts: ${onlyAr.join(', ') || '(none)'}; expected the four plural forms`);
   check(onlyEn.length === 0, `keys missing from ar.ts: ${onlyEn.join(', ')}`);
-  check(A.size === 516, `ar.ts has ${A.size} leaves, expected 516`);
+  check(A.size === 529, `ar.ts has ${A.size} leaves, expected 529`);
 }
 
 // 3. Placeholders on every key.
@@ -183,8 +190,21 @@ console.error(`${approved.size} keys asserted, ${superseded} earlier rows supers
   check(eastern.length === 0, `Eastern Arabic digits in: ${eastern.join(', ')}`);
 }
 
+// 8. English twins listed in the batches.
+const approvedEn = new Map();
+for (const { f } of batches) {
+  const md = readFileSync(resolvePath(dir, f), 'utf8');
+  for (const m of md.matchAll(/^- `([^`]+\.[^`]+)`: (.*)$/gm)) {
+    const key = m[1].replace(/\[(\d+)\]/g, '.$1');
+    if (!E.has(key)) { check(false, `${f}: English bullet for ${key}, which is not a key in en.ts`); continue; }
+    approvedEn.set(key, { value: m[2].replace(/\r$/, ''), file: f });
+  }
+}
+for (const [key, { value, file }] of approvedEn) check(E.get(key) === value, `en.ts ${key} is ${JSON.stringify(E.get(key))}, approved ${JSON.stringify(value)} (${file})`);
+console.error(`${approvedEn.size} English twins asserted from the batch bullets`);
+
 if (failures.length === 0) {
-  console.log(`PASS: ${approved.size} approved Arabic strings hold in ar.ts (${rowsTotal} rows in ${batches.length} files, ${superseded} superseded, ${retiredRows} for retired keys); the key set, every placeholder and Western digits are unchanged.`);
+  console.log(`PASS: ${approved.size} approved Arabic strings hold in ar.ts (${rowsTotal} rows in ${batches.length} files, ${superseded} superseded, ${retiredRows} for retired keys), ${approvedEn.size} English twins hold in en.ts; the key set, every placeholder and Western digits are unchanged.`);
   process.exit(0);
 }
 console.log(`FAIL: ${failures.length} problem(s)`);

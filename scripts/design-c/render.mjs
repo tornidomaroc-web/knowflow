@@ -171,6 +171,17 @@
  * every existing drop-zone screen drawn with shell 1 or the web to the SAME
  * picture before and after (3/255 per channel).
  *
+ * VOICE INPUT IN ASK (voice.mjs, feat/voice-input) adds the Ask screen at
+ * shell 2 with the KnowFlowSpeech plugin stubbed in the page: the mic idle,
+ * listening with a partial line, the transcript in the field, each error,
+ * the 60 s end and a transcript refused by the route's 413, at 390 and 360;
+ * and the gate (shell 2 without the stub, shell 1 and the web with it: no
+ * mic). CHECK 27 reads the gate, the composer row (field, mic and Send in one
+ * row, no overlap, 44 pt, the field 16 px), the state and the line per view,
+ * and that no take called /api/agent, with two forced cases (the mic removed,
+ * a mic planted). CHECK 22 now also holds every shell-2 screen that existed
+ * before (no stub) and the stubbed shell 1 and web to main's picture.
+ *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
  *      http://127.0.0.1:3000), CHROME, PUPPETEER_DIR, FONT_DIR (the
@@ -195,6 +206,7 @@ import { authErrorScreens, authPrepare, authAct, authErrorCheck, authErrorPlant,
 import { sampleScreens, sampleMode, sampleCheck, samplePlant, sampleWholeMode, sampleWholeCheck, sampleWholePlant, sampleWholeRevert } from './sample.mjs';
 import { android360Screens, statRowCheck, statRowPlant, signupNoteCheck, signupNotePlant, signupTermPlant, chipCutPlant } from './android360.mjs';
 import { cameraScreens, cameraCheck, cameraPlant, sameCheck } from './camera.mjs';
+import { voiceScreens, voiceExpect, voiceStubSrc, voiceMock, voiceAct, voiceCheck, voicePlant, voiceStackCheck, voiceStackPlant, keepVoiceList, voicePhraseCheck, voicePhrasePlant } from './voice.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -298,10 +310,14 @@ android360Screens(add);
 cameraScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
 // In-app Pro (iap.mjs): the paywall and its entry points at shell 2; check 22 widened to every build-8 and web screen above.
 iapScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
+// Voice input in Ask (voice.mjs): the stubbed plugin at shell 2, the gate; check 22 widened to every shell-2 screen above.
+voiceScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
 const KEEP = keepTogetherList(resolve('.'));
 // Check 26 (iap.mjs): the paywall's own protected phrases, read inside [data-kf-iap="paywall"] only.
 const KEEP26 = keepPaywallList(resolve('.'));
 if (!KEEP26.length) throw new Error('check 26: no KEEP_TOGETHER_PAYWALL list in src/lib/keep-together.ts');
+const KEEP29 = keepVoiceList(resolve('.'));
+if (!KEEP29.length) throw new Error('check 29: no KEEP_TOGETHER_VOICE list in src/lib/keep-together.ts');
 // Check 18's protected units: the keep-together phrases, the kept names (KEEP_WHOLE) and "Anthropic".
 const KEEP18 = [...KEEP, ...[...(/KEEP_WHOLE = \[([^\]]*)\]/.exec(readFileSync(resolve('src/lib/keep-together.ts'), 'utf8'))?.[1] || '').matchAll(/'([^']+)'/g)].map((x) => x[1]), 'Anthropic'];
 const byKey = (k) => SCREENS.find((x) => x.key === k);
@@ -1032,6 +1048,12 @@ let adjacentForced = 0;
 // Check 26's forced cases: per phrase, the AFTER paywall renders where the phrase forced onto two lines was flagged.
 const keepForced = {};
 const sameSeen = { compared: 0, same: 0 };
+// Check 27's forced cases: AFTER renders where the removed mic, and the planted mic, were flagged.
+const voiceForced = { removed: 0, planted: 0 };
+// Check 28's forced case: AFTER renders where the line put back side by side (0960b1a) was flagged, and the renders it ran on.
+const stackForced = { ran: 0, caught: 0 };
+// Check 29's forced cases: per KEEP_TOGETHER_VOICE phrase, the AFTER renders it was broken on, and those flagged on both rules.
+const phraseForced = {};
 
 async function shoot(side, job) {
   const ctx = await browser.createBrowserContext();
@@ -1045,6 +1067,8 @@ async function shoot(side, job) {
     const u = r.url();
     // #338 review: a refusal Pro lifts, the route's 429 answered in the page (iap.mjs).
     if (job.s.refusal && refusalMock(job, r)) return;
+    // Voice input: the 413 of the toolong view, answered in the page (voice.mjs).
+    if (job.s.voice && voiceMock(job, r)) return;
     if (job.s.pr4 && pr4Mock(job, LONG, r, held)) return;
     if (u.startsWith(FONT_HOST)) {
       const body = fontFiles.get(u.slice(FONT_HOST.length));
@@ -1061,6 +1085,8 @@ async function shoot(side, job) {
   await a5Prepare(tab, job);
   // Audit cause #8: GoTrue's refusal answered in the page (auth-errors.mjs).
   await authPrepare(tab, job, SIDES[side]);
+  // Voice input: the KnowFlowSpeech plugin stubbed before the page loads (voice.mjs), on both sides.
+  if (job.s.voice?.stub) await tab.evaluateOnNewDocument(voiceStubSrc(job));
   const q = new URLSearchParams({ ...(side === 'before' && job.s.beforeQ ? job.s.beforeQ : job.s.q), ...(job.theme && !job.s.lands ? { theme: job.theme } : {}) }).toString();
   const url = `${SIDES[side]}/${job.locale}${job.s.path ? '/' + job.s.path : ''}${q ? '?' + q : ''}`;
   const res = await tab.goto(url, { waitUntil: 'networkidle0', timeout: 90000 });
@@ -1076,7 +1102,8 @@ async function shoot(side, job) {
   const acted = job.s.act ? await pr4Act(tab, job, LONG).catch((e) => ({ act: job.s.act, error: String(e).slice(0, 200) }))
     : job.s.a5 ? await a5Act(tab, job).catch((e) => ({ act: job.s.a5, error: String(e).slice(0, 200) }))
     : job.s.authErr ? await authAct(tab, job).catch((e) => ({ act: `auth-${job.s.authErr.form}-${job.s.authErr.id}`, error: String(e).slice(0, 200) }))
-    : job.s.refusal ? await refusalAct(tab, job, side).catch((e) => ({ act: `refusal-${job.s.refusal.surface}`, error: String(e).slice(0, 200) })) : null;
+    : job.s.refusal ? await refusalAct(tab, job, side).catch((e) => ({ act: `refusal-${job.s.refusal.surface}`, error: String(e).slice(0, 200) }))
+    : job.s.voice ? await voiceAct(tab, job, side).catch((e) => ({ act: `voice-${job.s.voice.view}`, error: String(e).slice(0, 200) })) : null;
   // Finite animations are finished. An INFINITE one (a processing spinner,
   // Tailwind's `animate-spin`, which reduced motion does not stop: it is the
   // state itself) is paused at its first frame, the same on both sides, and
@@ -1179,6 +1206,14 @@ async function shoot(side, job) {
   const price25 = want25 ? await tab.evaluate(priceCheck, want25, false) : null;
   // Check 26 (iap.mjs): no paywall phrase (KEEP_TOGETHER_PAYWALL) spans two lines inside the paywall.
   const paywall26 = job.s.iap?.state ? await tab.evaluate(phraseChecks, KEEP26, PAYWALL_SCOPE) : null;
+  // Check 27 (voice.mjs): the mic only at shell 2 with the plugin; the row, the line, the field per view. AFTER only (main has no mic).
+  if (job.s.voice) await tab.evaluate(`window.voiceCheck = ${voiceCheck.toString()}; window.voiceStackCheck = ${voiceStackCheck.toString()};`);
+  const voice27 = job.s.voice && side === 'after' ? await tab.evaluate(voiceCheck, voiceExpect(job)) : null;
+  // Check 28 (voice.mjs): a state with a control has the message full width and the control on its own row below it. AFTER only.
+  const voice28 = job.s.voice && side === 'after' ? await tab.evaluate(voiceStackCheck, voiceExpect(job)) : null;
+  // Check 29 (voice.mjs): no voice message line ends on "try" or "or" (and twins) and no KEEP_TOGETHER_VOICE phrase splits. AFTER only.
+  if (job.s.voice && side === 'after') await tab.evaluate(`window.kfPhraseChecks = ${phraseChecks.toString()}; window.voicePhraseCheck = ${voicePhraseCheck.toString()};`);
+  const voice29 = job.s.voice && side === 'after' ? await tab.evaluate(voicePhraseCheck, voiceExpect(job), KEEP29) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -1210,6 +1245,12 @@ async function shoot(side, job) {
   // Check 26's forced cases, after the shot, on every AFTER paywall render: each phrase present forced onto two lines.
   if (job.s.iap?.state && side === 'after') await tab.evaluate(`window.kfPhraseChecks = ${phraseChecks.toString()}`);
   const keep26Plant = job.s.iap?.state && side === 'after' ? await tab.evaluate(keepPlant, KEEP26, PAYWALL_SCOPE) : null;
+  // Check 27's forced cases, after the shot, on AFTER (voice.mjs, voicePlant).
+  const voice27Plant = job.s.voice && side === 'after' ? await tab.evaluate(voicePlant, voiceExpect(job)) : null;
+  // Check 28's forced case, after the shot, on AFTER: the line put back side by side (voice.mjs, voiceStackPlant).
+  const voice28Plant = job.s.voice && side === 'after' ? await tab.evaluate(voiceStackPlant, voiceExpect(job)) : null;
+  // Check 29's forced cases, after the shot, on AFTER: each phrase present broken after its first word.
+  const voice29Plant = job.s.voice && side === 'after' ? await tab.evaluate(voicePhrasePlant, voiceExpect(job), KEEP29) : null;
   // G2: check 9's forced wrong cases, after the shot (pr4.mjs, pageLabelPlant).
   const labelPlant = job.s.pr4 === 'ask' ? await tab.evaluate(pageLabelPlant) : null;
   // Finding (b): check 10's forced wrong cases, after the shot (pr4.mjs, latinPlant).
@@ -1220,7 +1261,7 @@ async function shoot(side, job) {
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant, price25, price25Plant, split24Plant, adjacent24Plant, paywall26, keep26Plant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant, price25, price25Plant, split24Plant, adjacent24Plant, paywall26, keep26Plant, voice27, voice27Plant, voice28, voice28Plant, voice29, voice29Plant };
 }
 
 for (const job of JOBS) {
@@ -1303,6 +1344,15 @@ for (const job of JOBS) {
       ...(r.adjacent24Plant?.finding ? [`iap: ${r.adjacent24Plant.finding}`] : []),
       ...(r.paywall26 ? r.paywall26.findings.map((f) => `keep26: ${f}`) : []),
       ...(r.keep26Plant || []).filter((x) => !x.caught).map((x) => `keep26: check 26 is blind: "${x.phrase}" forced onto two lines was not flagged`),
+      // Check 27 (voice.mjs), and its forced cases on AFTER.
+      ...(r.voice27?.finding ? [`voice: ${r.voice27.finding}`] : []),
+      ...(r.voice27Plant?.finding ? [`voice: ${r.voice27Plant.finding}`] : []),
+      // Check 28 (voice.mjs), and its forced case on AFTER.
+      ...(r.voice28?.finding ? [`voice: ${r.voice28.finding}`] : []),
+      ...(r.voice28Plant?.finding ? [`voice: ${r.voice28Plant.finding}`] : []),
+      // Check 29 (voice.mjs), and its forced cases on AFTER.
+      ...(r.voice29?.finding ? [`voice: ${r.voice29.finding}`] : []),
+      ...(r.voice29Plant || []).filter((x) => !x.caught).map((x) => `voice: check 29 is blind: "${x.phrase}" broken after "${x.after}" was not flagged on both rules (${x.finding || 'no finding'})`),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -1322,6 +1372,9 @@ for (const job of JOBS) {
     if (side === 'after' && r.split24Plant?.caught) splitForced++;
     if (side === 'after' && r.adjacent24Plant?.caught) adjacentForced++;
     if (side === 'after') for (const x of r.keep26Plant || []) if (x.caught) keepForced[x.phrase] = (keepForced[x.phrase] || 0) + 1;
+    if (side === 'after' && r.voice27Plant?.caught) voiceForced[r.voice27Plant.kind]++;
+    if (side === 'after' && r.voice28Plant?.forced) { stackForced.ran++; if (r.voice28Plant.caught) stackForced.caught++; }
+    if (side === 'after') for (const x of r.voice29Plant || []) { const c = (phraseForced[x.phrase] ||= { ran: 0, caught: 0, after: {} }); c.ran++; c.after[x.after] = (c.after[x.after] || 0) + 1; if (x.caught) c.caught++; }
     if (side === 'after' && r.whole18Revert?.flagged) console.log(`       check 18 on d9647f5's layout (${job.name}): ${r.whole18Revert.finding}`);
     const tmin = Math.min(...r.a.text.map((t) => t.got));
     row.sides[side] = {
@@ -1357,6 +1410,7 @@ for (const job of JOBS) {
       ...(r.iap24 && (job.s.iap || r.iap24.finding) ? { iap: { expect: job.s.iap ?? null, ...r.iap24.measured, finding: r.iap24.finding, ...(r.iap24Plant ? { forcedCaught: r.iap24Plant.caught } : {}), ...(r.split24Plant ? { splitForcedCaught: r.split24Plant.caught } : {}) } } : {}),
       ...(r.paywall26 ? { keep26: { read: r.paywall26.read, findings: r.paywall26.findings, ...(r.keep26Plant ? { forced: r.keep26Plant } : {}) } } : {}),
       ...(r.price25 ? { price: { want: priceExpect(job.s.iap), ...r.price25.measured, finding: r.price25.finding, ...(r.price25Plant ? { forced: { caught: r.price25Plant.caught, drawn: r.price25Plant.drawn } } : {}) } } : {}),
+      ...(r.voice27 ? { voice: { expect: job.s.voice, ...r.voice27.measured, finding: r.voice27.finding, act: r.acted || null, ...(r.voice27Plant ? { forced: r.voice27Plant.kind ?? null, forcedCaught: r.voice27Plant.caught ?? null } : {}), ...(r.voice29 ? { phrase29: { ...r.voice29.measured, finding: r.voice29.finding, ...(r.voice29Plant?.length ? { forced: r.voice29Plant.map((x) => ({ phrase: x.phrase, caught: x.caught })) } : {}) } } : {}), ...(r.voice28 ? { stack28: { ...r.voice28.measured, finding: r.voice28.finding, ...(r.voice28Plant ? { forced: r.voice28Plant.kind ?? null, forcedCaught: r.voice28Plant.caught ?? null, forcedMeasured: r.voice28Plant.measured ?? null } : {}) } } : {}) } } : {}),
       ...(job.s.native ? { app: { appleButtons: r.gate.apple.length, googleButtons: r.gate.google.length, purchaseWords: words } } : {}),
     };
     console.log(`${side === 'after' && bad.length ? 'FAIL' : 'ok  '} ${side.padEnd(6)} ${job.name}: theme ${r.theme}, ${r.fonts.loaded.length} static faces, text worst ${tmin.toFixed(2)}:1, ${bad.length} finding(s)`);
@@ -1411,8 +1465,21 @@ for (const p of KEEP26) {
   if (!keepForced[p]) never(`check 26 was never forced for "${p}": no AFTER paywall render caught it forced onto two lines`);
   else console.log(`check 26 (paywall phrase "${p}" on one line): forced case caught on ${keepForced[p]} AFTER render(s)`);
 }
+if (!voiceForced.removed) never('check 27 was never forced: no AFTER render caught the microphone removed from a shell-2 screen with the plugin');
+else console.log(`check 27 (the mic only at shell 2 with the plugin): forced case "mic removed" caught on ${voiceForced.removed} AFTER render(s)`);
+if (!voiceForced.planted) never('check 27 was never forced: no AFTER render caught a microphone planted where none may be');
+else console.log(`check 27 (no mic on the web, shell 1, or shell 2 without the plugin): forced case "mic planted" caught on ${voiceForced.planted} AFTER render(s)`);
+if (!stackForced.caught) never('check 28 was never forced: no AFTER render caught the voice line put back side by side (0960b1a)');
+else console.log(`check 28 (a voice control on its own row below the message): forced case "side by side" caught on ${stackForced.caught} of ${stackForced.ran} AFTER render(s)`);
+if (stackForced.ran !== stackForced.caught) never(`check 28's forced case was missed on ${stackForced.ran - stackForced.caught} AFTER render(s)`);
+for (const p of KEEP29) {
+  const c = phraseForced[p];
+  if (!c || !c.caught) never(`check 29 was never forced for "${p}": no AFTER voice render caught it broken after its first word (or its joint word)`);
+  else console.log(`check 29 (voice phrase "${p}" on one line, no line ending on its first or joint word): forced cases caught ${c.caught} of ${c.ran} on AFTER renders (${Object.entries(c.after || {}).map(([w, n]) => `${n} after "${w}"`).join(', ')})`);
+  if (c && c.ran !== c.caught) never(`check 29's forced case for "${p}" was missed on ${c.ran - c.caught} AFTER render(s)`);
+}
 if (!sameSeen.compared) never('check 22 compared no screen');
-else console.log(`check 22 (shell 1 and the web unchanged): ${sameSeen.same} of ${sameSeen.compared} screen(s) the same picture before and after`);
+else console.log(`check 22 (shell 1, the web, and shell 2 without the plugin unchanged): ${sameSeen.same} of ${sameSeen.compared} screen(s) the same picture before and after`);
 writeFileSync(join(out, 'report.json'), JSON.stringify({ fonts: { family: FAMILY, package: '@fontsource/rubik@5.2.5', weights: WEIGHTS, files: fontHashes }, results }, null, 2) + '\n');
 console.log(`\nfonts: one static set on every page (${[...fontSets][0]}), ${Object.keys(fontHashes).length} files hashed`);
 console.log(`${failures} failure(s) on AFTER across ${JOBS.length} screens (${JOBS.length * 2} renders)`);

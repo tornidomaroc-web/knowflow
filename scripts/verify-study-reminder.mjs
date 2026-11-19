@@ -129,7 +129,7 @@ for (const t of ['PhotosorVideos', 'EmailAddress', 'Name', 'OtherUserContent', '
 }
 check((manifest.match(/<key>NSPrivacyCollectedDataTypeTracking<\/key>\s*<false\/>/g) || []).length === 7, 'none of the seven is used for tracking');
 check((manifest.match(/<key>NSPrivacyCollectedDataTypeLinked<\/key>\s*<true\/>/g) || []).length === 7, 'all seven are linked to the student');
-check((read('ios/App/App/Info.plist').match(/<key>[A-Za-z]*UsageDescription<\/key>/g) || []).every((k) => k === '<key>NSCameraUsageDescription</key>'), 'Info.plist carries no purpose string for the reminder (local notifications need none; the camera screen\'s NSCameraUsageDescription is the only one)');
+check((read('ios/App/App/Info.plist').match(/<key>[A-Za-z]*UsageDescription<\/key>/g) || []).every((k) => ['<key>NSCameraUsageDescription</key>', '<key>NSMicrophoneUsageDescription</key>', '<key>NSSpeechRecognitionUsageDescription</key>'].includes(k)), 'Info.plist carries no purpose string for the reminder (local notifications need none; the only ones are the camera screen\'s and voice input\'s microphone and speech recognition)');
 
 if (failures.length === 0) {
   console.log(`PASS: ${passes} checks. The reminder is the app's alone, off at 19:00, asks only at the switch, carries no purchase word; the manifest is in the target and declares what the audit found.`);

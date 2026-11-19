@@ -53,7 +53,7 @@ jobs:
     name: Before and after, same fonts, audited (no secrets)
     runs-on: ubuntu-24.04
     # 55 until #338's review added ~160 jobs (refusal offers, price shapes); a full run was ~38 min before them.
-    timeout-minutes: 75
+    timeout-minutes: 90 # 75 until #340's review: voice runs near the limit on a slow runner; margin, not a fix.
     env:
       NEXT_TELEMETRY_DISABLED: '1'
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
@@ -153,7 +153,8 @@ jobs:
       # overwrite: true, which deletes the first before re-uploading).
       - name: Side by side
         if: ${{ !cancelled() }}
-        timeout-minutes: 10
+        # 20, not 10: run 44474505384 composed all 998 side-by-sides and hit 10:00 as it finished.
+        timeout-minutes: 20
         working-directory: after
         env:
           BEFORE_LABEL: ${{ github.event.pull_request && 'main' || steps.before.outputs.ref }}

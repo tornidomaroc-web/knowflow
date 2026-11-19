@@ -45,6 +45,11 @@ class MainViewController: CAPBridgeViewController {
         let store = KnowFlowStorePlugin()
         bridge?.registerPluginInstance(store)
         store.startListening()
+        // Voice input in Ask (iOS 1.1, item 4e): the SFSpeechRecognizer plugin
+        // that lives in this target (KnowFlowSpeech.swift), registered beside
+        // the store, in every build. Nothing runs until a page calls `start`.
+        let speech = KnowFlowSpeechPlugin()
+        bridge?.registerPluginInstance(speech)
         if let webView = bridge?.webView {
             pageColour = webView.observe(\.underPageBackgroundColor, options: [.initial, .new]) { webView, _ in
                 webView.scrollView.backgroundColor = webView.underPageBackgroundColor
@@ -138,14 +143,15 @@ private final class Smoke {
     // entry points, the only place purchase words may stand); in shell 1 any
     // marked element is itself a hit (`outside`); a pricing, checkout, Paddle
     // or upgrade link is a hit everywhere. `store` says whether the
-    // KnowFlowStore plugin answers in this web view.
+    // KnowFlowStore plugin answers in this web view, `speech` the same for
+    // KnowFlowSpeech (voice input in Ask, item 4e).
     //
     // Before anything is read or photographed, every leaf element whose text
     // is an e-mail address is masked to "[email]": the workflow screenshots
     // the screen right after each probe, and the Settings screen shows the
     // account's address, which must not reach a public artifact.
     private static let probe = """
-    (function(){try{var C=window.Capacitor;Array.prototype.slice.call(document.querySelectorAll('p,span,div,a,b,strong')).forEach(function(el){if(el.children.length===0&&/\\S+@\\S+\\.\\S+/.test(el.textContent||'')){el.textContent='[email]'}});var T=(document.body&&document.body.innerText||'');function kfWording(T){var h=[];var E=[['plan',/\\bplans?\\b/i],['subscription',/\\bsubscri(?:be|bed|bes|ber|bers|bing|ption|ptions)\\b/i],['upgrade',/\\bupgrad(?:e|es|ed|ing)\\b/i],['premium',/\\bpremium\\b/i],['pro',/\\bpro\\b/i],['price',/\\bpric(?:e|es|ed|ing)\\b/i],['free',/\\bfree\\b/i],['checkout',/\\bcheck-?out\\b/i],['currency',/\\$\\s?\\d|\\d\\s?(?:usd|eur|mad|dhs?|dirhams?)\\b|\\/\\s?mo(?:nth)?\\b|\\bper month\\b/i]];for(var i=0;i<E.length;i++){if(E[i][1].test(T))h.push(E[i][0])}var N=T.replace(/[ً-ٰٟـ]/g,'').replace(/[آأإٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي');var A=[['باقة',/باق[هتا]/],['اشتراك',/اشترا?ك/],['ترقية',/ترقي[هت]/],['مجاني',/مجان/],['سعر',/سعر|اسعار/],['احترافي',/احتراف/],['خطة',/(?:^|[^ء-ي])(?:ال|و|ب|ف|ل)?خط[هت]/],['شهريا',/شهريا/]];for(var j=0;j<A.length;j++){if(A[j][1].test(N))h.push(A[j][0])}return h}function kfPurchase(D,S){var M=D.querySelectorAll('[data-kf-iap]');var B=D.body;var T='';if(B){if(S>=2&&M.length){var k=[];for(var i=0;i<M.length;i++){k.push(M[i].style.getPropertyValue('display'));M[i].style.setProperty('display','none','important')}T=B.innerText;for(var j=0;j<M.length;j++){if(k[j]){M[j].style.setProperty('display',k[j])}else{M[j].style.removeProperty('display')}}}else{T=B.innerText}}var H=[];var A=D.querySelectorAll('a[href]');for(var n=0;n<A.length;n++){var h=A[n].getAttribute('href')||'';if(/pricing|checkout|paddle|upgrade/i.test(h))H.push(h)}return{words:kfWording(T),hrefs:H,marked:M.length,outside:S<2&&M.length>0}}var shellN=+(((navigator.userAgent.match(/KnowFlowApp\\/(\\d+)/)||[])[1])||0);return JSON.stringify({ready:document.readyState,href:location.href,title:document.title,bridge:!!(C&&C.isNativePlatform&&C.isNativePlatform()),platform:(C&&C.getPlatform)?C.getPlatform():null,marker:/KnowFlowApp\\/\\d/.test(navigator.userAgent),shell:((navigator.userAgent.match(/KnowFlowApp\\/(\\d+)/)||[])[1]||null),google:document.querySelectorAll('[fill="#4285F4"]').length,pricing:document.querySelectorAll('a[href*="/pricing"]').length,nav:window.__kfNav||0,signedIn:!!document.querySelector('a[href$="/dashboard/settings"]'),purchase:kfPurchase(document,shellN),store:!!(C&&C.isPluginAvailable&&C.isPluginAvailable('KnowFlowStore')),text:T.replace(/\\s+/g,' ').slice(0,400)})}catch(e){return JSON.stringify({error:String(e)})}})()
+    (function(){try{var C=window.Capacitor;Array.prototype.slice.call(document.querySelectorAll('p,span,div,a,b,strong')).forEach(function(el){if(el.children.length===0&&/\\S+@\\S+\\.\\S+/.test(el.textContent||'')){el.textContent='[email]'}});var T=(document.body&&document.body.innerText||'');function kfWording(T){var h=[];var E=[['plan',/\\bplans?\\b/i],['subscription',/\\bsubscri(?:be|bed|bes|ber|bers|bing|ption|ptions)\\b/i],['upgrade',/\\bupgrad(?:e|es|ed|ing)\\b/i],['premium',/\\bpremium\\b/i],['pro',/\\bpro\\b/i],['price',/\\bpric(?:e|es|ed|ing)\\b/i],['free',/\\bfree\\b/i],['checkout',/\\bcheck-?out\\b/i],['currency',/\\$\\s?\\d|\\d\\s?(?:usd|eur|mad|dhs?|dirhams?)\\b|\\/\\s?mo(?:nth)?\\b|\\bper month\\b/i]];for(var i=0;i<E.length;i++){if(E[i][1].test(T))h.push(E[i][0])}var N=T.replace(/[ً-ٰٟـ]/g,'').replace(/[آأإٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي');var A=[['باقة',/باق[هتا]/],['اشتراك',/اشترا?ك/],['ترقية',/ترقي[هت]/],['مجاني',/مجان/],['سعر',/سعر|اسعار/],['احترافي',/احتراف/],['خطة',/(?:^|[^ء-ي])(?:ال|و|ب|ف|ل)?خط[هت]/],['شهريا',/شهريا/]];for(var j=0;j<A.length;j++){if(A[j][1].test(N))h.push(A[j][0])}return h}function kfPurchase(D,S){var M=D.querySelectorAll('[data-kf-iap]');var B=D.body;var T='';if(B){if(S>=2&&M.length){var k=[];for(var i=0;i<M.length;i++){k.push(M[i].style.getPropertyValue('display'));M[i].style.setProperty('display','none','important')}T=B.innerText;for(var j=0;j<M.length;j++){if(k[j]){M[j].style.setProperty('display',k[j])}else{M[j].style.removeProperty('display')}}}else{T=B.innerText}}var H=[];var A=D.querySelectorAll('a[href]');for(var n=0;n<A.length;n++){var h=A[n].getAttribute('href')||'';if(/pricing|checkout|paddle|upgrade/i.test(h))H.push(h)}return{words:kfWording(T),hrefs:H,marked:M.length,outside:S<2&&M.length>0}}var shellN=+(((navigator.userAgent.match(/KnowFlowApp\\/(\\d+)/)||[])[1])||0);return JSON.stringify({ready:document.readyState,href:location.href,title:document.title,bridge:!!(C&&C.isNativePlatform&&C.isNativePlatform()),platform:(C&&C.getPlatform)?C.getPlatform():null,marker:/KnowFlowApp\\/\\d/.test(navigator.userAgent),shell:((navigator.userAgent.match(/KnowFlowApp\\/(\\d+)/)||[])[1]||null),google:document.querySelectorAll('[fill="#4285F4"]').length,pricing:document.querySelectorAll('a[href*="/pricing"]').length,nav:window.__kfNav||0,signedIn:!!document.querySelector('a[href$="/dashboard/settings"]'),purchase:kfPurchase(document,shellN),store:!!(C&&C.isPluginAvailable&&C.isPluginAvailable('KnowFlowStore')),speech:!!(C&&C.isPluginAvailable&&C.isPluginAvailable('KnowFlowSpeech')),text:T.replace(/\\s+/g,' ').slice(0,400)})}catch(e){return JSON.stringify({error:String(e)})}})()
     """
 
     private func waitForPage(attempt: Int) {
@@ -181,6 +187,20 @@ private final class Smoke {
         // scripts/ios/page_steps.py fails the step if it did not arrive. A
         // fixed wait alone let a slow load be read as the page before it (run
         // 38426358277: ar-terms read /ar/privacy after 8 s).
+        // A reading step may name `settle`, a script that returns "true" once
+        // what the step reads has arrived: it is evaluated every 250 ms, up
+        // to `timeout` ms (20 s by default), BEFORE `js` runs, and the
+        // reading carries `poll`: {settled, ms}. A fixed wait read voice
+        // availability as still "waiting" (ios-smoke run 44465856628).
+        if let condition = step["settle"] as? String {
+            let timeout = (step["timeout"] as? Double) ?? 20000
+            let began = Date()
+            pollUntil(condition, deadline: began.addingTimeInterval(timeout / 1000)) { settled in
+                let poll: [String: Any] = ["settled": settled, "ms": Int(Date().timeIntervalSince(began) * 1000)]
+                self.eval(js) { result in self.settle(name: name, result: result, wait: wait, nav: nil, poll: poll) }
+            }
+            return
+        }
         guard let until = step["until"] as? String else {
             eval(js) { result in self.settle(name: name, result: result, wait: wait, nav: nil) }
             return
@@ -197,10 +217,10 @@ private final class Smoke {
         }
     }
 
-    private func settle(name: String, result: String, wait: Double, nav: [String: Any]?) {
+    private func settle(name: String, result: String, wait: Double, nav: [String: Any]?, poll: [String: Any]? = nil) {
         DispatchQueue.main.asyncAfter(deadline: .now() + wait / 1000) {
             self.probeNow { probe in
-                self.record(step: name, result: result, probe: probe, nav: nav)
+                self.record(step: name, result: result, probe: probe, nav: nav, poll: poll)
                 // After the last step the app may be in the background (an
                 // external link opened Safari) and its timers suspended, so
                 // the done-file is written at once; nothing can overwrite
@@ -220,6 +240,18 @@ private final class Smoke {
                 done(pair[0], pair[1])
             } else {
                 done("", "")
+            }
+        }
+    }
+
+    private func pollUntil(_ condition: String, deadline: Date, _ done: @escaping (Bool) -> Void) {
+        eval(condition) { value in
+            if value == "true" {
+                done(true)
+            } else if Date() >= deadline {
+                done(false)
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.pollUntil(condition, deadline: deadline, done) }
             }
         }
     }
@@ -291,7 +323,7 @@ private final class Smoke {
         }
     }
 
-    private func record(step: String, result: String, probe: [String: Any], nav: [String: Any]? = nil) {
+    private func record(step: String, result: String, probe: [String: Any], nav: [String: Any]? = nil, poll: [String: Any]? = nil) {
         var line: [String: Any] = [
             "step": step,
             "result": String(result.prefix(4000)),
@@ -300,6 +332,7 @@ private final class Smoke {
             "probe": probe,
         ]
         if let nav = nav { line["nav"] = nav }
+        if let poll = poll { line["poll"] = poll }
         // The whole line is scrubbed: a probe's `text` on the Settings screen
         // carries the account's e-mail, which must not reach the artifact.
         if let data = try? JSONSerialization.data(withJSONObject: line), let raw = String(data: data, encoding: .utf8) {

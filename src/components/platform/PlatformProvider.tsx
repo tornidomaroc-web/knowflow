@@ -28,6 +28,15 @@ export function usePlatform(): Platform {
   return useContext(PlatformContext).platform;
 }
 
+/**
+ * The shell's version as the server read it (0 on the web). Voice input in
+ * Ask (src/components/agent/VoiceButton.tsx) asks it, then also asks the
+ * native plugin (src/lib/speech/bridge.ts): the version alone is not enough.
+ */
+export function useShellVersion(): number {
+  return useContext(PlatformContext).shell;
+}
+
 /** Whether this shell may open the camera (src/lib/platform.ts, `cameraAllowed`). */
 export function useCameraAllowed(): boolean {
   const { platform, shell } = useContext(PlatformContext);

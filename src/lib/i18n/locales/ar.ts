@@ -584,7 +584,25 @@ export const ar: Translation = {
       connectionError: "انقطع الاتصال. حاول مرة أخرى.",
       newConversation: "محادثة جديدة",
       noHistory: "لا محادثات بعد.",
-      history: "محادثاتك"
+      history: "محادثاتك",
+      // Voice input in Ask (iOS 1.1, item 4e): the app at shell 2 with the
+      // KnowFlowSpeech plugin only. Approved by the owner 2026-11-19:
+      // docs/copy/ARABIC_STRINGS_app_v13.md.
+      voice: {
+        start: "اسأل بصوتك",
+        stop: "إيقاف",
+        listening: "جارٍ الاستماع. اضغط للإيقاف.",
+        seconds: "{n} ث",
+        langAr: "العربية",
+        langEn: "الإنجليزية",
+        check: "راجع النص ثم أرسله.",
+        denied: "لا يستطيع KnowFlow سماعك. اسمح له باستخدام الميكروفون والتعرف على الكلام من الإعدادات، ثم حاول مجددًا.",
+        openSettings: "افتح الإعدادات",
+        noSpeech: "لم يُسمع أي كلام. حاول مجددًا وأنت أقرب إلى الهاتف.",
+        unsupported: "لا يدعم هاتفك تحويل الكلام إلى نص بهذه اللغة. يمكنك كتابة سؤالك.",
+        failed: "تعذّر تحويل كلامك إلى نص. حاول مجددًا أو اكتب سؤالك.",
+        limit: "توقف التسجيل بعد 60 ثانية. راجع النص ثم أرسله."
+      }
     },
     upload: {
       uploadFailed: "لم نتأكد من وصول ملفك. حدّث الصفحة لترى إن كان قد وصل، وإن لم يصل فارفعه مرة أخرى.",

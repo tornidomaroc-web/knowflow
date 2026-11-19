@@ -644,6 +644,42 @@ export const ClaySend = (p: P) => (
   </svg>
 );
 
+/**
+ * Voice input in Ask (iOS 1.1, item 4e): the microphone, all clay (the
+ * owner's review of PR #340: the first one stood a clay head on a thin black
+ * outline stand, two styles in one glyph). A GOLD capsule head (the one gold,
+ * #EBAE35's family) with a cream grille band, so the head reads on the cream
+ * button in light as on the dark one (a cream head was faint in light, review
+ * of 2f6c117); a taupe cradle, stem and foot, each a FILLED shape with the
+ * same soft volume as the head (the radial gradient), a catchlight and a
+ * soft drop under the foot. Taupe follows the theme (globals.css
+ * --g-taupe-*), so the stand reads on the cream button in light and on the
+ * dark one in dark. No stroke anywhere (verify-voice-input.mjs checks).
+ */
+export const ClayMic = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 24 24')}>
+    <ellipse cx="12" cy="22.6" rx="5.4" ry="1" fill="#7E7262" fillOpacity="0.28" />
+    <path d="M4.6 10.4h2.4a5 5 0 0 0 10 0h2.4a7.4 7.4 0 0 1-14.8 0z" fill={G('taupe')} />
+    <circle cx="5.8" cy="10.4" r="1.2" fill={G('taupe')} />
+    <circle cx="18.2" cy="10.4" r="1.2" fill={G('taupe')} />
+    <rect x="10.7" y="17.2" width="2.6" height="3.4" fill={G('taupe')} />
+    <rect x="7.4" y="19.6" width="9.2" height="2.6" rx="1.3" fill={G('taupe')} />
+    <ellipse cx="6.3" cy="12.6" rx="0.7" ry="1.3" transform="rotate(-25 6.3 12.6)" fill="#FFFFFF" fillOpacity="0.55" />
+    <ellipse cx="10" cy="20.3" rx="1.6" ry="0.45" fill="#FFFFFF" fillOpacity="0.5" />
+    <rect x="8.2" y="2" width="7.6" height="13.2" rx="3.8" fill={G('gold')} />
+    <rect x="8.2" y="7.3" width="7.6" height="2.6" fill={G('cream')} />
+    <ellipse cx="10.3" cy="4.6" rx="1.1" ry="1.5" fill="#FFFFFF" fillOpacity="0.85" />
+  </svg>
+);
+
+/** The microphone while it listens: a red clay square to tap to stop. */
+export const ClayStop = (p: P) => (
+  <svg {...base(p, 22, 22, '0 0 24 24')}>
+    <rect x="5" y="5" width="14" height="14" rx="4" fill={G('red')} />
+    <ellipse cx="9" cy="8.6" rx="2" ry="1.2" fill="#FFFFFF" fillOpacity="0.6" />
+  </svg>
+);
+
 /** A quiz choice not picked: a small pressed-in dimple. */
 export const ClayChoiceEmpty = (p: P) => (
   <svg {...base(p, 22, 22, '0 0 22 22')}>

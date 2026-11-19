@@ -59,6 +59,40 @@ export function keepTogetherPaywall(text: string): string {
 }
 
 /**
+ * PHRASES KEPT ON ONE LINE IN THE VOICE LINE ONLY (the owner's review of PR
+ * #340 at 3b2fe21, 2026-11-19): at 390 pt the Arabic failed message
+ * (dashboard.agent.voice.failed) ended a line on its "or" and began the next
+ * with "type your question". Keeping that tail alone moved the break to
+ * "try" / "again" (the owner's review at 62c9f7a), so the list is now, per
+ * language, the failed message's whole second sentence without its full stop,
+ * then its "try again" head; the head also guards the denied and noSpeech
+ * messages. Each long phrase comes before the short one it contains, so the
+ * alternation takes the long one where both fit. The Arabic phrases are cut
+ * from the approved file (docs/copy/ARABIC_STRINGS_app_v13.md) by script.
+ *
+ * A list of its own, like KEEP_TOGETHER_PAYWALL: keepTogetherVoice() is called
+ * by src/components/agent/VoiceButton.tsx alone, and the voice line is drawn
+ * only at shell 2 with the KnowFlowSpeech plugin, so the web and build 8 stay
+ * the same picture (design-c check 22). The method is KEEP_TOGETHER's: the
+ * spaces inside a phrase become no-break spaces; no string is changed.
+ *
+ * scripts/design-c/voice.mjs (check 29) reads this list: a voice message line
+ * that ends with a phrase's first word ("try"), or with the word that follows
+ * a shorter kept phrase inside a longer one ("or"), or a phrase split across
+ * two lines, fails; on every AFTER render each phrase present is forced onto two lines
+ * and must be flagged. scripts/verify-voice-input.mjs holds the list to the
+ * approved file.
+ */
+export const KEEP_TOGETHER_VOICE = ['حاول مجددًا أو اكتب سؤالك', 'حاول مجددًا', 'Try again, or type your question', 'Try again'] as const;
+
+const VOICE_PATTERN = new RegExp(KEEP_TOGETHER_VOICE.map((p) => p.split(' ').join('[ \\u00A0]+')).join('|'), 'g');
+
+/** keepTogether(), plus the voice line's own phrases. */
+export function keepTogetherVoice(text: string): string {
+  return keepTogether(text).replace(VOICE_PATTERN, (m) => m.replace(/ +/g, '\u00A0'));
+}
+
+/**
  * NAMES KEPT ON ONE LINE WITHOUT CHANGING A CHARACTER (the owner's review of
  * PR #322 at d9647f5, 2026-11-12): the en declined sentence broke "Voyage" /
  * "AI.". In a right-to-left sentence LatinText already draws "Voyage AI" as

@@ -15,6 +15,8 @@ import { NO_MATERIAL_REFUSAL, subjectUploadHref } from '@/lib/ask-material';
 import { QUESTION_TOO_LONG } from '@/lib/question-cap';
 import { AskNoAnswerableSubject } from './SubjectChips';
 import { ProOfferButton, offersPro } from '@/components/iap/ProOffer';
+import { VoiceButton } from './VoiceButton';
+import { appendTranscript } from '@/lib/speech/merge';
 
 interface Message {
   id: string;
@@ -150,6 +152,23 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
   };
   const scrollRef = useRef<HTMLDivElement>(null);
   const fieldRef = useRef<HTMLTextAreaElement>(null);
+  // Voice input (iOS 1.1, item 4e): the line above the field is drawn here by
+  // VoiceButton, which renders nothing at all outside the app at shell 2.
+  const voiceLineRef = useRef<HTMLDivElement>(null);
+  const caretToEnd = useRef(false);
+  // A take's text is APPENDED to the field and never sent: Send stays the
+  // student's tap. The caret goes to the end; the keyboard is not opened.
+  const appendTake = (take: string) => {
+    caretToEnd.current = true;
+    setInput((prev) => appendTranscript(prev, take));
+  };
+  useEffect(() => {
+    const el = fieldRef.current;
+    if (!caretToEnd.current || !el) return;
+    caretToEnd.current = false;
+    el.setSelectionRange(el.value.length, el.value.length);
+    el.scrollTop = el.scrollHeight;
+  }, [input]);
   // The keyboard hint is shown only where a keyboard is likely (md and up, via
   // CSS) and names the modifier the platform has (review #122, defect 5):
   // Cmd on a Mac, Ctrl elsewhere. Read after mount; the server renders none.
@@ -398,6 +417,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
       )}
       {!noMaterial && (
       <div data-kf-composer="" className="sticky bottom-0 shrink-0 bg-surface p-3 pb-6 md:p-4">
+        <div ref={voiceLineRef} />
         <div className="kf-composer flex items-end gap-2 rounded-2xl border border-control-border bg-background p-2 focus-within:border-primary">
           <textarea
             ref={fieldRef}
@@ -408,6 +428,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
             className="max-h-40 min-h-[2.75rem] flex-1 resize-none bg-transparent px-2 py-2.5 text-base leading-5 md:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
             rows={2}
           />
+          <VoiceButton uiLocale={safeLocale} labels={t.dashboard.agent.voice} lineSlot={voiceLineRef} resetKey={messages.length} onTranscript={appendTake} />
           <button
             onClick={() => handleSend()}
             disabled={isLoading || !input.trim()}
