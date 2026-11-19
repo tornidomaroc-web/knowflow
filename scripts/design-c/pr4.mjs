@@ -978,15 +978,18 @@ export function keepTogetherList(root) {
  * EVERY SCREEN: no protected phrase spans two lines. Self-contained; per
  * text block (the nearest non-inline ancestor), the phrase's words may be
  * joined by a space or a no-break space; a phrase inside a longer word
- * ("بالذكاء الاصطناعي") is read too.
+ * ("بالذكاء الاصطناعي") is read too. `scope` (a selector, optional) reads
+ * only that element: check 26 (iap.mjs) holds the paywall to its own list.
  */
-export function phraseChecks(list) {
+export function phraseChecks(list, scope) {
   const findings = [];
   let read = 0;
   if (!list.length) return { findings: ['no protected phrase list'], read };
   const re = new RegExp(list.map((p) => p.split(' ').join('[ \u00A0]+')).join('|'), 'g');
   const blocks = new Map();
-  const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const root = scope ? document.querySelector(scope) : document.body;
+  if (!root) return { findings: [`no ${scope} on the page`], read };
+  const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   for (let n = tw.nextNode(); n; n = tw.nextNode()) {
     if (!n.data.trim()) continue;
     const el = n.parentElement;
