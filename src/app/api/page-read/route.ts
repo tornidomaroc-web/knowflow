@@ -158,7 +158,7 @@ export async function POST(request: Request) {
     // One batch is one upload: it becomes one material.
     const limit = await enforceUploadLimit(user.id, safeLocale, platformFromRequest(request), () => todaysKeptUploads(supabase));
     if (!limit.allowed) {
-      return NextResponse.json({ error: limit.error }, { status: limit.status });
+      return NextResponse.json({ error: limit.error, code: limit.code }, { status: limit.status });
     }
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });

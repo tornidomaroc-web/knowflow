@@ -216,7 +216,7 @@ export async function POST(request: Request) {
     if (!limit.allowed) {
       return new Response(limit.error, {
         status: limit.status,
-        headers: { 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain', ...(limit.code ? { 'X-KF-Refusal': limit.code } : {}) },
       });
     }
 

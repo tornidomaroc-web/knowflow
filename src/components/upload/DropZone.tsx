@@ -15,6 +15,7 @@ import { LatinText } from '@/components/ui/LatinText';
 import type { Document } from '@/types';
 import { Locale, resolveLocale, useTranslation } from '@/lib/i18n';
 import { fileTooLargeMessage, uploadFailureMessage, uploadLimitLabel, uploadRefusalMessage } from '@/lib/limit-messages';
+import { ProOfferButton, offersPro } from '@/components/iap/ProOffer';
 import { isOverUploadLimit, parseUploadReply } from '@/lib/upload-limits';
 import { fileExtension, isAllowedFileType } from '@/types';
 import { expectedProcessingSeconds, processingFraction, processingStage } from '@/lib/upload-progress';
@@ -84,6 +85,7 @@ export function DropZone({ kbId, onSuccess, previewFile, previewCamera }: DropZo
     previewCamera?.open === 'unread' ? 'ready' : !previewFile ? 'idle' : ps === 'processing' ? 'processing' : ps === 'failed' ? 'error' : ps === 'consent' ? 'consent' : ps === 'declined' ? 'idle' : 'ready'
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(ps === 'failed' ? uploadRefusalMessage(safeLocale, 'unconfirmed') : null);
+  const [offer, setOffer] = useState(false);
   // Activation 5 (cause #7): "Not now" on the permission sheet. Not a failure:
   // the tile comes back with the sentence that says nothing was sent.
   const [notice, setNotice] = useState<'declined' | null>(ps === 'declined' ? 'declined' : null);
@@ -160,6 +162,7 @@ export function DropZone({ kbId, onSuccess, previewFile, previewCamera }: DropZo
     // nothing and releases it (src/lib/upload-consent.ts).
     setNotice(null);
     setErrorMsg(null);
+    setOffer(false);
     if (!consented) {
       setFile({ name: picked.name, size: picked.size });
       setState('consent');
@@ -177,6 +180,7 @@ export function DropZone({ kbId, onSuccess, previewFile, previewCamera }: DropZo
     setPagesNoText(null);
     setSent(0);
     setErrorMsg(null);
+    setOffer(false);
     setState('uploading');
 
     const formData = new FormData();
@@ -206,6 +210,8 @@ export function DropZone({ kbId, onSuccess, previewFile, previewCamera }: DropZo
     const data = parseUploadReply(text);
     if (status < 200 || status >= 300 || !data?.success) {
       setErrorMsg(uploadFailureMessage(safeLocale, status, data, picked.size, u.uploadFailed));
+      // In-app Pro, shell 2: the offer under a refusal Pro lifts.
+      setOffer(status === 429 && offersPro((data as { code?: unknown } | null)?.code));
       setState('error');
       return;
     }
@@ -246,6 +252,7 @@ export function DropZone({ kbId, onSuccess, previewFile, previewCamera }: DropZo
     setCameraOpen(false);
     setNotice(null);
     setErrorMsg(null);
+    setOffer(false);
     setNoText(doc.chunk_count === 0);
     setPagesNoText(null);
     setUnread(missing);
@@ -312,6 +319,7 @@ export function DropZone({ kbId, onSuccess, previewFile, previewCamera }: DropZo
           <p className="text-sm font-medium text-danger"><LatinText text={u.error} /></p>
           <p className="mt-1 text-xs text-danger">{errorMsg && <LatinText text={errorMsg} />}</p>
           <p className="mt-2 text-xs text-muted-foreground"><LatinText text={u.tryAnother} /></p>
+          {offer && <ProOfferButton />}
         </div>
       )}
 

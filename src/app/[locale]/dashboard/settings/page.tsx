@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { getEntitlement } from '@/lib/entitlement'
+import { getEntitlementDetail } from '@/lib/entitlement'
 import { redirect } from 'next/navigation'
 import { SettingsPanel } from '@/components/dashboard/SettingsPanel'
 import { DeleteAccountCard } from '@/components/dashboard/DeleteAccountCard'
@@ -13,8 +13,10 @@ import { deletionWouldCancelBilling } from '@/lib/subscription/billing-note'
 import { paddleClient } from '@/lib/paddle'
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n'
 import { SUPPORT_EMAIL, withSupportEmail } from '@/lib/site'
-import { purchaseLinksAllowed } from '@/lib/platform'
-import { currentPlatform } from '@/lib/platform-server'
+import { iapAllowed, purchaseLinksAllowed } from '@/lib/platform'
+import { currentPlatform, currentShellVersion } from '@/lib/platform-server'
+import { ProOfferCard } from '@/components/iap/ProOffer'
+import { AppStoreDeleteNote, AppStoreManageCard } from '@/components/iap/AppStoreManage'
 import { formatDate } from '@/lib/format-date'
 
 // Thin server wrapper: auth + entitlement only. Presentation lives in the dumb
@@ -37,9 +39,15 @@ export default async function SettingsPage({
   // statuses, so === 'pro' would show paying users as free. expiresAt is the
   // current_period_end when pro, else null. maybeSingle inside getEntitlement
   // also avoids the throw for users with no subscription row.
-  const { tier, expiresAt } = await getEntitlement(user.id)
+  //
+  // In-app Pro (#337, R1): the same read also says WHERE Pro comes from. A Pro
+  // that is Apple's alone is managed in the App Store, so it gets no Paddle
+  // cancel card, no Paddle round trip, and no "Renews" date (the App Store
+  // owns the renewal; this table does not know whether auto-renew is on).
+  const { entitlement: { tier, expiresAt }, sources } = await getEntitlementDetail(user.id)
   const isPro = tier === 'pro'
-  const renewsOn = expiresAt
+  const appleOnly = isPro && sources.apple && !sources.paddle
+  const renewsOn = expiresAt && !appleOnly
     ? formatDate(expiresAt, safeLocale)
     : null
 
@@ -54,7 +62,7 @@ export default async function SettingsPage({
   // their email address is worth more than one that fails closed on a billing
   // read. Only asked when the user is actually Pro; a free user has nothing
   // scheduled and should not cost a Paddle round trip on every render.
-  const cancelsAt = isPro ? await readScheduledCancellation(supabase, paddleClient, user.id) : null
+  const cancelsAt = isPro && !appleOnly ? await readScheduledCancellation(supabase, paddleClient, user.id) : null
   const cancelsOn = cancelsAt
     ? formatDate(cancelsAt, safeLocale)
     : null
@@ -63,6 +71,8 @@ export default async function SettingsPage({
   // The study reminder is the app's alone (src/lib/study-reminder.ts); the
   // platform comes from this request, like the plan card's below.
   const platform = await currentPlatform()
+  // In-app Pro's surfaces exist from shell 2 on (src/lib/platform.ts, iapAllowed).
+  const iap = iapAllowed(await currentShellVersion())
   return (
     <SettingsPanel
       email={user.email || ''}
@@ -119,20 +129,37 @@ export default async function SettingsPage({
       }
       consentCard={<AiConsentCard />}
       subscriptionCard={
-        isPro ? (
-          <CancelSubscriptionCard
-            labels={withSupportEmail(s.cancelSubscription)}
-            accessUntil={cancelsOn ?? renewsOn}
-            alreadyScheduled={Boolean(cancelsAt)}
-          />
+        appleOnly ? (
+          <AppStoreManageCard labels={t.dashboard.iap} />
+        ) : isPro ? (
+          <>
+            <CancelSubscriptionCard
+              labels={withSupportEmail(s.cancelSubscription)}
+              accessUntil={cancelsOn ?? renewsOn}
+              alreadyScheduled={Boolean(cancelsAt)}
+            />
+            {/* Pro from both sources: the Paddle card for Paddle's part, the
+                App Store's for Apple's. Paddle-only renders exactly as before. */}
+            {sources.apple ? <AppStoreManageCard labels={t.dashboard.iap} /> : null}
+          </>
         ) : null
       }
+      // Shell 2, a free account: the offer card in the plan card's place. It
+      // shows only once the StoreKit plugin answers (the Android shell also
+      // says KnowFlowApp/2 and has none).
+      iapMarked={iap}
+      proOfferCard={iap && !isPro ? (
+        <ProOfferCard title={t.dashboard.iap.title} body={t.dashboard.iap.offerBody} button={t.dashboard.iap.offerButton} />
+      ) : undefined}
       signOutRow={<SignOutButton locale={safeLocale} label={t.dashboard.nav.signOut} variant="row" />}
       deleteCard={
         <DeleteAccountCard
           homeHref={`/${safeLocale}`}
           labels={withSupportEmail(s.deleteAccount)}
           showBillingNote={await deletionWouldCancelBilling(supabase, user.id)}
+          // R2 (Apple 5.1.1(v)): while Apple may still bill this account,
+          // deleting it does not stop that billing, and the card says so.
+          appleNote={sources.appleBilling ? <AppStoreDeleteNote labels={t.dashboard.iap} /> : undefined}
         />
       }
     />

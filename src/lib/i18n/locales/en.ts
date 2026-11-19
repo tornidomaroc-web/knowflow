@@ -546,6 +546,47 @@ export const en = {
     aiAllowance: {
       used: "You have reached the AI use available to your account in the last 30 days. Nothing was sent. Uploading, asking, summaries and quizzes come back gradually as your earlier use passes 30 days."
     },
+    // In-app Pro (iOS 1.1, item 4d, app half): the paywall, its entry points,
+    // the App Store management lines (R1, R2). App shell 2 only, every string
+    // inside an element marked data-kf-iap (scripts/lib/app-wording.mjs).
+    // Approved by the owner 2026-11-18: docs/copy/ARABIC_STRINGS_app_v12.md.
+    iap: {
+      title: "KnowFlow Pro",
+      lead: "More room for your studies.",
+      givesHeading: "With Pro",
+      rowSubjects: "Subjects",
+      rowMaterials: "Files per subject",
+      rowQuestions: "Questions a day",
+      rowUploads: "Uploads a day",
+      upTo: "Up to {n}",
+      pricePerMonth: "{price} a month",
+      disclosure: "A monthly subscription at {price}, paid through your Apple Account. It renews every month automatically unless you cancel at least 24 hours before the end of the subscription month. Cancel it in your Apple Account settings.",
+      subscribe: "Subscribe",
+      restore: "Restore Purchases",
+      terms: "Terms of Use",
+      privacy: "Privacy Policy",
+      loading: "Getting the price...",
+      unavailable: "Buying is not available right now. Try again later.",
+      purchasing: "Waiting for the App Store...",
+      restoring: "Looking for your purchases...",
+      pending: "Your purchase is waiting for approval. Pro starts as soon as it is approved.",
+      success: "Pro is on. Thank you.",
+      failed: "The purchase did not finish, and you were not charged. Try again.",
+      verifyFailed: "Payment received, but Pro is not on yet. Tap Restore Purchases.",
+      restoreNone: "No active subscription on this Apple Account.",
+      restoreFailed: "Could not restore your purchases. Try again.",
+      otherAccount: "This subscription belongs to another KnowFlow account. Sign in with that account.",
+      notThisAccount: "This subscription belongs to another KnowFlow account. Sign in with that account.",
+      active: "Pro is active.",
+      manage: "Manage in the App Store",
+      manageFailed: "The App Store could not be opened. Open iPhone Settings, then your name, then Subscriptions.",
+      offerBody: "More subjects, files and questions every day.",
+      offerButton: "See Pro",
+      manageHeading: "Subscription",
+      manageApp: "Your subscription is billed by the App Store. Manage or cancel it there.",
+      manageWeb: "Your subscription is billed by the App Store. To cancel: iPhone Settings, then your name, then Subscriptions.",
+      deleteNote: "Deleting your account does not cancel an App Store subscription. Cancel it first, or Apple will keep charging you."
+    },
     // STORE_PATH.md S3(a), Apple 4.2 (src/lib/study-reminder.ts). Settings,
     // inside the app only. No price, plan or offer word (3.1.3(f)).
     studyReminder: {

@@ -74,7 +74,9 @@ export function splitLatinGroups(text: string): Piece[] {
  */
 export type Run = string | { run: string; short: boolean };
 
-const RUN = /[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ0-9]*(?:[ ,.\-_'’/+&]+[A-Za-zÀ-ɏ0-9]+)*/g;
+// A no-break space (U+00A0) joins Latin words like a space: keepTogether() puts one inside "من App Store"
+// (#338 review), and without it here "App" and "Store" were two isolates, drawn "Store App" (design-c 44380662481).
+const RUN = /[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ0-9]*(?:[ \u00A0,.\-_'’/+&]+[A-Za-zÀ-ɏ0-9]+)*/g;
 
 export function splitLatinRuns(text: string): Run[] {
   const out: Run[] = [];

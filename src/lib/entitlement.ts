@@ -200,6 +200,53 @@ export async function readEntitlement(
   supabase: SupabaseClient,
   userId: string
 ): Promise<Entitlement> {
+  return (await readEntitlementDetail(supabase, userId)).entitlement;
+}
+
+/**
+ * WHERE PRO COMES FROM (iOS 1.1, item 4d, app half; R1 and R2 of #337).
+ *
+ * Settings must know the SOURCE, not only the tier: a student whose Pro is
+ * Apple's alone must be sent to the App Store to manage it (the Paddle cancel
+ * card would answer "nothing to cancel" and read as a false "cancelled"), and
+ * the delete card must say that deleting the account does not stop Apple's
+ * billing whenever Apple may still bill.
+ *
+ * - `paddle` / `apple`: a row of that source grants Pro NOW (the same rule as
+ *   the tier: an entitling status and a future end).
+ * - `appleBilling`: an Apple row Apple may still charge, whatever its date:
+ *   `active`, `grace_period` or `billing_retry` (Apple keeps retrying a failed
+ *   renewal for up to 60 days after the period ended, so a row whose date has
+ *   passed can still be billed). `expired`, `revoked` and `refunded` cannot.
+ */
+export interface EntitlementSources {
+  paddle: boolean;
+  apple: boolean;
+  appleBilling: boolean;
+}
+
+const APPLE_MAY_BILL: ReadonlySet<string> = new Set(['active', 'grace_period', 'billing_retry']);
+
+/** Pure: the sources, from the rows each read returned (null when that read failed). */
+export function sourcesFromRows(
+  paddleRows: EntitlementRow[] | null,
+  appleRows: AppleEntitlementRow[] | null
+): EntitlementSources {
+  return {
+    paddle: entitlementFromRows(paddleRows).tier === 'pro',
+    apple: entitlementFromRows(appleRowsAsEntitlementRows(appleRows)).tier === 'pro',
+    appleBilling: (appleRows ?? []).some((row) => APPLE_MAY_BILL.has(row?.status ?? '')),
+  };
+}
+
+/**
+ * The entitlement and its sources, from ONE pair of reads. `readEntitlement`
+ * is this, minus the sources, so its answer is byte for byte what it was.
+ */
+export async function readEntitlementDetail(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<{ entitlement: Entitlement; sources: EntitlementSources }> {
   const [paddle, apple] = await Promise.all([
     supabase.from(TABLE).select('status, current_period_end').eq('user_id', userId),
     supabase.from(APPLE_TABLE).select('status, expires_at').eq('user_id', userId),
@@ -221,7 +268,10 @@ export async function readEntitlement(
       message: apple.error.message,
     });
   }
-  const appleRows = apple.error ? [] : appleRowsAsEntitlementRows(apple.data as AppleEntitlementRow[] | null);
+  const appleRaw = apple.error ? null : ((apple.data as AppleEntitlementRow[] | null) ?? []);
+  const appleRows = appleRowsAsEntitlementRows(appleRaw);
+  const paddleRaw = paddle.error ? null : ((paddle.data as EntitlementRow[] | null) ?? []);
+  const sources = sourcesFromRows(paddleRaw, appleRaw);
 
   if (paddle.error) {
     console.error('entitlement read failed; resolving to free', {
@@ -229,10 +279,15 @@ export async function readEntitlement(
       code: paddle.error.code,
       message: paddle.error.message,
     });
-    return appleRows.length > 0 ? entitlementFromRows(appleRows) : FREE;
+    return { entitlement: appleRows.length > 0 ? entitlementFromRows(appleRows) : FREE, sources };
   }
 
-  return entitlementFromRows([...((paddle.data as EntitlementRow[] | null) ?? []), ...appleRows]);
+  return { entitlement: entitlementFromRows([...(paddleRaw ?? []), ...appleRows]), sources };
+}
+
+/** `readEntitlementDetail` with the request's own client (RLS: own rows only). */
+export async function getEntitlementDetail(userId: string) {
+  return readEntitlementDetail(await createClient(), userId);
 }
 
 /**

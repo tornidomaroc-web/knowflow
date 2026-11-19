@@ -157,7 +157,7 @@ export async function POST(request: Request) {
     // through their subjects.
     const limit = await enforceUploadLimit(user.id, safeLocale, platformFromRequest(request), () => todaysKeptUploads(supabase));
     if (!limit.allowed) {
-      return NextResponse.json({ error: limit.error }, { status: limit.status });
+      return NextResponse.json({ error: limit.error, code: limit.code }, { status: limit.status });
     }
 
     // Everything after the gates (the stored file, the documents row, the

@@ -5,7 +5,8 @@ import { MaterialCard } from '@/components/materials/MaterialCard'
 import { DropZone } from '@/components/upload/DropZone'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { PlatformProvider } from '@/components/platform/PlatformProvider'
-import { resolvePlatform } from '@/lib/platform'
+import { iapAllowed, resolvePlatform } from '@/lib/platform'
+import { PreviewIap } from '@/components/iap/PreviewIap'
 import { currentShellVersion } from '@/lib/platform-server'
 import { Locale, locales, useTranslation } from '@/lib/i18n'
 import { emptyStats } from '@/lib/subject-stats'
@@ -115,6 +116,8 @@ export default async function SubjectPreview({
         <span className="text-faint">{safeLocale}</span>
       </div>
       <PlatformProvider platform={platform} shell={shell}>
+      {/* In-app Pro (#338): at shell 2 the refusals' "See Pro" button, as the dashboard draws it. */}
+      <PreviewIap on={iapAllowed(shell)} locale={safeLocale} offerLabel={t.dashboard.iap.offerButton}>
       <DashboardShell
         platform={platform}
         activeNav="knowledge"
@@ -182,6 +185,7 @@ export default async function SubjectPreview({
           </section>
         </div>
       </DashboardShell>
+      </PreviewIap>
       </PlatformProvider>
     </div>
   )

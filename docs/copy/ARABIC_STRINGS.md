@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
 Generated 2026-11-18 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **481 Arabic strings.**
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **516 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -542,6 +542,46 @@ file is not read by the app.
 | Key | العربية | English |
 |---|---|---|
 | `dashboard.aiAllowance.used` | وصلت إلى حد استخدام الذكاء الاصطناعي المتاح لحسابك خلال آخر 30 يومًا. لم يُرسَل شيء. يعود الرفع والأسئلة والملخصات والاختبارات تدريجيًا كلما مضى 30 يومًا على استخدامك السابق. | You have reached the AI use available to your account in the last 30 days. Nothing was sent. Uploading, asking, summaries and quizzes come back gradually as your earlier use passes 30 days. |
+
+## Signed-in app: iap (`dashboard.iap`)
+
+| Key | العربية | English |
+|---|---|---|
+| `dashboard.iap.title` | KnowFlow الاحترافي | KnowFlow Pro |
+| `dashboard.iap.lead` | مساحة أكبر لدراستك. | More room for your studies. |
+| `dashboard.iap.givesHeading` | مع الاحترافي | With Pro |
+| `dashboard.iap.rowSubjects` | المواد | Subjects |
+| `dashboard.iap.rowMaterials` | ملفات كل مادة | Files per subject |
+| `dashboard.iap.rowQuestions` | الأسئلة يوميًا | Questions a day |
+| `dashboard.iap.rowUploads` | رفع الملفات يوميًا | Uploads a day |
+| `dashboard.iap.upTo` | حتى {n} | Up to {n} |
+| `dashboard.iap.pricePerMonth` | {price} شهريًا | {price} a month |
+| `dashboard.iap.disclosure` | اشتراك شهري بسعر {price}، يُدفع من حساب Apple. يتجدد كل شهر تلقائيًا ما لم تلغه قبل نهاية شهر الاشتراك بـ24 ساعة على الأقل. تلغيه من إعدادات حساب Apple. | A monthly subscription at {price}, paid through your Apple Account. It renews every month automatically unless you cancel at least 24 hours before the end of the subscription month. Cancel it in your Apple Account settings. |
+| `dashboard.iap.subscribe` | اشترك | Subscribe |
+| `dashboard.iap.restore` | استعادة المشتريات | Restore Purchases |
+| `dashboard.iap.terms` | شروط الاستخدام | Terms of Use |
+| `dashboard.iap.privacy` | سياسة الخصوصية | Privacy Policy |
+| `dashboard.iap.loading` | جارٍ جلب السعر... | Getting the price... |
+| `dashboard.iap.unavailable` | الشراء غير متاح الآن. حاول لاحقًا. | Buying is not available right now. Try again later. |
+| `dashboard.iap.purchasing` | بانتظار App Store... | Waiting for the App Store... |
+| `dashboard.iap.restoring` | نبحث عن مشترياتك... | Looking for your purchases... |
+| `dashboard.iap.pending` | الشراء ينتظر الموافقة. يبدأ الاحترافي فور قبوله. | Your purchase is waiting for approval. Pro starts as soon as it is approved. |
+| `dashboard.iap.success` | تم تفعيل الاحترافي. شكرًا لك. | Pro is on. Thank you. |
+| `dashboard.iap.failed` | لم يكتمل الشراء، ولم يُخصم أي مبلغ. حاول مجددًا. | The purchase did not finish, and you were not charged. Try again. |
+| `dashboard.iap.verifyFailed` | دُفع المبلغ، لكن الاحترافي لم يُفعَّل بعد. اضغط «استعادة المشتريات». | Payment received, but Pro is not on yet. Tap Restore Purchases. |
+| `dashboard.iap.restoreNone` | لا يوجد اشتراك نشط في حساب Apple هذا. | No active subscription on this Apple Account. |
+| `dashboard.iap.restoreFailed` | تعذّرت استعادة المشتريات. حاول مجددًا. | Could not restore your purchases. Try again. |
+| `dashboard.iap.otherAccount` | هذا الاشتراك يخص حساب KnowFlow آخر. سجّل الدخول به. | This subscription belongs to another KnowFlow account. Sign in with that account. |
+| `dashboard.iap.notThisAccount` | هذا الاشتراك يخص حساب KnowFlow آخر. سجّل الدخول به. | This subscription belongs to another KnowFlow account. Sign in with that account. |
+| `dashboard.iap.active` | الاحترافي مفعّل. | Pro is active. |
+| `dashboard.iap.manage` | الإدارة في App Store | Manage in the App Store |
+| `dashboard.iap.manageFailed` | تعذّر فتح App Store. افتح إعدادات iPhone، ثم اسمك، ثم الاشتراكات. | The App Store could not be opened. Open iPhone Settings, then your name, then Subscriptions. |
+| `dashboard.iap.offerBody` | مواد وملفات وأسئلة أكثر كل يوم. | More subjects, files and questions every day. |
+| `dashboard.iap.offerButton` | اطّلع على الاحترافي | See Pro |
+| `dashboard.iap.manageHeading` | الاشتراك | Subscription |
+| `dashboard.iap.manageApp` | يُدفع اشتراكك عبر App Store، ومن هناك تديره أو تلغيه. | Your subscription is billed by the App Store. Manage or cancel it there. |
+| `dashboard.iap.manageWeb` | يُدفع اشتراكك عبر App Store. لإلغائه: إعدادات iPhone، ثم اسمك، ثم الاشتراكات. | Your subscription is billed by the App Store. To cancel: iPhone Settings, then your name, then Subscriptions. |
+| `dashboard.iap.deleteNote` | حذف حسابك لا يلغي اشتراك App Store. ألغه أولًا، وإلا فستستمر Apple في الخصم. | Deleting your account does not cancel an App Store subscription. Cancel it first, or Apple will keep charging you. |
 
 ## Signed-in app: studyReminder (`dashboard.studyReminder`)
 
