@@ -2,8 +2,12 @@
  * Executable proof for register #121: six defects the owner saw on production
  * on 2026-09-25, each held here so it cannot come back.
  *
- *  1. Sign in with Apple is shown only when NEXT_PUBLIC_APPLE_SIGNIN=enabled
- *     (`src/lib/auth/providers.ts`); both auth pages gate the button on it.
+ *  1. Sign in with Apple never ships a button that fails. The defect was a
+ *     live web-OAuth button with no provider behind it. Since item 4f the
+ *     button is native and in the app only: no build flag (providers.ts and
+ *     NEXT_PUBLIC_APPLE_SIGNIN are gone), and both auth pages draw it only
+ *     where the KnowFlowApple plugin answers (`apple && <AppleButton`), never
+ *     through web OAuth (scripts/verify-apple-signin.mjs holds the rest).
  *  2. No dashboard canvas is centred beside the sidebar (`mx-auto max-w-*`
  *     on the five screens is gone), so RTL leaves no gap at the sidebar.
  *  3. The Continue card isolates the subject and the date in <bdi>, rendered.
@@ -33,19 +37,15 @@ const has = (p) => existsSync(resolvePath(ROOT, p));
 const React = (await import('react')).default;
 const { renderToStaticMarkup } = await import('react-dom/server');
 
-// 1. The Apple gate.
+// 1. The Apple gate: native and plugin-gated, no build flag, no web OAuth.
 {
-  check(has('src/lib/auth/providers.ts'), 'src/lib/auth/providers.ts does not exist');
+  check(!has('src/lib/auth/providers.ts'), 'src/lib/auth/providers.ts (the NEXT_PUBLIC_APPLE_SIGNIN flag) is back');
   for (const p of ['src/app/[locale]/login/page.tsx', 'src/app/[locale]/signup/page.tsx']) {
     const src = read(p);
-    check(/APPLE_SIGNIN_ENABLED && <AppleButton/.test(src), `${p} shows the Apple button without the flag`);
+    check(/\{apple && <AppleButton bridge=\{apple\}/.test(src), `${p} shows the Apple button without the plugin gate`);
+    check(!/APPLE_SIGNIN_ENABLED|NEXT_PUBLIC_APPLE_SIGNIN/.test(src), `${p} still reads the retired Apple flag`);
   }
-  if (has('src/lib/auth/providers.ts')) {
-    const src = read('src/lib/auth/providers.ts');
-    check(/NEXT_PUBLIC_APPLE_SIGNIN === 'enabled'/.test(src), 'the flag must be NEXT_PUBLIC_APPLE_SIGNIN=enabled and nothing else');
-    const m = await load('src/lib/auth/providers.ts');
-    check(m.APPLE_SIGNIN_ENABLED === (process.env.NEXT_PUBLIC_APPLE_SIGNIN === 'enabled'), 'APPLE_SIGNIN_ENABLED does not follow the env');
-  }
+  check(!/startOAuth\('apple'\)/.test(read('src/components/auth/AppleButton.tsx')), 'the Apple button starts web OAuth again');
 }
 
 // 2. The canvas.

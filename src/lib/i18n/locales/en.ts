@@ -144,7 +144,8 @@ export const en = {
     // Apple guideline 4.8. The two labels are Apple's own required wording.
     appleLogin: "Sign in with Apple",
     appleSignup: "Continue with Apple",
-    appleFailed: "We could not open Apple sign in. Please try again.",
+    // Sign in with Apple in the app (item 4f): APPROVED 2026-11-20, docs/copy/ARABIC_STRINGS_app_v14.md.
+    appleUnfinished: "Sign in with Apple did not finish. Try again.",
     orDivider: "or",
     loggingIn: "Signing in...",
     noAccount: "Don't have an account? Sign up",
@@ -511,7 +512,12 @@ export const en = {
         errorMismatch: "That does not match your email address.",
         errorFailed: "Deletion failed and nothing was changed. You can try again.",
         errorBillingCanceled: "Nothing was lost. Your account and everything in it is still here. Your subscription was cancelled, but the deletion did not finish. Please try again. If it fails again, email {email} and we will finish it for you.",
-        errorSubscriptionElsewhere: "Your account was not deleted, and nothing was changed. You still have a subscription that was purchased outside this app, and we cannot cancel it for you from here. Cancel it where you bought it first, then delete your account. We stopped rather than delete your account while something was still charging you."
+        errorSubscriptionElsewhere: "Your account was not deleted, and nothing was changed. You still have a subscription that was purchased outside this app, and we cannot cancel it for you from here. Cancel it where you bought it first, then delete your account. We stopped rather than delete your account while something was still charging you.",
+        // Sign in with Apple (item 4f): APPROVED 2026-11-20, docs/copy/ARABIC_STRINGS_app_v14.md.
+        appleStep: "You signed in with Apple. Apple will ask you to confirm the deletion. After that, KnowFlow can no longer access your Apple Account.",
+        appleUnconfirmed: "Apple could not confirm it is you. Type your email address instead.",
+        appleNotRevoked: "Your account is deleted. To remove KnowFlow from your Apple Account too, open Settings on your iPhone, tap your name, then Sign-In & Security, then Sign in with Apple.",
+        appleDone: "Done"
       }
     },
     // Apple 5.1.2(i), STORE_PATH.md S4 (src/lib/ai-consent.ts). The sheet

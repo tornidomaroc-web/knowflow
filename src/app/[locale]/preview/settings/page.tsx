@@ -35,6 +35,13 @@ import { AppStoreDeleteNote, AppStoreManageCard } from '@/components/iap/AppStor
  * Pro bought in the app (R1: the App Store manage card instead of the Paddle
  * cancel card; R2: the delete card's App Store line), on every shell. Every
  * URL that existed before draws exactly what it drew.
+ *
+ * Sign in with Apple (item 4f): `?account=apple` is an account with an Apple
+ * identity whose server holds the Apple key. With `&delete=open` the delete
+ * card is drawn open: at shell 2 with the KnowFlowApple plugin (design-c's
+ * stub) that is the Apple step, elsewhere the typed email. `&delete=fallback`
+ * draws Apple's refusal with the email field, `&delete=done` the line shown
+ * when Apple's access was not ended.
  */
 export const metadata: Metadata = {
   title: 'Settings: design preview',
@@ -50,7 +57,7 @@ export default async function SettingsPreview({
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ plan?: string; platform?: string; theme?: string; reminder?: string }>
+  searchParams: Promise<{ plan?: string; platform?: string; theme?: string; reminder?: string; account?: string; delete?: string }>
 }) {
   if (process.env.VERCEL_ENV === 'production') notFound()
 
@@ -60,7 +67,9 @@ export default async function SettingsPreview({
   const t = useTranslation(safeLocale)
   const s = t.dashboard.settings
 
-  const { plan, platform, theme, reminder } = await searchParams
+  const { plan, platform, theme, reminder, account, delete: deleteView } = await searchParams
+  const appleAccount = account === 'apple'
+  const deleteState = deleteView === 'open' ? 'open' : deleteView === 'fallback' ? 'apple-fallback' : deleteView === 'done' ? 'apple-done' : undefined
   const apple = plan === 'apple'
   const isPro = plan === 'pro' || apple
   const native = platform === 'native'
@@ -155,7 +164,7 @@ export default async function SettingsPreview({
           iapMarked={iap}
           proOfferCard={iap && !isPro ? <ProOfferCard title={t.dashboard.iap.title} body={t.dashboard.iap.offerBody} button={t.dashboard.iap.offerButton} /> : undefined}
           signOutRow={<SignOutButton locale={safeLocale} label={t.dashboard.nav.signOut} variant="row" />}
-          deleteCard={<DeleteAccountCard homeHref={`/${safeLocale}`} showBillingNote={isPro && !apple} labels={withSupportEmail(s.deleteAccount)} appleNote={apple ? <AppStoreDeleteNote labels={t.dashboard.iap} /> : undefined} />}
+          deleteCard={<DeleteAccountCard homeHref={`/${safeLocale}`} showBillingNote={isPro && !apple} labels={withSupportEmail(s.deleteAccount)} appleNote={apple ? <AppStoreDeleteNote labels={t.dashboard.iap} /> : undefined} {...(appleAccount ? { appleAccount: true, appleConfirm: true } : {})} {...(deleteState ? { previewState: deleteState } : {})} />}
         />
       </DashboardShell>
       </MaybeIap>

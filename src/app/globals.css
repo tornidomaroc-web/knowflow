@@ -758,3 +758,22 @@ body { background-color: var(--background); color: var(--foreground); }
   font-weight: 800;
   box-shadow: var(--clay-tab-active);
 }
+
+/* SIGN IN WITH APPLE (item 4f, src/components/auth/AppleButton.tsx). Apple's
+   Human Interface Guidelines allow a black button with white logo and title,
+   or a white one with black: pure #000 and #FFF, not the theme's ink and
+   cream. Black on the light theme, white on the dark one, following the
+   nearest data-theme the way every token does (a light subtree inside a dark
+   page gets black again). It sits on the
+   page as a flat, solid fill: the clay pill's inset highlight would draw a
+   light band across Apple's black, so it has no shadow. */
+.kf-apple-button { background-color: #000; color: #fff; box-shadow: none; }
+[data-theme="dark"] .kf-apple-button { background-color: #fff; color: #000; }
+[data-theme="dark"] [data-theme="light"] .kf-apple-button { background-color: #000; color: #fff; }
+
+/* SIGN IN WITH APPLE, after the deletion (DeleteAccountCard, the not-revoked
+   notice): the notice is moved to the end of the signed-in shell and is the
+   only thing drawn; every other child of the shell (the settings page, the
+   top bar, the tab bar) is hidden. Nothing else matches this. */
+.kf-clay:has(> [data-kf-apple-done-page]) > :not([data-kf-apple-done-page]),
+body:has(> [data-kf-apple-done-page]) > :not([data-kf-apple-done-page]) { display: none !important; }

@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/client';
 
 /**
- * THE ONE WAY A PROVIDER SIGN-IN STARTS, shared by the Google and the Apple
- * buttons (Apple guideline 4.8: an app that offers Google must offer Apple's
- * own sign-in beside it).
+ * THE ONE WAY A WEB PROVIDER SIGN-IN STARTS: Google, on the web only. Sign in
+ * with Apple does NOT come through here: it is native, in the app only, with
+ * an identity token (src/lib/auth/apple-bridge.ts, item 4f), so web OAuth
+ * for Apple, its Services ID and its six-month secret are gone.
  *
  * WHY THERE IS NO SERVER ROUTE BEHIND THIS. A real button has a `window`, so
  * the browser client can do the whole start: `signInWithOAuth` builds the
@@ -13,7 +14,7 @@ import { createClient } from '@/lib/supabase/client';
  * travels on the request that comes back, and `/api/auth/callback` reads it
  * server-side to exchange the code. Nothing of ours is touched on the way out.
  *
- * The return lands on /api/auth/callback for both providers: the middleware
+ * The return lands on /api/auth/callback: the middleware
  * matcher excludes `api`, so it is the one path NOT rewritten to /<locale>/…,
  * and it is already on the redirect allow-list for both origins.
  *
@@ -22,7 +23,7 @@ import { createClient } from '@/lib/supabase/client';
  * chooser — never reaches here: it comes back to the callback as
  * `access_denied` and is put back on the login page with nothing said.
  */
-export type OAuthProvider = 'google' | 'apple';
+export type OAuthProvider = 'google';
 
 export async function startOAuth(
   provider: OAuthProvider,
