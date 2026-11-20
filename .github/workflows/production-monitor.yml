@@ -100,6 +100,8 @@ on:
 
 permissions:
   contents: read
+  # Probe 4 reads which commit Vercel serves (the Production deployments); read only.
+  deployments: read
 
 concurrency:
   # Never let a slow probe stack up behind the next tick. Do NOT cancel in
@@ -331,3 +333,77 @@ jobs:
               echo "::error::expected HTTP 401 from an unauthenticated POST /embed but the live service returned $code. 503 means INGESTION_TOKEN is unset on Railway, so every upload and every Ask embed is failing. Do not relax this assertion."
               exit 1 ;;
           esac
+
+      # ------------------------------------------------------------------
+      # PROBE 4 -- the universal-links file (item 4g), a public GET.
+      #
+      # Apple's CDN fetches https://tryknowflow.com/.well-known/apple-app-site-association
+      # and refuses anything but a 200 with no redirect; a wrong or missing file
+      # silently stops the mail links opening the app, for about a week (no CDN
+      # invalidation, TN3155). So: 200, application/json, no Location, and a
+      # body equal to the object in src/lib/universal-links.ts.
+      #
+      # NO RED BETWEEN MERGE AND DEPLOY. The expectation is derived, like probe
+      # 2's, but from the commit VERCEL IS SERVING, not from the checkout: the
+      # newest Production deployment whose newest status is success. In the
+      # minutes after a merge that is still the previous commit, so the probe
+      # expects what that commit serves (404 before item 4g, the old object
+      # after a later edit to the file), and moves on by itself once the deploy
+      # succeeds. The module imports nothing, so it is loaded alone from that
+      # commit. A live answer that disagrees with the live commit is drift and
+      # is red. Three attempts 20 s apart, re-reading the live commit each time,
+      # absorb the seconds between Vercel's success status and the alias swap.
+      # ------------------------------------------------------------------
+      - name: Set up Node (probe 4 loads the universal-links module of the live commit)
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22.23.1
+
+      - name: Probe GET /.well-known/apple-app-site-association
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          URL: https://tryknowflow.com/.well-known/apple-app-site-association
+        run: |
+          set -u
+          ok=0
+          for attempt in 1 2 3; do
+            [ "$attempt" = 1 ] || { echo "attempt $((attempt - 1)) did not hold -- retrying in 20s"; sleep 20; }
+            live=""
+            for pair in $(gh api "repos/$REPO/deployments?environment=Production&per_page=20" --jq '.[] | "\(.id):\(.sha)"' || true); do
+              state=$(gh api "repos/$REPO/deployments/${pair%%:*}/statuses?per_page=1" --jq '.[0].state // ""' || true)
+              if [ "$state" = "success" ]; then live="${pair#*:}"; break; fi
+            done
+            if [ -z "$live" ]; then echo "no successful Production deployment could be read"; continue; fi
+            git fetch -q --no-tags --depth=1 origin "$live" || { echo "could not fetch $live"; continue; }
+            if git cat-file -e "$live:src/lib/universal-links.ts" 2>/dev/null; then
+              git show "$live:src/lib/universal-links.ts" > "$RUNNER_TEMP/ul.ts"
+              node --experimental-strip-types --no-warnings --input-type=module \
+                -e "const m = await import('$RUNNER_TEMP/ul.ts'); process.stdout.write(JSON.stringify(m.AASA));" > "$RUNNER_TEMP/expected.json" || { echo "could not load the module of $live"; continue; }
+              expected=200
+            else
+              expected=404
+            fi
+            echo "live commit $live -> expect HTTP $expected"
+
+            code=$(curl -sS -m 20 -D "$RUNNER_TEMP/aasa.headers" -o "$RUNNER_TEMP/aasa.body" -w '%{http_code}' "$URL" || echo 000)
+            ctype=$(grep -i '^content-type:' "$RUNNER_TEMP/aasa.headers" | tr -d '\r' | cut -d' ' -f2- | tail -1)
+            loc=$(grep -ic '^location:' "$RUNNER_TEMP/aasa.headers" || true)
+            echo "HTTP $code, content-type: ${ctype:-<none>}, location headers: $loc"
+            if [ "$expected" = 404 ]; then
+              [ "$code" = 404 ] && { echo "AASA OK: the live commit has no file and none is served"; ok=1; break; }
+              continue
+            fi
+            [ "$code" = 200 ] || continue
+            [ "$loc" = 0 ] || continue
+            case "$ctype" in application/json*) ;; *) continue ;; esac
+            if [ "$(jq -cS . "$RUNNER_TEMP/aasa.body" 2>/dev/null)" = "$(jq -cS . "$RUNNER_TEMP/expected.json")" ]; then
+              echo "AASA OK: 200, application/json, no redirect, body equals src/lib/universal-links.ts at $live"; ok=1; break
+            fi
+            echo "body differs from the live commit's object"
+          done
+          if [ "$ok" != 1 ]; then
+            echo "::error::$URL does not answer what the live commit serves (expected HTTP ${expected:-?}; got ${code:-?}, ${ctype:-no content-type}). Apple's CDN needs 200 + application/json with no redirect, or the confirm and reset mails stop opening the app for about a week."
+            echo "body: $(head -c 2000 "$RUNNER_TEMP/aasa.body" 2>/dev/null || echo '<none>')"
+            exit 1
+          fi

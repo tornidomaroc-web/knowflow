@@ -1,6 +1,20 @@
 import type { ReactNode } from 'react';
 import { SiteChrome } from '@/components/layout/SiteChrome';
 import type { Locale } from '@/lib/i18n';
+import { APPLE_APP_APPLE_ID } from '@/lib/apple-iap/rules';
+
+/**
+ * "Open in KnowFlow" (item 4g): Apple's Smart App Banner. Safari draws it from
+ * App Store data and switches between View and Open by itself; other browsers
+ * ignore the tag and a WKWebView never draws it. Here and nowhere else: app
+ * requests are rewritten to the `native/` twins, which do not pass through
+ * this layout, so neither shell receives it. No argument for the app: every page here
+ * resolves in the app to what a plain launch shows. Static, so every page
+ * stays prerendered.
+ */
+export const metadata = {
+  other: { 'apple-itunes-app': `app-id=${APPLE_APP_APPLE_ID}` },
+};
 
 /**
  * The web's public site. WHY A ROUTE GROUP AND NOT SEVEN EDITS. `(site)`
