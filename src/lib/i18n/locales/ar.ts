@@ -134,7 +134,7 @@ export const ar: Translation = {
     googleFailed: "لم نستطع فتح الدخول عبر Google. جرّب مرة أخرى.",
     appleLogin: "سجل الدخول باستخدام Apple",
     appleSignup: "المتابعة باستخدام Apple",
-    // Sign in with Apple in the app (item 4f): a DRAFT, docs/copy-drafts/siwa_v1.md.
+    // Sign in with Apple in the app (item 4f): APPROVED 2026-11-20, docs/copy/ARABIC_STRINGS_app_v14.md.
     appleUnfinished: "لم يكتمل تسجيل الدخول باستخدام Apple. حاول مجددًا.",
     orDivider: "أو",
     loggingIn: "نُدخلك إلى حسابك…",
@@ -484,8 +484,8 @@ export const ar: Translation = {
         errorFailed: "لم يكتمل الحذف، وبقي كل شيء كما هو. جرّب مرة أخرى.",
         errorBillingCanceled: "لم تفقد أي شيء. حسابك وكل بياناتك ما زالت هنا. ألغينا اشتراكك، لكن الحذف لم يكتمل. جرّب مرة أخرى، وإن فشل مجددًا فراسلنا على {email} لنكمله لك.",
         errorSubscriptionElsewhere: "لم نحذف حسابك، وبقي كل شيء كما هو. لديك اشتراك اشتريته خارج هذا التطبيق، ولا نستطيع إلغاءه من هنا. ألغِه أولًا من المكان الذي اشتريته منه، ثم احذف حسابك. توقفنا حتى لا نحذف حسابك وما زال شيء يُحتسب عليك.",
-        // Sign in with Apple (item 4f): DRAFTS, docs/copy-drafts/siwa_v1.md.
-        appleStep: "سجّلت الدخول باستخدام Apple. أكّد عبر Apple عندما يطلب منك ذلك. ينهي هذا أيضًا وصول KnowFlow إلى حساب Apple.",
+        // Sign in with Apple (item 4f): APPROVED 2026-11-20, docs/copy/ARABIC_STRINGS_app_v14.md.
+        appleStep: "سجّلت الدخول باستخدام Apple. ستطلب منك Apple تأكيد الحذف. بعده ينتهي وصول KnowFlow إلى حساب Apple.",
         appleUnconfirmed: "تعذّر على Apple التأكد من هويتك. اكتب بريدك الإلكتروني بدلًا من ذلك.",
         appleNotRevoked: "تم حذف حسابك. لإزالة KnowFlow من حساب Apple أيضًا، افتح الإعدادات في iPhone، واضغط على اسمك، ثم تسجيل الدخول والأمان، ثم تسجيل الدخول باستخدام Apple.",
         appleDone: "تم"

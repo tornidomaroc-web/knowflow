@@ -135,12 +135,25 @@ export function splitKeepWhole(text: string): Kept[] {
  * lines fails, and each phrase present is forced onto two lines on every AFTER
  * render and must be flagged.
  */
-export const KEEP_TOGETHER_APPLE = ['تسجيل الدخول باستخدام Apple', 'تسجيل الدخول والأمان', 'حساب Apple', 'Sign in with Apple', 'Sign-In & Security', 'Apple Account'] as const;
+export const KEEP_TOGETHER_APPLE = ['تسجيل الدخول باستخدام Apple', 'تسجيل الدخول والأمان', 'حساب Apple', 'وصول KnowFlow', 'بريدك الإلكتروني', 'Sign in with Apple', 'Sign-In & Security', 'Apple Account', 'email address'] as const;
 
 const APPLE_PATTERN = new RegExp(KEEP_TOGETHER_APPLE.map((p) => p.split(' ').join('[ \u00A0]+')).join('|'), 'g');
 
-/** keepTogether(), plus the Apple lines' own phrases. */
+/**
+ * WORDS THAT MAY NOT END AN APPLE LINE: "then" and "or" and their Arabic twins
+ * (U+062B U+0645, U+0623 U+0648). Each is glued to the word after it with a
+ * no-break space, so a line never ends on "then" with its step on the next
+ * line (the owner's render review of #341: appleNotRevoked ended a line on
+ * the Arabic "then"). Check 30 reads the same four words.
+ */
+export const APPLE_NO_LINE_END = ['\u062B\u0645', 'then', '\u0623\u0648', 'or'] as const;
+
+const APPLE_GLUE = new RegExp(`(^|[\\s\\u00A0])(${APPLE_NO_LINE_END.join('|')}) +`, 'gi');
+
+/** keepTogether(), plus the Apple lines' own phrases, and no line ending on "then" or "or". */
 export function keepTogetherApple(text: string): string {
   // The hyphen of Sign-In becomes a non-breaking one (U+2011): a line may break after an ordinary hyphen.
-  return keepTogether(text).replace(APPLE_PATTERN, (m) => m.replace(/ +/g, '\u00A0').replace(/-/g, '\u2011'));
+  return keepTogether(text)
+    .replace(APPLE_PATTERN, (m) => m.replace(/ +/g, '\u00A0').replace(/-/g, '\u2011'))
+    .replace(APPLE_GLUE, (_m, before: string, word: string) => `${before}${word}\u00A0`);
 }

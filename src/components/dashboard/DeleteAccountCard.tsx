@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Button, Card, Input } from '@/components/ui';
 import { ClayBin } from '@/components/clay/ClayIcons';
 import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
@@ -95,6 +96,17 @@ export function DeleteAccountCard({ labels, homeHref, showBillingNote, appleNote
   useEffect(() => {
     if (appleAccount && appleConfirm) setApple(appleBridge());
   }, [appleAccount, appleConfirm]);
+  // After the deletion (the not-revoked notice): the notice is the ONLY thing
+  // on the page. It is drawn in place on the server and the first paint, then
+  // moved to the end of the signed-in shell (`.kf-clay`, so the clay surfaces
+  // still apply), where globals.css hides every other child of the shell: the
+  // settings cards, the support row, the top bar and the tab bar of an
+  // account that no longer exists.
+  const doneAnchor = useRef<HTMLDivElement>(null);
+  const [donePage, setDonePage] = useState<Element | null>(null);
+  useEffect(() => {
+    if (notRevoked) setDonePage(doneAnchor.current?.closest('.kf-clay') ?? document.body);
+  }, [notRevoked]);
   const appleWay = apple !== null && !fellBack;
   // Shell 2 (the IapProvider is mounted only there): the billing line is
   // purchase management, so it is marked data-kf-iap. Elsewhere: unchanged.
@@ -216,17 +228,21 @@ export function DeleteAccountCard({ labels, homeHref, showBillingNote, appleNote
   }
 
   if (notRevoked) {
-    return (
-      <Card data-kf-delete-card="" className="border-danger-border p-5">
-        <p data-kf-apple-not-revoked="" className="mb-4 text-sm text-foreground [text-wrap:pretty]">
-          <LatinText text={keepTogetherApple(labels.appleNotRevoked)} />
-        </p>
-        {/* A full navigation, not a router push: the session is dead. */}
-        <a href={homeHref} className="pressable inline-flex min-h-[2.75rem] items-center rounded-full bg-foreground px-5 text-sm font-bold text-background">
-          {labels.appleDone}
-        </a>
-      </Card>
+    // A normal clay card: the deletion is done, so no red destructive frame.
+    const page = (
+      <div data-kf-apple-done-page="" className="flex min-h-screen items-center justify-center bg-background px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] text-foreground">
+        <Card data-kf-apple-done-card="" className="w-full max-w-md p-5">
+          <p data-kf-apple-not-revoked="" className="mb-4 text-sm text-foreground [text-wrap:pretty]">
+            <LatinText text={keepTogetherApple(labels.appleNotRevoked)} />
+          </p>
+          {/* A full navigation, not a router push: the session is dead. */}
+          <a href={homeHref} className="pressable inline-flex min-h-[2.75rem] items-center rounded-full bg-foreground px-5 text-sm font-bold text-background">
+            {labels.appleDone}
+          </a>
+        </Card>
+      </div>
     );
+    return donePage ? createPortal(page, donePage) : <div ref={doneAnchor}>{page}</div>;
   }
 
   return (
@@ -246,8 +262,9 @@ export function DeleteAccountCard({ labels, homeHref, showBillingNote, appleNote
       {error && (
         <p
           role="alert"
-          // The Apple line is balanced (no word alone on its last line); every other error is drawn exactly as before.
-          className={error === labels.appleUnconfirmed ? 'mb-4 text-sm font-medium text-danger [text-wrap:pretty]' : 'mb-4 text-sm font-medium text-danger'}
+          // The Apple line is balanced (no word alone on its last line) and is a block of its own, the card's
+          // 1rem away from the muted list above it (the owner's render review of #341); every other error is drawn exactly as before.
+          className={error === labels.appleUnconfirmed ? 'mb-4 mt-4 text-sm font-medium text-danger [text-wrap:pretty]' : 'mb-4 text-sm font-medium text-danger'}
           {...(error === labels.appleUnconfirmed ? { 'data-kf-apple-unconfirmed': '' } : {})}
         >
           {error === labels.appleUnconfirmed ? <LatinText text={keepTogetherApple(error)} /> : error}
@@ -259,7 +276,9 @@ export function DeleteAccountCard({ labels, homeHref, showBillingNote, appleNote
           {labels.openButton}
         </Button>
       ) : (
-        <div className="space-y-3">
+        // The Apple step is a block of its own, the card's 1rem away from the muted list (margins collapse
+        // with its mb-1), in the card's body size and weight; the email path is drawn exactly as before.
+        <div className={appleWay ? 'mt-4 space-y-3' : 'space-y-3'}>
           {appleWay ? (
             <p data-kf-apple-step="" className="text-sm text-foreground [text-wrap:pretty]">
               <LatinText text={keepTogetherApple(labels.appleStep)} />

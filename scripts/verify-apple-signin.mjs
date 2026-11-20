@@ -48,9 +48,11 @@
  *     /login and /signup; the button carries Apple's own logo path (sha256
  *     below, from Apple Design Resources); the settings page passes the Apple
  *     identity and the server's readiness; the privacy page names Apple.
- *  8. THE STRINGS. Every key in docs/copy-drafts/siwa_v1.md is, byte for
- *     byte, the dictionary's value in both languages; no em dash, Western
- *     digits, no hit of the app's wording rule; auth.appleFailed retired.
+ *  8. THE STRINGS. The owner's approved batch, docs/copy/ARABIC_STRINGS_app_v14.md
+ *     (approved 2026-11-20): every one of its five keys is, byte for byte,
+ *     the dictionary's value in both languages (the English bullets, the
+ *     Arabic table); no em dash, Western digits, no hit of the app's wording
+ *     rule; auth.appleFailed retired; the drafts file is a pointer to it.
  *
  * Usage: node --experimental-strip-types scripts/verify-apple-signin.mjs [--against <route.ts>]
  */
@@ -435,7 +437,23 @@ if (card && en) {
   check(!!labels.appleUnconfirmed && fallback.includes(labels.appleUnconfirmed.split(' ')[0]) && fallback.includes('id="confirm-email"'), 'the fallback: the unconfirmed line and the email field');
   const done = r({ appleAccount: true, previewState: 'apple-done' });
   check(done.includes('data-kf-apple-not-revoked') && done.includes('href="/en"') && !!labels.appleDone && done.includes(labels.appleDone), 'not revoked: the line and Done, a full link home');
+  // The owner's render review of #341 (2026-11-20): the notice after the deletion is the only thing on the page, in a normal card.
+  check(done.includes('data-kf-apple-done-page') && done.includes('data-kf-apple-done-card') && !done.includes('border-danger-border') && !done.includes('data-kf-delete-card'), 'not revoked: its own page, a normal card with no red frame', done.slice(0, 160));
   const src = read('src/components/dashboard/DeleteAccountCard.tsx');
+  check(/createPortal\(page, donePage\)/.test(src) && /closest\('\.kf-clay'\)/.test(src), 'not revoked: moved to the end of the signed-in shell after mount');
+  check(/\.kf-clay:has\(> \[data-kf-apple-done-page\]\) > :not\(\[data-kf-apple-done-page\]\)/.test(read('src/app/globals.css')), 'globals.css hides every other child of the shell while the notice is shown');
+  check(/appleWay \? 'mt-4 space-y-3' : 'space-y-3'/.test(src) && /'mb-4 mt-4 text-sm font-medium text-danger \[text-wrap:pretty\]'/.test(src), 'the Apple step and the refusal are blocks of their own (mt-4); the email path keeps its classes');
+  {
+    const kt = await load('src/lib/keep-together.ts');
+    const d = { en: en.dashboard.settings.deleteAccount, ar: ar.dashboard.settings.deleteAccount };
+    const lines = ['appleStep', 'appleUnconfirmed', 'appleNotRevoked'].flatMap((k) => [d.en[k], d.ar[k]]);
+    const all = lines.join(' | ');
+    check(kt.KEEP_TOGETHER_APPLE.length === 9 && kt.KEEP_TOGETHER_APPLE.every((p) => all.includes(p)), 'every KEEP_TOGETHER_APPLE phrase is in an Apple line (nine, with the review\'s four)', kt.KEEP_TOGETHER_APPLE.join(', '));
+    check(kt.APPLE_NO_LINE_END.length === 4, 'four words may not end an Apple line');
+    const loose = lines.map((s) => kt.keepTogetherApple(s)).filter((s) => new RegExp(`(^|[\\s\\u00A0])(${kt.APPLE_NO_LINE_END.join('|')}) `, 'i').test(s));
+    check(loose.length === 0, 'no "then" or "or" (or the Arabic twins) in an Apple line is followed by a breakable space', loose[0]);
+    check(kt.KEEP_TOGETHER_APPLE.every((p) => lines.some((s) => kt.keepTogetherApple(s).includes(p.replace(/ /g, ' ').replace(/-/g, '‑')))), 'every kept phrase comes out of keepTogetherApple() unbreakable');
+  }
   check(/JSON\.stringify\(\{ confirmEmail: typed \}\)/.test(src), 'the email path posts { confirmEmail } exactly as before');
   check(/appleBridge\(\)/.test(src) && /useEffect/.test(src) && /appleAccount && appleConfirm/.test(src), 'the Apple step is chosen after mount, only for an Apple account the server can confirm');
 }
@@ -482,17 +500,20 @@ check(/<strong>Apple<\/strong>, only if you choose Sign in with Apple in the app
 // ── 8. the strings ──────────────────────────────────────────────────────────
 if (en && ar) {
   const get = (o, k) => k.split('.').reduce((x, p) => (x == null ? x : x[p]), o);
-  const draft = read('docs/copy-drafts/siwa_v1.md');
-  const rows = [...draft.matchAll(/^\| `([^`]+)` \| (.+?) \| (.+?) \|$/gm)];
-  check(rows.length === 5, 'the drafts file holds five keys', String(rows.length));
+  const batch = read('docs/copy/ARABIC_STRINGS_app_v14.md');
+  const english = new Map([...batch.matchAll(/^- `([^`]+)`: (.+)$/gm)].map((m) => [m[1], m[2]]));
+  const rows = [...batch.matchAll(/^\| `([^`]+)` \| (.+?) \| \(new key\) \|$/gm)].map((m) => [m[0], m[1], english.get(m[1]), m[2]]);
+  check(rows.length === 5 && english.size === 5 && rows.every((r) => r[2] !== undefined), 'the approved batch holds five keys, each in both languages', `${rows.length} rows, ${english.size} English`);
+  check(/^\*\*APPROVED by the owner 2026-11-20/m.test(batch), 'the batch is marked approved 2026-11-20');
+  check(/APPROVED, moved/.test(read('docs/copy-drafts/siwa_v1.md')) && read('docs/copy-drafts/siwa_v1.md').includes('docs/copy/ARABIC_STRINGS_app_v14.md'), 'the drafts file is a pointer to the approved batch');
   for (const [, key, e, a] of rows) {
-    check(get(en, key) === e, `en ${key} is the draft, byte for byte`, JSON.stringify(get(en, key)));
-    check(get(ar, key) === a, `ar ${key} is the draft, byte for byte`, JSON.stringify(get(ar, key)));
+    check(get(en, key) === e, `en ${key} is the approved string, byte for byte`, JSON.stringify(get(en, key)));
+    check(get(ar, key) === a, `ar ${key} is the approved string, byte for byte`, JSON.stringify(get(ar, key)));
     for (const s of [e, a]) check(!/[\u2014\u2013]/.test(s) && !/[\u0660-\u0669\u06F0-\u06F9]/.test(s) && kfWording(s).length === 0, `${key}: no dash, Western digits, no purchase word`, JSON.stringify(kfWording(s)));
   }
   check(en.auth.appleLogin === 'Sign in with Apple' && en.auth.appleSignup === 'Continue with Apple', "the button labels are Apple's own wording, unchanged");
   check(!('appleFailed' in en.auth) && !('appleFailed' in ar.auth), 'auth.appleFailed is retired in both dictionaries');
-  check(/verify on build 9/i.test(draft) && /Sign-In & Security/.test(draft), 'the iPhone Settings path is marked VERIFY ON BUILD 9');
+  check(/VERIFY ON BUILD 9/.test(batch) && /Sign-In & Security/.test(batch), 'the iPhone Settings path in appleNotRevoked is still marked VERIFY ON BUILD 9');
   check(/\['auth\.appleFailed',/.test(read('scripts/verify-arabic-copy.mjs')), 'verify-arabic-copy lists auth.appleFailed as retired, with its ruling');
 }
 

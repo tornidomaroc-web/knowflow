@@ -770,3 +770,10 @@ body { background-color: var(--background); color: var(--foreground); }
 .kf-apple-button { background-color: #000; color: #fff; box-shadow: none; }
 [data-theme="dark"] .kf-apple-button { background-color: #fff; color: #000; }
 [data-theme="dark"] [data-theme="light"] .kf-apple-button { background-color: #000; color: #fff; }
+
+/* SIGN IN WITH APPLE, after the deletion (DeleteAccountCard, the not-revoked
+   notice): the notice is moved to the end of the signed-in shell and is the
+   only thing drawn; every other child of the shell (the settings page, the
+   top bar, the tab bar) is hidden. Nothing else matches this. */
+.kf-clay:has(> [data-kf-apple-done-page]) > :not([data-kf-apple-done-page]),
+body:has(> [data-kf-apple-done-page]) > :not([data-kf-apple-done-page]) { display: none !important; }

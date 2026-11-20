@@ -36,8 +36,7 @@
  *     529 after voice input in Ask added the 13 of dashboard.agent.voice,
  *     approved 2026-11-19 in app v13; 533 after Sign in with Apple retired
  *     auth.appleFailed and added auth.appleUnfinished and four of
- *     dashboard.settings.deleteAccount, DRAFTS wired for review,
- *     docs/copy-drafts/siwa_v1.md).
+ *     dashboard.settings.deleteAccount, approved 2026-11-20 in app v14).
  *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
  *     ruling that removed it. Its rows stay in the batch files, which are the
  *     owner's approved record and are never edited; they are read and checked

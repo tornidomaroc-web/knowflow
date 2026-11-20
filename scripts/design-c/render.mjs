@@ -190,7 +190,13 @@
  * reads the button (first, Apple's logo and 39 x 44 frame, the HIG black or
  * white fill per theme, title and page contrast, one-line label), the card's
  * state and the KEEP_TOGETHER_APPLE phrases, with forced cases (contrast,
- * removed, planted, each phrase broken) that must all be flagged.
+ * removed, planted, each phrase broken) that must all be flagged. The
+ * owner's render review (2026-11-20) added: the Apple step and refusal as
+ * blocks of their own (gap, body size), the notice after the deletion alone
+ * on the page in a normal card (alone, red), no Apple line ending on "then",
+ * "or" or their Arabic twins (a forced break after each word), and main's
+ * confirm row: the card of an account without Apple opened by a click on both
+ * sides, held to main's picture by check 22.
  *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
@@ -217,7 +223,7 @@ import { sampleScreens, sampleMode, sampleCheck, samplePlant, sampleWholeMode, s
 import { android360Screens, statRowCheck, statRowPlant, signupNoteCheck, signupNotePlant, signupTermPlant, chipCutPlant } from './android360.mjs';
 import { cameraScreens, cameraCheck, cameraPlant, sameCheck } from './camera.mjs';
 import { voiceScreens, voiceExpect, voiceStubSrc, voiceMock, voiceAct, voiceCheck, voicePlant, voiceStackCheck, voiceStackPlant, keepVoiceList, voicePhraseCheck, voicePhrasePlant } from './voice.mjs';
-import { appleScreens, appleExpect, appleStubSrc, appleCheck, applePlant, keepAppleList } from './apple.mjs';
+import { appleScreens, appleExpect, appleStubSrc, appleCheck, applePlant, keepAppleList, appleEndList, appleOpenAct } from './apple.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -334,6 +340,9 @@ if (!KEEP29.length) throw new Error('check 29: no KEEP_TOGETHER_VOICE list in sr
 // Check 30 (apple.mjs): the Apple lines' own kept phrases.
 const KEEP30 = keepAppleList(resolve('.'));
 if (!KEEP30.length) throw new Error('check 30: no KEEP_TOGETHER_APPLE list in src/lib/keep-together.ts');
+// Check 30: the words no Apple line may end on.
+const ENDS30 = appleEndList(resolve('.'));
+if (ENDS30.length !== 4) throw new Error('check 30: APPLE_NO_LINE_END in src/lib/keep-together.ts is not four words');
 // Check 18's protected units: the keep-together phrases, the kept names (KEEP_WHOLE) and "Anthropic".
 const KEEP18 = [...KEEP, ...[...(/KEEP_WHOLE = \[([^\]]*)\]/.exec(readFileSync(resolve('src/lib/keep-together.ts'), 'utf8'))?.[1] || '').matchAll(/'([^']+)'/g)].map((x) => x[1]), 'Anthropic'];
 const byKey = (k) => SCREENS.find((x) => x.key === k);
@@ -1124,7 +1133,8 @@ async function shoot(side, job) {
     : job.s.a5 ? await a5Act(tab, job).catch((e) => ({ act: job.s.a5, error: String(e).slice(0, 200) }))
     : job.s.authErr ? await authAct(tab, job).catch((e) => ({ act: `auth-${job.s.authErr.form}-${job.s.authErr.id}`, error: String(e).slice(0, 200) }))
     : job.s.refusal ? await refusalAct(tab, job, side).catch((e) => ({ act: `refusal-${job.s.refusal.surface}`, error: String(e).slice(0, 200) }))
-    : job.s.voice ? await voiceAct(tab, job, side).catch((e) => ({ act: `voice-${job.s.voice.view}`, error: String(e).slice(0, 200) })) : null;
+    : job.s.voice ? await voiceAct(tab, job, side).catch((e) => ({ act: `voice-${job.s.voice.view}`, error: String(e).slice(0, 200) }))
+    : job.s.apple?.open ? await appleOpenAct(tab).catch((e) => ({ act: 'delete-open', error: String(e).slice(0, 200) })) : null;
   // Finite animations are finished. An INFINITE one (a processing spinner,
   // Tailwind's `animate-spin`, which reduced motion does not stop: it is the
   // state itself) is paused at its first frame, the same on both sides, and
@@ -1237,7 +1247,7 @@ async function shoot(side, job) {
   const voice29 = job.s.voice && side === 'after' ? await tab.evaluate(voicePhraseCheck, voiceExpect(job), KEEP29) : null;
   // Check 30 (apple.mjs): the Apple button only at shell 2 with the plugin, first, Apple's logo and fill, contrast; the delete card's Apple states; kept phrases. AFTER only.
   if (job.s.apple && side === 'after') await tab.evaluate(`window.appleCheck = ${appleCheck.toString()};`);
-  const apple30 = job.s.apple && side === 'after' ? await tab.evaluate(appleCheck, appleExpect(job, KEEP30)) : null;
+  const apple30 = job.s.apple && side === 'after' ? await tab.evaluate(appleCheck, appleExpect(job, KEEP30, ENDS30)) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -1276,7 +1286,7 @@ async function shoot(side, job) {
   // Check 29's forced cases, after the shot, on AFTER: each phrase present broken after its first word.
   const voice29Plant = job.s.voice && side === 'after' ? await tab.evaluate(voicePhrasePlant, voiceExpect(job), KEEP29) : null;
   // Check 30's forced cases, after the shot, on AFTER (apple.mjs, applePlant).
-  const apple30Plant = job.s.apple && side === 'after' ? await tab.evaluate(applePlant, appleExpect(job, KEEP30)) : null;
+  const apple30Plant = job.s.apple && side === 'after' ? await tab.evaluate(applePlant, appleExpect(job, KEEP30, ENDS30)) : null;
   // G2: check 9's forced wrong cases, after the shot (pr4.mjs, pageLabelPlant).
   const labelPlant = job.s.pr4 === 'ask' ? await tab.evaluate(pageLabelPlant) : null;
   // Finding (b): check 10's forced wrong cases, after the shot (pr4.mjs, latinPlant).
@@ -1511,7 +1521,7 @@ for (const p of KEEP29) {
   if (c && c.ran !== c.caught) never(`check 29's forced case for "${p}" was missed on ${c.ran - c.caught} AFTER render(s)`);
 }
 // Check 30 (apple.mjs): every forced kind ran and was caught on every AFTER render it ran on, and every kept phrase was forced somewhere.
-for (const k of ['contrast', 'removed', 'planted', ...KEEP30.map((p) => `phrase:${p}`)]) {
+for (const k of ['contrast', 'removed', 'planted', 'gap', 'alone', 'red', ...KEEP30.map((p) => `phrase:${p}`), ...ENDS30.map((w) => `end:${w}`)]) {
   const c = appleForced[k];
   if (!c || !c.ran) never(`check 30 was never forced for "${k}": no AFTER Apple render ran it`);
   else if (c.caught !== c.ran) never(`check 30 is blind for "${k}": caught on ${c.caught} of ${c.ran} AFTER render(s)`);

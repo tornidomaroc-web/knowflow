@@ -1,6 +1,6 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-11-19 by `scripts/export-arabic-strings.mjs` from
+Generated 2026-11-20 by `scripts/export-arabic-strings.mjs` from
 `src/lib/i18n/locales/ar.ts` and `en.ts`. **533 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
@@ -512,7 +512,7 @@ file is not read by the app.
 | `dashboard.settings.deleteAccount.errorFailed` | لم يكتمل الحذف، وبقي كل شيء كما هو. جرّب مرة أخرى. | Deletion failed and nothing was changed. You can try again. |
 | `dashboard.settings.deleteAccount.errorBillingCanceled` | لم تفقد أي شيء. حسابك وكل بياناتك ما زالت هنا. ألغينا اشتراكك، لكن الحذف لم يكتمل. جرّب مرة أخرى، وإن فشل مجددًا فراسلنا على {email} لنكمله لك. | Nothing was lost. Your account and everything in it is still here. Your subscription was cancelled, but the deletion did not finish. Please try again. If it fails again, email {email} and we will finish it for you. |
 | `dashboard.settings.deleteAccount.errorSubscriptionElsewhere` | لم نحذف حسابك، وبقي كل شيء كما هو. لديك اشتراك اشتريته خارج هذا التطبيق، ولا نستطيع إلغاءه من هنا. ألغِه أولًا من المكان الذي اشتريته منه، ثم احذف حسابك. توقفنا حتى لا نحذف حسابك وما زال شيء يُحتسب عليك. | Your account was not deleted, and nothing was changed. You still have a subscription that was purchased outside this app, and we cannot cancel it for you from here. Cancel it where you bought it first, then delete your account. We stopped rather than delete your account while something was still charging you. |
-| `dashboard.settings.deleteAccount.appleStep` | سجّلت الدخول باستخدام Apple. أكّد عبر Apple عندما يطلب منك ذلك. ينهي هذا أيضًا وصول KnowFlow إلى حساب Apple. | You signed in with Apple. Confirm with Apple when it asks. This also ends KnowFlow's access to your Apple Account. |
+| `dashboard.settings.deleteAccount.appleStep` | سجّلت الدخول باستخدام Apple. ستطلب منك Apple تأكيد الحذف. بعده ينتهي وصول KnowFlow إلى حساب Apple. | You signed in with Apple. Apple will ask you to confirm the deletion. After that, KnowFlow can no longer access your Apple Account. |
 | `dashboard.settings.deleteAccount.appleUnconfirmed` | تعذّر على Apple التأكد من هويتك. اكتب بريدك الإلكتروني بدلًا من ذلك. | Apple could not confirm it is you. Type your email address instead. |
 | `dashboard.settings.deleteAccount.appleNotRevoked` | تم حذف حسابك. لإزالة KnowFlow من حساب Apple أيضًا، افتح الإعدادات في iPhone، واضغط على اسمك، ثم تسجيل الدخول والأمان، ثم تسجيل الدخول باستخدام Apple. | Your account is deleted. To remove KnowFlow from your Apple Account too, open Settings on your iPhone, tap your name, then Sign-In & Security, then Sign in with Apple. |
 | `dashboard.settings.deleteAccount.appleDone` | تم | Done |

@@ -30,12 +30,24 @@
  *     title contrast at least 4.5:1 (it is 21:1) and the button against the
  *     page at least 3:1, in both themes;
  *   - the delete card's state per view (step, email, fallback, done);
+ *   - the Apple step and Apple's refusal are blocks of their own: at least
+ *     12 px below the text above them, in the card's body size (the
+ *     description's) and a body weight (the description's or the warning's);
+ *   - after the deletion (done) the notice is the ONLY thing on the page: no
+ *     other card, heading, main, nav or header visible outside
+ *     [data-kf-apple-done-page], and the notice card has no red frame;
  *   - no KEEP_TOGETHER_APPLE phrase (src/lib/keep-together.ts) split across
- *     two lines in an Apple line.
+ *     two lines in an Apple line;
+ *   - no Apple line ends on a word of APPLE_NO_LINE_END ("then", "or" and
+ *     their Arabic twins), read from the same file.
  * applePlant() then forces, on every AFTER render where it applies: the
  * title colour put on the fill (contrast), the button removed where it must
- * be, a button planted where none may be, and each kept phrase present broken
- * by a line break. Check 30 must flag every one, or the run fails.
+ * be, a button planted where none may be, each kept phrase present broken
+ * by a line break, the Apple block's gap taken away (gap), a card planted
+ * beside the notice (alone), the red frame put on the notice (red), and for
+ * each APPLE_NO_LINE_END word a line break right after it (the word where
+ * an Apple line has it, else a planted "<word> x" with the break inside).
+ * Check 30 must flag every one, or the run fails.
  *
  * CHECK 22 (camera.mjs, sameCheck), widened: the gate screens above are the
  * same picture as main.
@@ -67,6 +79,27 @@ export function appleScreens(add, { APP, SAFARI }) {
   c('apple-delete-done-app2', S, q('native', 'done'), APP2, { apple: { stub: true, page: 'settings', button: false, del: 'done' } });
   c('apple-delete-done-app2-360', S, q('native', 'done'), APP2, { view: A360, apple: { stub: true, page: 'settings', button: false, del: 'done' } });
   c('apple-delete-done-web', S, q('web', 'done'), SAFARI, { only: lightOnly, apple: { stub: true, page: 'settings', button: false, del: 'done' } });
+  // MAIN'S CONFIRM ROW (the owner's item 2e): an account WITHOUT Apple, the
+  // card opened by a click on its own button on both sides (appleOpenAct), so
+  // BEFORE is main's real open state. Check 22: the same picture as main, at
+  // 390 on the web and in the app (shell 2) and at 360 on the web.
+  const plain = (platform) => ({ platform });
+  c('apple-delete-confirm-main-web', S, plain('web'), SAFARI, { same: true, only: lightOnly, apple: { stub: false, page: 'settings', button: false, del: 'email', open: true } });
+  c('apple-delete-confirm-main-web-360', S, plain('web'), SAFARI, { view: A360, same: true, only: lightOnly, apple: { stub: false, page: 'settings', button: false, del: 'email', open: true } });
+  c('apple-delete-confirm-main-app2', S, plain('native'), APP2, { same: true, only: lightOnly, apple: { stub: false, page: 'settings', button: false, del: 'email', open: true } });
+}
+
+/** Opens the delete card through its own button (both sides), for main's confirm row. */
+export async function appleOpenAct(tab) {
+  const clicked = await tab.evaluate(() => {
+    const b = document.querySelector('[data-kf-delete-card] button');
+    if (!b) return false;
+    b.click();
+    return true;
+  });
+  if (!clicked) throw new Error('no button in the delete card');
+  await tab.waitForSelector('#confirm-email', { visible: true, timeout: 15000 });
+  return { act: 'delete-open' };
 }
 
 /** KEEP_TOGETHER_APPLE, read from the source the card calls. */
@@ -76,9 +109,16 @@ export function keepAppleList(root) {
   return [...body.matchAll(/'([^']+)'/g)].map((m) => m[1]);
 }
 
+/** APPLE_NO_LINE_END ("then", "or" and their Arabic twins), read from the source keepTogetherApple() glues. */
+export function appleEndList(root) {
+  const src = readFileSync(join(root, 'src/lib/keep-together.ts'), 'utf8');
+  const body = /APPLE_NO_LINE_END = \[([^\]]*)\]/.exec(src)?.[1] || '';
+  return [...body.matchAll(/'([^']+)'/g)].map((m) => JSON.parse(`"${m[1]}"`));
+}
+
 /** The expectation check 30 reads. */
-export function appleExpect(job, keep) {
-  return { ...job.s.apple, theme: job.theme, locale: job.locale, keep, head: APPLE_PATH_HEAD };
+export function appleExpect(job, keep, ends = []) {
+  return { ...job.s.apple, theme: job.theme, locale: job.locale, keep, ends, head: APPLE_PATH_HEAD };
 }
 
 /** The plugin, stubbed before the page loads (evaluateOnNewDocument). Never opens a sheet. */
@@ -180,6 +220,39 @@ export function appleCheck(expect) {
     if (expect.del === 'done') {
       const a = done && done.parentElement.querySelector('a[href]');
       if (!a || a.getBoundingClientRect().height < 44) f.push('delete card (done): no 44-tall link home');
+      // The notice alone: nothing of the settings page, the top bar or the tab bar is drawn.
+      const pageEl = document.querySelector('[data-kf-apple-done-page]');
+      const others = [...document.querySelectorAll('main, nav, header, h1, h2, .kf-card, [data-kf-delete-card]')].filter((e) => visible(e) && !(pageEl && pageEl.contains(e)));
+      m.doneOthers = others.length;
+      if (!pageEl || !visible(pageEl)) f.push('done: no [data-kf-apple-done-page]');
+      if (others.length) f.push(`done: the notice is not alone, ${others.length} other element(s) drawn (${others.slice(0, 3).map((e) => e.tagName.toLowerCase() + (typeof e.className === 'string' && e.className ? '.' + e.className.split(' ')[0] : '')).join(', ')})`);
+      const card = done && done.closest('.kf-card');
+      if (card) {
+        const cs = getComputedStyle(card);
+        const [r, g] = rgb(cs.borderTopColor);
+        m.doneEdge = `${cs.borderTopWidth} ${cs.borderTopStyle} ${cs.borderTopColor}`;
+        if (parseFloat(cs.borderTopWidth) >= 1 && cs.borderTopStyle !== 'none' && r - g > 60) f.push(`done: the notice card has a red frame (${m.doneEdge})`);
+      }
+    }
+    // The Apple step and Apple's refusal: a block of their own, in the card's body size and weight.
+    const lineEl = expect.del === 'step' ? step : expect.del === 'fallback' ? unconfirmed : null;
+    const delCard = lineEl && lineEl.closest('[data-kf-delete-card]');
+    if (lineEl && delCard && visible(lineEl)) {
+      const ps = [...delCard.querySelectorAll('p')].filter(visible);
+      const before = ps.filter((x) => x !== lineEl && !lineEl.contains(x) && (x.compareDocumentPosition(lineEl) & Node.DOCUMENT_POSITION_FOLLOWING));
+      const prev = before[before.length - 1];
+      const body = ps[0];
+      const warn = ps[1];
+      if (prev) {
+        m.blockGap = Math.round(lineEl.getBoundingClientRect().top - prev.getBoundingClientRect().bottom);
+        if (m.blockGap < 12) f.push(`the Apple line sits ${m.blockGap} px under the text above it, under 12 (no block of its own)`);
+      }
+      if (body) {
+        const ls = getComputedStyle(lineEl), bs = getComputedStyle(body), ws = warn ? getComputedStyle(warn) : bs;
+        m.blockFont = `${ls.fontSize} ${ls.fontWeight}`;
+        if (ls.fontSize !== bs.fontSize) f.push(`the Apple line is ${ls.fontSize}, the card's body ${bs.fontSize}`);
+        if (ls.fontWeight !== bs.fontWeight && ls.fontWeight !== ws.fontWeight) f.push(`the Apple line's weight ${ls.fontWeight} is not a body weight (${bs.fontWeight}, ${ws.fontWeight})`);
+      }
     }
   }
 
@@ -209,6 +282,34 @@ export function appleCheck(expect) {
       const phrase = x[0].replace(/\u00A0/g, ' ').replace(/\u2011/g, '-');
       m.phrases.push({ phrase, lines: tops.length, broken });
       if (broken) f.push(`the phrase "${phrase}" splits across two lines`);
+    }
+  }
+  // No Apple line ends on "then" or "or" (or their Arabic twins).
+  const lines = [...document.querySelectorAll('[data-kf-apple-step], [data-kf-apple-unconfirmed], [data-kf-apple-not-revoked]')].filter(visible);
+  const endRe = expect.ends.length ? new RegExp(`(^|[\\s\\u00A0])(${expect.ends.join('|')})(?=[\\s\\u00A0])`, 'gi') : null;
+  m.lineEnds = 0;
+  for (const el of endRe ? lines : []) {
+    const nodes = [];
+    const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = tw.nextNode(); n; n = tw.nextNode()) nodes.push(n);
+    let text = '';
+    const at = [];
+    for (const n of nodes) { at.push({ n, start: text.length }); text += n.data; }
+    const locate = (i) => { let k = at.length - 1; while (k > 0 && at[k].start > i) k--; return [at[k].n, i - at[k].start]; };
+    const topOf = (i, j) => { const r = document.createRange(); r.setStart(...locate(i)); const [en, eo] = locate(j - 1); r.setEnd(en, eo + 1); const rs = [...r.getClientRects()].filter((x) => x.width > 0 && x.height > 0); return rs.length ? rs[rs.length - 1].top : null; };
+    endRe.lastIndex = 0;
+    for (let x = endRe.exec(text); x; x = endRe.exec(text)) {
+      const ws = x.index + x[1].length, we = ws + x[2].length;
+      let j = we;
+      while (j < text.length && /[\s\u00A0]/.test(text[j])) j++;
+      if (j >= text.length) continue;
+      m.lineEnds++;
+      const gapRange = document.createRange();
+      gapRange.setStart(...locate(we - 1));
+      gapRange.setEnd(...locate(j));
+      const br = !!gapRange.cloneContents().querySelector?.('br');
+      const a = topOf(ws, we), b = topOf(j, j + 1);
+      if (br || (a !== null && b !== null && Math.abs(a - b) > 4)) f.push(`an Apple line ends on "${x[2]}"`);
     }
   }
   return { finding: f.join('; ') || null, measured: m };
@@ -267,6 +368,53 @@ export function applePlant(expect) {
       const br = document.createElement('br');
       n.parentNode.insertBefore(br, tail);
       run(`phrase:${p}`, () => {}, () => { br.remove(); n.data += tail.data; tail.remove(); });
+    }
+  }
+  // The Apple block's gap taken away: its margin-top set to 0 (the muted list's 4 px is left).
+  const lineEl = expect.del === 'step' ? document.querySelector('[data-kf-apple-step]') : expect.del === 'fallback' ? document.querySelector('[data-kf-apple-unconfirmed]') : null;
+  if (lineEl) {
+    const blk = lineEl.parentElement.matches('[data-kf-delete-card]') ? lineEl : lineEl.parentElement;
+    const before = blk.getAttribute('style');
+    run('gap', () => { blk.style.marginTop = '0px'; }, () => { if (before === null) blk.removeAttribute('style'); else blk.setAttribute('style', before); });
+  }
+  // After the deletion: a card planted beside the notice (alone), the red frame put on the notice (red).
+  const notice = expect.del === 'done' && document.querySelector('[data-kf-apple-not-revoked]');
+  if (notice) {
+    const fake = document.createElement('div');
+    fake.className = 'kf-card';
+    fake.style.cssText = 'position:fixed;top:0;left:0;width:200px;height:60px;display:block;z-index:9999';
+    fake.textContent = 'planted';
+    run('alone', () => document.body.appendChild(fake), () => fake.remove());
+    const card = notice.closest('.kf-card');
+    run('red', () => { card.style.border = '1px solid rgb(200, 40, 40)'; }, () => { card.style.border = ''; });
+  }
+  // Each APPLE_NO_LINE_END word: a line break right after it. Where an Apple
+  // line has the word, after its own occurrence; else in a planted "<word> x".
+  const lines = [...document.querySelectorAll('[data-kf-apple-step], [data-kf-apple-unconfirmed], [data-kf-apple-not-revoked]')];
+  if (lines.length) {
+    for (const w of expect.ends) {
+      const re = new RegExp(`(^|[\\s\\u00A0])(${w})[\\s\\u00A0]`, 'i');
+      let done = false;
+      for (const el of lines) {
+        const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        for (let n = tw.nextNode(); n && !done; n = tw.nextNode()) {
+          const x = re.exec(n.data);
+          if (!x) continue;
+          const cut = x.index + x[1].length + x[2].length + 1;
+          if (cut >= n.data.length) continue;
+          const tail = n.splitText(cut);
+          const br = document.createElement('br');
+          n.parentNode.insertBefore(br, tail);
+          run(`end:${w}`, () => {}, () => { br.remove(); n.data += tail.data; tail.remove(); });
+          done = true;
+        }
+        if (done) break;
+      }
+      if (!done) {
+        const span = document.createElement('span');
+        span.append(` ${w}\u00A0`, document.createElement('br'), 'x');
+        run(`end:${w}`, () => lines[0].appendChild(span), () => span.remove());
+      }
     }
   }
   return out;
