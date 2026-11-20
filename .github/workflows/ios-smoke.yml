@@ -54,6 +54,15 @@ name: ios-smoke
 #      permission (both still never asked); the build carries exactly the
 #      camera's, the microphone's and speech recognition's purpose strings,
 #      in Info.plist and both .lproj files. `start` is never called here.
+#   11. Sign in with Apple (iOS 1.1, item 4f): the KnowFlowApple plugin is
+#      registered (`apple` in the probe) and `available` answers
+#      {available: true} from a page of the live site within 20 s, and the
+#      sign-up twin then draws the Apple button (PR 1's gate, opened by the
+#      real plugin). `signIn` is never called here (a sheet no one can
+#      answer, and an unsigned build carries no entitlement). The build
+#      settings of both configurations name App/App.entitlements, which holds
+#      com.apple.developer.applesignin = Default; the unsigned builds below
+#      prove the project builds with it present.
 # A screenshot is taken at every new line of smoke.jsonl, and the app's log
 # is kept, so the record is pictures and text, not a green tick alone.
 #
@@ -204,6 +213,21 @@ jobs:
           done
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist"
           /usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$app/Info.plist"
+          # Proof 11 (Sign in with Apple): the entitlements file the signed
+          # archive will use (ios-testflight.yml signs with these settings) is
+          # named by BOTH configurations and holds the one entitlement. This
+          # build is unsigned (CODE_SIGNING_ALLOWED=NO), so the entitlement is
+          # not applied here; what is proven is that the project builds with
+          # the file present and that signing will find it.
+          for c in Debug Release; do
+            ent=$(xcodebuild -project ios/App/App.xcodeproj -target App -configuration "$c" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" -disableAutomaticPackageResolution -showBuildSettings 2>/dev/null | awk -F' = ' '/^ *CODE_SIGN_ENTITLEMENTS = /{print $2}')
+            test "$ent" = "App/App.entitlements" || { echo "FAIL: $c CODE_SIGN_ENTITLEMENTS is [$ent], not App/App.entitlements"; exit 1; }
+            plutil -lint "ios/App/$ent"
+            v=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin:0' "ios/App/$ent")
+            test "$v" = "Default" || { echo "FAIL: com.apple.developer.applesignin is [$v], not Default"; exit 1; }
+            echo "11. $c: CODE_SIGN_ENTITLEMENTS = $ent, com.apple.developer.applesignin = [$v]"
+          done
+          echo "info simulator binary __entitlements section: $(otool -s __TEXT __entitlements "$app/App" 2>/dev/null | grep -c . || true) line(s) (unsigned build; informational)"
 
       # Proof 7. What Apple scans is a device binary, so the check reads an
       # unsigned Release build for a device, not the simulator build above.
@@ -301,6 +325,8 @@ jobs:
             {"name":"store-read","settle":"(function(){return window.__kfStore!=='waiting'?'true':'false'})()","timeout":20000,"wait":300,"js":"(function(){return String(window.__kfStore)})()"},
             {"name":"speech-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfSpeech={};if(!C||!C.nativePromise){window.__kfSpeech={error:'no bridge'};return 'no bridge'}['en-US','ar-SA'].forEach(function(l){var t0=Date.now();window.__kfSpeech[l]='waiting';C.nativePromise('KnowFlowSpeech','availability',{locale:l}).then(function(r){r.ms=Date.now()-t0;window.__kfSpeech[l]=r},function(e){window.__kfSpeech[l]='rejected: '+String(e&&e.message||e)})});return 'called availability en-US and ar-SA'})()"},
             {"name":"speech-read","settle":"(function(){var s=window.__kfSpeech||{};return ['en-US','ar-SA'].every(function(l){return s[l]&&s[l]!=='waiting'})?'true':'false'})()","timeout":20000,"wait":300,"js":"(function(){return JSON.stringify(window.__kfSpeech)})()"},
+            {"name":"apple-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfApple='waiting';if(!C||!C.nativePromise){window.__kfApple='no bridge';return window.__kfApple}var t0=Date.now();C.nativePromise('KnowFlowApple','available',{}).then(function(r){r=r||{};r.ms=Date.now()-t0;window.__kfApple=JSON.stringify(r)},function(e){window.__kfApple='rejected after '+(Date.now()-t0)+' ms: '+String(e&&e.message||e)});return 'called available'})()"},
+            {"name":"apple-read","settle":"(function(){return window.__kfApple!=='waiting'?'true':'false'})()","timeout":20000,"wait":300,"js":"(function(){return JSON.stringify({answer:String(window.__kfApple),button:document.querySelectorAll('[data-kf-apple-signin]').length,path:location.pathname})})()"},
             {"name":"live-terms","until":"/en/terms$","wait":4000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
             {"name":"dashboard-direct","until":"/(en|ar)/(signup|login)$","wait":3000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard');return 'assigned /'+l+'/dashboard'})()"},
             {"name":"live-refund","until":"/en/refund$","wait":4000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
@@ -541,6 +567,27 @@ jobs:
               need(isinstance(a, dict) and a.get("speech") == "notDetermined" and a.get("mic") == "notDetermined", f"10. ...and asks for nothing: speech and microphone still never asked on a fresh install ({loc}): speech={a.get('speech') if isinstance(a, dict) else None} mic={a.get('mic') if isinstance(a, dict) else None}")
           SMS = {l: (SP.get(l) or {}).get("ms") if isinstance(SP, dict) and isinstance(SP.get(l), dict) else None for l in ("en-US", "ar-SA")}
           print(f"info speech availability: waited {SPOLL.get('ms')} ms for both; answered en-US in {SMS['en-US']} ms, ar-SA in {SMS['ar-SA']} ms; {json.dumps(SP)[:400]}")
+          # Sign in with Apple (iOS 1.1, item 4f), proof 11: the shell builds and
+          # launches with KnowFlowApple, and the bridge reaches it from a page
+          # of the live site. Only `available` is called (no sheet). apple-read
+          # waits (`settle`) until it has answered, up to 20 s; the answer
+          # carries `ms`, measured in the page from the call. The sign-up twin
+          # the step reads on must then draw the Apple button (PR 1's gate:
+          # shell 2, iOS, the plugin answering).
+          need(L.get("apple") is True, f"11. the KnowFlowApple plugin is registered in the shell: apple={L.get('apple')}")
+          APOLL = by.get("apple-read", {}).get("poll") or {}
+          need(APOLL.get("settled") is True, f"11. available() answers within 20 s of the call: settled={APOLL.get('settled')} after {APOLL.get('ms')} ms")
+          try:
+              AR = json.loads(str(by.get("apple-read", {}).get("result", "")))
+          except Exception:
+              AR = {}
+          try:
+              AA = json.loads(AR.get("answer", ""))
+          except Exception:
+              AA = {}
+          need(isinstance(AA, dict) and AA.get("available") is True, f"11. ...with {{available: true}} from a page of tryknowflow.com: {str(AR.get('answer'))[:160]}")
+          need(AR.get("button") == 1 and re.search(r"^/(en|ar)/signup$", AR.get("path") or ""), f"11. ...and the sign-up twin draws the Apple button: button={AR.get('button')} on {AR.get('path')}")
+          print(f"info apple available: waited {APOLL.get('ms')} ms; answered in {AA.get('ms') if isinstance(AA, dict) else None} ms (measured in the page from the call)")
           # The shell-2 wording rule (scripts/lib/app-wording.mjs, KF_PURCHASE_SRC):
           # purchase words inside an element marked data-kf-iap are not hits in
           # shell 2, and a pricing link is a hit even there.

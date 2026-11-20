@@ -243,6 +243,16 @@ jobs:
       - name: Verify Sign in with Apple (native gate, deletion confirmed by Apple, revoke)
         run: node --experimental-strip-types scripts/verify-apple-signin.mjs
 
+      # Sign in with Apple, item 4f PR 2 (ios/ only): KnowFlowApple.swift read from
+      # source (available opens no sheet; signIn: hashed nonce, fullName + email,
+      # web view window, one call at a time, canceled/failed, no token logged), its
+      # resolved keys parsed by apple-bridge.ts parseAuthorization(), App.entitlements
+      # and CODE_SIGN_ENTITLEMENTS in both App configurations, the pbxproj entries,
+      # the registration and probe, ios-smoke proof 11, the signed-in apple-login
+      # reading and the TestFlight signature check. The build itself is ios-smoke's.
+      - name: Verify Sign in with Apple, native half (plugin, entitlement, CI proofs)
+        run: node --experimental-strip-types scripts/verify-apple-native.mjs
+
       # Register #113. Imports the real upload estimate (measured rate, stages, the
       # 90% cap) and reads DropZone for the progress transport and the #50/#111 checks.
       - name: Verify the upload shows real progress and an honest estimate (register #113)

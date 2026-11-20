@@ -290,6 +290,17 @@ jobs:
           grep -q "UIKit.framework" "$RUNNER_TEMP/otool.txt" || { echo "otool -L named no UIKit: the reading is empty, not clean"; exit 1; }
           # ITMS-91053, before the upload rather than in Apple's e-mail after it.
           python3 .github/scripts/ios-privacy-check.py "$app" | tee "$RUNNER_TEMP/privacy-audit.txt"
+          # Sign in with Apple (item 4f): the archive is signed with
+          # CODE_SIGN_ENTITLEMENTS = App/App.entitlements (both configurations),
+          # and automatic signing (-allowProvisioningUpdates above) fetches a
+          # profile for it. The SIGNATURE must carry the entitlement; without it
+          # the app's Apple button fails on every tap (ASAuthorizationError
+          # 1000), so the run stops here, before the upload. The owner's step 1
+          # (Identifiers, com.knowflow.app, Sign in with Apple ticked) comes
+          # BEFORE any dispatch.
+          codesign -d --entitlements - --xml "$app" > "$RUNNER_TEMP/entitlements.xml" 2>/dev/null || true
+          grep -q '<key>com.apple.developer.applesignin</key>' "$RUNNER_TEMP/entitlements.xml" || { echo "FAIL: the archived app is signed without com.apple.developer.applesignin; tick Sign in with Apple on the App ID first"; cat "$RUNNER_TEMP/entitlements.xml"; exit 1; }
+          echo "signed entitlements carry com.apple.developer.applesignin"
 
       - name: Export and upload to App Store Connect
         env:
