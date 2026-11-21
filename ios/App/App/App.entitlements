@@ -6,5 +6,10 @@
 	<array>
 		<string>Default</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:tryknowflow.com</string>
+		<string>webcredentials:tryknowflow.com</string>
+	</array>
 </dict>
 </plist>

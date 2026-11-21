@@ -38,6 +38,35 @@
  *     archived app's signature carries the entitlement or the run stops
  *     before the upload.
  *
+ *
+ * UNIVERSAL LINKS, PR 2 OF 2 (big item 4g), ios/ + CI only. PR 1 (#343,
+ * e2ea86d) serves the AASA; this holds the app's half. Red on e2ea86d.
+ *  3. (changed) App.entitlements holds exactly TWO keys: applesignin
+ *     ["Default"] and associated-domains ["applinks:tryknowflow.com",
+ *     "webcredentials:tryknowflow.com"], apex only (www 307s), nothing else.
+ *  7. THE OBSERVER (MainViewController.swift, every build). Registered in
+ *     capacitorDidLoad (Capacitor calls it from loadView, before the root
+ *     load and before the cold-start delivery), outside the simulator block,
+ *     removed in deinit. It observes ONLY .capacitorOpenUniversalLink: the
+ *     proxy posts that AND .capacitorSceneOpenUniversalLink for every link,
+ *     so observing both would load twice and spend the one-time token. It
+ *     accepts only https, host exactly tryknowflow.com, no port, no user, no
+ *     password; rebuilds the URL from the bridge's server URL + path + query
+ *     (the delivered string is never loaded); keeps ONE pending link (a later
+ *     one replaces it); loads only once webView.isLoading is false (KVO,
+ *     invalidated after), because Capacitor loads offline.html on ANY
+ *     provisional failure, the -999 cancel a second load causes included
+ *     (WebViewDelegationHandler.swift). Never UIApplication.open, never a
+ *     foreign host. The log names an outcome only, never the URL or query
+ *     (it holds the token).
+ *  8. CI. ios-smoke proof 12 (both configurations' entitlements carry
+ *     applinks:tryknowflow.com) and proof 13 (simulator-only delivery through
+ *     SceneDelegateProxy during the first root load and when idle: a bogus
+ *     token ends on /en/login?notice=link_expired in the web view, never
+ *     offline.html; example.com changes nothing); ios-testflight: the signed
+ *     archive carries associated-domains with both strings or the run stops
+ *     before the upload, and prints the entitlements.
+ *
  * Usage: node --experimental-strip-types scripts/verify-apple-native.mjs
  */
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -53,7 +82,8 @@ function check(ok, name, detail = '') {
   else failures.push(`${name}${detail ? ` (${detail})` : ''}`);
   console.log(`  ${ok ? 'OK  ' : 'FAIL'}  ${name}${!ok && detail ? `  -- ${detail}` : ''}`);
 }
-const read = (p) => (existsSync(resolvePath(ROOT, p)) ? readFileSync(resolvePath(ROOT, p), 'utf8') : '');
+// LF always: a Windows checkout (core.autocrlf) reads CRLF, CI reads LF.
+const read = (p) => (existsSync(resolvePath(ROOT, p)) ? readFileSync(resolvePath(ROOT, p), 'utf8').replace(/\r\n/g, '\n') : '');
 /** The body of `func <name>(` up to the first line that closes at its own indent. */
 function fn(src, re) {
   const m = re.exec(src);
@@ -130,8 +160,12 @@ console.log('3. App.entitlements and CODE_SIGN_ENTITLEMENTS');
 const ent = read('ios/App/App/App.entitlements');
 check(!!ent, 'ios/App/App/App.entitlements exists');
 const entKeys = [...ent.matchAll(/<key>([^<]+)<\/key>/g)].map((m) => m[1]);
-check(JSON.stringify(entKeys) === '["com.apple.developer.applesignin"]', `exactly one entitlement, com.apple.developer.applesignin: ${entKeys.join(', ')}`);
-check(/<key>com\.apple\.developer\.applesignin<\/key>\s*<array>\s*<string>Default<\/string>\s*<\/array>/.test(ent), '...whose value is ["Default"]');
+check(JSON.stringify(entKeys) === '["com.apple.developer.applesignin","com.apple.developer.associated-domains"]', `exactly two entitlements, applesignin then associated-domains: ${entKeys.join(', ')}`);
+check(/<key>com\.apple\.developer\.applesignin<\/key>\s*<array>\s*<string>Default<\/string>\s*<\/array>/.test(ent), 'applesignin\'s value is ["Default"]');
+const adBlock = /<key>com\.apple\.developer\.associated-domains<\/key>\s*<array>([\s\S]*?)<\/array>/.exec(ent)?.[1] ?? '';
+const adValues = [...adBlock.matchAll(/<string>([^<]*)<\/string>/g)].map((m) => m[1]);
+check(JSON.stringify(adValues) === '["applinks:tryknowflow.com","webcredentials:tryknowflow.com"]', `associated-domains is exactly ["applinks:tryknowflow.com","webcredentials:tryknowflow.com"]: ${JSON.stringify(adValues)}`);
+check(!/<string>[^<]*www\./.test(ent) && (ent.match(/<string>/g) || []).length === 3, `no www and no other string in the file (3 strings: Default + the two domains): ${(ent.match(/<string>/g) || []).length}`);
 check(/^<\?xml version="1\.0" encoding="UTF-8"\?>\n<!DOCTYPE plist PUBLIC "-\/\/Apple\/\/DTD PLIST 1\.0\/\/EN"/.test(ent) && /<plist version="1\.0">/.test(ent), 'an XML property list');
 const pbx = read('ios/App/App.xcodeproj/project.pbxproj');
 const cfg = (id) => { const m = new RegExp(`\\t\\t${id} /\\* (Debug|Release) \\*/ = \\{[\\s\\S]*?\\n\\t\\t\\};`).exec(pbx); return m ? m[0] : ''; };
@@ -184,6 +218,60 @@ check(si.includes('the shell-2 login shows Sign in with Apple (the plugin answer
 for (const kept of ['the login page in the app tells a Google-registered student to use the forgot link', 'Ask in shell 2 shows the microphone in the composer', 'the AI permission sheet opened before the quiz']) check(si.includes(kept), `an older assertion is kept: "${kept}"`);
 const tf = read('.github/workflows/ios-testflight.yml');
 check(/codesign -d --entitlements - --xml "\$app"/.test(tf) && /com\.apple\.developer\.applesignin/.test(tf) && tf.indexOf('com.apple.developer.applesignin') < tf.indexOf('- name: Export and upload'), 'ios-testflight: the archived app\'s signature must carry the entitlement, before the upload');
+
+// ── 7. the universal-link observer (item 4g) ────────────────────────────────
+console.log('7. MainViewController.swift: the universal-link observer');
+const mvcCode = noComments(mvc);
+// What a device runs: every `#if targetEnvironment(simulator) … #endif` removed
+// (none of them nests another).
+const prod = mvcCode.replace(/#if targetEnvironment\(simulator\)[\s\S]*?#endif/g, '');
+const smokeOnly = (s) => (s.match(/#if targetEnvironment\(simulator\)[\s\S]*?#endif/g) || []).join('\n');
+const didLoad = fn(mvcCode, /override open func capacitorDidLoad\(\)/);
+const didLoadProd = didLoad.replace(/#if targetEnvironment\(simulator\)[\s\S]*?#endif/g, '');
+check(/linkToken = NotificationCenter\.default\.addObserver\(forName: \.capacitorOpenUniversalLink, object: nil, queue: \.main\)/.test(didLoadProd), 'capacitorDidLoad observes .capacitorOpenUniversalLink on the main queue, outside the simulator block (every build)');
+check(didLoadProd.indexOf('.capacitorOpenUniversalLink') > didLoadProd.indexOf('registerPluginInstance(apple)'), '...after the three plugins are registered');
+const nObs = (s) => (s.match(/addObserver\(forName:/g) || []).length;
+check(nObs(prod) === 1 && nObs(mvcCode) === 2 && /addObserver\(forName: \.capacitorViewDidAppear/.test(smokeOnly(mvcCode)), `one notification observer in a device build; the only other is the smoke's cold-start hook (device ${nObs(prod)}, all ${nObs(mvcCode)})`);
+check(!/capacitorSceneOpenUniversalLink|capacitorOpenURL|CDVPluginHandleOpenURL/.test(mvcCode), 'never the scene variant (.capacitorSceneOpenUniversalLink, posted for the same link: a second load would spend the token) nor the URL-scheme notifications');
+const deinitBody = fn(mvcCode, /deinit \{/);
+check(/NotificationCenter\.default\.removeObserver\(linkToken\)|if let linkToken \{\s*NotificationCenter\.default\.removeObserver\(linkToken\)/.test(deinitBody) && /linkWait\?\.invalidate\(\)/.test(deinitBody), 'deinit removes the observer and invalidates a pending isLoading watch');
+const target = fn(mvcCode, /static func linkTarget\(_ url: URL, server: URL\?\) -> URL\?/);
+check(!!target, 'static linkTarget(_:server:) exists');
+const guardTarget = /guard let c = URLComponents\(url: url, resolvingAgainstBaseURL: false\),([\s\S]*?)else \{ return nil \}/.exec(target)?.[1] ?? '';
+for (const cond of ['c.scheme == "https"', 'c.host == "tryknowflow.com"', 'c.port == nil', 'c.user == nil', 'c.password == nil']) check(guardTarget.includes(cond), `linkTarget accepts only ${cond}`);
+check(/var out = URLComponents\(url: server, resolvingAgainstBaseURL: false\)/.test(guardTarget) && guardTarget.includes('out.scheme == "https"') && guardTarget.includes('out.host == "tryknowflow.com"'), 'the URL is rebuilt on the bridge\'s server URL, itself https://tryknowflow.com');
+check(/out\.percentEncodedPath = c\.percentEncodedPath/.test(target) && /out\.percentEncodedQuery = c\.percentEncodedQuery/.test(target) && /out\.fragment = nil/.test(target) && /return out\.url/.test(target), '...from the delivered path and query only (no fragment, never the delivered string)');
+const onLink = fn(mvcCode, /private func universalLink\(_ note: Notification\)/);
+check(/linkTarget\(url, server: bridge\?\.config\.serverURL\)/.test(onLink) && /pendingLink = target/.test(onLink) && /loadLinkWhenIdle\(\)/.test(onLink) && !/\.load\(/.test(onLink), 'universalLink checks the URL, keeps it as THE pending link (a later one replaces it) and hands over to loadLinkWhenIdle; it loads nothing itself');
+check(/if pendingLink != nil \{\s*linkLog\("replaced[^"]*"\)/.test(onLink), '...and says when it replaced a waiting link (one load only)');
+const idle = fn(mvcCode, /private func loadLinkWhenIdle\(\)/);
+const iBusy = idle.indexOf('if webView.isLoading'), iInval = idle.indexOf('linkWait?.invalidate()'), iClear = idle.indexOf('pendingLink = nil'), iLoad = idle.indexOf('webView.load(URLRequest(url: link))');
+check(iBusy > 0 && /linkWait = webView\.observe\(\\\.isLoading/.test(idle), 'while the web view is loading it waits on an isLoading KVO');
+check(iBusy > 0 && iInval > iBusy && iClear > iInval && iLoad > iClear, 'the watch is invalidated and the pending link cleared before the one load');
+check((prod.match(/\.load\(URLRequest/g) || []).length === 1, 'exactly one webView.load in a device build');
+check(!/UIApplication\.shared\.open|\.openURL\(|SFSafariViewController/.test(mvcCode), 'never UIApplication.open, openURL or a Safari view');
+check(/private func linkLog\(_ outcome: StaticString\)/.test(mvcCode), 'the link log takes a StaticString: only a literal outcome can reach it, never the URL or its token');
+check(![onLink, idle, target].some((b) => /NSLog|print\(/.test(b)), 'the link code logs only through linkLog');
+check(!/http:\/\//.test(prod), 'no http:// in a device build');
+// The smoke half (simulator only).
+const smokeCls = /#if targetEnvironment\(simulator\)\nprivate final class Smoke[\s\S]*#endif/.exec(mvcCode)?.[0] ?? '';
+check(/NSUserActivity\(activityType: NSUserActivityTypeBrowsingWeb\)/.test(smokeCls) && /SceneDelegateProxy\.shared\.scene\([^)]*continue: activity\)/.test(smokeCls), 'smoke delivers a browsing-web NSUserActivity through SceneDelegateProxy (the path SceneDelegate takes)');
+check(/KF_SMOKE_UL_COLD/.test(mvcCode) && /forName: \.capacitorViewDidAppear/.test(mvcCode) && /KF_SMOKE_UL/.test(mvcCode), 'smoke can deliver at the first capacitorViewDidAppear (the proxy\'s cold-start moment) when KF_SMOKE_UL_COLD is set');
+check(/observe\(\\\.url/.test(smokeCls) && /step\["ul"\]/.test(smokeCls), 'smoke records every URL the web view takes (offline.html would show) and delivers a step\'s `ul`');
+check(!/NSUserActivity|SceneDelegateProxy|KF_SMOKE_UL/.test(prod), 'none of the delivery code is in a device build');
+
+// ── 8. CI for item 4g ───────────────────────────────────────────────────────
+console.log('8. the workflows (item 4g)');
+check(/#   12\. Universal links \(iOS 1\.1, item 4g\)/.test(smoke) && /#   13\. /.test(smoke), 'ios-smoke\'s header lists proofs 12 and 13');
+check(/Print :com\.apple\.developer\.associated-domains/.test(smoke) && /applinks:tryknowflow\.com/.test(smoke) && /echo "12\. \$c:/.test(smoke), 'proof 12 reads associated-domains from the entitlements file both configurations name');
+check(smoke.includes('https://tryknowflow.com/api/auth/callback?token_hash=bogus&type=signup&locale=en') && smoke.includes('https://example.com/'), 'proof 13 delivers the bogus signup link and example.com');
+for (const line of ['13. cold: the link was handed over while the first page was loading', '13. cold: the web view ends on /en/login?notice=link_expired', '13. cold: two links while loading load once', '13. idle: the web view ends on /en/login?notice=link_expired', '13. example.com leaves the URL unchanged', '13. offline.html never loads']) check(smoke.includes(line), `ios-smoke asserts "${line}"`);
+check(/smoke-ul\.jsonl/.test(smoke) && /ul\.log/.test(smoke), 'proof 13\'s readings are kept in the artifact');
+const tfGuard = tf.slice(tf.lastIndexOf('grep -q \'<key>com.apple.developer.applesignin</key>\''), tf.indexOf('- name: Export and upload'));
+const entCheck = read('.github/scripts/ios-entitlements-check.py');
+check(/^ *python3 \.github\/scripts\/ios-entitlements-check\.py "\$RUNNER_TEMP\/entitlements\.xml"$/m.test(tfGuard), 'ios-testflight: after the applesignin check and before the upload, the signature is read by .github/scripts/ios-entitlements-check.py');
+check(/KEY = "com\.apple\.developer\.associated-domains"/.test(entCheck) && /WANT = \["applinks:tryknowflow\.com", "webcredentials:tryknowflow\.com"\]/.test(entCheck) && /plistlib\.load/.test(entCheck) && /sorted\(got\) == sorted\(WANT\)/.test(entCheck), '...which parses the plist and requires associated-domains to be exactly the two strings');
+check(/FIX = "tick Associated Domains on the App ID first/.test(entCheck) && (entCheck.match(/return 1/g) || []).length === 2 && /echo "signed entitlements:"; cat "\$RUNNER_TEMP\/entitlements\.xml"/.test(tfGuard), '...fails with a clear message otherwise, and prints the entitlements on success');
 
 console.log(`\n${pass} passed, ${failures.length} failed`);
 if (failures.length) {

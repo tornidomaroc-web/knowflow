@@ -301,6 +301,16 @@ jobs:
           codesign -d --entitlements - --xml "$app" > "$RUNNER_TEMP/entitlements.xml" 2>/dev/null || true
           grep -q '<key>com.apple.developer.applesignin</key>' "$RUNNER_TEMP/entitlements.xml" || { echo "FAIL: the archived app is signed without com.apple.developer.applesignin; tick Sign in with Apple on the App ID first"; cat "$RUNNER_TEMP/entitlements.xml"; exit 1; }
           echo "signed entitlements carry com.apple.developer.applesignin"
+          # Universal links (item 4g): the same signature must carry
+          # com.apple.developer.associated-domains with exactly
+          # applinks:tryknowflow.com and webcredentials:tryknowflow.com.
+          # Without it the confirm and reset mails open Safari, not the app,
+          # and the profile automatic signing fetched lacks the capability:
+          # the owner ticks Associated Domains on the App ID (Identifiers,
+          # com.knowflow.app) BEFORE any dispatch. Read as a property list
+          # (the array's value, not a substring anywhere in the file).
+          python3 .github/scripts/ios-entitlements-check.py "$RUNNER_TEMP/entitlements.xml"
+          echo "signed entitlements:"; cat "$RUNNER_TEMP/entitlements.xml"; echo
 
       - name: Export and upload to App Store Connect
         env:
