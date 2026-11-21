@@ -4,8 +4,9 @@ import UIKit
 import UserNotifications
 #endif
 
-/// The bridge view controller, subclassed for two reasons: the page colour
-/// under the web view (below, every build) and the simulator smoke test
+/// The bridge view controller, subclassed for three reasons: the page colour
+/// under the web view (below, every build), the universal-link observer
+/// (item 4g, every build: `universalLink`) and the simulator smoke test
 /// (`.github/workflows/ios-smoke.yml`). Main.storyboard names this class.
 ///
 /// A device build carries none of the smoke code: all of it is behind
@@ -36,6 +37,18 @@ class MainViewController: CAPBridgeViewController {
     private static var smoke: Smoke?
     #endif
     private var pageColour: NSKeyValueObservation?
+    // Universal links (item 4g): the observer's token, the one link waiting
+    // for the page in flight, and the isLoading watch that waits with it.
+    private var linkToken: NSObjectProtocol?
+    private var pendingLink: URL?
+    private var linkWait: NSKeyValueObservation?
+
+    deinit {
+        if let linkToken {
+            NotificationCenter.default.removeObserver(linkToken)
+        }
+        linkWait?.invalidate()
+    }
 
     override open func capacitorDidLoad() {
         // In-app Pro (iOS 1.1, item 4d): the StoreKit 2 plugin that lives in
@@ -62,6 +75,19 @@ class MainViewController: CAPBridgeViewController {
                 webView.scrollView.backgroundColor = webView.underPageBackgroundColor
             }
         }
+        // Universal links (iOS 1.1, item 4g), every build. A tapped
+        // https://tryknowflow.com link the AASA hands to the app (only the
+        // confirm and reset mails' /api/auth/callback?token_hash=…) reaches
+        // SceneDelegate, which passes it to Capacitor's SceneDelegateProxy;
+        // the proxy posts it twice, as .capacitorOpenUniversalLink and as
+        // .capacitorSceneOpenUniversalLink. Only the first is observed: two
+        // loads would spend the one-time token. Registered here because
+        // Capacitor calls capacitorDidLoad from loadView, before the root
+        // page's load and before the proxy's cold-start delivery (on the
+        // first capacitorViewDidAppear).
+        linkToken = NotificationCenter.default.addObserver(forName: .capacitorOpenUniversalLink, object: nil, queue: .main) { [weak self] note in
+            self?.universalLink(note)
+        }
         #if targetEnvironment(simulator)
         // The switch arrives either as an environment variable (simctl's
         // SIMCTL_CHILD_ prefix) or as a launch argument; both are accepted, and
@@ -85,10 +111,93 @@ class MainViewController: CAPBridgeViewController {
             }
             let smoke = Smoke(controller: self)
             MainViewController.smoke = smoke
+            // Proof 13 (item 4g): links handed over at the moment the proxy
+            // hands over a cold start's, the first capacitorViewDidAppear,
+            // while the root page is still loading. KF_SMOKE_UL_COLD is a
+            // base64 JSON array of URLs, delivered in order.
+            if let cold = env["KF_SMOKE_UL_COLD"], let data = Data(base64Encoded: cold),
+               let links = try? JSONSerialization.jsonObject(with: data) as? [String] {
+                var token: NSObjectProtocol?
+                token = NotificationCenter.default.addObserver(forName: .capacitorViewDidAppear, object: nil, queue: .main) { _ in
+                    if let token {
+                        NotificationCenter.default.removeObserver(token)
+                    }
+                    for link in links { smoke.deliver(link, phase: "cold") }
+                }
+            }
             // The web view is created in viewDidLoad; give it a moment before
             // the first probe rather than racing it.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { smoke.start() }
         }
+        #endif
+    }
+
+    /// A universal link from the proxy. Anything but https://tryknowflow.com
+    /// (no port, no user, no password) is ignored: never another host, never
+    /// UIApplication.open. A link that arrives while another is still waiting
+    /// replaces it, so the page loads once.
+    private func universalLink(_ note: Notification) {
+        guard let url = (note.object as? [String: Any])?["url"] as? URL,
+              let target = MainViewController.linkTarget(url, server: bridge?.config.serverURL) else {
+            linkLog("ignored: not an https://tryknowflow.com link")
+            return
+        }
+        if pendingLink != nil {
+            linkLog("replaced the link still waiting")
+        }
+        pendingLink = target
+        loadLinkWhenIdle()
+    }
+
+    /// The URL to load: the bridge's own server URL with the delivered path
+    /// and query, or nil. The delivered string itself is never loaded.
+    static func linkTarget(_ url: URL, server: URL?) -> URL? {
+        guard let c = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              c.scheme == "https", c.host == "tryknowflow.com",
+              c.port == nil, c.user == nil, c.password == nil,
+              let server, var out = URLComponents(url: server, resolvingAgainstBaseURL: false),
+              out.scheme == "https", out.host == "tryknowflow.com" else { return nil }
+        out.percentEncodedPath = c.percentEncodedPath
+        out.percentEncodedQuery = c.percentEncodedQuery
+        out.fragment = nil
+        return out.url
+    }
+
+    /// Loads the pending link once nothing is loading. Capacitor answers ANY
+    /// failed provisional navigation with its error page
+    /// (WebViewDelegationHandler, didFailProvisionalNavigation), including the
+    /// -999 cancel a second load causes: a link loaded over the root page in
+    /// flight (a cold start) would cancel it, the error handler would load
+    /// offline.html, and that would cancel the link. So it waits for
+    /// isLoading to turn false, about a second on a cold start, nothing on a
+    /// warm one.
+    private func loadLinkWhenIdle() {
+        guard let webView = bridge?.webView, pendingLink != nil else { return }
+        if webView.isLoading {
+            if linkWait == nil {
+                linkLog("waiting for the page in flight")
+                linkWait = webView.observe(\.isLoading, options: [.new]) { [weak self] webView, _ in
+                    if !webView.isLoading {
+                        DispatchQueue.main.async { self?.loadLinkWhenIdle() }
+                    }
+                }
+            }
+            return
+        }
+        linkWait?.invalidate()
+        linkWait = nil
+        guard let link = pendingLink else { return }
+        pendingLink = nil
+        webView.load(URLRequest(url: link))
+        linkLog("loaded")
+    }
+
+    /// An outcome only. StaticString: nothing but a literal can be passed, so
+    /// the link, whose query carries the one-time token, can never be logged.
+    private func linkLog(_ outcome: StaticString) {
+        NSLog("[KFLink] %@", "\(outcome)")
+        #if targetEnvironment(simulator)
+        MainViewController.smoke?.note("link: \(outcome)")
         #endif
     }
 }
@@ -125,6 +234,38 @@ private final class Smoke {
         }
         write("smoke.jsonl", "", append: false)
         NSLog("[KFSmoke] %d step(s); tmp=%@", steps.count, dir.path)
+        if ulOn, let web = controller.bridge?.webView {
+            write("ul.log", "", append: false)
+            urlWatch = web.observe(\.url, options: [.initial, .new]) { [weak self] web, _ in
+                guard let u = web.url else { return }
+                self?.note("url \(u.scheme ?? "")://\(u.host ?? "")\(u.path)")
+            }
+        }
+    }
+
+    // Proof 13 (universal links, item 4g; ios-smoke.yml). With KF_SMOKE_UL=1,
+    // tmp/ul.log gets one line per URL the web view takes (scheme, host and
+    // path, never a query), so an offline.html shows however briefly it was
+    // there, and one per outcome of the link observer (linkLog).
+    private let ulOn = ProcessInfo.processInfo.environment["KF_SMOKE_UL"] == "1"
+    private var urlWatch: NSKeyValueObservation?
+
+    func note(_ line: String) {
+        guard ulOn else { return }
+        write("ul.log", "\(Int(Date().timeIntervalSince(started) * 1000)) \(line)\n", append: true)
+    }
+
+    /// What iOS does with a tapped universal link, from the point the app
+    /// receives it: SceneDelegate hands the activity to SceneDelegateProxy.
+    func deliver(_ link: String, phase: String) {
+        guard let url = URL(string: link), let scene = controller?.view.window?.windowScene else {
+            note("deliver \(phase): no URL or no scene")
+            return
+        }
+        let activity = NSUserActivity(activityType: NSUserActivityTypeBrowsingWeb)
+        activity.webpageURL = url
+        note("deliver \(phase) host=\(url.host ?? "") isLoading=\(controller?.bridge?.webView?.isLoading ?? false)")
+        SceneDelegateProxy.shared.scene(scene, continue: activity)
     }
 
     func start() { waitForPage(attempt: 0) }
@@ -188,6 +329,9 @@ private final class Smoke {
         let js = step["js"] as? String ?? ""
         let wait = (step["wait"] as? Double) ?? 4000
         NSLog("[KFSmoke] step %@", name)
+        // Proof 13: a step naming `ul` has that link delivered as a universal
+        // link (deliver) before anything else it does.
+        if let link = step["ul"] as? String { deliver(link, phase: name) }
         // A page step names `until`, the pattern its URL must match: the URL is
         // read before its script, and `wait` starts only once the URL has left
         // that start, matches `until` and the document is complete, or after
