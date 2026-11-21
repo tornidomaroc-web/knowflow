@@ -3,9 +3,10 @@ import type { ReactNode } from 'react';
 import { Sparkles } from 'lucide-react';
 import { Badge, Card, buttonVariants } from '@/components/ui';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
-import { ClayAccount, ClayChevron, ClayFile, ClayHelp, ClayMail, ClayShield, ClaySliders, ClayStar } from '@/components/clay/ClayIcons';
+import { ClayAccount, ClayFile, ClayHelp, ClayMail, ClayShield, ClaySliders, ClayStar } from '@/components/clay/ClayIcons';
 import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
 import { LanguageSegment } from '@/components/dashboard/LanguageSegment';
+import { LinkRow } from '@/components/dashboard/LinkRow';
 import type { Locale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
@@ -72,6 +73,14 @@ export interface SettingsPanelProps {
    * page as the delete card is, so this panel stays renderable on the server.
    */
   signOutRow?: ReactNode;
+  /**
+   * In-app rating (iOS 1.1, item 4h): Apple's write-review link as the last
+   * row of Help and legal. A client component (src/components/review/
+   * RateRow.tsx) that renders nothing on the server and until the
+   * KnowFlowReview plugin answers, so this panel's server markup is the same
+   * for every shell.
+   */
+  rateRow?: ReactNode;
 }
 
 /**
@@ -99,6 +108,7 @@ export function SettingsPanel({
   iapMarked = false,
   deleteCard,
   signOutRow,
+  rateRow,
 }: SettingsPanelProps) {
   const initial = (email.trim()[0] ?? '?').toUpperCase();
 
@@ -214,6 +224,7 @@ export function SettingsPanel({
             {/* #127 (the owner's ruling): the line says how the answer reaches the
                 student; the address stays visible under it. */}
             <LinkRow href={`mailto:${supportEmail}`} icon={<ClayMail />} label={labels.support} description={labels.supportDesc} detail={supportEmail} external />
+            {rateRow}
           </ul>
         </Card>
 
@@ -231,54 +242,5 @@ function PreferenceRow({ label, children }: { label: string; children: ReactNode
       <span className="text-sm font-bold text-foreground">{label}</span>
       {children}
     </div>
-  );
-}
-
-function LinkRow({
-  href,
-  icon,
-  label,
-  description,
-  detail,
-  external = false,
-}: {
-  href: string;
-  icon: ReactNode;
-  label: string;
-  /** A line in the page's language under the label. */
-  description?: string;
-  /** A left-to-right value (an address) under the label. */
-  detail?: string;
-  external?: boolean;
-}) {
-  const inner = (
-    <>
-      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center">{icon}</span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-foreground">{label}</span>
-        {description && <span className="block text-xs text-muted-foreground">{description}</span>}
-        {detail && (
-          <span className="block truncate text-xs text-muted-foreground" dir="ltr">
-            {detail}
-          </span>
-        )}
-      </span>
-      <ClayChevron className="shrink-0 rtl:-scale-x-100" />
-    </>
-  );
-  const className =
-    'kf-tile flex min-h-[3.5rem] items-center gap-3 rounded-[1.125rem] px-3 py-2 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
-  return (
-    <li>
-      {external ? (
-        <a href={href} className={className}>
-          {inner}
-        </a>
-      ) : (
-        <Link href={href} className={className}>
-          {inner}
-        </Link>
-      )}
-    </li>
   );
 }

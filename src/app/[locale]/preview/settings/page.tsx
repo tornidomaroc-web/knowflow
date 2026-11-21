@@ -3,6 +3,7 @@ import type React from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { SettingsPanel } from '@/components/dashboard/SettingsPanel'
+import { RateRow } from '@/components/review/RateRow'
 import { DeleteAccountCard } from '@/components/dashboard/DeleteAccountCard'
 import { CancelSubscriptionCard } from '@/components/dashboard/CancelSubscriptionCard'
 import { StudyReminderCard } from '@/components/reminder/StudyReminderCard'
@@ -164,6 +165,7 @@ export default async function SettingsPreview({
           iapMarked={iap}
           proOfferCard={iap && !isPro ? <ProOfferCard title={t.dashboard.iap.title} body={t.dashboard.iap.offerBody} button={t.dashboard.iap.offerButton} /> : undefined}
           signOutRow={<SignOutButton locale={safeLocale} label={t.dashboard.nav.signOut} variant="row" />}
+          rateRow={<RateRow label={s.rate} description={s.rateDesc} />}
           deleteCard={<DeleteAccountCard homeHref={`/${safeLocale}`} showBillingNote={isPro && !apple} labels={withSupportEmail(s.deleteAccount)} appleNote={apple ? <AppStoreDeleteNote labels={t.dashboard.iap} /> : undefined} {...(appleAccount ? { appleAccount: true, appleConfirm: true } : {})} {...(deleteState ? { previewState: deleteState } : {})} />}
         />
       </DashboardShell>

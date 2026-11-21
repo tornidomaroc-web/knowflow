@@ -8,6 +8,7 @@ import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { readRefusalCode, readServerLimitMessage } from '@/lib/limit-messages';
 import { ProOfferButton, offersPro } from '@/components/iap/ProOffer';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
+import { noteSetback } from '@/lib/review/store';
 import { ClaySummary } from '@/components/clay/ClayIcons';
 
 // Only the fields this section needs from a document. The subject page already
@@ -74,6 +75,7 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
         // this student's language.
         const fromServer = res.status === 429 || res.status === 403 ? await readServerLimitMessage(res) : null;
         setError(fromServer ?? msg);
+        noteSetback();
         // In-app Pro, shell 2: the offer under a refusal Pro lifts.
         setOffer(res.status === 429 && offersPro(await readRefusalCode(res)));
         setIsLoading(false);
@@ -85,6 +87,7 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
       setIsPartial(Boolean(data.is_partial));
     } catch {
       setError(s.errors.connection);
+      noteSetback();
     }
     setIsLoading(false);
   };
