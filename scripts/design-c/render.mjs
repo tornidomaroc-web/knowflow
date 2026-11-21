@@ -182,6 +182,16 @@
  * a mic planted). CHECK 22 now also holds every shell-2 screen that existed
  * before (no stub) and the stubbed shell 1 and web to main's picture.
  *
+ * IN-APP RATING (review.mjs, feat/rating-web) adds Settings at shell 2 with
+ * the KnowFlowReview plugin stubbed (390 and 360, light and dark) and CHECK 31
+ * on its "Rate KnowFlow" row (one, last of Help and legal, Apple's
+ * write-review link with no target, one line, 56 px, no 3.1.3(f) word, the
+ * Latin names isolated, contrast as the Support row) and on the stub's calls
+ * (never `request`), with a forced case per rule; and check 22 on Settings and
+ * the quiz result at shell 2 without the stub, shell 1 and the web with it,
+ * plus the quiz result at shell 2 with the stub (the trigger runs, reads
+ * `storage` on a fresh browser and draws nothing).
+ *
  * SIGN IN WITH APPLE (apple.mjs, feat/siwa-web) adds /login and /signup at
  * shell 2 with the KnowFlowApple plugin stubbed (390 and 360), the gate
  * (shell 2 without the stub, shell 1 and the web with it: no button, the same
@@ -224,6 +234,7 @@ import { android360Screens, statRowCheck, statRowPlant, signupNoteCheck, signupN
 import { cameraScreens, cameraCheck, cameraPlant, sameCheck } from './camera.mjs';
 import { voiceScreens, voiceExpect, voiceStubSrc, voiceMock, voiceAct, voiceCheck, voicePlant, voiceStackCheck, voiceStackPlant, keepVoiceList, voicePhraseCheck, voicePhrasePlant } from './voice.mjs';
 import { appleScreens, appleExpect, appleStubSrc, appleCheck, applePlant, keepAppleList, appleEndList, appleOpenAct } from './apple.mjs';
+import { rateScreens, rateExpect, rateStubSrc, rateCheck, ratePlant, rateHref, rateDesc, rateLineRules, rateBreakAt, RATE_LINE_KINDS, RATE_KINDS } from './review.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -331,6 +342,12 @@ iapScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
 voiceScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
 // Sign in with Apple (apple.mjs): the stubbed plugin at shell 2 on /login, /signup and the delete card; the gate; check 30.
 appleScreens(add, { APP, SAFARI });
+// In-app rating (review.mjs): the Settings row at shell 2 with the KnowFlowReview stub, the gate on Settings and the quiz result; check 31.
+rateScreens(add, { APP, SAFARI });
+// Check 31: the one write-review URL, read from src/lib/review/bridge.ts.
+const HREF31 = rateHref(resolve('.'));
+// Check 31's line rules (fix 2 of #345): the approved description, read from en.ts and ar.ts.
+const DESC31 = rateDesc(resolve('.'));
 const KEEP = keepTogetherList(resolve('.'));
 // Check 26 (iap.mjs): the paywall's own protected phrases, read inside [data-kf-iap="paywall"] only.
 const KEEP26 = keepPaywallList(resolve('.'));
@@ -1082,6 +1099,8 @@ const stackForced = { ran: 0, caught: 0 };
 const phraseForced = {};
 // Check 30's forced cases (apple.mjs): per kind (contrast, removed, planted, phrase:<p>), the AFTER renders it ran on and those flagged.
 const appleForced = {};
+// Check 31's forced cases (review.mjs): per kind (RATE_KINDS), the AFTER renders it ran on and those flagged.
+const rateForced = {};
 
 async function shoot(side, job) {
   const ctx = await browser.createBrowserContext();
@@ -1117,6 +1136,8 @@ async function shoot(side, job) {
   if (job.s.voice?.stub) await tab.evaluateOnNewDocument(voiceStubSrc(job));
   // Sign in with Apple: the KnowFlowApple plugin stubbed before the page loads (apple.mjs), on both sides.
   if (job.s.apple?.stub) await tab.evaluateOnNewDocument(appleStubSrc());
+  // In-app rating: the KnowFlowReview plugin stubbed before the page loads (review.mjs), on both sides.
+  if (job.s.rate?.stub) await tab.evaluateOnNewDocument(rateStubSrc());
   const q = new URLSearchParams({ ...(side === 'before' && job.s.beforeQ ? job.s.beforeQ : job.s.q), ...(job.theme && !job.s.lands ? { theme: job.theme } : {}) }).toString();
   const url = `${SIDES[side]}/${job.locale}${job.s.path ? '/' + job.s.path : ''}${q ? '?' + q : ''}`;
   const res = await tab.goto(url, { waitUntil: 'networkidle0', timeout: 90000 });
@@ -1248,6 +1269,9 @@ async function shoot(side, job) {
   // Check 30 (apple.mjs): the Apple button only at shell 2 with the plugin, first, Apple's logo and fill, contrast; the delete card's Apple states; kept phrases. AFTER only.
   if (job.s.apple && side === 'after') await tab.evaluate(`window.appleCheck = ${appleCheck.toString()};`);
   const apple30 = job.s.apple && side === 'after' ? await tab.evaluate(appleCheck, appleExpect(job, KEEP30, ENDS30)) : null;
+  // Check 31 (review.mjs): the rating row only at shell 2 with the plugin, last in Help and legal, Apple's link, one line, 56 px, no 3.1.3(f) word, isolates, contrast; no request call; the quiz reading. AFTER only.
+  if (job.s.rate && side === 'after') await tab.evaluate(`window.rateCheck = ${rateCheck.toString()}; window.rateLineRules = ${rateLineRules.toString()}; window.rateBreakAt = ${rateBreakAt.toString()}; window.RATE_LINE_KINDS = ${JSON.stringify(RATE_LINE_KINDS)};`);
+  const rate31 = job.s.rate && side === 'after' ? await tab.evaluate(rateCheck, rateExpect(job, HREF31, DESC31)) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -1287,6 +1311,8 @@ async function shoot(side, job) {
   const voice29Plant = job.s.voice && side === 'after' ? await tab.evaluate(voicePhrasePlant, voiceExpect(job), KEEP29) : null;
   // Check 30's forced cases, after the shot, on AFTER (apple.mjs, applePlant).
   const apple30Plant = job.s.apple && side === 'after' ? await tab.evaluate(applePlant, appleExpect(job, KEEP30, ENDS30)) : null;
+  // Check 31's forced cases, after the shot, on AFTER (review.mjs, ratePlant).
+  const rate31Plant = job.s.rate && side === 'after' ? await tab.evaluate(ratePlant, rateExpect(job, HREF31, DESC31)) : null;
   // G2: check 9's forced wrong cases, after the shot (pr4.mjs, pageLabelPlant).
   const labelPlant = job.s.pr4 === 'ask' ? await tab.evaluate(pageLabelPlant) : null;
   // Finding (b): check 10's forced wrong cases, after the shot (pr4.mjs, latinPlant).
@@ -1297,7 +1323,7 @@ async function shoot(side, job) {
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant, price25, price25Plant, split24Plant, adjacent24Plant, paywall26, keep26Plant, voice27, voice27Plant, voice28, voice28Plant, voice29, voice29Plant, apple30, apple30Plant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant, price25, price25Plant, split24Plant, adjacent24Plant, paywall26, keep26Plant, voice27, voice27Plant, voice28, voice28Plant, voice29, voice29Plant, apple30, apple30Plant, rate31, rate31Plant };
 }
 
 for (const job of JOBS) {
@@ -1393,6 +1419,9 @@ for (const job of JOBS) {
       // Check 30 (apple.mjs), and its forced cases on AFTER.
       ...(r.apple30?.finding ? [`apple: ${r.apple30.finding}`] : []),
       ...(r.apple30Plant || []).filter((x) => !x.caught).map((x) => `apple: check 30 is blind: the forced case "${x.kind}" was not flagged`),
+      // Check 31 (review.mjs), and its forced cases on AFTER.
+      ...(r.rate31?.finding ? [`rate: ${r.rate31.finding}`] : []),
+      ...(r.rate31Plant || []).filter((x) => !x.caught).map((x) => `rate: check 31 is blind: the forced case "${x.kind}" was not flagged`),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -1415,6 +1444,7 @@ for (const job of JOBS) {
     if (side === 'after' && r.voice27Plant?.caught) voiceForced[r.voice27Plant.kind]++;
     if (side === 'after' && r.voice28Plant?.forced) { stackForced.ran++; if (r.voice28Plant.caught) stackForced.caught++; }
     if (side === 'after') for (const x of r.apple30Plant || []) { const c = (appleForced[x.kind] ||= { ran: 0, caught: 0 }); c.ran++; if (x.caught) c.caught++; }
+    if (side === 'after') for (const x of r.rate31Plant || []) { const c = (rateForced[x.kind] ||= { ran: 0, caught: 0 }); c.ran++; if (x.caught) c.caught++; }
     if (side === 'after') for (const x of r.voice29Plant || []) { const c = (phraseForced[x.phrase] ||= { ran: 0, caught: 0, after: {} }); c.ran++; c.after[x.after] = (c.after[x.after] || 0) + 1; if (x.caught) c.caught++; }
     if (side === 'after' && r.whole18Revert?.flagged) console.log(`       check 18 on d9647f5's layout (${job.name}): ${r.whole18Revert.finding}`);
     const tmin = Math.min(...r.a.text.map((t) => t.got));
@@ -1453,6 +1483,7 @@ for (const job of JOBS) {
       ...(r.price25 ? { price: { want: priceExpect(job.s.iap), ...r.price25.measured, finding: r.price25.finding, ...(r.price25Plant ? { forced: { caught: r.price25Plant.caught, drawn: r.price25Plant.drawn } } : {}) } } : {}),
       ...(r.voice27 ? { voice: { expect: job.s.voice, ...r.voice27.measured, finding: r.voice27.finding, act: r.acted || null, ...(r.voice27Plant ? { forced: r.voice27Plant.kind ?? null, forcedCaught: r.voice27Plant.caught ?? null } : {}), ...(r.voice29 ? { phrase29: { ...r.voice29.measured, finding: r.voice29.finding, ...(r.voice29Plant?.length ? { forced: r.voice29Plant.map((x) => ({ phrase: x.phrase, caught: x.caught })) } : {}) } } : {}), ...(r.voice28 ? { stack28: { ...r.voice28.measured, finding: r.voice28.finding, ...(r.voice28Plant ? { forced: r.voice28Plant.kind ?? null, forcedCaught: r.voice28Plant.caught ?? null, forcedMeasured: r.voice28Plant.measured ?? null } : {}) } } : {}) } } : {}),
       ...(r.apple30 ? { apple: { expect: job.s.apple, ...r.apple30.measured, finding: r.apple30.finding, ...(r.apple30Plant ? { forced: r.apple30Plant.map((x) => ({ kind: x.kind, caught: x.caught })) } : {}) } } : {}),
+      ...(r.rate31 ? { rate: { expect: job.s.rate, ...r.rate31.measured, finding: r.rate31.finding, ...(r.rate31Plant ? { forced: r.rate31Plant.map((x) => ({ kind: x.kind, caught: x.caught })) } : {}) } } : {}),
       ...(job.s.native ? { app: { appleButtons: r.gate.apple.length, googleButtons: r.gate.google.length, purchaseWords: words } } : {}),
     };
     console.log(`${side === 'after' && bad.length ? 'FAIL' : 'ok  '} ${side.padEnd(6)} ${job.name}: theme ${r.theme}, ${r.fonts.loaded.length} static faces, text worst ${tmin.toFixed(2)}:1, ${bad.length} finding(s)`);
@@ -1526,6 +1557,13 @@ for (const k of ['contrast', 'removed', 'planted', 'gap', 'alone', 'red', ...KEE
   if (!c || !c.ran) never(`check 30 was never forced for "${k}": no AFTER Apple render ran it`);
   else if (c.caught !== c.ran) never(`check 30 is blind for "${k}": caught on ${c.caught} of ${c.ran} AFTER render(s)`);
   else console.log(`check 30 (Sign in with Apple), forced case "${k}": caught on ${c.caught} of ${c.ran} AFTER render(s)`);
+}
+// Check 31 (review.mjs): every forced kind ran and was caught on every AFTER render it ran on.
+for (const k of RATE_KINDS) {
+  const c = rateForced[k];
+  if (!c || !c.ran) never(`check 31 was never forced for "${k}": no AFTER rating render ran it`);
+  else if (c.caught !== c.ran) never(`check 31 is blind for "${k}": caught on ${c.caught} of ${c.ran} AFTER render(s)`);
+  else console.log(`check 31 (the rating row and trigger), forced case "${k}": caught on ${c.caught} of ${c.ran} AFTER render(s)`);
 }
 if (!sameSeen.compared) never('check 22 compared no screen');
 else console.log(`check 22 (shell 1, the web, and shell 2 without the plugin unchanged): ${sameSeen.same} of ${sameSeen.compared} screen(s) the same picture before and after`);

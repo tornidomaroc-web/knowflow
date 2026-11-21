@@ -15,6 +15,7 @@ import { parseUploadReply } from '@/lib/upload-limits';
 import { AI_CONSENT_REFUSAL } from '@/lib/ai-consent';
 import { PAGES_UNREAD } from '@/lib/page-reader';
 import { ProOfferButton, offersPro } from '@/components/iap/ProOffer';
+import { noteSetback } from '@/lib/review/store';
 import {
   MAX_PAGE_PHOTOS,
   materialName,
@@ -126,7 +127,10 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
     }
     setPages((prev) => [...prev, ...added].slice(0, MAX_PAGE_PHOTOS));
     setPhase('idle');
-    if (failed) setMessage(labels.photoUnreadable);
+    if (failed) {
+      setMessage(labels.photoUnreadable);
+      noteSetback();
+    }
   }, [pages.length, labels.photoUnreadable]);
 
   const remove = (id: string) => {
@@ -163,6 +167,7 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
     if (!userId) {
       setPhase('idle');
       setMessage(uploadRefusalMessage(locale, 'session'));
+      noteSetback();
       return;
     }
     const name = materialName(labels.defaultName, new Date());
@@ -194,8 +199,14 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
     setProgress(null);
     setPhase('idle');
 
-    if (result.kind === 'upload-failed') return setMessage(labels.uploadFailed);
-    if (result.kind === 'unconfirmed') return setMessage(labels.unconfirmed);
+    if (result.kind === 'upload-failed') {
+      noteSetback();
+      return setMessage(labels.uploadFailed);
+    }
+    if (result.kind === 'unconfirmed') {
+      noteSetback();
+      return setMessage(labels.unconfirmed);
+    }
 
     const reply = parseUploadReply(result.text) as (Record<string, unknown> & { success?: boolean; error?: string; code?: string }) | null;
     const marked = unreadPages(reply?.photos);
@@ -216,6 +227,8 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
       setPages([]);
       return;
     }
+    // In-app rating (item 4h): every way past here is a refusal or an error line.
+    noteSetback();
 
     // Not saved. The photos stay, each marked with what the route said of it.
     // A 422 pages-unread means NO photo was read (the route marks each one

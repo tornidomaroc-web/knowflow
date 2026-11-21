@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getEntitlementDetail } from '@/lib/entitlement'
 import { redirect } from 'next/navigation'
 import { SettingsPanel } from '@/components/dashboard/SettingsPanel'
+import { RateRow } from '@/components/review/RateRow'
 import { DeleteAccountCard } from '@/components/dashboard/DeleteAccountCard'
 import { AiConsentCard } from '@/components/ai-consent/AiConsentCard'
 import { StudyReminderCard } from '@/components/reminder/StudyReminderCard'
@@ -158,6 +159,9 @@ export default async function SettingsPage({
         <ProOfferCard title={t.dashboard.iap.title} body={t.dashboard.iap.offerBody} button={t.dashboard.iap.offerButton} />
       ) : undefined}
       signOutRow={<SignOutButton locale={safeLocale} label={t.dashboard.nav.signOut} variant="row" />}
+      // In-app rating (item 4h): Apple's write-review link, drawn only once the
+      // KnowFlowReview plugin answers (src/components/review/RateRow.tsx).
+      rateRow={<RateRow label={s.rate} description={s.rateDesc} />}
       deleteCard={
         <DeleteAccountCard
           homeHref={`/${safeLocale}`}

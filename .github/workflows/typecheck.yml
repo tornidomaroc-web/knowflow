@@ -264,6 +264,20 @@ jobs:
       - name: Verify universal links (the AASA allowlist, its route, the web-only Smart App Banner)
         run: node --experimental-strip-types scripts/verify-universal-links.mjs
 
+      # In-app rating, item 4h PR 1 (web only, no ios/; dormant until PR 2's
+      # KnowFlowReview plugin): every decide() boundary (tenure 2/3 days, wins
+      # 1/2, 2/5 vs 3/5 and a 2-question quiz, same/new version, 119/120 days,
+      # setback today/yesterday, clock moved back), the kf-review store's failure
+      # modes (missing, corrupt, wrong v, throwing localStorage: no ask), the gate
+      # (web, shell 1, Android, shell 2 without the plugin, forged UA: null), the
+      # trigger's sequence (request only after the wait, the live checks with a
+      # closed Sheet not blocking, and a held "asked" write), and the sources:
+      # request() from ReviewTrigger only, no handler reaching it, the write-review
+      # URL once, no reward word, the Settings row last in Help and legal, the
+      # approved strings (app v15), one counted result per day (lastWin). 44 failures on main e7948da.
+      - name: Verify the in-app rating (the rules, the device record, the gate, one trigger, the Settings link)
+        run: node --experimental-strip-types scripts/verify-review.mjs
+
       # Register #113. Imports the real upload estimate (measured rate, stages, the
       # 90% cap) and reads DropZone for the progress transport and the #50/#111 checks.
       - name: Verify the upload shows real progress and an honest estimate (register #113)

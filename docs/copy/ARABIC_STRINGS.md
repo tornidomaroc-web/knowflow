@@ -1,7 +1,7 @@
 # Every Arabic UI string, by screen
 
-Generated 2026-11-20 by `scripts/export-arabic-strings.mjs` from
-`src/lib/i18n/locales/ar.ts` and `en.ts`. **533 Arabic strings.**
+Generated 2026-11-21 by `scripts/export-arabic-strings.mjs` from
+`src/lib/i18n/locales/ar.ts` and `en.ts`. **535 Arabic strings.**
 
 How to use it: rewrite the Arabic column in a friendly voice for young
 students; keep every `{placeholder}` exactly as it is (it is filled by the
@@ -472,6 +472,8 @@ file is not read by the app.
 | `dashboard.settings.terms` | شروط الخدمة | Terms of Service |
 | `dashboard.settings.support` | تواصل معنا | Contact support |
 | `dashboard.settings.supportDesc` | نرد عليك بالبريد الإلكتروني. | We answer by email. |
+| `dashboard.settings.rate` | قيّم KnowFlow | Rate KnowFlow |
+| `dashboard.settings.rateDesc` | قيّم التطبيق أو اكتب مراجعة في App Store. | Rate the app or write a review on the App Store. |
 | `dashboard.settings.account` | الحساب | Account |
 | `dashboard.settings.email` | البريد الإلكتروني | Email |
 | `dashboard.settings.plan` | الباقة | Plan |

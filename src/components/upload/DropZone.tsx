@@ -22,6 +22,7 @@ import { expectedProcessingSeconds, processingFraction, processingStage } from '
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 import { pagesWithoutText } from '@/lib/material-text';
 import { afterConsent } from '@/lib/upload-consent';
+import { noteSetback } from '@/lib/review/store';
 
 interface DropZoneProps {
   kbId: string;
@@ -143,6 +144,7 @@ export function DropZone({ kbId, onSuccess, previewFile, previewCamera }: DropZo
     // drop zone and the route's own guard all read `@/lib/upload-limits`.
     if (isOverUploadLimit(picked.size)) {
       setErrorMsg(fileTooLargeMessage(safeLocale, picked.size));
+      noteSetback();
       setState('error');
       return;
     }
@@ -151,6 +153,7 @@ export function DropZone({ kbId, onSuccess, previewFile, previewCamera }: DropZo
     const ext = fileExtension(picked.name);
     if (!isAllowedFileType(ext)) {
       setErrorMsg(uploadRefusalMessage(safeLocale, 'type', ext));
+      noteSetback();
       setState('error');
       return;
     }
@@ -201,6 +204,7 @@ export function DropZone({ kbId, onSuccess, previewFile, previewCamera }: DropZo
       // own error text is English and says nothing a student can act on, and
       // whether the file arrived is unknown, which `uploadFailed` says.
       setErrorMsg(u.uploadFailed);
+      noteSetback();
       setState('error');
       return;
     }
@@ -212,6 +216,7 @@ export function DropZone({ kbId, onSuccess, previewFile, previewCamera }: DropZo
       setErrorMsg(uploadFailureMessage(safeLocale, status, data, picked.size, u.uploadFailed));
       // In-app Pro, shell 2: the offer under a refusal Pro lifts.
       setOffer(status === 429 && offersPro((data as { code?: unknown } | null)?.code));
+      noteSetback();
       setState('error');
       return;
     }

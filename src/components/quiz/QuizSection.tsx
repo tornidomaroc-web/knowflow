@@ -8,6 +8,8 @@ import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { readRefusalCode, readServerLimitMessage } from '@/lib/limit-messages';
 import { ProOfferButton, offersPro } from '@/components/iap/ProOffer';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
+import { useReviewTrigger } from '@/components/review/ReviewTrigger';
+import { noteSetback } from '@/lib/review/store';
 import { ClayChoiceEmpty, ClayChoicePicked, ClayChoiceRight, ClayChoiceWrong, ClayDoc, ClayQuiz } from '@/components/clay/ClayIcons';
 
 // Only the fields this section needs from a document, mirroring SummarySection's
@@ -97,6 +99,9 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(previewEmpty ? q.errors.notEnoughText : null);
   const [offer, setOffer] = useState(false);
+  // In-app rating (item 4h): the result screen is the one moment the app may
+  // ask Apple; nothing is drawn, the reading is an inert attribute on the root.
+  const review = useReviewTrigger(phase, score, total);
 
   // Status map for POST /api/quiz/generate. Its real set, read from the route:
   // 400 (missing document_id — unreachable from this UI), 401, 404, 409, 422,
@@ -156,6 +161,7 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
         // A 403 is the route's own consent refusal (src/lib/ai-consent.ts).
         const fromServer = res.status === 429 || res.status === 403 ? await readServerLimitMessage(res) : null;
         setError(fromServer ?? generateError(res.status));
+        noteSetback();
         // In-app Pro, shell 2: the offer under a refusal Pro lifts.
         setOffer(res.status === 429 && offersPro(await readRefusalCode(res)));
         setPhase('idle');
@@ -172,6 +178,7 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
       // the student answer nothing and then fail.
       if (loaded.length === 0) {
         setError(q.errors.incomplete);
+        noteSetback();
         setPhase('idle');
         return;
       }
@@ -184,6 +191,7 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
       setPhase('taking');
     } catch {
       setError(q.errors.connection);
+      noteSetback();
       setPhase('idle');
     }
   };
@@ -215,6 +223,7 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
 
       if (!res.ok) {
         setError(submitError(res.status));
+        noteSetback();
         setPhase('taking');
         return;
       }
@@ -226,6 +235,7 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
       setPhase('result');
     } catch {
       setError(q.errors.connection);
+      noteSetback();
       setPhase('taking');
     }
   };
@@ -284,7 +294,7 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
   // answer, shown only where the route revealed it), a red coin with a cross
   // (a wrong pick). An unanswered question keeps its sentence.
   return (
-    <div data-kf-quiz={phase} className="kf-well col-span-full rounded-[1.5rem] p-3 md:p-4">
+    <div data-kf-quiz={phase} {...(review ? { 'data-kf-review': review } : {})} className="kf-well col-span-full rounded-[1.5rem] p-3 md:p-4">
       <h3 className="mb-3 flex items-center gap-2 px-1 text-[0.9375rem] font-extrabold text-foreground">
         <ClayQuiz width={22} height={22} className="shrink-0" />
         <span>{q.heading}</span>

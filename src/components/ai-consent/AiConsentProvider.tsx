@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Button, Sheet } from '@/components/ui';
 import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
@@ -10,6 +10,7 @@ import { FileName } from '@/components/ui/FileName';
 import { LatinText } from '@/components/ui/LatinText';
 import { ClayUploadFile } from '@/components/clay/ClayIcons';
 import { createClient } from '@/lib/supabase/client';
+import { noteFirstUse } from '@/lib/review/store';
 import { AI_CONSENT_VERSION, AI_CONSENT_WITHDRAWN, aiConsentGrant, PAGE_READ_CONSENT_VERSION } from '@/lib/ai-consent';
 import type { useTranslation } from '@/lib/i18n';
 
@@ -108,6 +109,13 @@ export function AiConsentProvider({
   // writes PAGE_READ_CONSENT_VERSION.
   const photosRef = useRef(initialPhotosConsented);
   const [askPhotos, setAskPhotos] = useState(preview && previewPhotos);
+
+  // In-app rating (item 4h): this provider mounts once per dashboard visit,
+  // so it holds the device's first-use stamp (src/lib/review/store.ts). It
+  // writes only where the rating can be reached and draws nothing.
+  useEffect(() => {
+    if (!preview) noteFirstUse();
+  }, [preview]);
 
   const persist = useCallback(
     (data: Record<string, unknown>) => (preview ? Promise.resolve(true) : saveToAccount(data)),
