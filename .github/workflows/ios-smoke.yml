@@ -400,71 +400,11 @@ jobs:
           [ -n "$b" ] && cp "$b" "$RUNNER_TEMP/smoke.boot"
           test -n "$(sf smoke.done)" || { echo "FAIL: the smoke run did not finish; lines seen: $seen"; [ -n "$f" ] && cat "$f"; find "$data/tmp" -maxdepth 3 | head -n 30; grep -iE 'KFSmoke|Unknown class|crash|fatal' "$RUNNER_TEMP/app-online.log" | tail -n 30 || true; exit 1; }
 
-      # Proof 6, two launches on the live site's first page (sign-up: this run
-      # never signs in, so neither launch carries the kf-seen mark and both
-      # open on the same page; the steps read no page, only the plugin); the steps
-      # call the plugin through the bridge (Capacitor.nativePromise), so this
-      # needs no change on the site. Launch A is a fresh install: nothing may
-      # ask at launch, and a request must raise the system prompt (the app
-      # goes inactive under it; the screenshot shows it). Launch B starts with
-      # provisional authorization (KF_SMOKE_NOTIFY, MainViewController.swift),
-      # which iOS grants with no prompt, and schedules, replaces and cancels
-      # the reminder exactly as the Settings card does.
-      - name: Smoke run of the reminder plugin (proof 6)
-        run: |
-          set -eu
-          run_launch() {
-            label=$1; steps_file=$2; extra_env=$3
-            steps=$(base64 < "$steps_file" | tr -d '\n')
-            data=$(xcrun simctl get_app_container "$UDID" com.knowflow.app data)
-            sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
-            find "$data/tmp" -maxdepth 3 \( -name 'smoke.*' -o -name 'ack-*' \) -delete 2>/dev/null || true
-            if [ -n "$extra_env" ]; then
-              SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_NOTIFY="$extra_env" SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$steps" &
-            else
-              SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$steps" &
-            fi
-            seen=0
-            for i in $(seq 1 200); do
-              f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
-              if [ "$n" -gt "$seen" ]; then
-                seen=$n
-                name=$(tail -n 1 "$f" | python3 -c 'import json,sys; print(json.loads(sys.stdin.readline())["step"])')
-                xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$label-$seen-$name.png" >/dev/null 2>&1 || true
-                echo "$label step $seen ($name): $(tail -n 1 "$f" | python3 -c 'import json,sys; r=json.loads(sys.stdin.readline()); print(r.get("result"), "appState", r.get("appState"))')"
-                touch "$(dirname "$f")/ack-$seen"
-              fi
-              [ -n "$(sf smoke.done)" ] && break
-              sleep 1
-            done
-            f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$RUNNER_TEMP/smoke-$label.jsonl"
-            xcrun simctl terminate "$UDID" com.knowflow.app || true
-            test -n "$(sf smoke.done)" || { echo "FAIL: the $label run did not finish; lines seen: $seen"; exit 1; }
-          }
-          cat > "$RUNNER_TEMP/notify-a.json" <<'JSON'
-          [
-            {"name":"notify-launch","wait":2500,"js":"(function(){var C=window.Capacitor;window.__kfN='pending';if(!C||!C.nativePromise){return 'no bridge'}var av=C.isPluginAvailable('LocalNotifications');C.nativePromise('LocalNotifications','checkPermissions',{}).then(function(r){window.__kfN=r.display},function(e){window.__kfN='error '+e.message});return 'available='+av})()"},
-            {"name":"notify-status","wait":500,"js":"(function(){return String(window.__kfN)})()"},
-            {"name":"notify-request","wait":4000,"js":"(function(){window.Capacitor.nativePromise('LocalNotifications','requestPermissions',{});return 'requested'})()"},
-            {"name":"notify-request-held","wait":3000,"js":"(function(){return 'still under the prompt?'})()"}
-          ]
-          JSON
-          cat > "$RUNNER_TEMP/notify-b.json" <<'JSON'
-          [
-            {"name":"notify-b-check","wait":1500,"js":"(function(){window.__kfN='pending';window.Capacitor.nativePromise('LocalNotifications','checkPermissions',{}).then(function(r){window.__kfN=r.display},function(e){window.__kfN='error '+e.message});return 'asked'})()"},
-            {"name":"notify-b-status","wait":300,"js":"(function(){return String(window.__kfN)})()"},
-            {"name":"notify-b-1900","wait":3000,"js":"(function(){var N=function(m,o){return window.Capacitor.nativePromise('LocalNotifications',m,o||{})};window.__kfP='pending';N('schedule',{notifications:[{id:7001,title:'Time to study',body:'Open KnowFlow and review one material today.',schedule:{on:{hour:19,minute:0},allowWhileIdle:true},extra:{kind:'study-reminder',hour:19,minute:0,locale:'en'}}]}).then(function(){return N('getPending')}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});return 'scheduled 19:00'})()"},
-            {"name":"notify-b-pending-1900","wait":300,"js":"(function(){return String(window.__kfP)})()"},
-            {"name":"notify-b-0730","wait":3000,"js":"(function(){var N=function(m,o){return window.Capacitor.nativePromise('LocalNotifications',m,o||{})};window.__kfP='pending';N('schedule',{notifications:[{id:7001,title:'Time to study',body:'Open KnowFlow and review one material today.',schedule:{on:{hour:7,minute:30},allowWhileIdle:true},extra:{kind:'study-reminder',hour:7,minute:30,locale:'en'}}]}).then(function(){return N('getPending')}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});return 'scheduled 07:30'})()"},
-            {"name":"notify-b-pending-0730","wait":300,"js":"(function(){return String(window.__kfP)})()"},
-            {"name":"notify-b-cancel","wait":3000,"js":"(function(){var N=function(m,o){return window.Capacitor.nativePromise('LocalNotifications',m,o||{})};window.__kfP='pending';N('cancel',{notifications:[{id:7001}]}).then(function(){return N('getPending')}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id}}))},function(e){window.__kfP='error '+e.message});return 'cancelled'})()"},
-            {"name":"notify-b-pending-none","wait":300,"js":"(function(){return String(window.__kfP)})()"}
-          ]
-          JSON
-          run_launch notify-a "$RUNNER_TEMP/notify-a.json" ""
-          run_launch notify-b "$RUNNER_TEMP/notify-b.json" provisional
-
-      # Proof 13 (universal links, item 4g), one cold launch. KF_SMOKE_UL=1
+      # Proof 13 (universal links, item 4g), one cold launch, BEFORE proof 6:
+      # proof 6 leaves the notification prompt up across launches, which keeps
+      # the app inactive (appState 1; run 44845899644), and this proof needs
+      # the app active to show example.com did not hand off to Safari.
+      # KF_SMOKE_UL=1
       # turns on tmp/ul.log (every URL the web view takes, without its query,
       # and every outcome of the observer); KF_SMOKE_UL_COLD carries the two
       # links handed over at the first capacitorViewDidAppear. The steps then
@@ -544,13 +484,77 @@ jobs:
           end_idle = i_for if i_for is not None else len(texts)
           need(i_idle is not None and "isLoading=false" in texts[i_idle] and count(i_idle, end_idle, "link: loaded") == 1 and settled("ul-idle") and re.match(LOGIN, href("ul-idle")), f"13. idle: the web view ends on /en/login?notice=link_expired, one load: {texts[i_idle] if i_idle is not None else None} -> {href('ul-idle')}")
           F = rows.get("ul-foreign", {})
-          need(i_for is not None and any(t.startswith("link: ignored") for t in texts[i_for:]) and count(i_for, len(texts), "link: loaded") == 0 and href("ul-foreign") == href("ul-idle") and F.get("appState") == 0, f"13. example.com leaves the URL unchanged (ignored, no load, app active): {href('ul-foreign')} appState={F.get('appState')}")
+          need(i_for is not None and any(t.startswith("link: ignored") for t in texts[i_for:]) and count(i_for, len(texts), "link: loaded") == 0 and href("ul-foreign") == href("ul-idle") and F.get("appState") == 0 and rows.get("ul-idle", {}).get("appState") == 0, f"13. example.com leaves the URL unchanged (ignored, no load, app still active: before {rows.get('ul-idle', {}).get('appState')}, after {F.get('appState')}; 1 or 2 would be Safari taking it): {href('ul-foreign')}")
           urls = [t[4:] for t in texts if t.startswith("url ")]
           need(len(urls) >= 3 and not any("offline.html" in u for u in urls) and not any("offline.html" in href(s) for s in rows), f"13. offline.html never loads: {len(urls)} URL(s) taken: {urls}")
           print(f"info cold: from the first handover to the load, {[(ms - log[cold[0]][0]) for ms, t in log[cold[0]:end_cold] if t == 'link: loaded'] if cold else None} ms")
           print(f"\n{len(fails)} failure(s)")
           sys.exit(1 if fails else 0)
           PY
+
+      # Proof 6, two launches on the live site's first page (sign-up: this run
+      # never signs in, so neither launch carries the kf-seen mark and both
+      # open on the same page; the steps read no page, only the plugin); the steps
+      # call the plugin through the bridge (Capacitor.nativePromise), so this
+      # needs no change on the site. Launch A is a fresh install: nothing may
+      # ask at launch, and a request must raise the system prompt (the app
+      # goes inactive under it; the screenshot shows it). Launch B starts with
+      # provisional authorization (KF_SMOKE_NOTIFY, MainViewController.swift),
+      # which iOS grants with no prompt, and schedules, replaces and cancels
+      # the reminder exactly as the Settings card does.
+      - name: Smoke run of the reminder plugin (proof 6)
+        run: |
+          set -eu
+          run_launch() {
+            label=$1; steps_file=$2; extra_env=$3
+            steps=$(base64 < "$steps_file" | tr -d '\n')
+            data=$(xcrun simctl get_app_container "$UDID" com.knowflow.app data)
+            sf() { find "$data/tmp" -maxdepth 3 -name "$1" 2>/dev/null | head -n 1; }
+            find "$data/tmp" -maxdepth 3 \( -name 'smoke.*' -o -name 'ack-*' \) -delete 2>/dev/null || true
+            if [ -n "$extra_env" ]; then
+              SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_NOTIFY="$extra_env" SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$steps" &
+            else
+              SIMCTL_CHILD_KF_SMOKE=1 SIMCTL_CHILD_KF_SMOKE_STEPS="$steps" xcrun simctl launch "$UDID" com.knowflow.app --kf-smoke "--kf-steps=$steps" &
+            fi
+            seen=0
+            for i in $(seq 1 200); do
+              f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
+              if [ "$n" -gt "$seen" ]; then
+                seen=$n
+                name=$(tail -n 1 "$f" | python3 -c 'import json,sys; print(json.loads(sys.stdin.readline())["step"])')
+                xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$label-$seen-$name.png" >/dev/null 2>&1 || true
+                echo "$label step $seen ($name): $(tail -n 1 "$f" | python3 -c 'import json,sys; r=json.loads(sys.stdin.readline()); print(r.get("result"), "appState", r.get("appState"))')"
+                touch "$(dirname "$f")/ack-$seen"
+              fi
+              [ -n "$(sf smoke.done)" ] && break
+              sleep 1
+            done
+            f=$(sf smoke.jsonl); [ -n "$f" ] && cp "$f" "$RUNNER_TEMP/smoke-$label.jsonl"
+            xcrun simctl terminate "$UDID" com.knowflow.app || true
+            test -n "$(sf smoke.done)" || { echo "FAIL: the $label run did not finish; lines seen: $seen"; exit 1; }
+          }
+          cat > "$RUNNER_TEMP/notify-a.json" <<'JSON'
+          [
+            {"name":"notify-launch","wait":2500,"js":"(function(){var C=window.Capacitor;window.__kfN='pending';if(!C||!C.nativePromise){return 'no bridge'}var av=C.isPluginAvailable('LocalNotifications');C.nativePromise('LocalNotifications','checkPermissions',{}).then(function(r){window.__kfN=r.display},function(e){window.__kfN='error '+e.message});return 'available='+av})()"},
+            {"name":"notify-status","wait":500,"js":"(function(){return String(window.__kfN)})()"},
+            {"name":"notify-request","wait":4000,"js":"(function(){window.Capacitor.nativePromise('LocalNotifications','requestPermissions',{});return 'requested'})()"},
+            {"name":"notify-request-held","wait":3000,"js":"(function(){return 'still under the prompt?'})()"}
+          ]
+          JSON
+          cat > "$RUNNER_TEMP/notify-b.json" <<'JSON'
+          [
+            {"name":"notify-b-check","wait":1500,"js":"(function(){window.__kfN='pending';window.Capacitor.nativePromise('LocalNotifications','checkPermissions',{}).then(function(r){window.__kfN=r.display},function(e){window.__kfN='error '+e.message});return 'asked'})()"},
+            {"name":"notify-b-status","wait":300,"js":"(function(){return String(window.__kfN)})()"},
+            {"name":"notify-b-1900","wait":3000,"js":"(function(){var N=function(m,o){return window.Capacitor.nativePromise('LocalNotifications',m,o||{})};window.__kfP='pending';N('schedule',{notifications:[{id:7001,title:'Time to study',body:'Open KnowFlow and review one material today.',schedule:{on:{hour:19,minute:0},allowWhileIdle:true},extra:{kind:'study-reminder',hour:19,minute:0,locale:'en'}}]}).then(function(){return N('getPending')}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});return 'scheduled 19:00'})()"},
+            {"name":"notify-b-pending-1900","wait":300,"js":"(function(){return String(window.__kfP)})()"},
+            {"name":"notify-b-0730","wait":3000,"js":"(function(){var N=function(m,o){return window.Capacitor.nativePromise('LocalNotifications',m,o||{})};window.__kfP='pending';N('schedule',{notifications:[{id:7001,title:'Time to study',body:'Open KnowFlow and review one material today.',schedule:{on:{hour:7,minute:30},allowWhileIdle:true},extra:{kind:'study-reminder',hour:7,minute:30,locale:'en'}}]}).then(function(){return N('getPending')}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id,on:n.schedule&&n.schedule.on}}))},function(e){window.__kfP='error '+e.message});return 'scheduled 07:30'})()"},
+            {"name":"notify-b-pending-0730","wait":300,"js":"(function(){return String(window.__kfP)})()"},
+            {"name":"notify-b-cancel","wait":3000,"js":"(function(){var N=function(m,o){return window.Capacitor.nativePromise('LocalNotifications',m,o||{})};window.__kfP='pending';N('cancel',{notifications:[{id:7001}]}).then(function(){return N('getPending')}).then(function(r){window.__kfP=JSON.stringify(r.notifications.map(function(n){return {id:n.id}}))},function(e){window.__kfP='error '+e.message});return 'cancelled'})()"},
+            {"name":"notify-b-pending-none","wait":300,"js":"(function(){return String(window.__kfP)})()"}
+          ]
+          JSON
+          run_launch notify-a "$RUNNER_TEMP/notify-a.json" ""
+          run_launch notify-b "$RUNNER_TEMP/notify-b.json" provisional
 
       # The site unreachable for one launch: its name resolves to 127.0.0.1
       # for the whole runner (the simulator uses the host's resolver), the app
