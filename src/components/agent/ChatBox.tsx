@@ -8,6 +8,7 @@ import { MessageBubble, Citation } from './MessageBubble';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { askSuggestions, type MaterialForSuggestion } from '@/lib/ask-suggestions';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
+import { noteSetback } from '@/lib/review/store';
 import Link from 'next/link';
 import { ClayAnswer, ClayAskArt, ClayBook, ClayQuiz, ClaySend, ClaySpark, ClaySummary, ClayUploadGlyph } from '@/components/clay/ClayIcons';
 import { UserName } from '@/components/ui/UserName';
@@ -219,6 +220,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
       if (res.status === 409 && res.headers.get('X-KF-Refusal') === NO_MATERIAL_REFUSAL) {
         setMessages(prev => prev.filter(m => m.id !== userMsg.id));
         setNoMaterial(true);
+        noteSetback();
         onNoMaterial?.();
         setIsLoading(false);
         return;
@@ -235,6 +237,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
           content: body || t.dashboard.agent.connectionError,
         }]);
         setInput(userMsg.content);
+        noteSetback();
         setIsLoading(false);
         return;
       }
@@ -248,6 +251,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
           content: body || t.dashboard.agent.connectionError,
           ...(offer ? { offer } : {}),
         }]);
+        noteSetback();
         setIsLoading(false);
         return;
       }
@@ -279,6 +283,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
     } catch (error) {
       console.error(error);
       setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: t.dashboard.agent.connectionError }]);
+      noteSetback();
     }
     setIsLoading(false);
   };

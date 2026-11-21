@@ -36,7 +36,9 @@
  *     529 after voice input in Ask added the 13 of dashboard.agent.voice,
  *     approved 2026-11-19 in app v13; 533 after Sign in with Apple retired
  *     auth.appleFailed and added auth.appleUnfinished and four of
- *     dashboard.settings.deleteAccount, approved 2026-11-20 in app v14).
+ *     dashboard.settings.deleteAccount, approved 2026-11-20 in app v14; 535
+ *     after the in-app rating added dashboard.settings.rate and rateDesc,
+ *     approved 2026-11-21 in app v15).
  *  7. RETIRED KEYS. A key the app no longer has is listed in RETIRED with the
  *     ruling that removed it. Its rows stay in the batch files, which are the
  *     owner's approved record and are never edited; they are read and checked
@@ -178,7 +180,7 @@ console.error(`${approved.size} keys asserted, ${superseded} earlier rows supers
   const onlyEn = [...E.keys()].filter((k) => !A.has(k)).sort();
   check(onlyAr.join() === [...pluralOnly].sort().join(), `keys only in ar.ts: ${onlyAr.join(', ') || '(none)'}; expected the four plural forms`);
   check(onlyEn.length === 0, `keys missing from ar.ts: ${onlyEn.join(', ')}`);
-  check(A.size === 533, `ar.ts has ${A.size} leaves, expected 533`);
+  check(A.size === 535, `ar.ts has ${A.size} leaves, expected 535`);
 }
 
 // 3. Placeholders on every key.

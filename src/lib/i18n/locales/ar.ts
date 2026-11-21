@@ -441,6 +441,9 @@ export const ar: Translation = {
       terms: "شروط الخدمة",
       support: "تواصل معنا",
       supportDesc: "نرد عليك بالبريد الإلكتروني.",
+      // In-app rating (item 4h): APPROVED 2026-11-21, docs/copy/ARABIC_STRINGS_app_v15.md.
+      rate: "قيّم KnowFlow",
+      rateDesc: "قيّم التطبيق أو اكتب مراجعة في App Store.",
       account: "الحساب",
       email: "البريد الإلكتروني",
       plan: "الباقة",

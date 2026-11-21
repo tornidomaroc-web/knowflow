@@ -470,6 +470,9 @@ export const en = {
       terms: "Terms of Service",
       support: "Contact support",
       supportDesc: "We answer by email.",
+      // In-app rating (item 4h): APPROVED 2026-11-21, docs/copy/ARABIC_STRINGS_app_v15.md.
+      rate: "Rate KnowFlow",
+      rateDesc: "Rate the app or write a review on the App Store.",
       account: "Account",
       email: "Email",
       plan: "Plan",
