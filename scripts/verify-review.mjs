@@ -10,10 +10,13 @@
  *     and a 2-question quiz; the same app version vs a new one; 119 vs 120
  *     days since the last ask; a setback today vs yesterday; the device clock
  *     moved back (before the first-use day, before the last ask, a setback
- *     dated "tomorrow") asks nothing; no version asks nothing.
+ *     dated "tomorrow") asks nothing; no version asks nothing. At most ONE
+ *     qualifying result counts per calendar day (lastWin, fix 1 of #345): a
+ *     same-day retake reads few-wins, the next day makes wins 2, a win day
+ *     after today counts nothing, a low score never touches the win day.
  *  2. THE STORE (src/lib/review/store.ts, localStorage `kf-review`). A
  *     missing record, corrupt JSON, a wrong `v`, an unknown field and a
- *     localStorage that throws each ask nothing; the first three are
+ *     localStorage that throws each ask nothing (a bad lastWin too); the first three are
  *     rewritten as a fresh record dated today; a throwing store writes
  *     nothing. noteFirstUse() stamps once and never moves the stamp;
  *     noteSetback() dates today. Without the bridge nothing is written.
@@ -125,7 +128,7 @@ if (rules) {
   check(JSON.stringify(THRESHOLDS) === JSON.stringify({ minTotal: 3, minRatio: 0.6, minWins: 2, minDays: 3, gapDays: 120 }), 'THRESHOLDS are the study\'s: 3 questions, 60%, 2 wins, 3 days, 120 days', JSON.stringify(THRESHOLDS));
   check(dayOf(at('2027-01-04', 0)) === '2027-01-04' && dayOf(at('2027-01-04', 23)) === '2027-01-04', 'dayOf is the device\'s calendar day');
   check(daysBetween('2026-12-31', '2027-01-03') === 3 && daysBetween('2027-01-03', '2026-12-31') === -3 && daysBetween('2027-03-27', '2027-03-28') === 1, 'daysBetween counts calendar days, across a year end and a DST night');
-  const base = { v: 1, first: '2027-01-01', wins: 1, askedVersion: null, askedAt: null, setback: null };
+  const base = { v: 1, first: '2027-01-01', wins: 1, askedVersion: null, askedAt: null, setback: null, lastWin: null };
   const good = { score: 4, total: 5 };
   const NOW = at('2027-01-10');
   const D = (s, m = good, now = NOW, v = '1.1', o) => decide({ ...base, ...s }, m, now, v, o);
@@ -164,6 +167,27 @@ if (rules) {
   check(D({ askedVersion: '1.0.1', askedAt: '2027-03-01' }).ask === false, 'clock moved back before the last ask: no ask', D({ askedVersion: '1.0.1', askedAt: '2027-03-01' }).reason);
   check(D({ setback: '2027-01-11' }).ask === false, 'a setback dated "tomorrow" (clock moved back): no ask', D({ setback: '2027-01-11' }).reason);
   check(D({}, good, new Date(NaN)).ask === false, 'an invalid clock: no ask');
+  // One counted result per calendar day (fix 1 of #345, the reviewer's decision for the owner).
+  {
+    const d0 = { ...base, wins: 0, lastWin: null };
+    const first = decide(d0, good, NOW, '1.1');
+    check(first.next.wins === 1 && first.next.lastWin === '2027-01-10', 'a qualifying result counts and dates the win day', JSON.stringify(first.next));
+    const again = decide(first.next, good, at('2027-01-10', 20), '1.1');
+    check(again.next.wins === 1 && again.next.lastWin === '2027-01-10', 'two qualifying results on the same day count as one win', JSON.stringify(again.next));
+    check(again.reason === 'few-wins' && again.ask === false, 'a retake the same day after one win reads few-wins', again.reason);
+    const nextDay = decide(first.next, good, at('2027-01-11'), '1.1');
+    check(nextDay.next.wins === 2 && nextDay.next.lastWin === '2027-01-11' && nextDay.ask === true, 'a qualifying result the next day makes wins 2 (and asks)', JSON.stringify(nextDay));
+    const back = decide({ ...base, wins: 1, lastWin: '2027-01-11' }, good, NOW, '1.1');
+    check(back.next.wins === 1 && back.next.lastWin === '2027-01-11' && back.ask === false, 'a clock moved back (win day after today) counts nothing', JSON.stringify(back));
+    const lowNull = decide({ ...base, lastWin: null }, { score: 1, total: 5 }, NOW, '1.1');
+    const lowSet = decide({ ...base, lastWin: '2027-01-05' }, { score: 1, total: 5 }, NOW, '1.1');
+    check(lowNull.next.lastWin === null && lowSet.next.lastWin === '2027-01-05' && lowNull.next.wins === 1 && lowSet.next.wins === 1, 'a non-qualifying result never touches the win day or the count');
+    const tooNew = decide({ ...base, first: '2027-01-09', wins: 0, lastWin: null }, good, NOW, '1.1');
+    check(tooNew.reason === 'too-new' && tooNew.next.wins === 1 && tooNew.next.lastWin === '2027-01-10', 'too-new stays first, and the win is still counted and dated');
+    const noCount = decide({ ...base, wins: 1, lastWin: '2027-01-05' }, good, NOW, '1.1', { count: false });
+    check(noCount.next.wins === 1 && noCount.next.lastWin === '2027-01-05', 'count: false touches neither the count nor the win day');
+    check(rules.freshState('2027-01-10').lastWin === null && Object.keys(rules.freshState('2027-01-10')).sort().join() === 'askedAt,askedVersion,first,lastWin,setback,v,wins', 'freshState has lastWin null and the seven fields');
+  }
   // No state, no version.
   const none = decide(null, good, NOW, '1.1');
   check(none.ask === false && none.reason === 'storage' && none.next.first === '2027-01-10' && none.next.wins === 0, 'no usable record: storage, a fresh record dated today, no win counted', JSON.stringify(none));
@@ -186,9 +210,9 @@ if (store && rules) {
   check(REVIEW_KEY === 'kf-review', 'the key is kf-review');
   const NOW = at('2027-01-10');
   const askAfter = (r) => (r ? decide(r.fresh ? null : r.state, { score: 5, total: 5 }, NOW, '1.1') : { ask: false });
-  const valid = JSON.stringify({ v: 1, first: '2027-01-01', wins: 5, askedVersion: null, askedAt: null, setback: null });
+  const valid = JSON.stringify({ v: 1, first: '2027-01-01', wins: 5, askedVersion: null, askedAt: null, setback: null, lastWin: null });
   // Each failure mode: no ask, and the repairable ones rewritten fresh.
-  for (const [name, raw] of [['missing', undefined], ['corrupt JSON', '{"v":1,'], ['wrong v', JSON.stringify({ v: 2, first: '2027-01-01', wins: 5, askedVersion: null, askedAt: null, setback: null })], ['an unknown field', JSON.stringify({ v: 1, first: '2027-01-01', wins: 5, askedVersion: null, askedAt: null, setback: null, user: 'x' })], ['a bad date', JSON.stringify({ v: 1, first: '2027-13-01', wins: 5, askedVersion: null, askedAt: null, setback: null })], ['negative wins', JSON.stringify({ v: 1, first: '2027-01-01', wins: -1, askedVersion: null, askedAt: null, setback: null })]]) {
+  for (const [name, raw] of [['missing', undefined], ['corrupt JSON', '{"v":1,'], ['wrong v', JSON.stringify({ v: 2, first: '2027-01-01', wins: 5, askedVersion: null, askedAt: null, setback: null, lastWin: null })], ['an unknown field', JSON.stringify({ v: 1, first: '2027-01-01', wins: 5, askedVersion: null, askedAt: null, setback: null, lastWin: null, user: 'x' })], ['a bad date', JSON.stringify({ v: 1, first: '2027-13-01', wins: 5, askedVersion: null, askedAt: null, setback: null, lastWin: null })], ['negative wins', JSON.stringify({ v: 1, first: '2027-01-01', wins: -1, askedVersion: null, askedAt: null, setback: null, lastWin: null })]]) {
     const s = memStore(raw === undefined ? {} : { 'kf-review': raw });
     const r = readReview(s, NOW);
     check(r && r.fresh === true && askAfter(r).ask === false, `${name}: asks nothing`, JSON.stringify(r));
@@ -203,9 +227,14 @@ if (store && rules) {
   const r = readReview(vs, NOW);
   check(r && r.fresh === false && askAfter(r).ask === true, 'a valid record with 5 wins, 9 days old: reads and asks', JSON.stringify(r));
   check(parseReview(valid) !== null && parseReview('null') === null && parseReview('[]') === null && parseReview('"x"') === null, 'parseReview accepts only the record');
-  // Only the six fields are written: no id, no content, no score history.
+  const withWin = (w) => JSON.stringify({ ...JSON.parse(valid), lastWin: w });
+  check(parseReview(withWin(null))?.lastWin === null && parseReview(withWin('2027-01-09'))?.lastWin === '2027-01-09', 'parseReview accepts lastWin null or a real day');
+  for (const w of ['2027-13-01', '2027-02-30', 'yesterday', '', 5, true, {}]) check(parseReview(withWin(w)) === null, `parseReview refuses lastWin ${JSON.stringify(w)}`);
+  const { lastWin: _dropped, ...sixOnly } = JSON.parse(valid);
+  check(parseReview(JSON.stringify(sixOnly)) === null, 'parseReview refuses a record without lastWin (every field is required)');
+  // Only the seven fields are written: no id, no content, no score history.
   writeReview(vs, { ...JSON.parse(valid), user: 'leak' });
-  check(Object.keys(JSON.parse(vs.m.get('kf-review'))).sort().join() === 'askedAt,askedVersion,first,setback,v,wins', 'the record holds the six fields only', vs.m.get('kf-review'));
+  check(Object.keys(JSON.parse(vs.m.get('kf-review'))).sort().join() === 'askedAt,askedVersion,first,lastWin,setback,v,wins', 'the record holds exactly its seven fields (lastWin added), nothing else', vs.m.get('kf-review'));
   // noteFirstUse: once, never moved.
   const fs = memStore();
   noteFirstUse(fs, at('2027-01-01'));
@@ -272,7 +301,7 @@ if (trig && store) {
   const { reviewAtResult, liveChecksPass, REVIEW_DELAY_MS } = trig;
   check(REVIEW_DELAY_MS === 2000, 'the delay is 2 s', String(REVIEW_DELAY_MS));
   const NOW = at('2027-01-10');
-  const ready = () => memStore({ 'kf-review': JSON.stringify({ v: 1, first: '2027-01-01', wins: 1, askedVersion: null, askedAt: null, setback: null }) });
+  const ready = () => memStore({ 'kf-review': JSON.stringify({ v: 1, first: '2027-01-01', wins: 1, askedVersion: null, askedAt: null, setback: null, lastWin: null }) });
   const run = async ({ s = ready(), here = () => true, live = () => true, available = { available: true, version: '1.1' }, onWait, moment = { score: 4, total: 5 } } = {}) => {
     const log = [];
     const bridge = {
@@ -295,13 +324,13 @@ if (trig && store) {
   check(a.rec.askedVersion === '1.1' && a.rec.askedAt === '2027-01-10' && a.rec.wins === 2, 'the ask is written before the call (version, day) with the win', JSON.stringify(a.rec));
   const lowRun = await run({ moment: { score: 1, total: 3 } });
   check(lowRun.reason === 'low-score' && !lowRun.log.includes('request') && !lowRun.log.some((x) => x.startsWith('wait')), 'a low score: low-score, no wait, no request', lowRun.log.join());
-  const firstWin = await run({ s: memStore({ 'kf-review': JSON.stringify({ v: 1, first: '2027-01-01', wins: 0, askedVersion: null, askedAt: null, setback: null }) }) });
+  const firstWin = await run({ s: memStore({ 'kf-review': JSON.stringify({ v: 1, first: '2027-01-01', wins: 0, askedVersion: null, askedAt: null, setback: null, lastWin: null }) }) });
   check(firstWin.reason === 'few-wins' && firstWin.rec.wins === 1 && !firstWin.log.includes('request'), 'the first win: counted and written, few-wins, no request', JSON.stringify(firstWin));
   const left = await run({ here: (() => { let n = 0; return () => n++ === 0; })() });
   check(left.reason === null && !left.log.includes('request'), 'the screen left the result during the wait: no request, no reading', left.log.join());
   const busy = await run({ live: () => false });
   check(busy.reason === 'busy' && !busy.log.includes('request') && busy.rec.askedVersion === null, 'a live check fails: busy, no request, nothing marked asked', JSON.stringify(busy));
-  const changed = await run({ onWait: (s) => s.setItem('kf-review', JSON.stringify({ v: 1, first: '2027-01-01', wins: 2, askedVersion: '1.1', askedAt: '2027-01-10', setback: null })) });
+  const changed = await run({ onWait: (s) => s.setItem('kf-review', JSON.stringify({ v: 1, first: '2027-01-01', wins: 2, askedVersion: '1.1', askedAt: '2027-01-10', setback: null, lastWin: '2027-01-10' })) });
   check(changed.reason === 'asked-this-version' && !changed.log.includes('request'), 'another screen asked during the wait (re-read): no second request', changed.log.join());
   const setbackDuring = await run({ onWait: (s) => { const r = JSON.parse(s.m.get('kf-review')); s.setItem('kf-review', JSON.stringify({ ...r, setback: '2027-01-10' })); } });
   check(setbackDuring.reason === 'setback-today' && !setbackDuring.log.includes('request'), 'a refusal during the wait: setback-today, no request', setbackDuring.log.join());

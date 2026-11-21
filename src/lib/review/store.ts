@@ -3,10 +3,16 @@ import { dayOf, freshState, isDay, type ReviewState } from '@/lib/review/rules';
 
 /**
  * THE RATING RECORD, ON THIS DEVICE ONLY (the study's item 4): one key in the
- * page's localStorage, `kf-review`, six fields: the record's version, the
- * first-use day, the count of qualifying quiz results, the app version and
- * day of the last ask, and the day of the last refusal or error line. No
- * account id, no content, no score history. It is never sent anywhere.
+ * page's localStorage, `kf-review`, seven fields: the record's version, the
+ * first-use day, the count of qualifying quiz results (at most one a day),
+ * the app version and day of the last ask, the day of the last refusal or
+ * error line, and the day of the last counted result. No account id, no
+ * content, no score history. It is never sent anywhere.
+ *
+ * `v` stays 1 with lastWin added (fix 1 of #345): the key was dormant (no
+ * binary carried the plugin), so no device holds a six-field record. One that
+ * did would be refused by the strict parse and rewritten fresh, which asks
+ * later, never sooner.
  *
  * Why localStorage: a cookie would travel to the server with every request;
  * Swift's UserDefaults is a required-reason API the privacy manifest declares
@@ -25,7 +31,7 @@ export const REVIEW_KEY = 'kf-review';
 
 export type ReviewStorage = { getItem(key: string): string | null; setItem(key: string, value: string): void };
 
-const FIELDS = ['v', 'first', 'wins', 'askedVersion', 'askedAt', 'setback'] as const;
+const FIELDS = ['v', 'first', 'wins', 'askedVersion', 'askedAt', 'setback', 'lastWin'] as const;
 
 /** The record, or null when the value is anything else. */
 export function parseReview(raw: string | null): ReviewState | null {
@@ -45,13 +51,14 @@ export function parseReview(raw: string | null): ReviewState | null {
   if (r.askedVersion !== null && (typeof r.askedVersion !== 'string' || r.askedVersion.length > 32)) return null;
   if (r.askedAt !== null && !isDay(r.askedAt)) return null;
   if (r.setback !== null && !isDay(r.setback)) return null;
-  return { v: 1, first: r.first, wins: r.wins, askedVersion: r.askedVersion as string | null, askedAt: r.askedAt as string | null, setback: r.setback as string | null };
+  if (r.lastWin !== null && !isDay(r.lastWin)) return null;
+  return { v: 1, first: r.first, wins: r.wins, askedVersion: r.askedVersion as string | null, askedAt: r.askedAt as string | null, setback: r.setback as string | null, lastWin: r.lastWin as string | null };
 }
 
-/** Writes the six fields and nothing else; false when the storage refuses. */
+/** Writes the seven fields and nothing else; false when the storage refuses. */
 export function writeReview(storage: ReviewStorage | null, s: ReviewState): boolean {
   if (!storage) return false;
-  const out: ReviewState = { v: 1, first: s.first, wins: s.wins, askedVersion: s.askedVersion, askedAt: s.askedAt, setback: s.setback };
+  const out: ReviewState = { v: 1, first: s.first, wins: s.wins, askedVersion: s.askedVersion, askedAt: s.askedAt, setback: s.setback, lastWin: s.lastWin };
   try {
     storage.setItem(REVIEW_KEY, JSON.stringify(out));
     return true;

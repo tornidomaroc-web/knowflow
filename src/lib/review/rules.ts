@@ -14,7 +14,11 @@
  *   setback-today       a refusal or an error line was shown today (or on a
  *                       day "after" today: the clock moved back);
  *   low-score           under 3 questions, or under 60% right;
- *   few-wins            this is not yet the 2nd qualifying result;
+ *   few-wins            this is not yet the 2nd counted result. A
+ *                       qualifying result is counted at most ONCE PER
+ *                       CALENDAR DAY (`lastWin`), so a retake of the same
+ *                       quiz minutes later is not a second win; a win day
+ *                       after today (the clock moved back) counts nothing;
  *   asked-this-version  the app already asked for this app version;
  *   too-soon            under 120 days since the last ask (any version);
  *   storage             no usable record or no usable version string.
@@ -35,6 +39,8 @@ export type ReviewState = {
   askedVersion: string | null;
   askedAt: string | null;
   setback: string | null;
+  /** The day of the last counted result, so at most one counts per calendar day. */
+  lastWin: string | null;
 };
 
 /** The result on screen: right answers and questions graded. */
@@ -96,13 +102,14 @@ export function qualifies(m: ReviewMoment): boolean {
 
 /** A fresh record dated `today`: no result counted, never asked. */
 export function freshState(today: string): ReviewState {
-  return { v: 1, first: today, wins: 0, askedVersion: null, askedAt: null, setback: null };
+  return { v: 1, first: today, wins: 0, askedVersion: null, askedAt: null, setback: null, lastWin: null };
 }
 
 /**
  * The decision at a result screen. `next` is the record with this result
- * counted (when it qualifies and `count` is not false); the ask itself is
- * written by markAsked(), only once the live checks pass.
+ * counted (when it qualifies, `count` is not false, and no result was
+ * counted today or "later": lastWin null or strictly before today); the ask
+ * itself is written by markAsked(), only once the live checks pass.
  */
 export function decide(
   state: ReviewState | null,
@@ -115,7 +122,8 @@ export function decide(
   if (!today) return { ask: false, reason: 'storage', next: state ?? freshState('1970-01-01') };
   if (!state) return { ask: false, reason: 'storage', next: freshState(today) };
   const good = qualifies(moment);
-  const next: ReviewState = opts.count !== false && good ? { ...state, wins: state.wins + 1 } : { ...state };
+  const counts = opts.count !== false && good && (state.lastWin === null || daysBetween(state.lastWin, today) > 0);
+  const next: ReviewState = counts ? { ...state, wins: state.wins + 1, lastWin: today } : { ...state };
   const no = (reason: ReviewReason): ReviewDecision => ({ ask: false, reason, next });
   if (!isVersion(version)) return no('storage');
   if (daysBetween(state.first, today) < THRESHOLDS.minDays) return no('too-new');

@@ -274,7 +274,7 @@ jobs:
       # closed Sheet not blocking, and a held "asked" write), and the sources:
       # request() from ReviewTrigger only, no handler reaching it, the write-review
       # URL once, no reward word, the Settings row last in Help and legal, the
-      # approved strings (app v15). 44 failures on main e7948da.
+      # approved strings (app v15), one counted result per day (lastWin). 44 failures on main e7948da.
       - name: Verify the in-app rating (the rules, the device record, the gate, one trigger, the Settings link)
         run: node --experimental-strip-types scripts/verify-review.mjs
 
