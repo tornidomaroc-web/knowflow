@@ -467,9 +467,13 @@ for (const p of [RULES, STORE, BRIDGE, TRIGGER, RATE]) check(has(p), `${p} exist
   check(/^'use client';/.test(r) && /useState\(false\)/.test(r) && /if \(!shown\) return null;/.test(r), 'RateRow is a client component, hidden until the bridge answers');
   check(/<LatinText text=\{label\} \/>/.test(r) && /<LatinText text=\{u\} \/>/.test(r), 'RateRow draws the label and each description unit through LatinText (the Latin names isolated)');
   check(!/target=/.test(r) && /href=\{WRITE_REVIEW_URL\}/.test(r) && /external/.test(r), 'RateRow is a plain <a> to the constant, no target');
-  // No native code in this PR; no package.
-  const ios = existsSync(resolvePath(ROOT, 'ios')) ? walkAny('ios').filter((p) => /KnowFlowReview|requestReview/.test(read(p))) : [];
-  check(ios.length === 0, 'PR 1 has no native code (no KnowFlowReview or requestReview under ios/)', ios.join(', '));
+  // Native code only where PR 2 put it (verify-apple-native.mjs, section 9,
+  // proves the plugin itself); no package.
+  const ios = existsSync(resolvePath(ROOT, 'ios')) ? walkAny('ios').filter((p) => /KnowFlowReview|requestReview/.test(read(p))).sort() : [];
+  const NATIVE = ['ios/App/App.xcodeproj/project.pbxproj', 'ios/App/App/KnowFlowReview.swift', 'ios/App/App/MainViewController.swift'];
+  check(JSON.stringify(ios) === JSON.stringify(NATIVE), 'the rating\'s native code is only the plugin, its registration and its project entries (PR 2)', ios.join(', '));
+  const reqFiles = ios.filter((p) => /requestReview/.test(read(p)));
+  check(JSON.stringify(reqFiles) === '["ios/App/App/KnowFlowReview.swift"]', 'requestReview appears only in KnowFlowReview.swift', reqFiles.join(', '));
   const pkg = JSON.parse(read('package.json'));
   check(!Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).some((k) => /rate|review/i.test(k)), 'no new dependency (no rate or review package)');
 }
