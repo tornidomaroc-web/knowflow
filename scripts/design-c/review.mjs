@@ -37,13 +37,23 @@
  *     colours of the Support row;
  *   - the stub was asked `available` only, never `request`;
  *   - on a quiz screen, the root's data-kf-review is the expected reading.
+ *   - the description's lines (fix 2 of #345, the owner's render review of
+ *     design-c 44865033100): rateLineRules() over the words each line holds.
+ *     No line ends on "a", "or", "the", "on", nor on the Arabic value's 3rd
+ *     word (the conjunction) or 6th (the preposition); "write a review",
+ *     "App Store" and the Arabic 4th+5th words never split across lines; no
+ *     line holds a single word; the lines' words are the approved value.
  * ratePlant() then forces, on every AFTER render where it applies: a second
  * row (count), another href (href), a target (target), the row moved above
  * Support (last), the label squeezed onto two lines (lines), the tile cut to
  * 40 px (height), " Pro" added to the label (wording), an isolate taken
  * away in Arabic (isolate), the label in the tile's colour (contrast), a row
  * planted where none may be (planted), a wrong reading on the quiz root
- * (reading), and a `request` call recorded by the stub (request). Check 31
+ * (reading), a `request` call recorded by the stub (request), and three line
+ * breaks forced into the description with a <br>: after "a" / the Arabic 3rd
+ * word (dangle), inside "App Store" / between the Arabic 4th and 5th words
+ * (split), after the first word (single). Each of the last three must be
+ * flagged by ITS rule, not merely by some finding. Check 31
  * must flag every one, on every render it ran on, or the run fails.
  */
 import { readFileSync } from 'node:fs';
@@ -59,7 +69,62 @@ export function rateHref(root) {
 }
 
 /** Every kind ratePlant() forces; each must run somewhere and be caught everywhere it runs. */
-export const RATE_KINDS = ['count', 'href', 'target', 'last', 'lines', 'height', 'wording', 'isolate', 'contrast', 'planted', 'reading', 'request'];
+export const RATE_KINDS = ['count', 'href', 'target', 'last', 'lines', 'height', 'wording', 'isolate', 'contrast', 'planted', 'reading', 'request', 'dangle', 'split', 'single'];
+
+/** dashboard.settings.rateDesc in each language, read from the dictionaries (never typed). */
+export function rateDesc(root) {
+  const out = {};
+  for (const l of ['en', 'ar']) {
+    const src = readFileSync(join(root, `src/lib/i18n/locales/${l}.ts`), 'utf8');
+    const m = /\brateDesc: "([^"]+)"/.exec(src);
+    if (!m) throw new Error(`check 31: no rateDesc in src/lib/i18n/locales/${l}.ts`);
+    out[l] = m[1];
+  }
+  return out;
+}
+
+/**
+ * The description's line rules (fix 2 of #345). Self-contained: render.mjs
+ * passes it to the page as source and verify-review.mjs calls it in node.
+ * `lines` is the words each drawn line holds, in reading order; `value` the
+ * approved string. Returns a list of findings (empty when the lines pass).
+ */
+export function rateLineRules(lines, locale, value) {
+  const f = [];
+  const words = value.split(' ');
+  const got = lines.flat();
+  if (got.join(' ') !== words.join(' ')) {
+    f.push(`the description's lines hold ${JSON.stringify(got.join(' '))}, not the approved value`);
+    return f;
+  }
+  const lineOf = [];
+  lines.forEach((ws, li) => ws.forEach(() => lineOf.push(li)));
+  const ends = locale === 'ar' ? [2, 5] : words.map((w, i) => (['a', 'or', 'the', 'on'].includes(w) ? i : -1)).filter((i) => i >= 0);
+  for (let i = 0; i < words.length - 1; i++) {
+    if (lineOf[i] !== lineOf[i + 1] && ends.includes(i)) f.push(`a line of the description ends on word ${i + 1}${locale === 'ar' ? ' (the Arabic conjunction or preposition)' : ` "${words[i]}"`}`);
+  }
+  const find = (seq) => { for (let i = 0; i + seq.length <= words.length; i++) if (seq.every((w, k) => words[i + k] === w)) return i; return -1; };
+  const keeps = locale === 'ar'
+    ? [[3, 4]]
+    : [['write', 'a', 'review'], ['App', 'Store.']].map((seq) => { const i = find(seq); return i < 0 ? null : [i, i + seq.length - 1]; });
+  keeps.forEach((k, n) => {
+    if (!k) { f.push(`keep-together phrase ${n + 1} is not in the value`); return; }
+    if (lineOf[k[0]] !== lineOf[k[1]]) f.push(`the description splits ${locale === 'ar' ? 'the Arabic 4th and 5th words' : `"${words.slice(k[0], k[1] + 1).join(' ')}"`} across lines`);
+  });
+  lines.forEach((ws, li) => { if (ws.length === 1) f.push(`line ${li + 1} of the description holds a single word`); });
+  return f;
+}
+
+/** The text of the finding each forced line case must produce (ratePlant, verify-review.mjs). */
+export const RATE_LINE_KINDS = { dangle: 'ends on word', split: 'splits', single: 'single word' };
+
+/** Where each forced line case puts its <br>: after word index i (0-based). Self-contained. */
+export function rateBreakAt(kind, locale, value) {
+  const w = value.split(' ');
+  if (kind === 'single') return 0;
+  if (locale === 'ar') return kind === 'dangle' ? 2 : 3;
+  return kind === 'dangle' ? w.indexOf('a') : w.indexOf('App');
+}
 
 export function rateScreens(add, { APP, SAFARI }) {
   const APP2 = APP.replace(/KnowFlowApp\/1$/, 'KnowFlowApp/2');
@@ -81,8 +146,8 @@ export function rateScreens(add, { APP, SAFARI }) {
 }
 
 /** The expectation check 31 reads. */
-export function rateExpect(job, href) {
-  return { ...job.s.rate, locale: job.locale, theme: job.theme, href };
+export function rateExpect(job, href, desc) {
+  return { ...job.s.rate, locale: job.locale, theme: job.theme, href, desc: desc ? desc[job.locale] : null };
 }
 
 /** The plugin, stubbed before the page loads (evaluateOnNewDocument). Records every call; never shows a sheet. */
@@ -180,6 +245,36 @@ export function rateCheck(expect) {
       m[what] = Math.round(r * 100) / 100;
       if (r < 4.5) f.push(`the ${what} is ${m[what]}:1, under 4.5`);
     };
+    // The description's lines (fix 2): each word's line, read from its own range.
+    if (desc && expect.desc) {
+      const nodes = [];
+      const tw = document.createTreeWalker(desc, NodeFilter.SHOW_TEXT);
+      for (let n = tw.nextNode(); n; n = tw.nextNode()) nodes.push(n);
+      let text = '';
+      const starts = nodes.map((n) => { const at = text.length; text += n.data; return at; });
+      const pos = (off) => { for (let k = nodes.length - 1; k >= 0; k--) if (off >= starts[k]) return [nodes[k], off - starts[k]]; return [nodes[0], 0]; };
+      const tops = [];
+      const ws = [];
+      for (const mm of text.matchAll(/\S+/g)) {
+        const r = document.createRange();
+        const [sn, so] = pos(mm.index);
+        const [en, eo] = pos(mm.index + mm[0].length - 1);
+        r.setStart(sn, so);
+        r.setEnd(en, eo + 1);
+        const rect = [...r.getClientRects()].find((x) => x.width > 0 && x.height > 0);
+        const top = rect ? rect.top : -1;
+        let li = tops.findIndex((t) => Math.abs(t - top) < 4);
+        if (li < 0) { tops.push(top); li = tops.length - 1; }
+        ws.push({ w: mm[0], top: tops[li] });
+      }
+      const order = [...new Set(ws.map((x) => x.top))].sort((p, q) => p - q);
+      const lines = order.map((t) => ws.filter((x) => x.top === t).map((x) => x.w));
+      m.descLines = lines.map((l) => l.join(' '));
+      m.descWidth = Math.round(desc.getBoundingClientRect().width * 10) / 10;
+      m.descUnits = [...desc.querySelectorAll('[data-kf-rate-unit]')].map((u) => Math.round(u.getBoundingClientRect().width * 10) / 10);
+      const rules = typeof window.rateLineRules === 'function' ? window.rateLineRules(lines, expect.locale, expect.desc) : ['(rateLineRules not defined in the page)'];
+      for (const x of rules) f.push(x);
+    } else if (!desc) f.push('no description under the label');
     tone(label, 'label contrast');
     tone(desc, 'line contrast');
     const supLabel = sup >= 0 ? items[sup].querySelector('a span.min-w-0 > span') : null;
@@ -237,6 +332,34 @@ export function ratePlant(expect) {
     const tile = getComputedStyle(a).backgroundColor;
     const backTone = keepStyle(label);
     run('contrast', () => { label.style.color = tile; }, backTone);
+    // The description's line rules: a <br> after word i, each caught by ITS rule.
+    const desc = label.nextElementSibling;
+    if (desc && expect.desc) {
+      const breakAfter = (i) => {
+        const nodes = [];
+        const tw = document.createTreeWalker(desc, NodeFilter.SHOW_TEXT);
+        for (let n = tw.nextNode(); n; n = tw.nextNode()) nodes.push(n);
+        let text = '';
+        const starts = nodes.map((n) => { const at = text.length; text += n.data; return at; });
+        const word = [...text.matchAll(/\S+/g)][i];
+        if (!word) return () => {};
+        const end = word.index + word[0].length;
+        let k = nodes.length - 1;
+        while (k > 0 && starts[k] >= end) k--;
+        const n = nodes[k];
+        const tail = n.splitText(end - starts[k]);
+        const br = document.createElement('br');
+        n.parentNode.insertBefore(br, tail);
+        return () => { br.remove(); n.data += tail.data; tail.remove(); };
+      };
+      for (const kind of ['dangle', 'split', 'single']) {
+        const undo = breakAfter(window.rateBreakAt(kind, expect.locale, expect.desc));
+        const r = window.rateCheck(expect);
+        const want = window.RATE_LINE_KINDS[kind];
+        out.push({ kind, caught: !!r.finding && r.finding.includes(want), finding: r.finding });
+        undo();
+      }
+    }
   }
   if (!expect.row && !expect.quiz) {
     const ul = document.querySelector('a[href^="mailto:"]')?.closest('ul');

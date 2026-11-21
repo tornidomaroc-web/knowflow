@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { ClayChat } from '@/components/clay/ClayIcons';
 import { LinkRow } from '@/components/dashboard/LinkRow';
 import { LatinText } from '@/components/ui/LatinText';
 import { WRITE_REVIEW_URL, reviewBridge } from '@/lib/review/bridge';
+import { rateDescUnits } from '@/lib/review/rate-units';
 
 /**
  * "Rate KnowFlow" in Settings, the last row of Help and legal (iOS 1.1, big
@@ -20,6 +21,12 @@ import { WRITE_REVIEW_URL, reviewBridge } from '@/lib/review/bridge';
  * shell-2 binary without the plugin draw the Settings they drew before.
  * The Latin names ("KnowFlow", "App Store") go through LatinText, so in the
  * Arabic lines each is a left-to-right isolate.
+ *
+ * The description is drawn as three keep-together units (fix 2 of #345,
+ * src/lib/review/rate-units.ts): each a nowrap span, the only break
+ * opportunities the spaces between them, the line box balanced. Each unit
+ * goes through LatinText on its own; every unit of the Arabic value begins
+ * with an Arabic word, so it reads right to left and keeps its isolates.
  */
 export function RateRow({ label, description }: { label: string; description: string }) {
   const [shown, setShown] = useState(false);
@@ -42,7 +49,18 @@ export function RateRow({ label, description }: { label: string; description: st
       href={WRITE_REVIEW_URL}
       icon={<ClayChat />}
       label={<LatinText text={label} />}
-      description={<LatinText text={description} />}
+      description={
+        <span className="block [text-wrap:balance]">
+          {rateDescUnits(description).map((u, i) => (
+            <Fragment key={i}>
+              {i > 0 && ' '}
+              <span data-kf-rate-unit="" className="whitespace-nowrap">
+                <LatinText text={u} />
+              </span>
+            </Fragment>
+          ))}
+        </span>
+      }
       external
       mark="rate"
     />

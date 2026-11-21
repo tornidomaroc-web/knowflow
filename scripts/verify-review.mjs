@@ -47,6 +47,17 @@
  *     languages; no star, "stars", 5, the Arabic word for stars or a star
  *     sign in either string; no purchase word (kfWording); no dash; Western
  *     digits.
+ *  7. THE DESCRIPTION'S UNITS (fix 2 of #345, the owner's review of the
+ *     design-c 44865033100 renders): src/lib/review/rate-units.ts cuts the
+ *     approved value by word index, English 1-3 / 4-7 / 8-11, Arabic 1-2 /
+ *     3-5 / 6-8; the units joined with single spaces are the en.ts / ar.ts
+ *     value byte for byte. RateRow draws each unit as a nowrap span through
+ *     LatinText, breaks only between units, text-wrap: balance on the line
+ *     box. Check 31's line rules (scripts/design-c/review.mjs,
+ *     rateLineRules) flag the layouts 0d753e9 drew (English "write a /
+ *     review", Arabic 360 split between the 4th and 5th words), pass every
+ *     layout that breaks only between units, and each forced <br> trips its
+ *     own rule.
  *
  * Usage: node --experimental-strip-types scripts/verify-review.mjs
  */
@@ -454,7 +465,7 @@ for (const p of [RULES, STORE, BRIDGE, TRIGGER, RATE]) check(has(p), `${p} exist
     check(/rateRow=\{<RateRow label=\{s\.rate\} description=\{s\.rateDesc\} \/>\}/.test(read(p)), `${p} passes the row`);
   }
   check(/^'use client';/.test(r) && /useState\(false\)/.test(r) && /if \(!shown\) return null;/.test(r), 'RateRow is a client component, hidden until the bridge answers');
-  check(/<LatinText text=\{label\} \/>/.test(r) && /<LatinText text=\{description\} \/>/.test(r), 'RateRow draws both strings through LatinText (the Latin names isolated)');
+  check(/<LatinText text=\{label\} \/>/.test(r) && /<LatinText text=\{u\} \/>/.test(r), 'RateRow draws the label and each description unit through LatinText (the Latin names isolated)');
   check(!/target=/.test(r) && /href=\{WRITE_REVIEW_URL\}/.test(r) && /external/.test(r), 'RateRow is a plain <a> to the constant, no target');
   // No native code in this PR; no package.
   const ios = existsSync(resolvePath(ROOT, 'ios')) ? walkAny('ios').filter((p) => /KnowFlowReview|requestReview/.test(read(p))) : [];
@@ -521,6 +532,68 @@ if (en && ar) {
   // The owner's one change: "في" before App Store, not the draft's "على".
   const desc = get(ar, 'dashboard.settings.rateDesc') ?? '';
   check(desc.includes('\u0641\u064A App Store') && !desc.includes('\u0639\u0644\u0649 App Store'), 'the Arabic description has the owner\'s preposition before App Store');
+}
+
+// 7. The description's units and check 31's line rules (fix 2 of #345).
+console.log('\n7. the description\'s units');
+const unitsMod = await load('src/lib/review/rate-units.ts');
+const latinGroups = await load('src/lib/latin-groups.ts');
+const review31 = await import(pathToFileURL(resolvePath(ROOT, 'scripts/design-c/review.mjs')).href);
+const lineRules = review31.rateLineRules;
+check(typeof lineRules === 'function', 'scripts/design-c/review.mjs exports rateLineRules (check 31\'s line rules)');
+if (en && ar && typeof lineRules === 'function') {
+  const VALUE = { en: en.dashboard.settings.rateDesc, ar: ar.dashboard.settings.rateDesc };
+  const SHAPE = { en: [3, 4, 4], ar: [2, 3, 3] };
+  const toLines = (units, breaks) => {
+    const lines = [[]];
+    units.forEach((u, i) => { lines[lines.length - 1].push(...u.split(' ')); if (breaks.includes(i)) lines.push([]); });
+    return lines;
+  };
+  for (const l of ['en', 'ar']) {
+    const v = VALUE[l];
+    const units = unitsMod ? unitsMod.rateDescUnits(v) : null;
+    check(Array.isArray(units) && units.join(' ') === v, `${l}: the units joined with single spaces are the ${l}.ts value byte for byte`, JSON.stringify(units));
+    check(Array.isArray(units) && units.map((u) => u.split(' ').length).join() === SHAPE[l].join(), `${l}: the units hold words ${l === 'en' ? '1-3 / 4-7 / 8-11' : '1-2 / 3-5 / 6-8'}`, JSON.stringify(units?.map((u) => u.split(' ').length)));
+    check(Array.isArray(units) && units.every((u) => u.length > 0 && u.trim() === u && !/\s\s/.test(u)), `${l}: no unit is empty or carries an edge space`);
+    // LatinText decides per unit: every Arabic unit must read right to left (so its Latin names stay isolates), every English one left to right.
+    check(Array.isArray(units) && units.every((u) => latinGroups.readsRightToLeft(u) === (l === 'ar')), `${l}: every unit reads ${l === 'ar' ? 'right to left (LatinText isolates its Latin names)' : 'left to right'}`);
+    if (Array.isArray(units) && units.length === 3) {
+      for (const breaks of [[], [0], [1], [0, 1]]) {
+        const found = lineRules(toLines(units, breaks), l, v);
+        check(found.length === 0, `${l}: breaking only ${breaks.length ? `after unit ${breaks.map((b) => b + 1).join(' and ')}` : 'nowhere (one line)'} passes check 31's line rules`, found.join('; '));
+      }
+    }
+    for (const kind of ['dangle', 'split', 'single']) {
+      const at = review31.rateBreakAt(kind, l, v);
+      const words = v.split(' ');
+      const found = lineRules([words.slice(0, at + 1), words.slice(at + 1)], l, v);
+      check(found.some((x) => x.includes(review31.RATE_LINE_KINDS[kind])), `${l}: the forced case "${kind}" (a break after word ${at + 1}) trips its own rule`, found.join('; ') || 'nothing flagged');
+    }
+    check(lineRules([v.split(' ')], l, v).length === 0, `${l}: the value on one line passes`);
+    check(lineRules([v.split(' ').slice(1)], l, v).some((x) => x.includes('not the approved value')), `${l}: lines that are not the value are flagged`);
+  }
+  // The layouts 0d753e9 drew (design-c 44865033100): English at 390 and 360, Arabic at 360.
+  const ew = VALUE.en.split(' ');
+  const enOld = lineRules([ew.slice(0, 6), ew.slice(6)], 'en', VALUE.en);
+  check(enOld.some((x) => x.includes('ends on word 6 "a"')) && enOld.some((x) => x.includes('splits "write a review"')), 'en: 0d753e9\'s "Rate the app or write a / review on the App Store." is flagged (ends on "a", splits "write a review")', enOld.join('; '));
+  const aw = VALUE.ar.split(' ');
+  const arOld = lineRules([aw.slice(0, 4), aw.slice(4)], 'ar', VALUE.ar);
+  check(arOld.some((x) => x.includes('the Arabic 4th and 5th words')), 'ar: 0d753e9\'s 360 break between the 4th and 5th words is flagged', arOld.join('; '));
+  check(lineRules([aw.slice(0, 3), aw.slice(3)], 'ar', VALUE.ar).some((x) => x.includes('ends on word 3')) && lineRules([aw.slice(0, 6), aw.slice(6)], 'ar', VALUE.ar).some((x) => x.includes('ends on word 6')), 'ar: a line ending on the conjunction (3rd) or the preposition (6th) is flagged');
+  for (const w of ['or', 'the', 'on']) {
+    const i = ew.indexOf(w);
+    check(lineRules([ew.slice(0, i + 1), ew.slice(i + 1)], 'en', VALUE.en).some((x) => x.includes(`"${w}"`)), `en: a line ending on "${w}" is flagged`);
+  }
+  check(lineRules([ew.slice(0, ew.indexOf('App') + 1), ew.slice(ew.indexOf('App') + 1)], 'en', VALUE.en).some((x) => x.includes('splits "App Store."')), 'en: "App Store" split across lines is flagged');
+}
+{
+  const r = read(RATE);
+  const u = read('src/lib/review/rate-units.ts');
+  check(/rateDescUnits\(description\)/.test(r), 'RateRow cuts the description with rateDescUnits');
+  check(/data-kf-rate-unit/.test(r) && /whitespace-nowrap/.test(r), 'each unit is a marked nowrap span (breaks only between units)');
+  check(/\[text-wrap:balance\]/.test(r), 'the description\'s line box is balanced (text-wrap: balance)');
+  check(!/[؀-ۿ]/.test(r + u), 'no Arabic letter is typed in RateRow or rate-units (the split is by word index)');
+  check(u !== '' && !/Rate the app|write a review|App Store/.test(u), 'rate-units types no English word of the value either');
 }
 
 console.log(`\n${pass} passed, ${failures.length} failed`);

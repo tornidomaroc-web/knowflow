@@ -234,7 +234,7 @@ import { android360Screens, statRowCheck, statRowPlant, signupNoteCheck, signupN
 import { cameraScreens, cameraCheck, cameraPlant, sameCheck } from './camera.mjs';
 import { voiceScreens, voiceExpect, voiceStubSrc, voiceMock, voiceAct, voiceCheck, voicePlant, voiceStackCheck, voiceStackPlant, keepVoiceList, voicePhraseCheck, voicePhrasePlant } from './voice.mjs';
 import { appleScreens, appleExpect, appleStubSrc, appleCheck, applePlant, keepAppleList, appleEndList, appleOpenAct } from './apple.mjs';
-import { rateScreens, rateExpect, rateStubSrc, rateCheck, ratePlant, rateHref, RATE_KINDS } from './review.mjs';
+import { rateScreens, rateExpect, rateStubSrc, rateCheck, ratePlant, rateHref, rateDesc, rateLineRules, rateBreakAt, RATE_LINE_KINDS, RATE_KINDS } from './review.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -346,6 +346,8 @@ appleScreens(add, { APP, SAFARI });
 rateScreens(add, { APP, SAFARI });
 // Check 31: the one write-review URL, read from src/lib/review/bridge.ts.
 const HREF31 = rateHref(resolve('.'));
+// Check 31's line rules (fix 2 of #345): the approved description, read from en.ts and ar.ts.
+const DESC31 = rateDesc(resolve('.'));
 const KEEP = keepTogetherList(resolve('.'));
 // Check 26 (iap.mjs): the paywall's own protected phrases, read inside [data-kf-iap="paywall"] only.
 const KEEP26 = keepPaywallList(resolve('.'));
@@ -1268,8 +1270,8 @@ async function shoot(side, job) {
   if (job.s.apple && side === 'after') await tab.evaluate(`window.appleCheck = ${appleCheck.toString()};`);
   const apple30 = job.s.apple && side === 'after' ? await tab.evaluate(appleCheck, appleExpect(job, KEEP30, ENDS30)) : null;
   // Check 31 (review.mjs): the rating row only at shell 2 with the plugin, last in Help and legal, Apple's link, one line, 56 px, no 3.1.3(f) word, isolates, contrast; no request call; the quiz reading. AFTER only.
-  if (job.s.rate && side === 'after') await tab.evaluate(`window.rateCheck = ${rateCheck.toString()};`);
-  const rate31 = job.s.rate && side === 'after' ? await tab.evaluate(rateCheck, rateExpect(job, HREF31)) : null;
+  if (job.s.rate && side === 'after') await tab.evaluate(`window.rateCheck = ${rateCheck.toString()}; window.rateLineRules = ${rateLineRules.toString()}; window.rateBreakAt = ${rateBreakAt.toString()}; window.RATE_LINE_KINDS = ${JSON.stringify(RATE_LINE_KINDS)};`);
+  const rate31 = job.s.rate && side === 'after' ? await tab.evaluate(rateCheck, rateExpect(job, HREF31, DESC31)) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -1310,7 +1312,7 @@ async function shoot(side, job) {
   // Check 30's forced cases, after the shot, on AFTER (apple.mjs, applePlant).
   const apple30Plant = job.s.apple && side === 'after' ? await tab.evaluate(applePlant, appleExpect(job, KEEP30, ENDS30)) : null;
   // Check 31's forced cases, after the shot, on AFTER (review.mjs, ratePlant).
-  const rate31Plant = job.s.rate && side === 'after' ? await tab.evaluate(ratePlant, rateExpect(job, HREF31)) : null;
+  const rate31Plant = job.s.rate && side === 'after' ? await tab.evaluate(ratePlant, rateExpect(job, HREF31, DESC31)) : null;
   // G2: check 9's forced wrong cases, after the shot (pr4.mjs, pageLabelPlant).
   const labelPlant = job.s.pr4 === 'ask' ? await tab.evaluate(pageLabelPlant) : null;
   // Finding (b): check 10's forced wrong cases, after the shot (pr4.mjs, latinPlant).
