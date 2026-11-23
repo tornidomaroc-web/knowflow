@@ -28,6 +28,9 @@
  *     two lines (its words are joined by no-break spaces, as the app does);
  *   - (iv) in an Arabic caption, every Latin run is drawn in its own
  *     left-to-right isolate (<bdi dir=ltr>, the #316 LatinText rule).
+ *   - (v) no line ends on a small word: English EN_NO_LINE_END ("that",
+ *     "on", ...); Arabic any word of one or two letters, and the Arabic
+ *     words of APPLE_NO_LINE_END (src/lib/keep-together.ts).
  * (iii), the contrast of the ink and the gold read from the rendered pixels,
  * is scripts/store-shots/contrast.py, from the rectangles written to
  * <out>/_layout/<locale>-<file>.json.
@@ -71,6 +74,34 @@ export function keepTogetherList() {
   return list;
 }
 
+/**
+ * (v) The words no caption line may end on. English: the small words below
+ * (owner review of the b464ed1 renders: "Answers that / ..." and
+ * "Quiz yourself on / ..."). Arabic: every word of one or two letters (marks
+ * and punctuation aside), which covers the one- and two-letter function words
+ * (in, from, or, then and the like) without retyping them here, plus
+ * APPLE_NO_LINE_END from src/lib/keep-together.ts (design-c check 30), read
+ * from the app's own file.
+ */
+export const EN_NO_LINE_END = ['a', 'an', 'the', 'of', 'on', 'in', 'to', 'at', 'for', 'by', 'and', 'or', 'but', 'that',
+  'with', 'from', 'your', 'my', 'as', 'into', 'is', 'it', 'its', 'our', 'so', 'then', 'this', 'their', 'up'];
+export function noLineEndList() {
+  const src = readFileSync(join(ROOT, 'src', 'lib', 'keep-together.ts'), 'utf8');
+  const body = /APPLE_NO_LINE_END = \[([^\]]*)\]/.exec(src)?.[1];
+  if (!body) throw new Error('APPLE_NO_LINE_END not found in src/lib/keep-together.ts');
+  const apple = [...body.matchAll(/'([^']+)'/g)].map((x) => JSON.parse(`"${x[1]}"`));
+  return { en: new Set([...EN_NO_LINE_END, ...apple.filter((w) => /^[a-z]+$/i.test(w))].map((w) => w.toLowerCase())),
+    ar: new Set(apple.filter((w) => /\p{Script=Arabic}/u.test(w)).map((w) => bare(w))) };
+}
+const bare = (w) => w.normalize('NFC').replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]/gu, '');
+/** The word a line ends on is a small word (check v). */
+export function smallLineEnd(locale, word, ends) {
+  const b = bare(word);
+  if (!b) return false;
+  if (locale === 'ar' && /\p{Script=Arabic}/u.test(b)) return b.length <= 2 || ends.ar.has(b);
+  return ends.en.has(b.toLowerCase());
+}
+
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const LATIN = /[A-Za-z0-9][A-Za-z0-9.&'’-]*/g;
 
@@ -108,12 +139,17 @@ function captionHtml(locale, caption, keep, plant) {
       for (const m of x.w.matchAll(LATIN)) { inner += esc(x.w.slice(at, m.index)) + `<bdi dir="ltr" class="latin">${esc(m[0])}</bdi>`; at = m.index + m[0].length; }
     }
     inner += esc(x.w.slice(at));
-    const brk = (plant === 'orphan' && i === words.length - 1) || (plant === 'split' && x.splitBefore) ? '<br>' : '';
+    const brk = (plant === 'orphan' && i === words.length - 1) || ((plant === 'split' || plant === 'smallword-ar') && x.splitBefore) ? '<br>' : '';
     return `${brk}<span class="w"${x.keep ? ` data-keep="${x.keep}"` : ''}>${inner}</span>`;
   };
   if (plant === 'split') {
     const k = words.findIndex((x, i) => x.keep && words[i + 1] && words[i + 1].keep === x.keep);
     if (k < 0) throw new Error('split plant: the caption holds no KEEP_TOGETHER phrase');
+    words[k + 1].splitBefore = true; words[k].glue = false;
+  }
+  if (plant === 'smallword-ar') {
+    const k = words.findIndex((x, i) => i < words.length - 1 && bare(x.w).length <= 2);
+    if (k < 0) throw new Error('smallword-ar plant: the caption holds no word of one or two letters');
     words[k + 1].splitBefore = true; words[k].glue = false;
   }
   let html = '', open = null;
@@ -250,6 +286,12 @@ export function problems11(locale, m, W) {
   for (const g of Object.values(groups)) if (new Set(g.map((w) => w.line)).size > 1) p.push(`keep: "${g.map((w) => w.t).join(' ')}" splits across lines`);
   // (iv) Latin runs in an Arabic caption isolated.
   if (locale === 'ar') for (const l of m.latin) if (!l.isolated) p.push(`latin: "${l.t}" is not in a left-to-right isolate`);
+  // (v) no line ends on a small word. The words are in reading (DOM) order,
+  // so the last word of each line is where that line ends, in either direction.
+  const ends = noLineEndList();
+  const last = {};
+  for (const w of m.words) last[w.line] = w.t;
+  for (const [line, t] of Object.entries(last)) if (smallLineEnd(locale, t, ends)) p.push(`smallword: line ${Number(line) + 1} ends on the small word "${t}"`);
   return p;
 }
 
@@ -282,6 +324,10 @@ const PLANTS = [
   { name: 'split', locale: 'en', caption: 'Start from a ready question |today|', expect: 'keep', note: 'the gold <b> is nowrap, so the phrase is planted in ink' },
   { name: 'latin', locale: 'ar', from: '01-subjects.png', append: ' KnowFlow', expect: 'latin' },
   { name: 'latin-isolated', locale: 'ar', from: '01-subjects.png', append: ' KnowFlow', expect: null, note: 'positive control: the same Latin run, isolated, passes' },
+  // (v): the b464ed1 English lines the owner rejected, set as they wrap (no forced break), and an Arabic line broken after its two-letter word.
+  { name: 'smallword-en05', locale: 'en', caption: 'Answers that |cite your files|', expect: 'smallword', note: 'the old en 05, rejected 2026-11-23' },
+  { name: 'smallword-en06', locale: 'en', caption: 'Quiz yourself on |your own notes|', expect: 'smallword', note: 'the old en 06, rejected 2026-11-23' },
+  { name: 'smallword-ar', locale: 'ar', from: '06-quiz.png', expect: 'smallword', note: 'ar 06 with a line break forced after its first two-letter word' },
   { name: 'gold-old', locale: 'en', from: '04-summary.png', expect: 'contrast' },
   { name: 'ink-light', locale: 'en', from: '04-summary.png', expect: 'contrast' },
 ];

@@ -137,7 +137,7 @@ jobs:
             node scripts/store-shots/render.mjs --set 1.1 --layout-test --size "$z" --out "$RUNNER_TEMP/v11/$z"
           done
 
-      - name: 1.1 planted cases (orphan, split phrase, Latin not isolated, old gold, light ink) at both sizes
+      - name: 1.1 planted cases (orphan, split phrase, Latin not isolated, small word at a line end, old gold, light ink) at both sizes
         env:
           CHROME: google-chrome
         run: |

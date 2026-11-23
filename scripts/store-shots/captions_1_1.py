@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 The captions of the iOS 1.1 App Store screenshots (item 4i, PR 1), built BY
-SCRIPT from the file the owner approved on 2026-11-23 11:32Z, never typed.
+SCRIPT from the file the owner approved (v2, 2026-11-23 11:57Z), never typed.
 
   build <approved file>  checks the file's SHA-256 against APPROVED_SHA256,
                          copies it byte for byte to
@@ -28,12 +28,15 @@ COPY = os.path.join(DESIGNED, 'captions-1.1.approved.json')
 OUT = os.path.join(DESIGNED, 'captions-1.1.json')
 OLD = os.path.join(DESIGNED, 'captions.json')
 
-# The owner's approval of 2026-11-23 11:32Z (the file D:\Temp\kf-research\
-# screens-captions\captions_1.1.json on the owner's PC).
-APPROVED_SHA256 = '6d52f7c9aefe75639a3be366729dca48f647312fe33461b2ce2e2efa7f2ad280'
+# The owner's approval of 2026-11-23 11:57Z (the file D:\Temp\kf-research\
+# screens-captions\captions_1.1_v2.json on the owner's PC). It replaces the
+# 11:32Z file (6d52f7c9...7f2ad280): en 04, 05 and 06 rewritten so that no
+# English line ends on a small word or splits a phrase; Arabic unchanged.
+APPROVED_SHA256 = '341a19f6b824ed9906f3d7448abff623ab6a83e031e16e69e32f48c19c780740'
 FILES = ['01-subjects.png', '02-material.png', '03-camera.png', '04-summary.png', '05-ask.png', '06-quiz.png']
 # Lines carried over unchanged from the 1.0.1 set (approved 2026-10-12).
-KEPT = {'en': {'01-subjects.png', '02-material.png', '04-summary.png'},
+# en 04 is no longer one: it was rewritten on 2026-11-23.
+KEPT = {'en': {'01-subjects.png', '02-material.png'},
         'ar': {'01-subjects.png', '02-material.png', '04-summary.png', '05-ask.png'}}
 
 

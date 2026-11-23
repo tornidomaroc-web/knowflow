@@ -2,7 +2,7 @@
   "_about": "The iOS 1.1 App Store screenshot set (item 4i), design C light, six screens per language in upload order. Built by scripts/store-shots/captions_1_1.py from captions-1.1.approved.json, the owner-approved file, copied byte for byte (its SHA-256 is `source.sha256`); never edit by hand. `caption` is the whole line; the part between the two | markers is set in gold. `approved` records the owner approval of each line: lines kept from 1.0.1 keep their 2026-10-12 date. The 1.0.1 set is captions.json, kept as history.",
   "source": {
     "file": "captions-1.1.approved.json",
-    "sha256": "6d52f7c9aefe75639a3be366729dca48f647312fe33461b2ce2e2efa7f2ad280"
+    "sha256": "341a19f6b824ed9906f3d7448abff623ab6a83e031e16e69e32f48c19c780740"
   },
   "en": [
     {
@@ -22,17 +22,17 @@
     },
     {
       "file": "04-summary.png",
-      "caption": "A clear summary, |fast|",
-      "approved": "owner 2026-10-12"
+      "caption": "|Clear summaries| of every file",
+      "approved": "owner 2026-11-23"
     },
     {
       "file": "05-ask.png",
-      "caption": "Answers that |cite your files|",
+      "caption": "Every answer |cites your files|",
       "approved": "owner 2026-11-23"
     },
     {
       "file": "06-quiz.png",
-      "caption": "Quiz yourself on |your own notes|",
+      "caption": "Quiz yourself |on your lessons|",
       "approved": "owner 2026-11-23"
     }
   ],

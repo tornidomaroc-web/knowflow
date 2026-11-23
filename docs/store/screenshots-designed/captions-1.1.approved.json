@@ -1,12 +1,12 @@
 {
-  "_about": "KnowFlow iOS 1.1 App Store screenshot captions, design C light, six screens per language in upload order. The part between | | is set in gold. Written by claude.ai for the owner's approval (session KnowFlow-049, 2026-11-23). Lines 01, 02, 04 and Arabic 05 are the captions approved on 2026-10-12, unchanged. Lines 03, 06 and English 05 are new. No price, plan, upgrade, free or Pro word; no dash; no email; at most 6 words.",
+  "_about": "KnowFlow iOS 1.1 App Store screenshot captions, design C light, six screens per language in upload order. The part between | | is set in gold. Written by claude.ai for the owner's approval (session KnowFlow-049, 2026-11-23). Lines en 01, 02 and ar 01, 02, 04, 05 are the captions approved on 2026-10-12, unchanged. Lines ar 03, 06 and en 03 were approved on 2026-11-23; en 04, 05, 06 were rewritten the same day so that no English line ends on a small word or splits a phrase. No price, plan, upgrade, free or Pro word; no dash; no email; at most 6 words.",
   "en": [
     { "file": "01-subjects.png", "caption": "Every subject in |one place|" },
     { "file": "02-material.png", "caption": "Your files, |ready to study|" },
     { "file": "03-camera.png", "caption": "Scan your pages, |then study them|" },
-    { "file": "04-summary.png", "caption": "A clear summary, |fast|" },
-    { "file": "05-ask.png", "caption": "Answers that |cite your files|" },
-    { "file": "06-quiz.png", "caption": "Quiz yourself on |your own notes|" }
+    { "file": "04-summary.png", "caption": "|Clear summaries| of every file" },
+    { "file": "05-ask.png", "caption": "Every answer |cites your files|" },
+    { "file": "06-quiz.png", "caption": "Quiz yourself |on your lessons|" }
   ],
   "ar": [
     { "file": "01-subjects.png", "caption": "كل موادك |في مكان واحد|" },
