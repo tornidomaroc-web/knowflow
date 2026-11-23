@@ -1,0 +1,71 @@
+{
+  "_about": "The iOS 1.1 App Store screenshot set (item 4i), design C light, six screens per language in upload order. Built by scripts/store-shots/captions_1_1.py from captions-1.1.approved.json, the owner-approved file, copied byte for byte (its SHA-256 is `source.sha256`); never edit by hand. `caption` is the whole line; the part between the two | markers is set in gold. `approved` records the owner approval of each line: lines kept from 1.0.1 keep their 2026-10-12 date. The 1.0.1 set is captions.json, kept as history.",
+  "source": {
+    "file": "captions-1.1.approved.json",
+    "sha256": "341a19f6b824ed9906f3d7448abff623ab6a83e031e16e69e32f48c19c780740"
+  },
+  "en": [
+    {
+      "file": "01-subjects.png",
+      "caption": "Every subject in |one place|",
+      "approved": "owner 2026-10-12"
+    },
+    {
+      "file": "02-material.png",
+      "caption": "Your files, |ready to study|",
+      "approved": "owner 2026-10-12"
+    },
+    {
+      "file": "03-camera.png",
+      "caption": "Scan your pages, |then study them|",
+      "approved": "owner 2026-11-23"
+    },
+    {
+      "file": "04-summary.png",
+      "caption": "|Clear summaries| of every file",
+      "approved": "owner 2026-11-23"
+    },
+    {
+      "file": "05-ask.png",
+      "caption": "Every answer |cites your files|",
+      "approved": "owner 2026-11-23"
+    },
+    {
+      "file": "06-quiz.png",
+      "caption": "Quiz yourself |on your lessons|",
+      "approved": "owner 2026-11-23"
+    }
+  ],
+  "ar": [
+    {
+      "file": "01-subjects.png",
+      "caption": "كل موادك |في مكان واحد|",
+      "approved": "owner 2026-10-12"
+    },
+    {
+      "file": "02-material.png",
+      "caption": "ملفاتك |جاهزة للمذاكرة|",
+      "approved": "owner 2026-10-12"
+    },
+    {
+      "file": "03-camera.png",
+      "caption": "صوّر صفحاتك |وذاكر منها|",
+      "approved": "owner 2026-11-23"
+    },
+    {
+      "file": "04-summary.png",
+      "caption": "|ملخص واضح| بسرعة",
+      "approved": "owner 2026-10-12"
+    },
+    {
+      "file": "05-ask.png",
+      "caption": "اسأل، والإجابة |من ملفاتك|",
+      "approved": "owner 2026-10-12"
+    },
+    {
+      "file": "06-quiz.png",
+      "caption": "اختبر نفسك |في دروسك|",
+      "approved": "owner 2026-11-23"
+    }
+  ]
+}

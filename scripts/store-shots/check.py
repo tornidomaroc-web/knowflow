@@ -15,7 +15,15 @@ standard library only.
    the rlig lam-alef ligature (its default glyphs are the isolated forms);
    render.mjs proves in Chrome that the captions really join.
 
-Usage: python3 scripts/store-shots/check.py <png> [<png> ...]
+6. No caption names a platform or a store: Apple, iPhone, iPad, iOS, Google,
+   Android, Play Store, App Store (guideline 2.3.10 and Apple's marketing
+   guidelines; item 4i).
+
+Usage: python3 scripts/store-shots/check.py [--size WxH] [--captions FILE] <png> [<png> ...]
+  --size      the exact size every PNG must have (default 1320x2868; the 1.1
+              set is also drawn at 1206x2622, item 4i)
+  --captions  the captions file in docs/store/screenshots-designed (default
+              captions.json, the 1.0.1 set; captions-1.1.json for 1.1)
 """
 import json
 import os
@@ -89,7 +97,20 @@ def arabic_features(d, tables):
 
 
 # 1. The PNGs.
-pngs = sys.argv[1:]
+argv = sys.argv[1:]
+size, caption_file = (1320, 2868), 'captions.json'
+while argv and argv[0].startswith('--'):
+    flag, val = argv[0], argv[1]
+    argv = argv[2:]
+    if flag == '--size':
+        size = tuple(int(v) for v in val.split('x'))
+        if size not in ((1320, 2868), (1206, 2622)):
+            sys.exit(f'FAIL --size {val}: 1320x2868 or 1206x2622')
+    elif flag == '--captions':
+        caption_file = os.path.basename(val)
+    else:
+        sys.exit(f'FAIL unknown flag {flag}')
+pngs = argv
 need(len(pngs) > 0, 'at least one PNG to check')
 for p in pngs:
     hdr = png_header(p)
@@ -97,23 +118,30 @@ for p in pngs:
     need(hdr is not None, f'{rel}: a PNG')
     if hdr:
         w, h, depth, ctype = hdr
-        need((w, h) == (1320, 2868), f'{rel}: 1320 x 2868 (got {w} x {h})')
+        need((w, h) == size, f'{rel}: {size[0]} x {size[1]} (got {w} x {h})')
         need(depth == 8 and ctype == 2, f'{rel}: 8-bit RGB with no alpha channel (depth {depth}, colour type {ctype})')
 
 # 2. The font covers every caption letter; 3. the licence is there; 4. the words.
-captions = json.load(open(os.path.join(DESIGNED, 'captions.json'), encoding='utf-8'))
+captions = json.load(open(os.path.join(DESIGNED, caption_file), encoding='utf-8'))
+print(f'     captions: {caption_file}, size {size[0]} x {size[1]}')
 cov, tables, font = cmap_codepoints(FONT)
 need('GSUB' in tables and 'GPOS' in tables, 'Rubik carries GSUB and GPOS (Arabic shaping and positioning)')
 feats = arabic_features(font, tables) if 'GSUB' in tables else set()
 need({'init', 'medi', 'fina', 'rlig'} <= feats, f'Rubik GSUB gives the arab script its joining forms and lam-alef (features: {sorted(feats)})')
 need(os.path.isfile(os.path.join(os.path.dirname(FONT), 'OFL.txt')), 'OFL.txt sits next to the font')
 forbidden = re.compile(r'@|—|–|\$|\bfree\b|\bpro\b|\bplan\b|upgrade|price|مجان|الترقية|باقة|سعر', re.I)
+platform = re.compile(r'\b(apple|iphone|ipad|ios|google|android|play store|app store)\b', re.I)
+# The platform rule must catch what it names (planted captions), or it proves nothing.
+need(all(platform.search(t) for t in ('Made for iPhone', 'on Google Play', 'Android too', 'Get it on the App Store'))
+     and not platform.search('Every subject in one place'),
+     'control: the platform rule catches iPhone, Google, Android and App Store, and passes a clean caption')
 for locale in ('en', 'ar'):
     for entry in captions[locale]:
         text = entry['caption'].replace('|', '')
         missing = sorted({ch for ch in text if not ch.isspace() and ord(ch) not in cov})
         need(not missing, f'{locale}/{entry["file"]}: every caption letter has a Rubik glyph (missing: {missing})')
         need(not forbidden.search(text), f'{locale}/{entry["file"]}: no dash, email, price or plan word in the caption')
+        need(not platform.search(text), f'{locale}/{entry["file"]}: no platform or store name in the caption')
         need(len(text.split()) <= 6, f'{locale}/{entry["file"]}: caption is short ({len(text.split())} words)')
 
 print(f'\n{len(fails)} failure(s)')

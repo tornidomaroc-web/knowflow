@@ -14,6 +14,10 @@ name: store-shots
 # loaded, Arabic letters not joined); screen_intact.py proves the app screen
 # is uncovered; ocr_scan.py refuses an email, test account or price word.
 #
+# Since item 4i (PR 1) it also checks the iOS 1.1 frame: design C light, at
+# 1320 x 2868 and 1206 x 2622, over stand-in screens, with planted cases for
+# each new check (see the 1.1 steps below).
+#
 # No secret, no environment, no npm install, no third-party action beyond the
 # pinned checkout. Pull requests only, on these paths, plus manual runs.
 
@@ -24,6 +28,8 @@ on:
       - 'docs/store/screenshots-designed/**'
       - 'docs/store/screenshots/**'
       - 'scripts/store-shots/**'
+      # The 1.1 frame reads KEEP_TOGETHER from the app's own list.
+      - 'src/lib/keep-together.ts'
       - '.github/workflows/store-shots.yml'
   workflow_dispatch:
 
@@ -112,6 +118,55 @@ jobs:
               fails += 0 if ok else 1
           sys.exit(1 if fails else 0)
           PY
+
+      # THE 1.1 SET (item 4i, PR 1): the light design C frame, at both App
+      # Store iPhone sizes. Its captions are the owner's approved file, byte
+      # for byte; every render is checked at both sizes, and every check has
+      # a planted case it must catch. The screens are STAND-INS (the 1.0.1
+      # raw captures): this tests the frame only, and nothing here is
+      # committed as the 1.1 set (render.mjs refuses an --out in the repo).
+      - name: 1.1 captions are the approved file, byte for byte
+        run: python3 scripts/store-shots/captions_1_1.py check
+
+      - name: 1.1 frame, layout test at 1320x2868 and 1206x2622 (stand-in screens)
+        env:
+          CHROME: google-chrome
+        run: |
+          set -eu
+          for z in 1320x2868 1206x2622; do
+            node scripts/store-shots/render.mjs --set 1.1 --layout-test --size "$z" --out "$RUNNER_TEMP/v11/$z"
+          done
+
+      - name: 1.1 planted cases (orphan, split phrase, Latin not isolated, small word at a line end, old gold, light ink) at both sizes
+        env:
+          CHROME: google-chrome
+        run: |
+          set -eu
+          for z in 1320x2868 1206x2622; do
+            node scripts/store-shots/render.mjs --set 1.1 --plants --size "$z" --out "$RUNNER_TEMP/v11-plants/$z"
+          done
+          python3 scripts/store-shots/contrast.py --expect-fail "$RUNNER_TEMP/v11-plants"
+
+      - name: 1.1 checks on both sizes (size, alpha, glyphs, words, contrast, screen uncovered, OCR)
+        run: |
+          set -eu
+          for z in 1320x2868 1206x2622; do
+            python3 scripts/store-shots/check.py --size "$z" --captions captions-1.1.json "$RUNNER_TEMP/v11/$z"/*/*.png
+            python3 scripts/store-shots/screen_intact.py --layout "$RUNNER_TEMP/v11/$z"
+            python3 scripts/store-shots/ocr_scan.py "$RUNNER_TEMP/v11/$z"/*/*.png
+          done
+          python3 scripts/store-shots/contrast.py "$RUNNER_TEMP/v11"
+
+      - name: Keep the 1.1 layout test (both sizes, plants, layout files)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: store-shots-1.1-layout-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/v11
+            ${{ runner.temp }}/v11-plants
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Keep the fresh renders
         if: always()
