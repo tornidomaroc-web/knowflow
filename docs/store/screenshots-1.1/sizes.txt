@@ -1,0 +1,12 @@
+ar/01-subjects.png: 1320 x 2868, 868647 bytes
+ar/02-material.png: 1320 x 2868, 750607 bytes
+ar/03-camera.png: 1320 x 2868, 477365 bytes
+ar/04-summary.png: 1320 x 2868, 816938 bytes
+ar/05-ask.png: 1320 x 2868, 763738 bytes
+ar/06-quiz.png: 1320 x 2868, 742205 bytes
+en/01-subjects.png: 1320 x 2868, 781878 bytes
+en/02-material.png: 1320 x 2868, 797350 bytes
+en/03-camera.png: 1320 x 2868, 516677 bytes
+en/04-summary.png: 1320 x 2868, 727864 bytes
+en/05-ask.png: 1320 x 2868, 760095 bytes
+en/06-quiz.png: 1320 x 2868, 727810 bytes
