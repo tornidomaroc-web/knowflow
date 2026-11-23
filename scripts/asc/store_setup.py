@@ -16,23 +16,29 @@ MODES
                content rights "does not use third-party content". Idempotent:
                only what differs is written. Ends with a read-back that fails
                unless all three hold.
-  screenshots  the five approved PNGs of each language
-               (docs/store/screenshots-designed/{ar,en}/01..05) into the
-               APP_IPHONE_67 set (the 6.9-inch slot: 1320 x 2868) of the ar,
-               en-US and en-GB version localizations, in order. Idempotent: a
-               set that already holds the five (same file names and MD5
-               checksums in order, all COMPLETE) is left alone, no write.
-               Any other set RESUMES (run 40780425121 stopped half way):
-               each approved image already there is kept when COMPLETE and
-               waited for when Apple is still processing it; only what is not
-               an approved image, has another checksum, is a second copy, is
-               FAILED or never finished uploading is deleted, in that set
-               alone; the missing images are uploaded; then every pending
-               image is waited for together (SHOT_WAIT, one budget), and the
-               set is put in the order 01 to 05. A missing set is created.
-               Each image must reach COMPLETE with Apple's checksum equal to
-               the file's MD5. A language whose version localization does not
-               exist is reported and skipped, never created here.
+  screenshots  iOS 1.1 (item 4i, PR 3): the six approved PNGs of each
+               language (docs/store/screenshots-designed/1.1/<size>/{ar,en}/
+               01..06) into two display types: APP_IPHONE_61 <- 1206x2622
+               (the medium Dynamic Island slot Apple now requires; see
+               SHOT_TYPES) and APP_IPHONE_67 <- 1320x2868, in that order, for
+               the locales ar-SA (ar) and en-US, en-GB, fr-FR (en).
+               Refused by name before the key: 1.0 and 1.0.1. Refused after
+               the read: a version whose appVersionState or appStoreState is
+               not in EDITABLE. Refused offline: a missing or extra file, or
+               a PNG whose pixel size is not its type's (check-shots).
+               Idempotent: a set that already holds the six (same names and
+               MD5 checksums in order, all COMPLETE) is left alone. Any other
+               set RESUMES: approved images already there are kept (COMPLETE)
+               or waited for (still processing); what is not on screen
+               (FAILED, an error, an unfinished upload) is deleted at once;
+               the old images that ARE on screen are deleted only after the
+               new ones that fit in the set (10 at most) are COMPLETE (phase
+               A), then the rest is uploaded (phase B), and the set is put in
+               the order 01 to 06. A missing set is created. Each image must
+               reach COMPLETE with Apple's checksum equal to the file's MD5.
+               A locale without a version localization is named and skipped.
+  check-shots  the screenshots mode's offline gate (the workflow runs it
+               before the key): the version name and the 24 files.
 
 --key-file lets a run re-sign its token (openssl, as the workflow does) when
 it has less than five minutes left, so a long screenshot wait never calls
@@ -61,7 +67,7 @@ Apple with an expired one.
                wording too), the en-GB promotional text and description equal
                to en-US, and the three approval flags; offline.
 
---version (default 1.0) names the App Store version every mode reads and
+--version (default 1.1) names the App Store version every mode reads and
 writes; the workflow passes its `version` input. The tool never creates a
 version: that is the "+" in App Store Connect's web page.
   builds       prints, writes nothing: every build of version 1.0 (number,
@@ -116,15 +122,35 @@ EN_FILE = os.path.join(ROOT, 'docs', 'store', 'ASC_ANSWERS_EN.md')
 EN_FLAG = os.path.join(ROOT, 'docs', 'store', 'ASC_ANSWERS_EN.approved')
 SHOTS = os.path.join(ROOT, 'docs', 'store', 'screenshots-designed')
 WORDING = os.path.join(ROOT, 'scripts', 'lib', 'app-wording.mjs')
-VERSION = '1.0'  # --version replaces it
-DISPLAY = 'APP_IPHONE_67'
+VERSION = '1.1'  # --version replaces it
 NO_CHINA = 'CHN'
 BASE_TERRITORY = 'USA'
 RIGHTS = 'DOES_NOT_USE_THIRD_PARTY_CONTENT'
-# Version-localization locale -> folder of approved PNGs. en-GB takes the
-# English five; fr-FR has none of its own (the app has no French screens), so
-# the store shows the primary language's (ar-SA).
-SHOT_TARGETS = [('ar', 'ar'), ('en-US', 'en'), ('en-GB', 'en')]
+# iOS 1.1 screenshots (item 4i, PR 3). Version-localization locale -> folder
+# of the approved set (docs/store/screenshots-designed/1.1/<size>/<folder>).
+# fr-FR takes the English six: the app has no French, a French phone opens it
+# in English, and without a set of its own fr-FR would show the Arabic one.
+SHOT_TARGETS = [('ar-SA', 'ar'), ('en-US', 'en'), ('en-GB', 'en'), ('fr-FR', 'en')]
+SHOTS_11 = os.path.join(SHOTS, '1.1')
+SHOT_NAMES = ('01-subjects.png', '02-material.png', '03-camera.png', '04-summary.png', '05-ask.png', '06-quiz.png')
+# Display type -> (folder of its size, exact pixel size). The medium type
+# FIRST: it is the unproven one, so a refusal by Apple stops the run before
+# any write to the 6.9-inch sets. Apple's ScreenshotDisplayType enum (read
+# 2026-11-23, developer.apple.com/documentation/appstoreconnectapi/
+# screenshotdisplaytype) has no APP_IPHONE_63; its iPhone values are
+# APP_IPHONE_67, 65, 61, 58, 55, 47, 40, 35, with no pixel sizes named.
+# APP_IPHONE_61 for "iPhone with Dynamic Island (medium display)" (1206 x
+# 2622) is the working assumption; the dry run prints the type of every set
+# Apple already holds, and Apple's own processing (IMAGE_INCORRECT_DIMENSIONS
+# ends a screenshot FAILED) refuses a wrong pairing before any delete.
+SHOT_TYPES = [('APP_IPHONE_61', '1206x2622', (1206, 2622)), ('APP_IPHONE_67', '1320x2868', (1320, 2868))]
+# The iPhone values of Apple's ScreenshotDisplayType enum as read on
+# 2026-11-23; a type outside it (APP_IPHONE_63, for one) is refused offline.
+APPLE_IPHONE_TYPES = ('APP_IPHONE_67', 'APP_IPHONE_65', 'APP_IPHONE_61', 'APP_IPHONE_58', 'APP_IPHONE_55', 'APP_IPHONE_47', 'APP_IPHONE_40', 'APP_IPHONE_35')
+SET_MAX = 10  # Apple: up to 10 screenshots per device size
+# Versions this mode never writes, by name, before the key is read: 1.0 is
+# live and 1.0.1 is approved; their sets are the 1.0.1 design.
+SHOT_REFUSED_VERSIONS = ('1.0', '1.0.1')
 EN_FIELDS = {'name': 30, 'subtitle': 30, 'keywords': 100, 'promotionalText': 170, 'description': 4000, 'supportUrl': 255, 'privacyPolicyUrl': 255}
 APP_INFO_FIELDS = ('name', 'subtitle', 'privacyPolicyUrl')
 VERSION_FIELDS = ('description', 'keywords', 'promotionalText', 'supportUrl')
@@ -147,7 +173,17 @@ LOCALE_MODES = {
     'fr-fr': {'locale': 'fr-FR', 'file': _store('ASC_ANSWERS_FR.md'), 'flag': _store('ASC_ANSWERS_FR.approved'), 'tag': 'asc-fr',
               'app_info': APP_INFO_FIELDS, 'version': VERSION_FIELDS, 'create': True},
 }
-# A version whose metadata App Store Connect accepts edits to.
+# A version whose metadata App Store Connect accepts edits to. Apple's "App
+# and submission statuses" (developer.apple.com/help/app-store-connect/
+# reference/app-information/app-and-submission-statuses, read 2026-11-23)
+# marks Editable: Prepare for Submission, Ready for Review, Invalid Binary,
+# Waiting for Review, Accepted, Waiting for Export Compliance, Rejected,
+# Metadata Rejected, Developer Rejected; and notes that images are NOT
+# editable in Ready for Review ("Images and videos aren't editable in this
+# state") nor in Waiting for Review ("you can't upload or edit screenshots or
+# app previews"). Accepted and Waiting for Export Compliance are left out on
+# purpose: a version there is on its way out of review, and nothing here
+# should touch it. The same five hold for screenshots.
 EDITABLE = ('PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED', 'METADATA_REJECTED', 'INVALID_BINARY')
 # The wording rule's French half, for the store text only: the app has no
 # French interface, so kfWording (which the app's own probe runs) stays as it
@@ -353,7 +389,7 @@ class Api:
 # ---------------------------------------------------------------- reading
 
 def version_of(api, app):
-    vs, _ = api.all(f'/v1/apps/{app}/appStoreVersions?filter[platform]=IOS&filter[versionString]={VERSION}&fields[appStoreVersions]=versionString,appVersionState,platform&limit=5')
+    vs, _ = api.all(f'/v1/apps/{app}/appStoreVersions?filter[platform]=IOS&filter[versionString]={VERSION}&fields[appStoreVersions]=versionString,appVersionState,appStoreState,platform&limit=5')
     # The filter is Apple's; the check is ours, so an ignored filter (or an
     # offline fixture) can never hand a write mode version 1.0 for 1.0.1.
     vs = [v for v in vs if (v.get('attributes') or {}).get('versionString') == VERSION]
@@ -376,9 +412,19 @@ def editable_app_info(api, app):
     return (edit or infos or [None])[0]
 
 
-def shot_set(api, lid):
-    sets, _ = api.all(f'/v1/appStoreVersionLocalizations/{lid}/appScreenshotSets?filter[screenshotDisplayType]={DISPLAY}&limit=10')
-    return sets[0] if sets else None
+def shot_sets(api, lid):
+    sets, _ = api.all(f'/v1/appStoreVersionLocalizations/{lid}/appScreenshotSets?limit=50')
+    return sets
+
+
+def shot_set(sets, display):
+    """The set of one display type, matched here on the attribute Apple
+    returned: a filter Apple (or an offline fixture) ignores can never hand
+    the 6.9-inch set to the medium type."""
+    m = [x for x in sets if (x.get('attributes') or {}).get('screenshotDisplayType') == display]
+    if len(m) > 1:
+        raise Failed(f'{len(m)} {display} sets in one localization')
+    return m[0] if m else None
 
 
 def shots_in(api, sid):
@@ -704,94 +750,213 @@ def wait_processed(api, pending):
         SLEEP(SHOT_POLL)
 
 
-def screenshots(api, app):
+def png_size(path):
+    """(width, height) from a PNG's IHDR, or a refusal: standard library only."""
+    with open(path, 'rb') as fh:
+        head = fh.read(33)
+    if len(head) < 24 or head[:8] != b'\x89PNG\r\n\x1a\n' or head[12:16] != b'IHDR':
+        raise Failed(f'{os.path.basename(path)}: not a PNG')
+    return int.from_bytes(head[16:20], 'big'), int.from_bytes(head[20:24], 'big')
+
+
+def refuse_version_name(version):
+    """Before the key: the screenshots mode never names 1.0 or 1.0.1."""
+    if version in SHOT_REFUSED_VERSIONS:
+        raise Failed(f'REFUSED: version {version} is never written by the screenshots mode (1.0 is live, 1.0.1 approved); the 1.1 set goes to 1.1')
+
+
+def shot_files(root=None):
+    """Every display type's six files per folder, checked offline: present,
+    nothing else in the folder, in order 01..06, each PNG exactly its type's
+    pixel size. Returns {(display, folder): [paths]}; raises on the first
+    refusal."""
+    root = root or SHOTS_11
+    out = {}
+    unknown = [d for d, _, _ in SHOT_TYPES if d not in APPLE_IPHONE_TYPES]
+    if unknown:
+        raise Failed(f'unknown display type {", ".join(unknown)}: not in the ScreenshotDisplayType enum of Apple ({", ".join(APPLE_IPHONE_TYPES)})')
+    if len({d for d, _, _ in SHOT_TYPES}) != len(SHOT_TYPES):
+        raise Failed('a display type is named twice')
+    for display, size, wh in SHOT_TYPES:
+        for folder in sorted({f for _, f in SHOT_TARGETS}):
+            d = os.path.join(root, size, folder)
+            files = [os.path.join(d, n) for n in SHOT_NAMES]
+            missing = [os.path.basename(f) for f in files if not os.path.isfile(f)]
+            if missing:
+                raise Failed(f'{display} {size}/{folder}: missing {", ".join(missing)}')
+            extra = sorted(set(os.listdir(d)) - set(SHOT_NAMES))
+            if extra:
+                raise Failed(f'{display} {size}/{folder}: files that are not the six: {", ".join(extra)}')
+            for f in files:
+                got = png_size(f)
+                if got != wh:
+                    raise Failed(f'{display} {size}/{folder}/{os.path.basename(f)}: {got[0]} x {got[1]} px, the type takes {wh[0]} x {wh[1]}')
+            out[(display, folder)] = files
+    return out
+
+
+def check_shots(version, root=None):
+    """The screenshots mode's offline gate, run by the workflow before the key."""
+    say('== check-shots')
+    refuse_version_name(version)
+    files = shot_files(root)
+    sizes = {d: s for d, s, _ in SHOT_TYPES}
+    for (display, folder), fs in files.items():
+        say(f'ok   {display} {folder}: {len(fs)} files {" ".join(os.path.basename(f)[:2] for f in fs)}, every one {sizes[display]}')
+    say(f'ok   version {version} is not {" or ".join(SHOT_REFUSED_VERSIONS)}')
+    return files
+
+
+def version_states(v):
+    a = v.get('attributes') or {}
+    return a.get('appVersionState'), a.get('appStoreState')
+
+
+def refuse_state(v):
+    """After the read: a version Apple does not let anyone edit is refused, on
+    either state field (appStoreState is deprecated since API 3.7 but still
+    sent; appVersionState replaces it)."""
+    vs, ss = version_states(v)
+    if vs is None and ss is None:
+        raise Failed(f'version {VERSION}: Apple returned no state; nothing written')
+    for name, st in (('appVersionState', vs), ('appStoreState', ss)):
+        if st is not None and st not in EDITABLE:
+            raise Failed(f'REFUSED: version {VERSION} {name} {st} is not one of {", ".join(EDITABLE)}; nothing written')
+
+
+def screenshots(api, app, root=None):
+    """The 1.1 sets, display type by display type (medium first), locale by
+    locale. An old image that is on screen (COMPLETE) is deleted only after
+    the new images that fit are COMPLETE: phase A uploads into the room the
+    set has (SET_MAX less what it holds) and waits; phase B deletes the old
+    COMPLETE images, uploads the rest and waits; then the set is put in the
+    order 01..06."""
     say('== screenshots')
+    refuse_version_name(VERSION)
+    files = shot_files(root)
     v = version_of(api, app)
+    vs, ss = version_states(v)
+    say(f'version {VERSION}: id {v["id"]}, appVersionState {vs}, appStoreState {ss}')
+    refuse_state(v)
     locs = version_locs(api, v['id'])
-    pending, done, kept, waiting, orders = [], [], [], {}, []
-    for prefix, folder in SHOT_TARGETS:
-        files = sorted(glob.glob(os.path.join(SHOTS, folder, '0[1-5]-*.png')))
-        if len(files) != 5:
-            raise Failed(f'{folder}: expected the five approved PNGs, found {len(files)}')
-        loc = next((l for l in locs if (l['attributes'].get('locale') or '') == prefix or (prefix == 'ar' and (l['attributes'].get('locale') or '').startswith('ar'))), None)
+    by_locale = {(l.get('attributes') or {}).get('locale'): l for l in locs}
+    targets, skipped = [], []
+    for locale, folder in SHOT_TARGETS:
+        loc = by_locale.get(locale)
         if not loc:
-            say(f'{prefix}: no version localization yet; SKIPPED (the english, en-gb and fr-fr modes create theirs)')
-            pending.append(prefix)
+            say(f'{locale}: no version localization on {VERSION}; SKIPPED (named, never created here)')
+            skipped.append(locale)
             continue
-        locale = loc['attributes']['locale']
-        say(f'{locale} ({loc["id"]}): {len(files)} files from docs/store/screenshots-designed/{folder}')
-        s = shot_set(api, loc['id'])
-        old = shots_in(api, s['id']) if s else []
-        if s and held(old) == wanted(files):
-            # The approved five, in order and COMPLETE: no write at all (the
-            # ar-SA set, run 38770955611; ar-SA and en-US on 1.0.1).
-            say(f'{locale}: already the approved five, unchanged')
-            kept.append(locale)
-            done.append((locale, s['id'], files))
-            continue
-        keep, wait, delete, upload = plan_set(old, files)
-        for g, why in keep:
-            say(f'  keep    {shot_state(g)[0]}: {why}, checksum {shot_state(g)[1]}')
-        for g, why in wait:
-            say(f'  wait    {shot_state(g)[0]}: {why}')
-        for g, why in delete:
-            say(f'  delete  {shot_state(g)[0]}: {why}')
-        for f in upload:
-            say(f'  upload  {os.path.basename(f)}: {os.path.getsize(f)} bytes, MD5 {md5(f)}')
-        if s:
-            sid = s['id']
-        else:
-            js = api.need('POST', '/v1/appScreenshotSets', {'data': {'type': 'appScreenshotSets', 'attributes': {'screenshotDisplayType': DISPLAY},
-                                                                    'relationships': {'appStoreVersionLocalization': {'data': {'type': 'appStoreVersionLocalizations', 'id': loc['id']}}}}}, ok=(201,))
-            sid = js['data']['id']
-        # Deletes are of this locale's set only, and only what plan_set named.
-        for g, _ in delete:
-            api.need('DELETE', f"/v1/appScreenshots/{g['id']}", ok=(204,))
-        ids = {shot_state(g)[0]: g['id'] for g, _ in keep + wait}
-        for g, _ in wait:
-            waiting[g['id']] = f'{locale} {shot_state(g)[0]}'
-        for f in upload:
-            name, size, sum_ = os.path.basename(f), os.path.getsize(f), md5(f)
-            js = api.need('POST', '/v1/appScreenshots', {'data': {'type': 'appScreenshots', 'attributes': {'fileName': name, 'fileSize': size},
-                                                                 'relationships': {'appScreenshotSet': {'data': {'type': 'appScreenshotSets', 'id': sid}}}}}, ok=(201,))
-            shot = js['data']['id']
-            ids[name] = shot
-            ops = (js['data'].get('attributes') or {}).get('uploadOperations') or []
-            if api.transport == 'live':
-                say(f'  {name}: {size} bytes in {put_parts(f, ops)} part(s)')
+        sets = shot_sets(api, loc['id'])
+        # What Apple holds now, as Apple names it: the medium type is read
+        # here before any live write (APP_IPHONE_61 is the unproven one).
+        say(f'{locale} ({loc["id"]}): sets Apple holds: ' + (', '.join(f'{(x.get("attributes") or {}).get("screenshotDisplayType")} ({x["id"]})' for x in sets) or 'none'))
+        targets.append((locale, folder, loc, sets))
+    done, kept = [], []
+    for display, size, _ in SHOT_TYPES:
+        say(f'== {display} ({size})')
+        work = []
+        for locale, folder, loc, sets in targets:
+            fs = files[(display, folder)]
+            s = shot_set(sets, display)
+            old = shots_in(api, s['id']) if s else []
+            label = f'{locale} {display}'
+            if s and held(old) == wanted(fs):
+                say(f'{label}: already the approved six, unchanged')
+                kept.append(label)
+                done.append((label, s['id'], fs))
+                continue
+            keep, wait, delete, upload = plan_set(old, fs)
+            # Not on screen (FAILED, an error, an upload that never finished):
+            # deleted at once. On screen (COMPLETE, the old design): deleted
+            # only after the new images that fit are COMPLETE.
+            now = [(g, why) for g, why in delete if shot_state(g)[2] != 'COMPLETE']
+            later = [(g, why) for g, why in delete if shot_state(g)[2] == 'COMPLETE']
+            room = SET_MAX - (len(old) - len(now))
+            first, second = upload[:max(0, room)], upload[max(0, room):]
+            if upload and not first:
+                raise Failed(f'{label}: the set holds {len(old) - len(now)} images on screen, {SET_MAX} at most, and none may go before a new one is COMPLETE; nothing written')
+            say(f'{label}: {len(fs)} files from docs/store/screenshots-designed/1.1/{size}/{folder}; set {s["id"] if s else "none, created"} holds {len(old)}')
+            for g, why in keep:
+                say(f'  keep    {shot_state(g)[0]}: {why}, checksum {shot_state(g)[1]}')
+            for g, why in wait:
+                say(f'  wait    {shot_state(g)[0]}: {why}')
+            for g, why in now:
+                say(f'  delete  {shot_state(g)[0]} now: {why} (not on screen)')
+            for f in first:
+                say(f'  upload  {os.path.basename(f)} (phase A): {os.path.getsize(f)} bytes, MD5 {md5(f)}')
+            for g, why in later:
+                say(f'  delete  {shot_state(g)[0]} after phase A is COMPLETE: {why}')
+            for f in second:
+                say(f'  upload  {os.path.basename(f)} (phase B, after the deletes): {os.path.getsize(f)} bytes, MD5 {md5(f)}')
+            if s:
+                sid = s['id']
             else:
-                say(f'  WOULD PUT {name}: {size} bytes to the reserved upload operations (presigned, not printed)')
-            api.need('PATCH', f'/v1/appScreenshots/{shot}', {'data': {'type': 'appScreenshots', 'id': shot, 'attributes': {'uploaded': True, 'sourceFileChecksum': sum_}}})
-            waiting[shot] = f'{locale} {name}'
-        order = [ids[os.path.basename(f)] for f in files]
-        now_order = [g['id'] for g in old if g['id'] in set(order)]
-        if upload or delete or now_order != order:
-            say(f'  reorder {os.path.basename(files[0])} to {os.path.basename(files[-1])} once every image is COMPLETE')
-            orders.append((sid, order))
-        else:
-            say('  order already 01 to 05')
-        done.append((locale, sid, files))
+                js = api.need('POST', '/v1/appScreenshotSets', {'data': {'type': 'appScreenshotSets', 'attributes': {'screenshotDisplayType': display},
+                                                                        'relationships': {'appStoreVersionLocalization': {'data': {'type': 'appStoreVersionLocalizations', 'id': loc['id']}}}}}, ok=(201,))
+                sid = js['data']['id']
+            for g, _ in now:
+                api.need('DELETE', f"/v1/appScreenshots/{g['id']}", ok=(204,))
+            work.append({'label': label, 'sid': sid, 'files': fs, 'ids': {shot_state(g)[0]: g['id'] for g, _ in keep + wait},
+                         'later': later, 'first': first, 'second': second,
+                         'waiting': {g['id']: f'{label} {shot_state(g)[0]}' for g, _ in wait}})
+        # Phase A: the uploads that fit, then every pending image together.
+        pend = {}
+        for w in work:
+            pend.update(w['waiting'])
+            for f in w['first']:
+                pend.update(upload_one(api, w, f))
+        settle(api, pend, f'{display} phase A')
+        # Phase B: the old images go only now; then the rest is uploaded.
+        pend = {}
+        for w in work:
+            for g, _ in w['later']:
+                api.need('DELETE', f"/v1/appScreenshots/{g['id']}", ok=(204,))
+            for f in w['second']:
+                pend.update(upload_one(api, w, f))
+        settle(api, pend, f'{display} phase B')
+        for w in work:
+            order = [w['ids'][os.path.basename(f)] for f in w['files']]
+            api.need('PATCH', f"/v1/appScreenshotSets/{w['sid']}/relationships/appScreenshots", {'data': [{'type': 'appScreenshots', 'id': i} for i in order]}, ok=(200, 204))
+            done.append((w['label'], w['sid'], w['files']))
     if api.transport != 'live':
-        if waiting:
-            say(f'WOULD wait up to {SHOT_WAIT} s together for: {", ".join(waiting.values())}')
-        for sid, order in orders:
-            api.need('PATCH', f'/v1/appScreenshotSets/{sid}/relationships/appScreenshots', {'data': [{'type': 'appScreenshots', 'id': i} for i in order]}, ok=(200, 204))
-        say(f'{api.writes} write(s) printed, none sent; unchanged: {kept or "none"}; pending: {pending or "none"}')
+        say(f'{api.writes} write(s) printed, none sent; unchanged: {kept or "none"}; skipped locales: {skipped or "none"}')
         return
-    wait_processed(api, waiting)
-    for sid, order in orders:
-        api.need('PATCH', f'/v1/appScreenshotSets/{sid}/relationships/appScreenshots', {'data': [{'type': 'appScreenshots', 'id': i} for i in order]}, ok=(200, 204))
     say('== read-back')
     checks = []
-    for locale, sid, files in done:  # the kept sets too: the read-back verifies every locale, not only the written ones
-        have, want = held(shots_in(api, sid)), wanted(files)
+    for label, sid, fs in done:
+        have, want = held(shots_in(api, sid)), wanted(fs)
         for (wn, wm, _), (hn, hm, st) in zip(want, have):
-            say(f'  {locale} {hn}: {st}, checksum {"=" if hm == wm else "!="} file MD5 {wm}')
-        checks.append((have == want, f'{locale}: {len(have)} screenshots in order 01 to 05, all COMPLETE, checksums equal to the files'
-                       + (' (unchanged)' if locale in kept else '')))
-    for p in pending:
-        say(f'pending: {p} (no version localization)')
+            say(f'  {label} {hn}: {st}, checksum {"=" if hm == wm else "!="} file MD5 {wm}')
+        checks.append((have == want, f'{label}: {len(have)} screenshots in order 01 to 06, all COMPLETE, checksums equal to the files' + (' (unchanged)' if label in kept else '')))
+    for p in skipped:
+        say(f'skipped: {p} (no version localization)')
     verdict(checks)
+
+
+def upload_one(api, w, f):
+    """Reserve, upload (live only) and commit one file; returns {id: label} to wait for."""
+    name, size, sum_ = os.path.basename(f), os.path.getsize(f), md5(f)
+    js = api.need('POST', '/v1/appScreenshots', {'data': {'type': 'appScreenshots', 'attributes': {'fileName': name, 'fileSize': size},
+                                                         'relationships': {'appScreenshotSet': {'data': {'type': 'appScreenshotSets', 'id': w['sid']}}}}}, ok=(201,))
+    shot = js['data']['id']
+    w['ids'][name] = shot
+    ops = (js['data'].get('attributes') or {}).get('uploadOperations') or []
+    if api.transport == 'live':
+        say(f"  {w['label']} {name}: {size} bytes in {put_parts(f, ops)} part(s)")
+    else:
+        say(f"  WOULD PUT {w['label']} {name}: {size} bytes to the reserved upload operations (presigned, not printed)")
+    api.need('PATCH', f'/v1/appScreenshots/{shot}', {'data': {'type': 'appScreenshots', 'id': shot, 'attributes': {'uploaded': True, 'sourceFileChecksum': sum_}}})
+    return {shot: f"{w['label']} {name}"}
+
+
+def settle(api, pend, what):
+    """Waits for every pending image (live), or prints the wait (dry, offline)."""
+    if api.transport != 'live':
+        if pend:
+            say(f'WOULD wait up to {SHOT_WAIT} s together ({what}) for: {", ".join(pend.values())}')
+        return
+    wait_processed(api, pend)
 
 
 # ---------------------------------------------------------------- english
@@ -1046,13 +1211,14 @@ def locale_write(api, app, mode, flag=None):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('mode', choices=['read', 'builds', 'settings', 'screenshots', 'english', *LOCALE_MODES, 'check-en', 'check-locales'])
+    ap.add_argument('mode', choices=['read', 'builds', 'settings', 'screenshots', 'english', *LOCALE_MODES, 'check-en', 'check-locales', 'check-shots'])
     ap.add_argument('--app', default=os.environ.get('ASC_APP_APPLE_ID', ''))
     ap.add_argument('--auth', help='file holding "Authorization: Bearer <token>"')
     ap.add_argument('--key-file', help='the .p8 key, to re-sign the token before it expires; the key id and the issuer id come from ASC_REVIEW_KEY_ID and ASC_REVIEW_ISSUER_ID')
     ap.add_argument('--live', action='store_true', help='send the writes')
     ap.add_argument('--offline', help='fixtures file: no network at all')
-    ap.add_argument('--version', default='1.0', help='the App Store version to read or write (the workflow passes its input)')
+    ap.add_argument('--version', default='1.1', help='the App Store version to read or write (the workflow passes its input)')
+    ap.add_argument('--shots-root', help=argparse.SUPPRESS)  # the offline proof's planted sets only; the workflow never passes it
     ap.add_argument('--require-approval', action='store_true', help='check-en, check-locales: fail unless the approval flags match')
     ap.add_argument('--flag', help='the approval flag of an english or locale mode (local proofs only; the workflow never passes it)')
     a = ap.parse_args()
@@ -1068,6 +1234,14 @@ def main():
         if a.mode == 'check-locales':
             ok = check_locales()
             return 1 if (a.require_approval and not ok) else 0
+        if a.mode == 'check-shots':
+            check_shots(VERSION, a.shots_root)
+            return 0
+        if a.mode == 'screenshots':
+            # By name, before the auth file is opened: 1.0 and 1.0.1 never.
+            refuse_version_name(VERSION)
+            if a.shots_root and not a.offline:
+                raise Failed('--shots-root is for the offline proof only')
         if not re.fullmatch(r'\d+', a.app or ''):
             raise Failed('the app id (ASC_APP_APPLE_ID) is missing')
         transport = 'offline' if a.offline else ('live' if a.live else 'dry')
@@ -1089,7 +1263,10 @@ def main():
             elif a.mode in LOCALE_MODES:
                 locale_write(api, a.app, a.mode, a.flag)
             else:
-                {'settings': settings, 'screenshots': screenshots}[a.mode](api, a.app)
+                if a.mode == 'screenshots':
+                    screenshots(api, a.app, a.shots_root)
+                else:
+                    settings(api, a.app)
             if transport == 'live':
                 read_all(api, a.app)
         return 0

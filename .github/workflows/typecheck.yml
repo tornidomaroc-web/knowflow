@@ -319,6 +319,15 @@ jobs:
       - name: Verify design-c's before_ref guard and the signed-in login's one retry (offline)
         run: node scripts/verify-ci-guards.mjs
 
+      # Item 4i, PR 3: store_setup.py's 1.1 screenshots mode, offline (no
+      # network, no key): the 48 planned uploads (4 locales x 2 display types
+      # x 6 files), a resumed half-done set, old images deleted only after the
+      # new ones are COMPLETE, and every refusal on its planted case (1.0.1
+      # and 1.0 by name before the auth file, READY_FOR_SALE, wrong pixel
+      # size, missing or extra file, unknown display type, a full set).
+      - name: Verify the App Store 1.1 screenshots upload plan and its refusals (offline, item 4i)
+        run: python3 -I scripts/asc/verify_screens_1_1.py
+
       # Register #123: the owner's approved Arabic microcopy batches (docs/copy/
       # ARABIC_STRINGS_*_v*.md) hold in ar.ts, and the key set, every placeholder
       # and Western digits are unchanged. A new batch file is picked up with no edit here.
