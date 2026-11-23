@@ -80,6 +80,18 @@ name: ios-smoke
 #      offline.html never loads (every URL the web view takes is logged). A
 #      bogus token_hash fails verifyOtp, so the route answers 307 to login
 #      with no session and no write (src/app/api/auth/callback/route.ts).
+#   14. In-app rating (iOS 1.1, item 4h): the KnowFlowReview plugin is
+#      registered (`review` in the probe) and `available` answers exactly
+#      {available: true, version} within 20 s, the version being the
+#      CFBundleShortVersionString of the build that ran; the app stays
+#      active (appState 0) around the call. `request` is NEVER called: this
+#      build is Debug, where StoreKit shows the review sheet on every
+#      request, so the plugin's one log line, "[KFReview] request", must
+#      appear 0 times in the log of every launch below (online, universal
+#      links, both notification launches, offline). Run in the first launch,
+#      before the notification prompt (proof 6) can sit over the app. The
+#      assertions are scripts/ios/review_proof.py, whose --self-test plants
+#      a wrong reading for each (verify-apple-native.mjs runs it).
 # A screenshot is taken at every new line of smoke.jsonl, and the app's log
 # is kept, so the record is pictures and text, not a green tick alone.
 #
@@ -111,6 +123,8 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/ios-smoke.yml'
+      # The readings' shared assertions (page_steps.py, review_proof.py).
+      - 'scripts/ios/**'
       # Proof 7's purpose-string comparison and the approved texts it reads.
       - '.github/scripts/ios-purpose-strings-check.py'
       - 'docs/copy/ARABIC_STRINGS_app_v13.md'
@@ -349,6 +363,8 @@ jobs:
             {"name":"speech-read","settle":"(function(){var s=window.__kfSpeech||{};return ['en-US','ar-SA'].every(function(l){return s[l]&&s[l]!=='waiting'})?'true':'false'})()","timeout":20000,"wait":300,"js":"(function(){return JSON.stringify(window.__kfSpeech)})()"},
             {"name":"apple-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfApple='waiting';if(!C||!C.nativePromise){window.__kfApple='no bridge';return window.__kfApple}var t0=Date.now();C.nativePromise('KnowFlowApple','available',{}).then(function(r){r=r||{};r.ms=Date.now()-t0;window.__kfApple=JSON.stringify(r)},function(e){window.__kfApple='rejected after '+(Date.now()-t0)+' ms: '+String(e&&e.message||e)});return 'called available'})()"},
             {"name":"apple-read","settle":"(function(){return window.__kfApple!=='waiting'?'true':'false'})()","timeout":20000,"wait":300,"js":"(function(){return JSON.stringify({answer:String(window.__kfApple),button:document.querySelectorAll('[data-kf-apple-signin]').length,path:location.pathname})})()"},
+            {"name":"review-call","wait":500,"js":"(function(){var C=window.Capacitor;window.__kfReview='waiting';if(!C||!C.nativePromise){window.__kfReview='no bridge';return window.__kfReview}var t0=Date.now();C.nativePromise('KnowFlowReview','available',{}).then(function(r){r=r||{};r.ms=Date.now()-t0;window.__kfReview=JSON.stringify(r)},function(e){window.__kfReview='rejected after '+(Date.now()-t0)+' ms: '+String(e&&e.message||e)});return 'called available'})()"},
+            {"name":"review-read","settle":"(function(){return window.__kfReview!=='waiting'?'true':'false'})()","timeout":20000,"wait":300,"js":"(function(){return String(window.__kfReview)})()"},
             {"name":"live-terms","until":"/en/terms$","wait":4000,"js":"(function(){location.assign('/en/terms');return 'assigned /en/terms'})()"},
             {"name":"dashboard-direct","until":"/(en|ar)/(signup|login)$","wait":3000,"js":"(function(){var l=location.pathname.split('/')[1];location.assign('/'+l+'/dashboard');return 'assigned /'+l+'/dashboard'})()"},
             {"name":"live-refund","until":"/en/refund$","wait":4000,"js":"(function(){location.assign('/en/refund');return 'assigned /en/refund'})()"},
@@ -380,7 +396,8 @@ jobs:
           # at 300 s the loop ended mid-run on 2026-10-12 (run 38264230960).
           # 720 s: in-app Pro added five readings (the plugin's call and the
           # shell-2 wording plants), about 18 s each.
-          for i in $(seq 1 720); do
+          # 780 s: proof 14 (in-app rating) added two readings.
+          for i in $(seq 1 780); do
             f=$(sf smoke.jsonl); n=0; [ -n "$f" ] && n=$(wc -l < "$f" | tr -d ' ')
             if [ "$n" -gt "$seen" ]; then
               seen=$n
@@ -553,8 +570,13 @@ jobs:
             {"name":"notify-b-pending-none","wait":300,"js":"(function(){return String(window.__kfP)})()"}
           ]
           JSON
+          # Proof 14 counts "[KFReview] request" in every launch's log, these
+          # two included.
+          xcrun simctl spawn "$UDID" log stream --style compact --predicate 'process == "App"' > "$RUNNER_TEMP/app-notify.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/log4.pid"
           run_launch notify-a "$RUNNER_TEMP/notify-a.json" ""
           run_launch notify-b "$RUNNER_TEMP/notify-b.json" provisional
+          kill "$(cat "$RUNNER_TEMP/log4.pid")" 2>/dev/null || true
 
       # The site unreachable for one launch: its name resolves to 127.0.0.1
       # for the whole runner (the simulator uses the host's resolver), the app
@@ -590,7 +612,9 @@ jobs:
 
       - name: Assert the five proofs from the readings
         run: |
-          python3 - "$RUNNER_TEMP/smoke-online.jsonl" "$RUNNER_TEMP/smoke-offline.jsonl" "$RUNNER_TEMP/smoke-notify-a.jsonl" "$RUNNER_TEMP/smoke-notify-b.jsonl" "$RUNNER_TEMP/steps.json" <<'PY'
+          # Proof 14: the version of the simulator build that ran.
+          built=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Info.plist")
+          python3 - "$RUNNER_TEMP/smoke-online.jsonl" "$RUNNER_TEMP/smoke-offline.jsonl" "$RUNNER_TEMP/smoke-notify-a.jsonl" "$RUNNER_TEMP/smoke-notify-b.jsonl" "$RUNNER_TEMP/steps.json" "$built" "$RUNNER_TEMP/app-online.log" "$RUNNER_TEMP/app-ul.log" "$RUNNER_TEMP/app-notify.log" "$RUNNER_TEMP/app-offline.log" <<'PY'
           import json, re, sys
           online = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
           ROWS, STEPS = online, sys.argv[5]
@@ -702,6 +726,14 @@ jobs:
           need(isinstance(AA, dict) and AA.get("available") is True, f"11. ...with {{available: true}} from a page of tryknowflow.com: {str(AR.get('answer'))[:160]}")
           need(AR.get("button") == 1 and re.search(r"^/(en|ar)/signup$", AR.get("path") or ""), f"11. ...and the sign-up twin draws the Apple button: button={AR.get('button')} on {AR.get('path')}")
           print(f"info apple available: waited {APOLL.get('ms')} ms; answered in {AA.get('ms') if isinstance(AA, dict) else None} ms (measured in the page from the call)")
+          # In-app rating (iOS 1.1, item 4h), proof 14: available() only, never
+          # request() (Debug: the sheet would show). scripts/ios/review_proof.py.
+          sys.path.insert(0, "scripts/ios")
+          from review_proof import smoke_checks
+          BUILT, LOGS = sys.argv[6], sys.argv[7:11]
+          for ok, msg, _ in smoke_checks(by, [open(p, errors="replace").read() for p in LOGS], BUILT):
+              need(ok, msg)
+          print(f"info review available: {str(by.get('review-read', {}).get('result', ''))[:160]}; built {BUILT}")
           # The shell-2 wording rule (scripts/lib/app-wording.mjs, KF_PURCHASE_SRC):
           # purchase words inside an element marked data-kf-iap are not hits in
           # shell 2, and a pricing link is a hit even there.
@@ -891,6 +923,7 @@ jobs:
             ${{ runner.temp }}/smoke-ul.jsonl
             ${{ runner.temp }}/ul.log
             ${{ runner.temp }}/app-ul.log
+            ${{ runner.temp }}/app-notify.log
             ${{ runner.temp }}/privacy-audit.txt
             ${{ runner.temp }}/smoke-req.jsonl
             ${{ runner.temp }}/req-timeline.txt

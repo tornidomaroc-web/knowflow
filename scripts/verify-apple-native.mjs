@@ -67,11 +67,35 @@
  *     archive carries associated-domains with both strings or the run stops
  *     before the upload, and prints the entitlements.
  *
+ *
+ * IN-APP RATING, PR 2 OF 2 (big item 4h), ios/ + CI only. PR 1 (#345,
+ * 7124588) holds the rules, the record and the gate
+ * `isPluginAvailable('KnowFlowReview')`; this proves the plugin. Red on
+ * 7124588 (42 of 151).
+ *  9. THE PLUGIN (ios/App/App/KnowFlowReview.swift). CAPPlugin +
+ *     CAPBridgedPlugin, jsName KnowFlowReview, available and request.
+ *     available() resolves exactly {available: true, version:
+ *     CFBundleShortVersionString}. request() runs on the main queue, needs
+ *     the web view's UIWindowScene in .foregroundActive (else {asked:
+ *     false}), calls AppStore.requestReview(in:) behind #available(iOS 16.0,
+ *     *) and SKStoreReviewController.requestReview(in:) only in the else
+ *     branch, logs "[KFReview] request" once, resolves {asked: true} (never
+ *     "shown"). No UserDefaults, file or network; about 60 lines. Registered
+ *     after KnowFlowApple in every build, four pbxproj entries (A060/A061),
+ *     probe `review:`; PrivacyInfo still declares no required-reason API.
+ * 10. CI. ios-smoke proof 14 (available only, in the first launch, the
+ *     built version, appState 0, the request line 0 times in every launch's
+ *     log, the notification launches now logged too); ios-signed-in
+ *     rate-row + review-gate (54 -> 56 readings, the request line 0 times in
+ *     app.log). Both through scripts/ios/review_proof.py, whose --self-test
+ *     must catch every forced case.
+ *
  * Usage: node --experimental-strip-types scripts/verify-apple-native.mjs
  */
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { installTsxHooks } from './lib/tsx-hooks.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
@@ -272,6 +296,85 @@ const entCheck = read('.github/scripts/ios-entitlements-check.py');
 check(/^ *python3 \.github\/scripts\/ios-entitlements-check\.py "\$RUNNER_TEMP\/entitlements\.xml"$/m.test(tfGuard), 'ios-testflight: after the applesignin check and before the upload, the signature is read by .github/scripts/ios-entitlements-check.py');
 check(/KEY = "com\.apple\.developer\.associated-domains"/.test(entCheck) && /WANT = \["applinks:tryknowflow\.com", "webcredentials:tryknowflow\.com"\]/.test(entCheck) && /plistlib\.load/.test(entCheck) && /sorted\(got\) == sorted\(WANT\)/.test(entCheck), '...which parses the plist and requires associated-domains to be exactly the two strings');
 check(/FIX = "tick Associated Domains on the App ID first/.test(entCheck) && (entCheck.match(/return 1/g) || []).length === 2 && /echo "signed entitlements:"; cat "\$RUNNER_TEMP\/entitlements\.xml"/.test(tfGuard), '...fails with a clear message otherwise, and prints the entitlements on success');
+
+// ── 9. the rating plugin (item 4h, PR 2) ────────────────────────────────────
+console.log('9. KnowFlowReview.swift (in-app rating, item 4h)');
+const rvRaw = read('ios/App/App/KnowFlowReview.swift');
+const rv = noComments(rvRaw);
+check(!!rvRaw, 'ios/App/App/KnowFlowReview.swift exists');
+const rvImports = [...rv.matchAll(/^import (\w+)$/gm)].map((m) => m[1]).sort();
+check(JSON.stringify(rvImports) === '["Capacitor","StoreKit","UIKit"]', `imports Capacitor, StoreKit and UIKit only (no package): ${rvImports.join(', ')}`);
+check(/@objc\(KnowFlowReviewPlugin\)\s*public class KnowFlowReviewPlugin: CAPPlugin, CAPBridgedPlugin/.test(rv), 'KnowFlowReviewPlugin: CAPPlugin, CAPBridgedPlugin');
+check(/identifier = "KnowFlowReviewPlugin"/.test(rv) && /jsName = "KnowFlowReview"/.test(rv), 'identifier KnowFlowReviewPlugin, jsName KnowFlowReview (the name src/lib/review/bridge.ts asks for)');
+check(/export const REVIEW_PLUGIN = 'KnowFlowReview';/.test(read('src/lib/review/bridge.ts')), '...and bridge.ts still names KnowFlowReview');
+const rvMethods = [...rv.matchAll(/CAPPluginMethod\(name: "(\w+)", returnType: CAPPluginReturnPromise\)/g)].map((m) => m[1]);
+check(JSON.stringify(rvMethods) === '["available","request"]', `exactly two methods, available and request: ${rvMethods.join(', ')}`);
+const rvAvail = fn(rv, /@objc func available\(_ call: CAPPluginCall\)/);
+check(!!rvAvail && /Bundle\.main\.object\(forInfoDictionaryKey: "CFBundleShortVersionString"\) as\? String/.test(rvAvail), 'available() reads CFBundleShortVersionString from the main bundle');
+const rvAvailResolves = [...rvAvail.matchAll(/call\.resolve\(([^\n]*)\)/g)].map((m) => m[1]);
+check(rvAvailResolves.length === 1 && /^\["available": true, "version": version\]$/.test(rvAvailResolves[0]), `available() resolves exactly {available: true, version} and nothing else: ${rvAvailResolves.join(' | ')}`);
+check(!!rvAvail && !/requestReview|StoreKit|SKStore|AppStore|DispatchQueue|UIApplication/.test(rvAvail), 'available() opens nothing and touches no StoreKit or UI');
+const rvReq = fn(rv, /@objc func request\(_ call: CAPPluginCall\)/);
+check(!!rvReq && /DispatchQueue\.main\.async/.test(rvReq), 'request() moves to the main queue before any scene or StoreKit work');
+check(/guard let scene = (self\.)?bridge\?\.webView\?\.window\?\.windowScene, scene\.activationState == \.foregroundActive else \{[^}]*call\.resolve\(\["asked": false\]\)\s*return\s*\}/.test(rvReq), 'request() needs the web view\'s UIWindowScene with activationState == .foregroundActive, else resolves {asked: false}');
+check(/if #available\(iOS 16\.0, \*\) \{\s*AppStore\.requestReview\(in: scene\)\s*\} else \{\s*SKStoreReviewController\.requestReview\(in: scene\)\s*\}/.test(rvReq), 'AppStore.requestReview(in:) only behind #available(iOS 16.0, *), SKStoreReviewController.requestReview(in:) only in its else branch');
+check((rv.match(/AppStore\.requestReview\(/g) || []).length === 1 && (rv.match(/SKStoreReviewController\.requestReview\(/g) || []).length === 1 && !/requestReview\(\)/.test(rv), 'each StoreKit call appears once in the file (no scene-less requestReview())');
+const iGuard = rvReq.indexOf('.foregroundActive'), iAsk = rvReq.indexOf('AppStore.requestReview'), iLog = rvReq.indexOf('NSLog("[KFReview] request")'), iYes = rvReq.indexOf('call.resolve(["asked": true])');
+check(iGuard > 0 && iAsk > iGuard && iLog > iAsk && iYes > iLog, 'order in request(): active-scene guard, the StoreKit call, the log line, then {asked: true}');
+const rvResolves = [...rv.matchAll(/call\.resolve\(([^\n]*)\)/g)].map((m) => m[1]).sort();
+check(JSON.stringify(rvResolves) === JSON.stringify(['["asked": false]', '["asked": true]', '["available": true, "version": version]'].sort()), `three resolves in the file, nothing claims a sheet showed: ${rvResolves.join(' | ')}`);
+check(!!rv && !/call\.reject\(/.test(rv), 'nothing rejects: a refused or absent sheet is not an error to the page');
+check(!/"(shown|presented|didShow)"/.test(rv), '...no resolved key named shown, presented or didShow');
+check((rv.match(/NSLog\("\[KFReview\] request"\)/g) || []).length === 1, 'NSLog("[KFReview] request") exactly once (ios-smoke and ios-signed-in count it: 0 in CI)');
+check([...rv.matchAll(/NSLog\(([^\n]*)\)/g)].every((m) => /^"\[KFReview\] [^"%]*"$/.test(m[1])), 'every log line is a fixed [KFReview] literal (no value is logged)');
+check(!/UserDefaults|FileManager|\.write\(to:|Keychain|SecItem|URLSession|URLRequest|https?:\/\/|print\(|os_log|Logger\(/.test(rv), 'no UserDefaults, no file write, no network, no keychain, no print');
+const rvCode = rv.split('\n').filter((l) => l.trim() !== '').length;
+check(rvCode >= 20 && rvCode <= 60, `about 60 lines of code (non-blank, no comments): ${rvCode}`);
+const rvLines = pbx.split('\n').filter((l) => l.includes('KnowFlowReview.swift'));
+check(rvLines.length === 4, `the four KnowFlowReview.swift entries in project.pbxproj (${rvLines.length} lines)`);
+check(/4B4E0F10000000000000A061 \/\* KnowFlowReview\.swift in Sources \*\/ = \{isa = PBXBuildFile; fileRef = 4B4E0F10000000000000A060 \/\* KnowFlowReview\.swift \*\/; \};/.test(pbx), 'the build file A061 points at the file reference A060');
+check(/4B4E0F10000000000000A060 \/\* KnowFlowReview\.swift \*\/ = \{isa = PBXFileReference; lastKnownFileType = sourcecode\.swift; path = KnowFlowReview\.swift; sourceTree = "<group>"; \};/.test(pbx), 'the file reference, like KnowFlowApple\'s');
+check(/4B4E0F10000000000000A061 \/\* KnowFlowReview\.swift in Sources \*\/,/.test(sources) && sources.indexOf('KnowFlowReview.swift') > sources.indexOf('KnowFlowApple.swift'), 'in the Sources phase, after KnowFlowApple');
+check(/4B4E0F10000000000000A040 \/\* KnowFlowApple\.swift \*\/,\s*4B4E0F10000000000000A060 \/\* KnowFlowReview\.swift \*\/,/.test(group), 'the App group lists KnowFlowReview.swift after KnowFlowApple.swift');
+check(/let review = KnowFlowReviewPlugin\(\)\s*bridge\?\.registerPluginInstance\(review\)/.test(mvc), 'MainViewController registers KnowFlowReviewPlugin');
+const iR = mvc.indexOf('registerPluginInstance(review)'), iObs = mvc.indexOf('addObserver(forName: .capacitorOpenUniversalLink');
+check(iA > 0 && iR > iA && iObs > iR && (iSim < 0 || iR < iSim), '...beside KnowFlowApple (after it), before the link observer, outside the simulator-only block (every build)');
+check(/apple:!!\(C&&C\.isPluginAvailable&&C\.isPluginAvailable\('KnowFlowApple'\)\),review:!!\(C&&C\.isPluginAvailable&&C\.isPluginAvailable\('KnowFlowReview'\)\)/.test(mvc), 'the smoke probe reports review: beside apple:');
+const priv = read('ios/App/App/PrivacyInfo.xcprivacy');
+check(/<key>NSPrivacyAccessedAPITypes<\/key>\s*(<array\/>|<array>\s*<\/array>)/.test(priv), 'PrivacyInfo.xcprivacy still declares no required-reason API (NSPrivacyAccessedAPITypes empty)');
+check(!/KnowFlowReview|StoreKit|requestReview/.test(read('ios/App/App/Info.plist') + ent), 'no Info.plist or entitlement change for the rating (none is needed)');
+
+// ── 10. CI for item 4h ──────────────────────────────────────────────────────
+console.log('10. the workflows (item 4h)');
+const rp = read('scripts/ios/review_proof.py');
+check(!!rp && /def smoke_checks\(/.test(rp) && /def signed_in_checks\(/.test(rp) && /REQUEST_LINE = "\[KFReview\] request"/.test(rp), 'scripts/ios/review_proof.py holds both workflows\' rating assertions (smoke_checks, signed_in_checks)');
+check(/#   14\. In-app rating \(iOS 1\.1, item 4h\)/.test(smoke), 'ios-smoke\'s header lists proof 14');
+const smokeLines = smoke.split('\n');
+const rCall = smokeLines.filter((l) => /^\s*\{"name":"review-call",/.test(l));
+const rRead = smokeLines.filter((l) => /^\s*\{"name":"review-read",/.test(l));
+check(rCall.length === 1 && /C\.nativePromise\('KnowFlowReview','available',\{\}\)/.test(rCall[0]), 'ios-smoke calls KnowFlowReview.available()');
+check(rRead.length === 1 && /"settle":/.test(rRead[0]) && /"timeout":20000,/.test(rRead[0]), '...and settles its answer within 20 s');
+check(!/nativePromise\('KnowFlowReview','request'/.test(smoke + si) && !/'KnowFlowReview','request'/.test(smoke + si), 'no workflow ever calls request (Debug builds always show the sheet)');
+const iAppleRead = smoke.indexOf('{"name":"apple-read"'), iRevCall = smoke.indexOf('{"name":"review-call"'), iNotify = smoke.indexOf('- name: Smoke run of the reminder plugin (proof 6)'), iOnlineEnd = smoke.indexOf('- name: Smoke run of the universal-link observer (proof 13)');
+check(iAppleRead > 0 && iRevCall > iAppleRead && iRevCall < iOnlineEnd && iOnlineEnd < iNotify, 'proof 14 runs in the first (online) launch, after apple-read, before the notification prompt (proof 6)');
+check(/xcrun simctl spawn "\$UDID" log stream --style compact --predicate 'process == "App"' > "\$RUNNER_TEMP\/app-notify\.log"/.test(smoke) && /\$\{\{ runner\.temp \}\}\/app-notify\.log/.test(smoke), 'the notification launches are logged too (app-notify.log, kept), so the whole smoke log is counted');
+check(/from review_proof import smoke_checks/.test(smoke) && /smoke_checks\(by, \[open\(p, errors="replace"\)\.read\(\) for p in LOGS\], BUILT\)/.test(smoke), 'the assertion step runs smoke_checks over every launch\'s log and the built version');
+check(/CFBundleShortVersionString' "\$APP_PATH\/Info\.plist"/.test(smoke), '...the version read from the simulator build that ran');
+for (const f of ['app-online.log', 'app-ul.log', 'app-notify.log', 'app-offline.log']) check(new RegExp(`"\\$RUNNER_TEMP/${f.replace('.', '\\.')}"`).test(smoke.slice(smoke.indexOf('- name: Assert the five proofs from the readings'))), `the proof-14 log count reads ${f}`);
+const siLines = si.split('\n');
+const rateRow = siLines.filter((l) => /^\s*\{"name":"rate-row",/.test(l));
+const gate = siLines.filter((l) => /^\s*\{"name":"review-gate",/.test(l));
+check(rateRow.length === 1 && /"settle":/.test(rateRow[0]) && /apps\.apple\.com/.test(rateRow[0]) && !/\.click\(\)/.test(rateRow[0]), 'ios-signed-in reads the Settings rate row, settled, never tapped');
+check(gate.length === 1 && /localStorage\.getItem\('kf-review'\)/.test(gate[0]) && !/setItem|removeItem/.test(gate[0]), '...and reads the kf-review record without writing it');
+const siOrder = ['"name":"settings-bottom"', '"name":"rate-row"', '"name":"review-gate"', '"name":"en-privacy"'].map((s) => si.indexOf(s));
+check(siOrder.every((v, i) => v > 0 && (i === 0 || v > siOrder[i - 1])), 'rate-row and review-gate sit between settings-bottom and en-privacy (Settings, after the quiz)');
+check(/from review_proof import signed_in_checks/.test(si) && /signed_in_checks\(by, open\(sys\.argv\[3\], errors="replace"\)\.read\(\)\)/.test(si) && /"\$RUNNER_TEMP\/smoke-signed-in\.jsonl" "\$RUNNER_TEMP\/steps\.json" "\$RUNNER_TEMP\/app\.log"/.test(si), 'the signed-in assertions run signed_in_checks over the readings and app.log');
+// The forced cases: every proof-14 and signed-in rating assertion fails when
+// its reading is wrong (the self-test plants each one).
+const py = ['python3', 'python'].map((cmd) => spawnSync(cmd, ['scripts/ios/review_proof.py', '--self-test'], { cwd: ROOT, encoding: 'utf8' })).find((r) => !r.error && !/was not found/.test(r.stderr || ''));
+const st = py ? `${py.stdout}${py.stderr}` : '';
+if (py && py.status !== 0) console.log(st);
+check(!!py && py.status === 0 && /^self-test: (\d+) forced case\(s\), all caught; the good readings pass$/m.test(st), `review_proof.py --self-test: ${(/^self-test:.*$/m.exec(st) || ['no result'])[0]}`);
 
 console.log(`\n${pass} passed, ${failures.length} failed`);
 if (failures.length) {

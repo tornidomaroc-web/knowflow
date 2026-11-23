@@ -250,6 +250,9 @@ jobs:
       # and CODE_SIGN_ENTITLEMENTS in both App configurations, the pbxproj entries,
       # the registration and probe, ios-smoke proof 11, the signed-in apple-login
       # reading and the TestFlight signature check. The build itself is ios-smoke's.
+      # In-app rating, item 4h PR 2 (sections 9-10): KnowFlowReview.swift, its
+      # registration and pbxproj entries, ios-smoke proof 14, the signed-in rate-row
+      # and review-gate readings, and scripts/ios/review_proof.py --self-test.
       - name: Verify Sign in with Apple, native half (plugin, entitlement, CI proofs)
         run: node --experimental-strip-types scripts/verify-apple-native.mjs
 

@@ -17,6 +17,7 @@
 		4B4E0F10000000000000A021 /* KnowFlowStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4E0F10000000000000A020 /* KnowFlowStore.swift */; };
 		4B4E0F10000000000000A031 /* KnowFlowSpeech.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4E0F10000000000000A030 /* KnowFlowSpeech.swift */; };
 		4B4E0F10000000000000A041 /* KnowFlowApple.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4E0F10000000000000A040 /* KnowFlowApple.swift */; };
+		4B4E0F10000000000000A061 /* KnowFlowReview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4E0F10000000000000A060 /* KnowFlowReview.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
@@ -36,6 +37,7 @@
 		4B4E0F10000000000000A020 /* KnowFlowStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowFlowStore.swift; sourceTree = "<group>"; };
 		4B4E0F10000000000000A030 /* KnowFlowSpeech.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowFlowSpeech.swift; sourceTree = "<group>"; };
 		4B4E0F10000000000000A040 /* KnowFlowApple.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowFlowApple.swift; sourceTree = "<group>"; };
+		4B4E0F10000000000000A060 /* KnowFlowReview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowFlowReview.swift; sourceTree = "<group>"; };
 		4B4E0F10000000000000A050 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		504EC30E1FED79650016851F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -85,6 +87,7 @@
 				4B4E0F10000000000000A020 /* KnowFlowStore.swift */,
 				4B4E0F10000000000000A030 /* KnowFlowSpeech.swift */,
 				4B4E0F10000000000000A040 /* KnowFlowApple.swift */,
+				4B4E0F10000000000000A060 /* KnowFlowReview.swift */,
 				4B4E0F10000000000000A050 /* App.entitlements */,
 				4B4E0F10000000000000A002 /* PrivacyInfo.xcprivacy */,
 				4B4E0F10000000000000A012 /* InfoPlist.strings */,
@@ -186,6 +189,7 @@
 				4B4E0F10000000000000A001 /* MainViewController.swift in Sources */,
 				4B4E0F10000000000000A031 /* KnowFlowSpeech.swift in Sources */,
 				4B4E0F10000000000000A041 /* KnowFlowApple.swift in Sources */,
+				4B4E0F10000000000000A061 /* KnowFlowReview.swift in Sources */,
 				4B4E0F10000000000000A021 /* KnowFlowStore.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 			);
