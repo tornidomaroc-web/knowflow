@@ -94,9 +94,19 @@ per language, no alpha.
 
 1. **PR 2: capture steps** (`scripts/store-seed/capture_steps.py`,
    `check_capture.py`): the six screens per language in design C, the
-   camera sheet, theme and status-bar checks. Merged next.
-2. **The capture DISPATCH waits for the voice go/no-go of item 4j.** If the
-   microphone is removed from the composer, the Ask shot must not show it.
+   camera sheet (three page photos from `docs/store/screenshot-content/pages/`,
+   made by `make_pages.py`, nothing sent), the live Ask in both languages,
+   and the readings on every shot (theme light, status-bar ink dark, no
+   purchase or platform word, no `data-kf-iap`, no e-mail, no dialog or
+   keyboard, sources and microphone in 05). Proved without macOS in
+   store-shots.yml (self-test with planted failures; the steps on the
+   preview pages). Merged next.
+2. **ONE capture right after PR 2 merges (owner, 2026-11-23, correcting the
+   earlier order: it does not wait for item 4j).** 2 Ask calls, 0 page reads.
+   The frame job pushes `store/shots-<run>` with 12 raw and 24 framed PNGs
+   (`docs/store/screenshots-1.1/<l>/`, `docs/store/screenshots-designed/1.1/<size>/<l>/`)
+   for review PR 2b. If item 4j removes the microphone, only the Ask shot is
+   captured again.
 3. **PR 3: `scripts/asc/store_setup.py` for 1.1** (two display types, the
    version 1.1 only, fr-FR English), after the capture.
 
