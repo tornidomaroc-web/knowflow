@@ -5,12 +5,22 @@ file plan.json names for the summary). Each page is a plain printed study
 page: the note's title and one or two of its sections set in Rubik, black on
 off-white, no handwriting, no person's name, no logo.
 
-  python scripts/store-seed/make_pages.py           writes the six JPEGs
-  python scripts/store-seed/make_pages.py --check   the committed JPEGs are
-                                                    what the script makes
-                                                    (decoded pixels within a
-                                                    small tolerance) and stay
-                                                    inside the size budget
+  python scripts/store-seed/make_pages.py                 writes the six JPEGs
+                                                          and pages.json (their
+                                                          SHA-256)
+  python scripts/store-seed/make_pages.py --check         CI: every JPEG has
+                                                          the SHA-256 pages.json
+                                                          pins, 480 x 640,
+                                                          grayscale, inside the
+                                                          size budget
+  python scripts/store-seed/make_pages.py --check-render  the committed JPEGs
+                                                          are what the script
+                                                          makes HERE (decoded
+                                                          pixels within a small
+                                                          tolerance; same OS
+                                                          only: Chrome shapes
+                                                          and hints Arabic
+                                                          differently on Linux)
 
 Needs Chrome (CHROME, default the Windows path) and Pillow. The capture
 carries the JPEGs inside its steps (capture_steps.py), so they are kept
@@ -99,10 +109,34 @@ def jpeg_path(locale, n):
     return os.path.join(OUT, locale, f'page-{n}.jpg')
 
 
-def main():
-    check = '--check' in sys.argv
-    from PIL import Image, ImageChops
+def pinned_check():
+    import hashlib
+    from PIL import Image
+    pins = json.load(open(os.path.join(OUT, 'pages.json'), encoding='utf-8'))
     fails = 0
+    for locale in ('en', 'ar'):
+        for n in (1, 2, 3):
+            p = jpeg_path(locale, n)
+            rel = f'{locale}/page-{n}.jpg'
+            b = open(p, 'rb').read()
+            im = Image.open(p)
+            ok = hashlib.sha256(b).hexdigest() == pins.get(rel) and im.size == (W, H) and im.mode == 'L' and len(b) <= PAGE_BUDGET
+            print(('ok   ' if ok else 'FAIL ') + f'pages/{rel}: sha256 {hashlib.sha256(b).hexdigest()[:16]}... (pinned {str(pins.get(rel))[:16]}...), {im.size[0]} x {im.size[1]} {im.mode}, {len(b)} bytes')
+            fails += 0 if ok else 1
+    if len(pins) != 6:
+        print(f'FAIL pages.json pins {len(pins)} files, 6 expected')
+        fails += 1
+    sys.exit(1 if fails else 0)
+
+
+def main():
+    if '--check' in sys.argv:
+        pinned_check()
+    check = '--check-render' in sys.argv
+    from PIL import Image, ImageChops
+    import hashlib
+    fails = 0
+    pins = {}
     with tempfile.TemporaryDirectory() as tmp:
         for locale in ('en', 'ar'):
             for spec in pages(locale):
@@ -111,7 +145,7 @@ def main():
                 if check:
                     a = Image.open(p).convert('L')
                     diff = ImageChops.difference(a, img).point(lambda v: 255 if v > 40 else 0)
-                    bad = sum(1 for v in diff.getdata() if v) / (W * H)
+                    bad = diff.histogram()[255] / (W * H)
                     size = os.path.getsize(p)
                     ok = a.size == (W, H) and bad <= 0.02 and size <= PAGE_BUDGET
                     print(('ok   ' if ok else 'FAIL ') + f'{os.path.relpath(p, ROOT)}: {a.size[0]} x {a.size[1]}, {size} bytes, {bad:.2%} of pixels off the fresh page')
@@ -119,10 +153,14 @@ def main():
                 else:
                     os.makedirs(os.path.dirname(p), exist_ok=True)
                     img.save(p, 'JPEG', quality=60, optimize=True)
+                    pins[f'{locale}/page-{spec[2]}.jpg'] = hashlib.sha256(open(p, 'rb').read()).hexdigest()
                     print(f'wrote {os.path.relpath(p, ROOT)} ({os.path.getsize(p)} bytes)')
                     if os.path.getsize(p) > PAGE_BUDGET:
                         fails += 1
                         print(f'FAIL over the budget of {PAGE_BUDGET} bytes')
+    if not check:
+        with open(os.path.join(OUT, 'pages.json'), 'w', encoding='utf-8', newline='\n') as f:
+            f.write(json.dumps(pins, indent=1, sort_keys=True) + '\n')
     sys.exit(1 if fails else 0)
 
 

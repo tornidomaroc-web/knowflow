@@ -200,7 +200,7 @@ jobs:
       - name: The capture's checks prove themselves (synthetic capture, planted failures, status bar from pixels)
         run: python3 scripts/store-seed/check_capture.py --self-test
 
-      - name: The capture's page photos are what make_pages.py makes, inside the size budget
+      - name: The capture's page photos have the SHA-256 make_pages.py pinned, inside the size budget (the re-render check is local, same OS)
         env:
           CHROME: google-chrome
         run: |
