@@ -33,7 +33,8 @@ name: ios-testflight
 #
 # BUILD NUMBER, AND WHY IT CANNOT COLLIDE. CFBundleVersion = this workflow's
 # run number, monotonic for the life of this file; CFBundleShortVersionString
-# = MARKETING_VERSION in the Xcode project (1.0), changed only by a pull
+# = MARKETING_VERSION in the Xcode project (1.1 since item 4j; was 1.0, then
+# 1.0.1), changed only by a pull
 # request. Two guards make a collision impossible rather than unlikely: before
 # the archive, with the key already here, the job asks App Store Connect for
 # the highest build number the app holds and refuses to archive unless the run

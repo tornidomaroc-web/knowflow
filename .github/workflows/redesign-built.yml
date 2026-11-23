@@ -24,6 +24,12 @@ on:
     paths:
       - 'src/**'
       - 'scripts/redesign-built/**'
+      # Read by render-fix.mjs and render-fix2.mjs (capture_steps.py --js
+      # SUMMARY|ASK_TOP) and by every render's wording audit (scripts/lib):
+      # #348 changed SUMMARY without re-running this check, and the drift
+      # surfaced only on #351.
+      - 'scripts/store-seed/capture_steps.py'
+      - 'scripts/lib/**'
       - 'docs/design/redesign-built/**'
       - 'docs/store/redesign3-renders/**'
       - 'docs/store/fix-renders/**'
