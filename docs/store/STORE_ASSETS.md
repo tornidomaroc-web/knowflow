@@ -110,6 +110,20 @@ per language, no alpha.
 3. **PR 3: `scripts/asc/store_setup.py` for 1.1** (two display types, the
    version 1.1 only, fr-FR English), after the capture.
 
+**The 1.1 upload, in this order (item 4i, PR 3; nothing here has run yet):**
+
+| Step | Who | What, and what must be true before the next step |
+|---|---|---|
+| 1 | Owner | Create version **1.1** in App Store Connect (the "+" next to iOS App). App Store Connect copies 1.0.1's localizations and its 6.9-inch sets into it. `store_setup.py` never creates a version. |
+| 2 | Owner | Attach **build 9** to 1.1. The screenshots mode does not need it, but submission does, and the read shows it. |
+| 3 | Agent | `asc-store-setup` from main, `mode=read`, `version=1.1`: the state is `PREPARE_FOR_SUBMISSION`; the four version localizations ar-SA, en-US, en-GB, fr-FR exist; the read prints every screenshot set with the display type **as Apple names it**. |
+| 4 | Agent | `mode=screenshots`, `dry_run=true`: refuses 1.0 and 1.0.1 by name, any non-editable state, and any file that is missing, extra or of the wrong pixel size (all before any write). It prints the sets Apple holds, then every planned write per locale and type: APP_IPHONE_61 ← 1206 × 2622 first, then APP_IPHONE_67 ← 1320 × 2868; 6 files each; ar-SA Arabic, the other three English. Expected from a fresh 1.1: 124 writes, the 15 copied 1.0.1 images deleted only after phase A. |
+| 5 | Agent | `mode=screenshots`, `dry_run=false`: the live write. The medium type runs first. If Apple refuses 1206 × 2622 under APP_IPHONE_61 (the image ends FAILED), the run stops there, before any 6.9-inch write and with no old image deleted. Each image must be COMPLETE, with Apple's checksum equal to the file's MD5, and the read-back must pass. A run cut short by the 15-minute wait resumes and uploads nothing twice. |
+| 6 | Agent | `mode=read` again: 8 sets of six, in order 01 to 06, all COMPLETE. |
+| 7 | Owner | **One look at the 1.1 page in App Store Connect**, iPhone tab: the medium (6.3-inch) slot shows **our** images (not scaled from 6.9-inch), the 6.9-inch slot shows the same six, and **fr-FR shows the English set**. |
+
+The offline proof of steps 4 and 5 is `scripts/asc/verify_screens_1_1.py` (typecheck). It runs on fixtures, never on Apple.
+
 ### 3.1 App Store (iPhone-only submission, §5 below), the 1.0 and 1.0.1 set: HISTORY
 
 *Kept as written for 1.0 and 1.0.1 (dark theme, five screens, 1320 × 2868

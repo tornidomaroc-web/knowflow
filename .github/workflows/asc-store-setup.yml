@@ -15,17 +15,22 @@ name: asc-store-setup
 #   settings     price Free (USA base, price point 0), every territory but
 #                mainland China (CHN), new territories on, content rights
 #                "does not use third-party content". Idempotent.
-#   screenshots  the approved PNGs (docs/store/screenshots-designed/ar and
-#                en, 01 to 05) into the APP_IPHONE_67 (6.9-inch) set of the ar,
-#                en-US and en-GB version localizations (en-GB takes the English
-#                five; fr-FR none, so the store shows ar-SA's). A set that
-#                differs RESUMES: approved images already there are kept
-#                (COMPLETE) or waited for (still processing); only the others
-#                are deleted, in that set; the missing ones are uploaded; all
-#                pending ones are waited for together (15 minutes), then the set
-#                is put in order. Each one COMPLETE with Apple's checksum equal
-#                to the file's MD5. A language without a version localization
-#                is skipped and named.
+#   screenshots  iOS 1.1 (item 4i, PR 3): the six approved PNGs per language
+#                (docs/store/screenshots-designed/1.1/<size>/{ar,en}/01..06)
+#                into two display types, APP_IPHONE_61 <- 1206x2622 (the
+#                medium Dynamic Island slot Apple now requires) first, then
+#                APP_IPHONE_67 <- 1320x2868, for ar-SA (ar) and en-US, en-GB,
+#                fr-FR (en). Refused by name before the key: 1.0 and 1.0.1
+#                (check-shots, which also refuses a missing or extra file and
+#                a PNG of the wrong pixel size). Refused after the read: a
+#                version not in an editable state. The files are read only
+#                from main's own commit (the job runs on main only, and a step
+#                proves the checkout is that commit with the 1.1 folder
+#                tracked and untouched). A set that differs RESUMES; an old
+#                image that is on screen is deleted only after the new ones
+#                that fit in the set (10 at most) are COMPLETE; then the rest
+#                is uploaded and the set put in order 01..06. A locale without
+#                a version localization is skipped and named.
 #   english      the en-US localization from docs/store/ASC_ANSWERS_EN.md,
 #                refused unless docs/store/ASC_ANSWERS_EN.approved holds that
 #                file's SHA-256 (checked before the key is even read).
@@ -40,8 +45,9 @@ name: asc-store-setup
 #                App Info that is not live exists; they write only the fields
 #                that differ and read every one back byte for byte.
 #
-# `version` names the App Store version every mode reads and writes (1.0.1
-# by default; 1.0 is live and accepts no edit). Nothing here creates a
+# `version` names the App Store version every mode reads and writes (1.1 by
+# default since item 4i PR 3; 1.0 is live and 1.0.1 approved: neither
+# accepts an edit). Nothing here creates a
 # version: that is the "+" next to iOS App in App Store Connect's web page.
 # The arabic-appinfo mode of 1.0 (the Arabic name and subtitle from
 # ASC_ANSWERS.md section 4.2) is gone: its subtitle is the 1.0 text, and a run
@@ -75,14 +81,14 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'read: the state, no write. builds: the builds of the version and the attached one, no write. settings: price Free, all territories but CHN, content rights. screenshots: the approved PNGs into the 6.9-inch sets (ar, en-US, en-GB). english: the en-US localization. arabic: the ar-SA subtitle and keywords. en-gb, fr-fr: those localizations. The last four only with their approval flag.'
+        description: 'read: the state, no write. builds: the builds of the version and the attached one, no write. settings: price Free, all territories but CHN, content rights. screenshots: the 1.1 PNGs into the medium (APP_IPHONE_61) and 6.9-inch (APP_IPHONE_67) sets of ar-SA, en-US, en-GB, fr-FR; never 1.0 or 1.0.1. english: the en-US localization. arabic: the ar-SA subtitle and keywords. en-gb, fr-fr: those localizations. The last four only with their approval flag.'
         type: choice
         options: [read, builds, settings, screenshots, english, arabic, en-gb, fr-fr]
         default: read
       version:
-        description: 'The App Store version to read or write, as App Store Connect shows it (1.0 is live and accepts no edit).'
+        description: 'The App Store version to read or write, as App Store Connect shows it (1.0 is live and 1.0.1 approved: neither accepts an edit; the screenshots mode refuses both by name).'
         type: string
-        default: '1.0.1'
+        default: '1.1'
       dry_run:
         description: 'For the write modes: true prints every write exactly and sends none; false sends them and reads them back.'
         type: boolean
@@ -101,7 +107,9 @@ jobs:
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-24.04
     environment: reviewer
-    timeout-minutes: 20
+    # Two display types, each with a phase A and a phase B wait of up to 15
+    # minutes (SHOT_WAIT): 20 minutes no longer covers a screenshots run.
+    timeout-minutes: 75
     env:
       MODE: ${{ inputs.mode }}
       DRY_RUN: ${{ inputs.dry_run }}
@@ -114,6 +122,24 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+
+      # Item 4i, PR 3: the screenshots mode reads only main's own files. The
+      # job runs only on refs/heads/main (the `if:` above); here the checkout
+      # must be exactly the dispatched commit, the 1.1 folder tracked by git
+      # and untouched, and check-shots refuses 1.0 and 1.0.1 by name, a
+      # missing or extra file and a wrong pixel size. All before the key.
+      - name: The 1.1 screenshots come from main's commit, checked offline (screenshots mode, before the key)
+        if: ${{ inputs.mode == 'screenshots' }}
+        run: |
+          set -eu
+          test "$GITHUB_REF" = refs/heads/main || { echo "FAIL: not main ($GITHUB_REF)"; exit 1; }
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA" || { echo "FAIL: the checkout is not the dispatched commit"; exit 1; }
+          dir=docs/store/screenshots-designed/1.1
+          n=$(git ls-files -- "$dir" | grep -c '\.png$' || true)
+          test "$n" -eq 24 || { echo "FAIL: $n tracked PNGs under $dir, 24 expected"; exit 1; }
+          test -z "$(git status --porcelain --untracked-files=all -- "$dir")" || { echo "FAIL: $dir differs from the commit"; exit 1; }
+          echo "main $GITHUB_SHA: $n tracked PNGs, untouched"
+          python3 -I scripts/asc/store_setup.py check-shots --version "$VERSION"
 
       - name: The English text and its approval (english mode, before the key)
         if: ${{ inputs.mode == 'english' }}
