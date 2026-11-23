@@ -70,7 +70,7 @@ on:
         required: false
         default: ''
       scenario:
-        description: 'screens: the signed-in screens (as on every push). background-upload: the measurement of an upload sent to the background. screenshots: the App Store set, 6.9-inch, en and ar (dispatch only)'
+        description: 'screens: the signed-in screens (as on every push). background-upload: the measurement of an upload sent to the background. screenshots: the iOS 1.1 App Store set, six light design C screens per language, captured at 1320 x 2868 and framed at 1320 x 2868 and 1206 x 2622 (dispatch only; 2 Ask calls)'
         type: choice
         options: [screens, background-upload, screenshots, frame]
         default: screens
@@ -774,13 +774,16 @@ jobs:
       # used, and no mail is sent (the recovery-link probe of the first set is
       # gone). A Pro Max simulator with Apple's marketing status bar (boot
       # step), the live site. The steps come from scripts/store-seed/
-      # capture_steps.py; each shot-* line is saved as store/<locale>/<NN-name>.png
-      # and must be 1320 x 2868. Every probe masks e-mail text before a
-      # screenshot. The reminder is switched on at 19:00 for the Settings shot
-      # and the accounts keep their AI permission (the owner's ruling); each
-      # set ends signed out. AI calls a capture makes: one Ask question (the
-      # Arabic 04 shot; citations are not stored, so a reopened answer would
-      # show no sources); the English quiz is the stored one.
+      # capture_steps.py (item 4i, PR 2: the six iOS 1.1 screens per
+      # language, design C light); each shot-* line is saved as
+      # store/<locale>/<NN-name>.png and must be 1320 x 2868. Every probe
+      # masks e-mail text before a screenshot. The accounts keep their AI
+      # permission (the owner's ruling); each set ends signed out. AI calls a
+      # capture makes: two Ask questions (05 in each language; citations are
+      # not stored, so a reopened answer would show no sources); the summary
+      # and the quiz are the stored ones, and the camera shot sends nothing
+      # (0 page reads): its three pages are put into the sheet's input and
+      # the shot is taken before "Read the pages".
       - name: App Store screenshots against the live site (two screenshot accounts)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.scenario == 'screenshots' }}
         env:
@@ -857,7 +860,7 @@ jobs:
             echo "$(basename "$(dirname "$f")")/$(basename "$f"): ${w} x ${h}, $(stat -f %z "$f") bytes"
           done > "$RUNNER_TEMP/store/sizes.txt"
           cat "$RUNNER_TEMP/store/sizes.txt"
-          python3 scripts/store-seed/check_capture.py "$RUNNER_TEMP/smoke-shots.jsonl" "$RUNNER_TEMP/store/sizes.txt" "$RUNNER_TEMP/steps-ar.json" "$RUNNER_TEMP/steps-en.json"
+          python3 scripts/store-seed/check_capture.py "$RUNNER_TEMP/smoke-shots.jsonl" "$RUNNER_TEMP/store/sizes.txt" "$RUNNER_TEMP/steps-ar.json" "$RUNNER_TEMP/steps-en.json" --png-root "$RUNNER_TEMP/store"
 
       - name: Keep the store screenshots
         if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.scenario == 'screenshots' }}
@@ -898,12 +901,13 @@ jobs:
   # only: a page step that reached its own page after its limit (KF_LATE_OK,
   # scripts/ios/page_steps.py; run 38579234295's 32.75 s login).
   # Linux, no environment, no secret: it takes the raw PNGs the macOS job
-  # kept, puts them in docs/store/screenshots, frames them with the approved
-  # pipeline (scripts/store-shots/render.mjs: Rubik, #14110d, #d4a548, the
-  # owner's captions), runs the pipeline's own checks (size and alpha, the
-  # app screen uncovered, OCR for e-mail, account and price words) and
-  # pushes the raw and framed PNGs to a new branch store/shots-<capture run
-  # id>. It never pushes to main (protected); the review PR is opened from
+  # kept, puts them in docs/store/screenshots-1.1, frames them at both App
+  # Store sizes with the approved pipeline (item 4i: scripts/store-shots/
+  # render.mjs --set 1.1, design C light, the owner's captions-1.1.json),
+  # runs the pipeline's own checks (size and alpha, the app screen
+  # uncovered, contrast, OCR for e-mail, account and price words) and
+  # pushes the 12 raw and 24 framed PNGs to a new branch store/shots-<capture
+  # run id>. It never pushes to main (protected); the review PR is opened from
   # that branch, where store-shots.yml checks the set again.
   frame:
     needs: signed-in
@@ -973,31 +977,47 @@ jobs:
           python3 "$RUNNER_TEMP/at-capture/scripts/store-seed/capture_steps.py" ar > "$RUNNER_TEMP/steps-ar.json"
           python3 "$RUNNER_TEMP/at-capture/scripts/store-seed/capture_steps.py" en > "$RUNNER_TEMP/steps-en.json"
           git worktree remove --force "$RUNNER_TEMP/at-capture"
-          python3 scripts/store-seed/check_capture.py "$RUNNER_TEMP/readings/smoke-shots.jsonl" "$RUNNER_TEMP/store/sizes.txt" "$RUNNER_TEMP/steps-ar.json" "$RUNNER_TEMP/steps-en.json"
+          python3 scripts/store-seed/check_capture.py "$RUNNER_TEMP/readings/smoke-shots.jsonl" "$RUNNER_TEMP/store/sizes.txt" "$RUNNER_TEMP/steps-ar.json" "$RUNNER_TEMP/steps-en.json" --png-root "$RUNNER_TEMP/store"
 
-      - name: Raw PNGs into docs/store/screenshots, framed into docs/store/screenshots-designed
+      # Item 4i, PR 2: the iOS 1.1 set. The twelve raw captures go to
+      # docs/store/screenshots-1.1/<l>/ (where frame-1.1.mjs reads them), and
+      # each is framed at BOTH App Store sizes into
+      # docs/store/screenshots-designed/1.1/<size>/<l>/ with the owner's
+      # approved captions-1.1.json. The 1.0.1 set is history and untouched.
+      - name: Raw PNGs into docs/store/screenshots-1.1, framed at both sizes into docs/store/screenshots-designed/1.1
         env:
           CHROME: google-chrome
         run: |
           set -eu
           for loc in en ar; do
-            test "$(ls "$RUNNER_TEMP/store/$loc"/*.png | wc -l)" -eq 5
-            cp "$RUNNER_TEMP/store/$loc"/*.png "docs/store/screenshots/$loc/"
+            test "$(ls "$RUNNER_TEMP/store/$loc"/*.png | wc -l)" -eq 6
+            mkdir -p "docs/store/screenshots-1.1/$loc"
+            cp "$RUNNER_TEMP/store/$loc"/*.png "docs/store/screenshots-1.1/$loc/"
           done
-          cp "$RUNNER_TEMP/store/sizes.txt" docs/store/screenshots/sizes.txt
-          node scripts/store-shots/render.mjs
+          cp "$RUNNER_TEMP/store/sizes.txt" docs/store/screenshots-1.1/sizes.txt
+          for z in 1320x2868 1206x2622; do
+            node scripts/store-shots/render.mjs --set 1.1 --size "$z" --out "$RUNNER_TEMP/framed/$z"
+            for loc in en ar; do
+              mkdir -p "docs/store/screenshots-designed/1.1/$z/$loc"
+              cp "$RUNNER_TEMP/framed/$z/$loc"/*.png "docs/store/screenshots-designed/1.1/$z/$loc/"
+            done
+          done
+          test "$(find docs/store/screenshots-designed/1.1 -name '*.png' | wc -l)" -eq 24
 
-      - name: The pipeline's own checks on the framed set
+      - name: The pipeline's own checks on the framed set (both sizes)
         run: |
           set -eu
           python3 -m pip install --quiet --disable-pip-version-check "pillow==12.2.0"
-          python3 scripts/store-shots/check.py docs/store/screenshots-designed/*/*.png
-          python3 scripts/store-shots/screen_intact.py docs/store/screenshots-designed
           sudo apt-get update -qq
           # The Arabic set is read with ara+eng, the English with eng (ocr_scan.py;
           # Step Store-Fix-3: eng alone read Arabic as Latin garbage, run 38646534381).
           sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-eng tesseract-ocr-ara > /dev/null
-          python3 scripts/store-shots/ocr_scan.py docs/store/screenshots-designed/*/*.png
+          for z in 1320x2868 1206x2622; do
+            python3 scripts/store-shots/check.py --size "$z" --captions captions-1.1.json docs/store/screenshots-designed/1.1/"$z"/*/*.png
+            python3 scripts/store-shots/screen_intact.py --layout "$RUNNER_TEMP/framed/$z"
+            python3 scripts/store-shots/ocr_scan.py docs/store/screenshots-designed/1.1/"$z"/*/*.png
+          done
+          python3 scripts/store-shots/contrast.py "$RUNNER_TEMP/framed"
 
       - name: Push the raw and framed set to store/shots-${{ steps.src.outputs.run }}
         env:
@@ -1008,7 +1028,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
-          git add docs/store/screenshots docs/store/screenshots-designed
-          git commit -m "docs: App Store screenshots captured by ios-signed-in run $SRC (two screenshot accounts), raw and framed by run $GITHUB_RUN_ID"
+          git add docs/store/screenshots-1.1 docs/store/screenshots-designed/1.1
+          git commit -m "docs: iOS 1.1 App Store screenshots captured by ios-signed-in run $SRC (two screenshot accounts): 12 raw, 24 framed at 1320x2868 and 1206x2622, by run $GITHUB_RUN_ID"
           git push origin "$BRANCH"
           echo "pushed $BRANCH: open the review PR from it"

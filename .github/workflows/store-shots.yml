@@ -18,8 +18,19 @@ name: store-shots
 # 1320 x 2868 and 1206 x 2622, over stand-in screens, with planted cases for
 # each new check (see the 1.1 steps below).
 #
-# No secret, no environment, no npm install, no third-party action beyond the
-# pinned checkout. Pull requests only, on these paths, plus manual runs.
+# Item 4i, PR 2: the App Store capture's steps (scripts/store-seed/
+# capture_steps.py) and checks (check_capture.py) are proved here without
+# macOS: check_capture.py --self-test (a clean synthetic capture passes, one
+# planted failure per rule fails, the status bar read from pixels), the page
+# JPEGs are what make_pages.py makes, and a second job runs the steps on the
+# preview pages of a production build (prove_steps.mjs; placeholder Supabase
+# address, no session, no AI). The committed 1.1 set (PR 2b) must match a
+# fresh render at both sizes (match_fresh.py, with negative controls).
+#
+# No secret, no environment, no third-party action beyond the pinned checkout
+# and upload; the render job installs nothing from npm, the capture-steps job
+# installs the app locked (npm ci) and puppeteer-core pinned, as design-c does.
+# Pull requests only, on these paths, plus manual runs.
 
 on:
   pull_request:
@@ -31,6 +42,11 @@ on:
       # The 1.1 frame reads KEEP_TOGETHER from the app's own list.
       - 'src/lib/keep-together.ts'
       - '.github/workflows/store-shots.yml'
+      # Item 4i, PR 2: the capture's steps, checks, content and frame job.
+      - 'scripts/store-seed/**'
+      - 'docs/store/screenshot-content/**'
+      - 'docs/store/screenshots-1.1/**'
+      - '.github/workflows/ios-signed-in.yml'
   workflow_dispatch:
 
 permissions:
@@ -157,6 +173,42 @@ jobs:
           done
           python3 scripts/store-shots/contrast.py "$RUNNER_TEMP/v11"
 
+      # Item 4i, PR 2 (item 5): the committed 1.1 set must be the script's
+      # output at both sizes. PR 2b commits the 12 raw captures to
+      # docs/store/screenshots-1.1/<l>/ and the 24 framed PNGs to
+      # docs/store/screenshots-designed/1.1/<size>/<l>/; until then there is
+      # nothing to compare, and the negative controls still run.
+      - name: 1.1 committed set matches a fresh render at both sizes (from PR 2b on)
+        env:
+          CHROME: google-chrome
+        run: |
+          set -eu
+          python3 scripts/store-shots/match_fresh.py --self-test "$RUNNER_TEMP/v11/1320x2868"
+          raw=docs/store/screenshots-1.1; framed=docs/store/screenshots-designed/1.1
+          if [ ! -d "$raw" ] && [ ! -d "$framed" ]; then
+            echo "no 1.1 set committed yet (PR 2b adds 12 raw and 24 framed PNGs): nothing to compare"
+            exit 0
+          fi
+          test -d "$raw" && test -d "$framed" || { echo "FAIL: the raw and the framed 1.1 set come together"; exit 1; }
+          n=$(find "$raw" -name '*.png' | wc -l); test "$n" -eq 12 || { echo "FAIL: $n raw 1.1 PNGs, 12 expected"; exit 1; }
+          for z in 1320x2868 1206x2622; do
+            node scripts/store-shots/render.mjs --set 1.1 --size "$z" --out "$RUNNER_TEMP/v11-fresh/$z"
+            python3 scripts/store-shots/check.py --size "$z" --captions captions-1.1.json "$framed/$z"/*/*.png
+          done
+          python3 scripts/store-shots/match_fresh.py "$framed" "$RUNNER_TEMP/v11-fresh" --expect 24
+
+      - name: The capture's checks prove themselves (synthetic capture, planted failures, status bar from pixels)
+        run: python3 scripts/store-seed/check_capture.py --self-test
+
+      - name: The capture's page photos have the SHA-256 make_pages.py pinned, inside the size budget (the re-render check is local, same OS)
+        env:
+          CHROME: google-chrome
+        run: |
+          set -eu
+          python3 scripts/store-seed/make_pages.py --check
+          python3 scripts/store-seed/capture_steps.py ar > /dev/null
+          python3 scripts/store-seed/capture_steps.py en > /dev/null
+
       - name: Keep the 1.1 layout test (both sizes, plants, layout files)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -175,4 +227,63 @@ jobs:
           name: store-shots-${{ github.sha }}
           path: ${{ runner.temp }}/render
           if-no-files-found: error
+          retention-days: 14
+
+  # Item 4i, PR 2 (item 6): the capture's steps on the preview pages of a
+  # production build of this commit, as design-c serves them (placeholder
+  # Supabase address, no session; every request off the runner is refused by
+  # the proof). Every reading is judged by check_capture.py's own rules, and
+  # every reading rule has a planted case that must break it.
+  capture-steps:
+    name: The capture steps on preview pages (production build, no secrets)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-not-a-key
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install locked, build
+        run: |
+          set -eu
+          npm ci --no-audit --no-fund
+          npx next build
+
+      - name: Serve and wait for the preview routes
+        run: |
+          set -eu
+          nohup npx next start -p 3000 > "$RUNNER_TEMP/next.log" 2>&1 &
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000/en/preview/subjects?platform=native" || true)
+            if [ "$code" = "200" ]; then echo "up after $i tries"; break; fi
+            if [ "$i" = "60" ]; then cat "$RUNNER_TEMP/next.log"; exit 1; fi
+            sleep 1
+          done
+
+      - name: puppeteer-core, pinned, outside the app
+        run: npm install --prefix "$RUNNER_TEMP/pp" --no-audit --no-fund --ignore-scripts puppeteer-core@23.11.1
+
+      - name: The steps on the preview pages, judged by check_capture.py, with planted cases
+        env:
+          BASE: http://127.0.0.1:3000
+          PUPPETEER_DIR: ${{ runner.temp }}/pp
+        run: CHROME="$(command -v google-chrome)" node scripts/store-seed/prove_steps.mjs "$RUNNER_TEMP/prove-steps"
+
+      - name: Keep the proof (screens, readings, verdicts, server log)
+        if: always()
+        run: cp "$RUNNER_TEMP/next.log" "$RUNNER_TEMP/prove-steps/" 2>/dev/null || true
+
+      - name: Upload the proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: store-capture-steps-${{ github.sha }}
+          path: ${{ runner.temp }}/prove-steps
+          if-no-files-found: warn
           retention-days: 14
