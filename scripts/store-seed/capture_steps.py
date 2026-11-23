@@ -129,6 +129,19 @@ SUMMARY = r"""(function(){var w=document.querySelector('[data-kf-summary]');if(!
 # microphone is (Step Store-Fix-1; the mic is new in 1.1).
 ASK_TOP = r"""(function(){var u=document.querySelectorAll('.kf-bubble-user');var q=u[u.length-1];if(!q){return 'no question bubble'}var sc=q.parentElement;while(sc&&!/(auto|scroll)/.test(getComputedStyle(sc).overflowY)){sc=sc.parentElement}if(!sc){return 'no scroll list'}sc.scrollTop=sc.scrollTop+q.getBoundingClientRect().top-sc.getBoundingClientRect().top-16;var L=sc.getBoundingClientRect(),Q=q.getBoundingClientRect();var lab=Array.prototype.slice.call(document.querySelectorAll('p')).filter(function(p){return /^(المصادر|Sources)$/.test((p.textContent||'').trim())}).pop();var row=lab?lab.nextElementSibling:null;var one=row&&row.firstElementChild?row.firstElementChild.getBoundingClientRect():null;var all=row?row.getBoundingClientRect():null;var t=document.body.innerText||'';var m=document.querySelector('[data-kf-voice=mic]');var c=document.querySelector('[data-kf-composer]');var mr=m?m.getBoundingClientRect():null;var mic=!m?'none':((c&&c.contains(m)?'in the composer':'outside the composer')+', '+(mr.width>0&&mr.top>=0&&mr.bottom<=innerHeight?'in view':'out of view'));return 'answer shown; sources: '+(/(^|\n)(المصادر|Sources)(\n|$)/.test(t)?'yes':'no')+'; question top '+Math.round(Q.top-L.top)+' of list '+Math.round(L.height)+'; first source bottom '+(one?Math.round(one.bottom-L.top):'none')+'; all sources bottom '+(all?Math.round(all.bottom-L.top):'none')+'; list at end '+(sc.scrollTop+sc.clientHeight>=sc.scrollHeight-1?'yes':'no')+'; mic '+mic})()"""
 
+
+
+def ask_shot(question):
+    """05, the shot: ASK_TOP (unchanged; render-fix and render-fix2 read it),
+    then whether the last question bubble holds exactly the plan's question
+    (bidi marks dropped, spaces folded). The accounts keep the 1.0.1 seed's
+    conversation, so a send that never landed would leave an OLDER question
+    in the last bubble and every other 05 rule would still pass."""
+    want = json.dumps(question, ensure_ascii=False)
+    return ("(function(){var r=" + ASK_TOP + r";if(/^no /.test(r)){return r}var n=function(s){return (s||'').replace(/[\u200e\u200f\u2066-\u2069\u202a-\u202e]/g,'').replace(/\s+/g,' ').trim()};"
+            "var u=document.querySelectorAll('.kf-bubble-user');var q=u[u.length-1];return r+'; question as asked '+(q&&n(q.textContent)===n(" + want + ")?'yes':'no')})()")
+
+
 # 06: the quiz from question 1, nothing picked, not graded.
 QUIZ = r"""(function(){var w=document.querySelector('[data-kf-quiz]');if(!w){return 'no quiz on screen'}var q1=Array.prototype.slice.call(w.querySelectorAll('[data-kf-question] [data-kf-generated]')).filter(function(x){return /^1\.\s/.test((x.textContent||'').trim())})[0];if(!q1){return 'no first question'}var card=q1.closest('[data-kf-question]')||q1;var bar=0;Array.prototype.slice.call(document.querySelectorAll('header,nav,div')).forEach(function(x){var s=getComputedStyle(x).position;if(s!=='sticky'&&s!=='fixed'){return}var r=x.getBoundingClientRect();if(r.height>0&&r.top<=1&&r.bottom<window.innerHeight/2&&r.width>=window.innerWidth*0.9){bar=Math.max(bar,r.bottom)}});var head=w.querySelector('h3')||card;head.scrollIntoView({block:'start'});window.scrollBy(0,head.getBoundingClientRect().top-bar-16);var picked=w.querySelectorAll('[data-kf-choice]:not([data-kf-choice=idle]),input[type=radio]:checked').length;var K=window.__kfQuiz||{};return 'quiz in view from question 1; phase '+w.getAttribute('data-kf-quiz')+'; question 1 top '+Math.round(card.getBoundingClientRect().top)+', bar bottom '+Math.round(bar)+'; picked '+picked+'; route '+(K.status||'none')+' cached '+(K.cached===true?'yes':'no')})()"""
 
@@ -138,14 +151,18 @@ def b64(path):
 
 
 def camera_inject(locale):
-    """03, step 3: the three page JPEGs as Files in the sheet's input."""
+    """03, step 3: the three page JPEGs as Files in the sheet's input. The
+    count is read from the input BEFORE the change event: the sheet's handler
+    empties the input (value = '') while the event is dispatched, and the
+    FileList it held then reads 0 (run on c2d527c: "put 0 pages" while the
+    sheet numbered three). The sheet's own count is the 03 shot's reading."""
     pages = [b64(os.path.join(CONTENT, 'pages', locale, f'page-{n}.jpg')) for n in (1, 2, 3)]
     return ("(function(){var i=document.querySelector('[data-kf-camera-input]');if(!i){return 'no camera input'}"
             "if(!document.querySelector('[data-kf-camera-sheet=open]')){return 'the camera sheet is not open'}"
             "var P=" + json.dumps(pages) + ";var dt=new DataTransfer();"
             "P.forEach(function(s,k){var b=atob(s),u=new Uint8Array(b.length);for(var j=0;j<b.length;j++){u[j]=b.charCodeAt(j)}"
             "dt.items.add(new File([u],'page-'+(k+1)+'.jpg',{type:'image/jpeg',lastModified:Date.now()}))});"
-            "i.files=dt.files;i.dispatchEvent(new Event('change',{bubbles:true}));return 'put '+dt.files.length+' pages in the camera input'})()")
+            "i.files=dt.files;var put=i.files.length;i.dispatchEvent(new Event('change',{bubbles:true}));return 'put '+put+' pages in the camera input'})()")
 
 
 # 03, the shot: the sheet's own markers (pages, the numbers drawn on the
@@ -187,6 +204,7 @@ def steps(locale, bind=None):
     bind = bind or {}
     subject = bind.get('subject', p['summary']['subject'])
     qstem = bind.get('quiz', stem(p['quiz']['file']))
+    question = bind.get('question', p['ask']['question'])
     L = locale
     S = lambda n: f'shot-{L}-{n}'
     subj_re = f"/{L}/dashboard/knowledge/[0-9a-f-]{{36}}$"
@@ -204,9 +222,9 @@ def steps(locale, bind=None):
         {"name": f"camera-{L}-close", "wait": 1500, "js": CAMERA_CLOSE},
         {"name": S('04-summary'), "wait": 1500, "js": shot(SUMMARY, L)},
         {"name": f"nav-{L}-ask", "until": f"/{L}/dashboard/agent[?]kb=", "wait": 9000, "js": "(function(){var a=document.querySelector('a[href*=\"/dashboard/agent?kb=\"]');if(!a){return 'no ask link'}a.click();return 'opened Ask on the subject'})()"},
-        {"name": f"ask-{L}-send", "wait": 35000, "js": ask_send(p['ask']['question'])},
+        {"name": f"ask-{L}-send", "wait": 35000, "js": ask_send(question)},
         {"name": f"ask-{L}-blur", "wait": 1500, "js": "(function(){var a=document.activeElement;if(a&&a!==document.body&&a.blur){a.blur();return 'blurred '+a.tagName.toLowerCase()}return 'nothing focused'})()"},
-        {"name": S('05-ask'), "wait": 1500, "js": shot(ASK_TOP, L)},
+        {"name": S('05-ask'), "wait": 1500, "js": shot(ask_shot(question), L)},
         {"name": f"nav-{L}-back", "until": subj_re, "wait": 8000, "js": "(function(){var s=null;try{s=sessionStorage.getItem('kfShotSubject')}catch(e){}if(!s){return 'no subject address kept'}location.assign(s);return 'back to '+s})()"},
         {"name": f"quiz-{L}-open", "wait": 12000, "js": quiz_open(qstem)},
         {"name": S('06-quiz'), "wait": 1500, "js": shot(QUIZ, L)},

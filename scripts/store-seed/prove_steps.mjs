@@ -28,7 +28,7 @@
  * Usage (CI): BASE=http://127.0.0.1:3000 CHROME=... PUPPETEER_DIR=... node scripts/store-seed/prove_steps.mjs <out dir>
  */
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -59,6 +59,16 @@ const QUIZ_BODY = (cached) => JSON.stringify({
   is_partial: false,
   ...(cached ? { cached: true } : {}),
 });
+
+// The preview's own questions (src/app/[locale]/preview/ask/capture.ts, the
+// 1.0.1 wording, left as it is): bound so the "question as asked" reading is
+// judged against what the preview really shows. The live capture binds
+// nothing and compares with plan.json.
+const CAP = readFileSync(join(ROOT, 'src', 'app', '[locale]', 'preview', 'ask', 'capture.ts'), 'utf8');
+const PREVIEW_Q = {
+  ar: CAP.match(/export const CAPTURE_QUESTION = '([^']+)'/)[1],
+  en: CAP.match(/CAPTURE_EN = \{[\s\S]*?question: '([^']+)'/)[1],
+};
 
 mkdirSync(OUT, { recursive: true });
 const rows = [];
@@ -103,7 +113,7 @@ async function shot(tab, step, js, label, expect = null) {
 for (const L of ['en', 'ar']) {
   // The steps with the preview fixtures bound: the first subject and the first
   // card (an empty name matches the first), which holds the quiz on the preview.
-  const steps = JSON.parse(pyRun(['scripts/store-seed/capture_steps.py', L, '--bind', JSON.stringify({ subject: '', quiz: '' })]));
+  const steps = JSON.parse(pyRun(['scripts/store-seed/capture_steps.py', L, '--bind', JSON.stringify({ subject: '', quiz: '', question: PREVIEW_Q[L] })]));
   const S = Object.fromEntries(steps.map((s) => [s.name, s.js]));
   const other = JSON.parse(pyRun(['scripts/store-seed/capture_steps.py', '--other', L]));
   const sh = (n) => S[`shot-${L}-${n}`];
@@ -154,6 +164,8 @@ for (const L of ['en', 'ar']) {
     pages = await t.evaluate(`(document.querySelector('[data-kf-camera-sheet=open]')||{getAttribute:function(){return 'none'}}).getAttribute('data-kf-camera-pages')`);
   }
   notes.push(`${L} camera: ${r1} / ${r2} / ${r3} / pages ${pages}`);
+  // The step's own count (check_capture.py camera-put), on the real input.
+  if (r3 !== 'put 3 pages in the camera input') rows.push({ step: `shot-${L}-03-camera`, label: `${L}-camera-put`, result: `the pages step said: ${r3}`, probe: {}, expect: null });
   console.log(`${L} camera: ${r1} / ${r2} / ${r3} / pages ${pages}`);
   await shot(t, `shot-${L}-03-camera`, sh('03-camera'), `${L}-03-camera`);
   const closed = await t.evaluate(S[`camera-${L}-close`]);
@@ -183,15 +195,25 @@ for (const L of ['en', 'ar']) {
   await sleep(700);
   await t.evaluate(S[`camera-${L}-sheet`]);
   await sleep(700);
-  await t.evaluate(S[`camera-${L}-pages`].replace('P.forEach', 'P.slice(0,2).forEach'));
+  const put2 = await t.evaluate(S[`camera-${L}-pages`].replace('P.forEach', 'P.slice(0,2).forEach'));
   await sleep(4000);
+  notes.push(`${L} plant two pages, the pages step said: ${put2}`);
+  if (put2 !== 'put 2 pages in the camera input') rows.push({ step: `shot-${L}-03-camera`, label: `${L}-plant-two-pages-put`, result: `the pages step said: ${put2} (want put 2)`, probe: {}, expect: null });
   await shot(t, `shot-${L}-03-camera`, sh('03-camera'), `${L}-plant-two-pages`, 'camera-pages');
+  // Plant: one request to the page reader while the sheet is open (a GET to
+  // this runner's own server; the counter is the capture's fetch wrapper).
+  await t.evaluate(`fetch('/api/page-read',{method:'GET'}).catch(function(){})`);
+  await sleep(700);
+  await shot(t, `shot-${L}-03-camera`, sh('03-camera'), `${L}-plant-one-request`, 'camera-sent');
   await t.close();
 
   // 05 Ask with its sources and the microphone (plugin stubbed).
   t = await open(`/${L}/preview/ask?view=capture&platform=native`, { stub: true });
   await sleep(1200);
   await shot(t, `shot-${L}-05-ask`, sh('05-ask'), `${L}-05-ask`);
+  // Plant: an older question in the last bubble (the seed's 1.0.1 wording).
+  await t.evaluate(`(function(){var u=document.querySelectorAll('.kf-bubble-user');u[u.length-1].textContent='How does the energy yield of respiration compare with fermentation? (older)'})()`);
+  await shot(t, `shot-${L}-05-ask`, sh('05-ask'), `${L}-plant-older-question`, 'question-asked');
   await t.close();
   // Plant: no plugin, so no microphone.
   t = await open(`/${L}/preview/ask?view=capture&platform=native`);

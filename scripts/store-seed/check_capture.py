@@ -14,14 +14,17 @@ themselves. Step Store-Shots-1 wrote the first version (the 1.0.1 set).
   - the status bar: in the top band of every PNG the bar's ink is DARKER than
     the page under it, by at least 4.5:1 (a light bar on the light page
     vanishes);
-  - 03: the camera sheet holds three pages numbered 1, 2, 3, the read button
+  - 03: three page files went into the camera input (the step's own count,
+    read before the sheet's handler empties the input), and the camera sheet
+    holds exactly three pages numbered 1, 2, 3, the read button
     is there, no message, the system picker was asked for and blocked, and
     nothing was sent (0 requests to the page reader or storage, also after
     the sheet was closed);
   - 04: the summary's heading sits fully below any bar;
   - 05: the answer's sources are on screen (the first source inside the
     list), the question starts the shot (not cut), the microphone is in the
-    composer and in view;
+    composer and in view, and the last question bubble is exactly the
+    plan's question (the accounts keep the 1.0.1 seed's older question);
   - 06: the quiz from question 1, nothing picked, not graded, and the route
     answered `cached: true` (the stored quiz: no AI call);
   - each set ended signed out; every page step (nav, login, sign-out) left
@@ -203,11 +206,12 @@ def shot_checks(name, res, probe, loc):
         m = re.search(r'heading top (-?\d+), bar bottom (\d+)', did)
         add(m and int(m.group(1)) >= int(m.group(2)) + 4, 'summary', f'the heading sits fully below any bar: {did[:120]}')
     if name.endswith('-05-ask'):
-        m = re.search(r'sources: (yes|no); question top (-?\d+) of list (\d+); first source bottom (-?\d+|none); all sources bottom (-?\d+|none); list at end (yes|no); mic (.+)$', did)
+        m = re.search(r'sources: (yes|no); question top (-?\d+) of list (\d+); first source bottom (-?\d+|none); all sources bottom (-?\d+|none); list at end (yes|no); mic (.+?); question as asked (yes|no)$', did)
         add(m and m.group(1) == 'yes', 'sources', f'the answer shows its sources: {did[:220]}')
         add(m and m.group(4) != 'none' and int(m.group(4)) <= int(m.group(3)), 'sources-in-view', f"the first source is on screen inside the list: {did[:220]}")
         add(m and int(m.group(2)) >= 0 and (int(m.group(2)) <= 40 or m.group(6) == 'yes'), 'question', f'the question starts the shot, not cut: {did[:220]}')
         add(m and m.group(7) == 'in the composer, in view', 'mic', f"the microphone is in the composer and in view: {m.group(7) if m else did[:200]}")
+        add(m and m.group(8) == 'yes', 'question-asked', f"the last question bubble is exactly the plan's question (not the seed's older one): {did[-60:]}")
         if m and m.group(5) != 'none' and not QUIET:
             print(f"note {name}: the whole sources row {'fits' if int(m.group(5)) <= int(m.group(3)) else 'runs past the list by ' + str(int(m.group(5)) - int(m.group(3))) + ' px'}")
     if name.endswith('-06-quiz'):
@@ -233,6 +237,8 @@ def judge(rows, sizes, steps_lists, png_root=None, late_ok=False):
         for name in want:
             r = by.get(name, {})
             out += shot_checks(name, r.get('result', ''), r.get('probe'), loc)
+        put = str(by.get(f'camera-{loc}-pages', {}).get('result', ''))
+        add(put == 'put 3 pages in the camera input', 'camera-put', f'{loc}: three page files went into the camera input: {put[:120]}')
         close = str(by.get(f'camera-{loc}-close', {}).get('result', ''))
         add(close.endswith('sent 0'), 'camera-sent', f'{loc}: nothing sent by the time the camera sheet closed: {close[:120]}')
         q = str(by.get(f'quiz-{loc}-open', {}).get('result', ''))
@@ -279,7 +285,7 @@ def fixture(tmp):
         '02-material': '/{l}/dashboard/knowledge/00000000-0000-0000-0000-000000000001',
         '03-camera': 'camera sheet; pages 3; numbers 1,2,3; read button enabled; message none; picker calls blocked 1; sent 0',
         '04-summary': 'summary in view; heading top 146, bar bottom 138',
-        '05-ask': 'answer shown; sources: yes; question top 16 of list 444; first source bottom 420; all sources bottom 470; list at end no; mic in the composer, in view',
+        '05-ask': 'answer shown; sources: yes; question top 16 of list 444; first source bottom 420; all sources bottom 470; list at end no; mic in the composer, in view; question as asked yes',
         '06-quiz': 'quiz in view from question 1; phase taking; question 1 top 190, bar bottom 138; picked 0; route 200 cached yes',
     }
     rows = []
@@ -300,6 +306,8 @@ def fixture(tmp):
                 row['result'] = 'sent'
             elif n.startswith('quiz-'):
                 row['result'] = 'clicked quiz on x'
+            elif n.startswith('camera-') and n.endswith('-pages'):
+                row['result'] = 'put 3 pages in the camera input'
             elif n.endswith('-close'):
                 row['result'] = 'closed the camera sheet; sent 0'
             else:
@@ -409,6 +417,13 @@ def self_test():
             ('a camera message', 'camera-state', setDid('shot-en-03-camera', 'message none', 'message other')),
             ('the picker never asked for', 'camera-control', setDid('shot-ar-03-camera', 'picker calls blocked 1', 'picker calls blocked 0')),
             ('a page sent to the reader', 'camera-sent', setDid('shot-en-03-camera', 'sent 0', 'sent 1')),
+            ('two pages with three numbers claimed', 'camera-pages', setDid('shot-en-03-camera', 'pages 3', 'pages 2')),
+            ('three pages, two numbered', 'camera-pages', setDid('shot-ar-03-camera', 'numbers 1,2,3', 'numbers 1,2')),
+            ('two page files put in the input', 'camera-put', setDid('camera-ar-pages', 'put 3 pages', 'put 2 pages')),
+            ('no page file put in the input (the c2d527c reading)', 'camera-put', setDid('camera-en-pages', 'put 3 pages', 'put 0 pages')),
+            ('one request by the time the sheet closed', 'camera-sent', setDid('camera-ar-close', 'sent 0', 'sent 1')),
+            ("the seed's older question in the last bubble", 'question-asked', setDid('shot-en-05-ask', 'question as asked yes', 'question as asked no')),
+            ('no question reading (a pre-fix capture)', 'question-asked', setDid('shot-ar-05-ask', '; question as asked yes', '')),
             ('summary heading under the bar', 'summary', setDid('shot-ar-04-summary', 'heading top 146', 'heading top 120')),
             ('no sources', 'sources', setDid('shot-en-05-ask', 'sources: yes', 'sources: no')),
             ('the first source below the list', 'sources-in-view', setDid('shot-ar-05-ask', 'first source bottom 420', 'first source bottom 470')),
