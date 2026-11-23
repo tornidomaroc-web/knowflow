@@ -15,8 +15,25 @@
  *
  * Usage:
  *   node scripts/store-shots/render.mjs [--only en/04-quiz.png,ar/04-ask.png] [--out DIR]
+ *   node scripts/store-shots/render.mjs --set 1.1 --size 1320x2868|1206x2622 --out DIR
+ *        [--layout-test] [--plants]
  * Env: CHROME = path to the Chrome or Chromium binary (default: google-chrome).
  * Tier 0: no network, no credential, no app server.
+ *
+ * THE 1.1 SET (item 4i, PR 1). `--set 1.1` draws the light design C frame
+ * (scripts/store-shots/frame-1.1.mjs) around the captions of
+ * captions-1.1.json, at either App Store size from one template: every
+ * length is the 1320-wide design times W / 1320, and the screen keeps the
+ * capture's own 1320 : 2868 shape (never stretched). The 1.0.1 set (no
+ * --set, or --set 1.0.1) is drawn by the code below exactly as before, so its
+ * committed PNGs still match their fresh renders.
+ *   --layout-test  the screen shows a STAND-IN: an old 1.0.1 raw capture
+ *                  (frame-1.1.mjs STAND_IN). Only to test the frame; such a
+ *                  render shows the old app and is never the 1.1 set, so it
+ *                  refuses an --out inside the repository.
+ *   --plants       renders the planted cases every 1.1 check must catch,
+ *                  asserts the layout ones here and leaves the contrast ones
+ *                  for scripts/store-shots/contrast.py --expect-fail.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, mkdtempSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -35,6 +52,14 @@ const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1
 const only = (opt('--only') || '').split(',').filter(Boolean);
 const outRoot = opt('--out') ? resolve(opt('--out')) : DESIGNED;
 const chrome = process.env.CHROME || 'google-chrome';
+
+if (opt('--set') === '1.1') {
+  const { run11 } = await import('./frame-1.1.mjs');
+  await run11({ args, opt, chrome });
+  process.exit(0);
+}
+if (opt('--set') && opt('--set') !== '1.0.1') throw new Error(`unknown --set ${opt('--set')} (1.0.1 or 1.1)`);
+if (opt('--size') && opt('--size') !== '1320x2868') throw new Error('the 1.0.1 set has one size, 1320x2868');
 
 const captions = JSON.parse(readFileSync(join(DESIGNED, 'captions.json'), 'utf8'));
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

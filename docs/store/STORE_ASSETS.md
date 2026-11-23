@@ -65,7 +65,45 @@ is wanted for the iOS light appearance, hand over a second 1024 file.
 
 ## 3. Screenshots
 
-### 3.1 App Store (iPhone-only submission, §5 below)
+### 3.0 App Store, iOS 1.1 (item 4i, 2026-11-23): what holds now
+
+Read on 2026-11-23 from Apple's "Screenshot specifications"
+(https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications):
+"To submit your app, you must provide screenshots for the following required
+display sizes: iPhone: At least one screenshot for iPhone with Dynamic Island
+(medium display)." That class (iPhone 18 Pro, 17 Pro, 17, 16 Pro, 16, 15
+Pro, 15, 14 Pro) takes **1206 × 2622** or 1179 × 2556 portrait. The 6.9-inch
+class ("Dynamic Island, large display": 1320 × 2868, 1290 × 2796, 1260 ×
+2736) is still accepted, but it is no longer the required one. Version 1.0.1
+(approved 2026-10-29) carries the 6.9-inch set only, and nothing proves that
+App Store Connect still accepts 1.1 with that set alone. **So the 1.1 set
+ships at both sizes:** 1320 × 2868 and 1206 × 2622, drawn from one template
+and one capture (`scripts/store-shots/render.mjs --set 1.1 --size …`,
+`frame-1.1.mjs`). The capture is scaled, never stretched. 1 to 10 per size
+per language, no alpha.
+
+| | 1.1 set |
+|---|---|
+| Look | Design C **light** (ground `#f4ede1`, ink `#1a1611`, gold phrase `#7a580e`); a light clay phone with no island, no buttons and no Apple mark; no dark shot |
+| Screens | **Six**, the same six in both languages, in this order: subjects, a subject's materials, the camera sheet, summary, Ask with its sources, quiz |
+| Captions | `docs/store/screenshots-designed/captions-1.1.json`, built by `scripts/store-shots/captions_1_1.py` from the owner-approved file of 2026-11-23 (`captions-1.1.approved.json`, SHA-256 `6d52f7c9…7f2ad280`), checked byte for byte in CI |
+| Checks (both sizes) | ≤ 2 lines, gold phrase in one piece, ≤ 6 words, no dash, no @, no price/plan/upgrade/free/pro word, no platform or store name, Rubik covers every letter, Arabic joined, caption ≥ 32 px above the phone, exact size, no alpha; and, new: no word alone on a line, no KEEP_TOGETHER phrase split, ink and gold ≥ 4.5:1 read from the rendered pixels, Latin runs isolated in an Arabic caption. Each new check has a planted case that must fail. |
+| Locales | ar-SA: Arabic six. en-US and en-GB: English six. **fr-FR: English six** (new). Without a set of its own, fr-FR shows the primary (Arabic) set. The app has no French, and a French phone opens it in English, so the English set is the accurate one for that listing. |
+
+**Decided order of the later work (owner, 2026-11-23):**
+
+1. **PR 2: capture steps** (`scripts/store-seed/capture_steps.py`,
+   `check_capture.py`): the six screens per language in design C, the
+   camera sheet, theme and status-bar checks. Merged next.
+2. **The capture DISPATCH waits for the voice go/no-go of item 4j.** If the
+   microphone is removed from the composer, the Ask shot must not show it.
+3. **PR 3: `scripts/asc/store_setup.py` for 1.1** (two display types, the
+   version 1.1 only, fr-FR English), after the capture.
+
+### 3.1 App Store (iPhone-only submission, §5 below), the 1.0 and 1.0.1 set: HISTORY
+
+*Kept as written for 1.0 and 1.0.1 (dark theme, five screens, 1320 × 2868
+only, `captions.json`). Where it disagrees with §3.0, §3.0 holds.*
 
 | Property | Requirement |
 |---|---|
@@ -82,7 +120,7 @@ is wanted for the iOS light appearance, hand over a second 1024 file.
 | Tablet screenshots (7" and 10") and Chromebook | Required only when tablet or Chromebook support is declared: then **at least 4**, sides **1080 to 7680 px**, 16:9 or 9:16. **Not supplied** (§5). |
 | Content rules | No misleading device frames, no prices or "free" claims that differ from the listing, localised per language |
 
-### 3.3 Which screens, in which order (both stores, both languages)
+### 3.3 Which screens, in which order (both stores, both languages): HISTORY, the 2026-09-25 plan (the 1.1 App Store set is in §3.0)
 
 The set the owner takes on a device once Phase 8 builds the shell, from the
 screens this run shipped, dark theme (the default), each with one line of
