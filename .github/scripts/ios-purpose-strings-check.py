@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """Proof 7, purpose strings (the owner's review of PR #340 at 3b2fe21).
 
-The built app's voice permission texts, read from the bundle itself, must be
-the owner's approved values in docs/copy/ARABIC_STRINGS_app_v13.md, byte for
-byte: NSMicrophoneUsageDescription and NSSpeechRecognitionUsageDescription in
+The built app's permission texts, read from the bundle itself, must be the
+owner's approved values, byte for byte:
+
+  * NSMicrophoneUsageDescription and NSSpeechRecognitionUsageDescription,
+    against docs/copy/ARABIC_STRINGS_app_v13.md (voice input, #340);
+  * NSCameraUsageDescription, against docs/copy/ARABIC_STRINGS_app_v11.md
+    (the camera screen, #336; item 4j, before build 9), where it is stored
+    outside the rows as one line:
+    - the iOS camera prompt, `NSCameraUsageDescription`: en (...) "<en>"; ar (...) "<ar>"
+
+each in
 
   * Info.plist (English),
   * en.lproj/InfoPlist.strings (English),
@@ -16,8 +24,10 @@ The files are parsed, not grepped: Info.plist with plistlib (XML or binary),
 each InfoPlist.strings with plistlib when Xcode compiled it to a binary plist
 (the build default), else as the old-style text format of the source tree.
 
-Usage: ios-purpose-strings-check.py <App.app> <ARABIC_STRINGS_app_v13.md>
-Exit 0 when all six match; 1 with the first differing byte of each mismatch.
+Usage: ios-purpose-strings-check.py <App.app> <ARABIC_STRINGS_app_v13.md> <ARABIC_STRINGS_app_v11.md>
+Exit 0 when all nine match; 1 with the first differing byte of each mismatch.
+<App.app> may also be the source folder ios/App/App (Info.plist and the
+text-format .lproj files), which is how the local planted-mismatch test runs.
 """
 import plistlib
 import re
@@ -25,6 +35,17 @@ import sys
 from pathlib import Path
 
 KEYS = ("NSMicrophoneUsageDescription", "NSSpeechRecognitionUsageDescription")
+CAMERA = "NSCameraUsageDescription"
+_CAMERA_LINE = re.compile(r'^- the iOS camera prompt, `NSCameraUsageDescription`: en \([^)]*\) "(.+?)"; ar \([^)]*\) "(.+)"$')
+
+
+def approved_camera(md_path):
+    """The en and ar camera prompt from v11's one line, as the batch file stores them."""
+    hits = [_CAMERA_LINE.match(line) for line in Path(md_path).read_text(encoding="utf-8").splitlines()]
+    hits = [m for m in hits if m]
+    if len(hits) != 1:
+        sys.exit(f"FAIL: {md_path} holds {len(hits)} camera prompt lines, not one")
+    return {(CAMERA, "en"): hits[0].group(1), (CAMERA, "ar"): hits[0].group(2)}
 
 
 def approved(md_path):
@@ -95,10 +116,13 @@ def first_diff(a, b):
 
 
 def main():
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         sys.exit(__doc__)
-    app, md = Path(sys.argv[1]), sys.argv[2]
+    app, md, md_cam = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
     want = approved(md)
+    want.update(approved_camera(md_cam))
+    src_of = {k: md for k in KEYS}
+    src_of[CAMERA] = md_cam
     with open(app / "Info.plist", "rb") as f:
         info = plistlib.load(f)
     sources = {
@@ -108,17 +132,17 @@ def main():
     }
     bad = 0
     for where, (lang, d) in sources.items():
-        for k in KEYS:
+        for k in (CAMERA,) + KEYS:
             got, ok = d.get(k), want[(k, lang)]
             if isinstance(got, str) and got.encode("utf-8") == ok.encode("utf-8"):
                 print(f"ok   7. {where} {k} is the approved ({lang}) text, byte for byte ({len(ok.encode('utf-8'))} bytes)")
             else:
                 bad += 1
                 why = "missing" if not isinstance(got, str) else first_diff(got, ok)
-                print(f"FAIL 7. {where} {k} is not the approved ({lang}) text in {md}: {why}")
+                print(f"FAIL 7. {where} {k} is not the approved ({lang}) text in {src_of[k]}: {why}")
     if bad:
         sys.exit(1)
-    print("PURPOSE STRINGS OK: six of six are the approved v13 texts")
+    print("PURPOSE STRINGS OK: nine of nine are the approved texts (camera v11, microphone and speech v13)")
 
 
 if __name__ == "__main__":

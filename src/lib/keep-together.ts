@@ -70,6 +70,14 @@ export function keepTogetherPaywall(text: string): string {
  * alternation takes the long one where both fit. The Arabic phrases are cut
  * from the approved file (docs/copy/ARABIC_STRINGS_app_v13.md) by script.
  *
+ * Last, "try again" in lower case (item 4j, before build 9): the English
+ * denied message ends "..., then try again.", which the capital "Try again"
+ * does not match (the match is case-sensitive, like every list here). A line
+ * of it ended on "try" at 29 of 151 widths in the local 120-420 px sweep
+ * (346-362 among them). An entry of its own, not a case-insensitive match, so
+ * the list stays the exact text check 29 plants and reads, and the denied
+ * message's "try again" is held whole the same way.
+ *
  * A list of its own, like KEEP_TOGETHER_PAYWALL: keepTogetherVoice() is called
  * by src/components/agent/VoiceButton.tsx alone, and the voice line is drawn
  * only at shell 2 with the KnowFlowSpeech plugin, so the web and build 8 stay
@@ -83,7 +91,7 @@ export function keepTogetherPaywall(text: string): string {
  * and must be flagged. scripts/verify-voice-input.mjs holds the list to the
  * approved file.
  */
-export const KEEP_TOGETHER_VOICE = ['حاول مجددًا أو اكتب سؤالك', 'حاول مجددًا', 'Try again, or type your question', 'Try again'] as const;
+export const KEEP_TOGETHER_VOICE = ['حاول مجددًا أو اكتب سؤالك', 'حاول مجددًا', 'Try again, or type your question', 'Try again', 'try again'] as const;
 
 const VOICE_PATTERN = new RegExp(KEEP_TOGETHER_VOICE.map((p) => p.split(' ').join('[ \\u00A0]+')).join('|'), 'g');
 
