@@ -351,11 +351,17 @@ const head2 = (s) => s.split(' ').slice(0, 2).join(' ').replace(/,$/, '');
 const KT = await load('src/lib/keep-together.ts');
 const LONG = { ar: secondOf(okAr.get('failed')), en: secondOf(okEn.get('failed')) };
 const SHORT = { ar: head2(LONG.ar), en: head2(LONG.en) };
-const WANT_VOICE = [LONG.ar, SHORT.ar, LONG.en, SHORT.en];
+// Item 4j: the approved English denied message's last two words, its full stop dropped ("try again", lower
+// case), kept as an entry of its own: the capital "Try again" does not match it (case-sensitive).
+const tail2 = (s) => String(s || '').split(' ').slice(-2).join(' ').replace(/\.$/, '');
+const DENIED_EN = tail2(okEn.get('denied'));
+const WANT_VOICE = [LONG.ar, SHORT.ar, LONG.en, SHORT.en, DENIED_EN];
 if (KT) {
   const NB = '\u00A0';
   const nb = (p) => p.split(' ').join(NB);
-  check(JSON.stringify([...(KT.KEEP_TOGETHER_VOICE || [])]) === JSON.stringify(WANT_VOICE), `KEEP_TOGETHER_VOICE is exactly the approved failed message's second sentences and their "try again" heads, long before short, byte for byte (${(KT.KEEP_TOGETHER_VOICE || []).length} phrases)`);
+  check(JSON.stringify([...(KT.KEEP_TOGETHER_VOICE || [])]) === JSON.stringify(WANT_VOICE), `KEEP_TOGETHER_VOICE is exactly the approved failed message's second sentences and their "try again" heads, long before short, then the English denied message's lower-case "try again", byte for byte (${(KT.KEEP_TOGETHER_VOICE || []).length} phrases)`);
+  check(DENIED_EN === 'try again' && String(okEn.get('denied') || '').endsWith(', then try again.'), 'the approved English denied message ends ", then try again.", and its kept tail is "try again" in lower case');
+  check(KT.keepTogetherPaywall && KT.keepTogetherPaywall('then try again.') === 'then try again.', "the lower-case entry stays in the voice list: the paywall's matcher leaves \"try again\" breakable, as on main");
   check(LONG.en === 'Try again, or type your question' && SHORT.en === 'Try again' && LONG.ar.split(' ').length === 5 && SHORT.ar.split(' ').length === 2, 'the phrases cut from the batch are "Try again, or type your question", "Try again", a five-word and a two-word Arabic phrase');
   check(WANT_VOICE.every((p) => p && !p.endsWith('.')), 'no kept phrase carries a final full stop');
   for (const k of ['denied', 'noSpeech', 'failed']) check(String(okAr.get(k) || '').includes(SHORT.ar), `the approved Arabic ${k} holds the short Arabic phrase, so it is guarded too`);
@@ -365,8 +371,8 @@ if (KT) {
       for (const k of ['failed', 'denied', 'noSpeech']) {
         const out = KT.keepTogetherVoice(V[L][k]);
         check(out.replace(/\u00A0/g, ' ') === V[L][k], `${L}.${k}: keepTogetherVoice changes no character but spaces`);
-        const want = k === 'failed' ? LONG[L] : V[L][k].includes(SHORT[L]) ? SHORT[L] : null;
-        if (!want) { check(L === 'en' && k === 'denied', `${L}.${k}: holds no kept phrase (only en.denied may, its "try again" is lower case)`); continue; }
+        const want = k === 'failed' ? LONG[L] : V[L][k].includes(SHORT[L]) ? SHORT[L] : L === 'en' && k === 'denied' ? DENIED_EN : null;
+        if (!want) { check(false, `${L}.${k}: holds no kept phrase`); continue; }
         check(out.includes(nb(want)), `${L}.${k}: keepTogetherVoice joins "${L === 'ar' ? `ar ${k === 'failed' ? 'long' : 'short'}` : want}" with no-break spaces`);
         // Forced: keepTogether alone (main's path) leaves the phrase breakable, and the same test must fail.
         check(!KT.keepTogether(V[L][k]).includes(nb(want)), `forced: keepTogether alone leaves ${L}.${k}'s phrase breakable, and the test flags it`);

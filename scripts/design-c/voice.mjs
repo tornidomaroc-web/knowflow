@@ -52,7 +52,9 @@
  * 62c9f7a), and no such phrase spans two lines. voicePhrasePlant() forces
  * each phrase present onto two lines, broken after its first word and after
  * its joint word; check 29 must flag both rules on every such render, or the
- * run fails.
+ * run fails. Item 4j added the English denied message's lower-case "try
+ * again" to the list, so its forced case runs on the four en denied renders
+ * (light and dark, 390 and 360); rule (a) already read "try" in any case.
  *
  * CHECK 22 (camera.mjs, sameCheck), widened again: every screen of shell 2
  * that existed before this change (no stub: build 9 before the plugin, and
