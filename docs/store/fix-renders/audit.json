@@ -59,14 +59,14 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes; mic none"
       },
       {
         "ok": true,
-        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes"
+        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes; mic none"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes",
+    "reading": "answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes; mic none",
     "scrim": {
       "rows": 186,
       "page": "rgb(20, 17, 13)"
@@ -95,14 +95,14 @@
       },
       {
         "ok": true,
-        "m": "the summary scrolled as the capture does: summary in view; heading top 90, bar bottom 74"
+        "m": "the summary scrolled as the capture does: summary in view; heading top 106, bar bottom 74"
       },
       {
         "ok": true,
-        "m": "the page runs under the status bar: span in main"
+        "m": "the page runs under the status bar: article in main"
       }
     ],
-    "reading": "summary in view; heading top 90, bar bottom 74",
+    "reading": "summary in view; heading top 106, bar bottom 74",
     "scrim": {
       "rows": 186,
       "page": "rgb(20, 17, 13)"
@@ -135,10 +135,10 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 509; first source bottom 453; all sources bottom 505; list at end no"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 509; first source bottom 453; all sources bottom 505; list at end no; mic none"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 16 of list 509; first source bottom 453; all sources bottom 505; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 509; first source bottom 453; all sources bottom 505; list at end no; mic none",
     "scrim": {
       "rows": 186,
       "page": "rgb(20, 17, 13)"
@@ -207,14 +207,14 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes; mic none"
       },
       {
         "ok": true,
-        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes"
+        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes; mic none"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes",
+    "reading": "answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes; mic none",
     "scrim": {
       "rows": 186,
       "page": "rgb(244, 237, 225)"
@@ -243,14 +243,14 @@
       },
       {
         "ok": true,
-        "m": "the summary scrolled as the capture does: summary in view; heading top 90, bar bottom 74"
+        "m": "the summary scrolled as the capture does: summary in view; heading top 106, bar bottom 74"
       },
       {
         "ok": true,
-        "m": "the page runs under the status bar: span in main"
+        "m": "the page runs under the status bar: article in main"
       }
     ],
-    "reading": "summary in view; heading top 90, bar bottom 74",
+    "reading": "summary in view; heading top 106, bar bottom 74",
     "scrim": {
       "rows": 186,
       "page": "rgb(244, 237, 225)"
@@ -283,10 +283,10 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 509; first source bottom 453; all sources bottom 505; list at end no"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 16 of list 509; first source bottom 453; all sources bottom 505; list at end no; mic none"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 16 of list 509; first source bottom 453; all sources bottom 505; list at end no",
+    "reading": "answer shown; sources: yes; question top 16 of list 509; first source bottom 453; all sources bottom 505; list at end no; mic none",
     "scrim": {
       "rows": 186,
       "page": "rgb(244, 237, 225)"
@@ -355,14 +355,14 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes; mic none"
       },
       {
         "ok": true,
-        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes"
+        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes; mic none"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes",
+    "reading": "answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes; mic none",
     "scrim": {
       "rows": 186,
       "page": "rgb(20, 17, 13)"
@@ -391,14 +391,14 @@
       },
       {
         "ok": true,
-        "m": "the summary scrolled as the capture does: summary in view; heading top 90, bar bottom 74"
+        "m": "the summary scrolled as the capture does: summary in view; heading top 106, bar bottom 74"
       },
       {
         "ok": true,
-        "m": "the page runs under the status bar: div in main"
+        "m": "the page runs under the status bar: article in main"
       }
     ],
-    "reading": "summary in view; heading top 90, bar bottom 74",
+    "reading": "summary in view; heading top 106, bar bottom 74",
     "scrim": {
       "rows": 186,
       "page": "rgb(20, 17, 13)"
@@ -467,14 +467,14 @@
       },
       {
         "ok": true,
-        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes"
+        "m": "the question bubble starts the list, not cut: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes; mic none"
       },
       {
         "ok": true,
-        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes"
+        "m": "the answer and its first source are in view: answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes; mic none"
       }
     ],
-    "reading": "answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes",
+    "reading": "answer shown; sources: yes; question top 197 of list 509; first source bottom 441; all sources bottom 493; list at end yes; mic none",
     "scrim": {
       "rows": 186,
       "page": "rgb(244, 237, 225)"
@@ -503,14 +503,14 @@
       },
       {
         "ok": true,
-        "m": "the summary scrolled as the capture does: summary in view; heading top 90, bar bottom 74"
+        "m": "the summary scrolled as the capture does: summary in view; heading top 106, bar bottom 74"
       },
       {
         "ok": true,
-        "m": "the page runs under the status bar: div in main"
+        "m": "the page runs under the status bar: article in main"
       }
     ],
-    "reading": "summary in view; heading top 90, bar bottom 74",
+    "reading": "summary in view; heading top 106, bar bottom 74",
     "scrim": {
       "rows": 186,
       "page": "rgb(244, 237, 225)"
