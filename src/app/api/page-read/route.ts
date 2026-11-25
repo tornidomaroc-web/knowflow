@@ -12,7 +12,11 @@ import { ingestMaterial, todaysKeptUploads, type IngestTrace } from '@/lib/inges
 import { renamedFilename, renameRefused } from '@/lib/material-name';
 import { isOverUploadLimit } from '@/lib/upload-limits';
 import {
+  arrivalLine,
   checkPhotoKeys,
+  PAGE_BATCH_CLAIM_NAME,
+  PAGE_BATCH_GONE,
+  PAGE_BATCH_TAKEN,
   PAGE_PHOTO_FOREIGN,
   PAGE_READ_ANSWER_MARGIN_MS,
   PAGE_READ_MAX_DURATION_S,
@@ -21,7 +25,7 @@ import {
   pagesMarkdown,
   type PhotoOutcome,
 } from '@/lib/page-reader';
-import { readPagePhotos, removePagePhotos } from '@/lib/page-reader-server';
+import { claimPageBatch, readPagePhotos, releasePageBatch, removePagePhotos } from '@/lib/page-reader-server';
 import { sweepStalePagePhotos } from '@/lib/page-photo-sweep';
 
 /**
@@ -42,10 +46,23 @@ import { sweepStalePagePhotos } from '@/lib/page-photo-sweep';
  * photos are downloaded and read. A refusal therefore sends nothing to
  * Anthropic, records nothing in the ledger and costs no upload.
  *
- * THE PHOTOS ARE SINGLE-USE. From the moment the keys are known to be the
- * caller's, they are deleted whatever the answer (refused, failed or read);
- * reading removes them as soon as they are in memory. Keys that are not the
- * caller's are refused before anything is deleted or read.
+ * EXACTLY ONCE PER BATCH (PAGE_BATCH_CLAIM_NAME in src/lib/page-reader.ts):
+ * once the keys are known to be the caller's, the batch is CLAIMED before
+ * anything else. A second request for a batch another request holds is
+ * answered 409 `page-batch-taken` and touches nothing (no photo read or
+ * deleted, nothing counted or spent); a batch whose photos are all gone and
+ * that nobody holds is answered 410 `page-batch-gone`. The claim is let go
+ * when the request ends with nothing saved.
+ *
+ * THE PHOTOS ARE SINGLE-USE. From the moment this request holds the batch,
+ * they are deleted whatever the answer (refused, failed or read); reading
+ * removes them as soon as they are in memory. Keys that are not the caller's
+ * are refused before anything is deleted or read.
+ *
+ * ARRIVAL LOG: one `kf-page-read-arrival` line per request, the server's
+ * arrival time and the app's timeline from the query (kf_t, kf_c, kf_s,
+ * kf_u, kf_r: whole numbers only, nothing about the student or the pages),
+ * so Vercel's log shows how long the request took to arrive.
  *
  * ANSWER: the shared ingestion's answer (src/lib/ingest-material.ts) plus
  * `photos`, one { n, read, code? } per key in order; when no photo could be
@@ -58,9 +75,9 @@ export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export async function POST(request: Request) {
   const startedAt = Date.now();
+  console.log(JSON.stringify(arrivalLine(request.url, startedAt)));
   // As in /api/ingest: which 500 sentence is true depends on whether the .md
   // file was forwarded to the ingestion service.
   const trace: IngestTrace = { forwarded: false };
@@ -69,6 +86,8 @@ export async function POST(request: Request) {
   // unless reading already removed them.
   let owned: string[] = [];
   let removed = false;
+  // The batch folder, once this request holds its claim.
+  let claimedFolder: string | null = null;
   let photos: PhotoOutcome[] | undefined;
   try {
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
@@ -102,11 +121,41 @@ export async function POST(request: Request) {
         { status: foreign ? 403 : 400 }
       );
     }
+    const folder = batch.folder as string;
+    // The claim's own name is never a page.
+    if ((batch.names as string[]).includes(PAGE_BATCH_CLAIM_NAME)) {
+      return NextResponse.json(
+        { success: false, error: uploadRefusalMessage(safeLocale, 'request') },
+        { status: 400 }
+      );
+    }
+
+    // EXACTLY ONCE: the batch is this request's, or it is left alone.
+    const claim = await claimPageBatch(folder, batch.names as string[], startedAt);
+    if (claim.kind === 'taken') {
+      // Another request has this batch (or had it, and may have made the
+      // material): nothing here is read, deleted, counted or spent.
+      return NextResponse.json(
+        { success: false, error: uploadRefusalMessage(safeLocale, 'unconfirmed'), code: PAGE_BATCH_TAKEN },
+        { status: 409 }
+      );
+    }
+    if (claim.kind === 'gone') {
+      return NextResponse.json(
+        { success: false, error: uploadRefusalMessage(safeLocale, 'nothing-saved'), code: PAGE_BATCH_GONE },
+        { status: 410 }
+      );
+    }
+    if (claim.kind === 'failed') {
+      // Not known to be this request's: fail closed, touch nothing.
+      console.error(JSON.stringify({ tag: 'kf-page-batch-claim', note: 'not claimed', error: claim.reason }));
+      return NextResponse.json({ success: false, error: TEMPORARILY_UNAVAILABLE[safeLocale] }, { status: 503 });
+    }
+    claimedFolder = folder;
     owned = b.keys as string[];
     // The caller's OTHER abandoned batches (src/lib/page-photo-sweep.ts), after
     // the answer: never this batch, never anyone else's folder, never a reason
     // for this request to fail or wait.
-    const folder = batch.folder as string;
     const currentBatch = folder.slice(folder.lastIndexOf('/') + 1);
     after(() => sweepStalePagePhotos(user.id, currentBatch));
 
@@ -221,5 +270,8 @@ export async function POST(request: Request) {
     );
   } finally {
     if (owned.length > 0 && !removed) await removePagePhotos(owned);
+    // Nothing was handed to the ingestion service, so nothing was saved: the
+    // claim goes (after the photos), and asking again is answered 410.
+    if (claimedFolder && !trace.forwarded) await releasePageBatch(claimedFolder);
   }
 }

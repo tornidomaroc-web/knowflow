@@ -20,18 +20,31 @@
  *    - 2300 px is under the model's tier edge (2576, `fitToTier`), so the
  *      server sends the photo on as it is, and a 12 MP capture shrinks from
  *      about 3 to 6 MB to under 1 MB.
- * 2. ONE BATCH, ONE POST. The photos are uploaded with the student's own
- *    session to `{uid}/page-photos/{batch}/p1.jpg`… (the only keys the
- *    storage policy lets a student write), then POST /api/page-read is called
- *    ONCE for that batch. The server deletes the photos it was given whatever
- *    it answers, and its sweep removes any batch older than an hour, so a
- *    batch is never posted twice: every retry uploads again under a NEW batch
- *    id. Until a 200 the photos stay in memory, so a retry needs no new shot.
- * 3. GIVING UP DELETES THE BATCH, with the student's session (the storage
- *    policy lets a student delete under their own page-photos/ and nowhere
- *    else), so a failed attempt leaves nothing behind for the sweep.
+ * 2. ONE BATCH, READ AT MOST ONCE (item 4j). The photos are uploaded with the
+ *    student's own session to `{uid}/page-photos/{batch}/p1.jpg`… (the only
+ *    keys the storage policy lets a student write), then POST /api/page-read
+ *    is called for that batch. The route CLAIMS a batch before it reads it
+ *    (PAGE_BATCH_CLAIM_NAME, src/lib/page-reader.ts), so asking again for the
+ *    SAME keys can never read or bill it twice:
+ *    - the read has a time limit (READ_TIME_LIMIT_MS); on that limit or a
+ *      network error it is asked ONCE more with the same keys;
+ *    - 409 page-batch-taken: another request has it (the first one, being
+ *      handled, or done): the screen says `unconfirmed` and uploads nothing;
+ *    - 410 page-batch-gone: nobody has it and its photos are not there: the
+ *      photos are uploaded again under a NEW batch (once per send);
+ *    - no answer after the second ask: `unconfirmed`, and the batch is KEPT:
+ *      "Try again" asks for the same keys (sendPageBatch's `again`), never a
+ *      new upload unless the route answers 410.
+ *    Until a 200 the photos stay in memory, so a new upload needs no new shot.
+ * 3. ONLY A BATCH NEVER POSTED IS DELETED BY THE APP (an upload that failed),
+ *    with the student's session (the storage policy lets a student delete
+ *    under their own page-photos/ and nowhere else). Once posted, the batch
+ *    is the server's: the request holding it removes the photos, and a
+ *    request that never arrived leaves them for the sweep's hour. Deleting
+ *    after a refusal could pull the photos from under a first request still
+ *    reading them.
  */
-import { MAX_PAGE_PHOTOS, pagePhotoKey, readPhotoHeader } from '@/lib/page-reader';
+import { MAX_PAGE_PHOTOS, PAGE_BATCH_GONE, PAGE_BATCH_TAKEN, pagePhotoKey, readPhotoHeader } from '@/lib/page-reader';
 
 export { MAX_PAGE_PHOTOS };
 
@@ -51,6 +64,21 @@ export const PHOTO_JPEG_QUALITY = 0.85;
 
 /** How many times an upload is attempted, each under a new batch id, before giving up (rule 2). */
 export const UPLOAD_ATTEMPTS = 2;
+
+/**
+ * The read's time limit, per ask (rule 2): 75 s.
+ * Measured: G2 (99 photos, Haiku 5.5, the route's settings) took 2.6 s a page
+ * at the median, 4.4 s at p95 and 6.4 s at most; the live run on production
+ * (2026-11-17, 3 pages) answered in 17.4 s end to end, about 11 s before the
+ * ingestion and 6 s in it. Ten pages, three at a time, at the measured
+ * maximum: 4 x 6.4 s reading + about 5 s of downloads and checks + about 6 s
+ * of ingestion = about 37 s. 75 s is twice that and four times the measured
+ * 3-page send, so a normal read is never cut; a request stuck below the page
+ * (the build 9 send that showed "reading" for 13 minutes) is given up in 75 s
+ * instead. A read slower than that is not lost: the second ask is answered
+ * 409 while the first is handled, and the material appears in the list.
+ */
+export const READ_TIME_LIMIT_MS = 75_000;
 
 // --- orientation ---------------------------------------------------------------------
 
@@ -173,61 +201,123 @@ export interface PageBatchDeps {
   newBatchId: () => string;
   /** Uploads one photo with the student's session; throws when it did not arrive. */
   upload: (key: string, photo: Blob) => Promise<void>;
-  /** POST /api/page-read with these keys; resolves with the answer, throws when no answer came. */
-  read: (keys: string[]) => Promise<{ status: number; text: string }>;
+  /**
+   * POST /api/page-read with these keys; resolves with the answer, throws when
+   * no answer came. It must stop when `signal` aborts (the time limit), body
+   * included. `ask` numbers the POSTs of one send from 0 (the `kf_r` of the
+   * address), so the server's log tells a second ask from a first.
+   */
+  read: (keys: string[], signal: AbortSignal, ask: number) => Promise<{ status: number; text: string }>;
   /** Deletes these keys with the student's session; best effort, never throws to the caller. */
   remove: (keys: string[]) => Promise<void>;
   /** Progress: photos uploaded so far, then `reading` once the POST has left. */
   onProgress?: (p: { stage: 'uploading'; done: number; total: number } | { stage: 'reading' }) => void;
+  /** READ_TIME_LIMIT_MS unless a proof sets it. */
+  readTimeLimitMs?: number;
+}
+
+/** A batch that was posted and not answered: asked again with the same keys (rule 2). */
+export interface PostedBatch {
+  batchId: string;
+  keys: string[];
 }
 
 export type PageBatchResult =
-  /** The route answered (any status); `keys` is the batch it was given. */
+  /** The route answered (any status but 409 taken and 410 gone); `keys` is the batch it was given. */
   | { kind: 'answered'; status: number; text: string; batchId: string; keys: string[] }
-  /** Every upload attempt failed; each attempt's batch was deleted. */
+  /** Every upload attempt failed (each attempt's batch deleted), or a new upload after a 410 was gone too. */
   | { kind: 'upload-failed'; batchIds: string[] }
-  /** The POST left and no answer came: whether the material was made is unknown; the batch was deleted. */
-  | { kind: 'unconfirmed'; batchId: string; keys: string[] };
+  /**
+   * Posted, and whether the material was made is unknown: no answer after the
+   * second ask (`taken` false), or another request has the batch (`taken`
+   * true). The batch is KEPT for "Try again" (`again`).
+   */
+  | { kind: 'unconfirmed'; batchId: string; keys: string[]; taken: boolean };
+
+/** The route's `code`, from an answer's text, or undefined. */
+function answerCode(text: string): unknown {
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    return parsed && typeof parsed === 'object' ? (parsed as { code?: unknown }).code : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
- * Rule 2 and rule 3: upload the photos under a new batch (again under another
- * new batch if an upload fails, UPLOAD_ATTEMPTS in all), then ONE POST for
- * the batch that arrived. Not a 2xx, or no answer: the batch is deleted with
- * the student's session (the route deletes what it was given too; deleting
- * twice is harmless). The photos are not touched: the caller keeps them.
+ * Rule 2 and rule 3. Without `again`: upload the photos under a new batch
+ * (again under another new batch if an upload fails, UPLOAD_ATTEMPTS in all;
+ * a failed batch is deleted), then ask for it. With `again` (a batch posted
+ * earlier and not answered): ask for those keys, no upload. Each ask has the
+ * time limit, and one more ask with the same keys follows a limit or a
+ * network error. A 410 sends the same photos once more under a new batch.
+ * The photos are not touched: the caller keeps them.
  */
-export async function sendPageBatch(photos: readonly Blob[], deps: PageBatchDeps): Promise<PageBatchResult> {
+export async function sendPageBatch(photos: readonly Blob[], deps: PageBatchDeps, again?: PostedBatch): Promise<PageBatchResult> {
   if (photos.length < 1 || photos.length > MAX_PAGE_PHOTOS) throw new Error(`a batch is 1 to ${MAX_PAGE_PHOTOS} photos`);
+  if (again && again.keys.length !== photos.length) throw new Error('the batch asked again must be these photos');
+  const limit = deps.readTimeLimitMs ?? READ_TIME_LIMIT_MS;
   const tried: string[] = [];
+  let asks = 0;
+  let current: PostedBatch | null = again ?? null;
+  let uploadedAgain = false;
+
+  // One POST under the time limit; null when no answer came. deps.read is
+  // called in the same turn as the caller's onProgress('reading').
+  const askOnce = async (keys: string[]): Promise<{ status: number; text: string } | null> => {
+    const timeLimit = new AbortController();
+    const timer = setTimeout(() => timeLimit.abort(), limit);
+    try {
+      return await deps.read(keys, timeLimit.signal, asks++);
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  for (;;) {
+    if (!current) {
+      current = await uploadBatch(photos, deps, tried);
+      if (!current) return { kind: 'upload-failed', batchIds: tried };
+    }
+    const { batchId, keys } = current;
+    deps.onProgress?.({ stage: 'reading' });
+    let answer = await askOnce(keys);
+    if (answer === null) answer = await askOnce(keys);
+    if (answer === null) return { kind: 'unconfirmed', batchId, keys, taken: false };
+    const code = answerCode(answer.text);
+    if (answer.status === 409 && code === PAGE_BATCH_TAKEN) return { kind: 'unconfirmed', batchId, keys, taken: true };
+    if (answer.status === 410 && code === PAGE_BATCH_GONE) {
+      // Nobody has this batch and its photos are not there: the photos go
+      // again under a new batch, once.
+      if (uploadedAgain) return { kind: 'upload-failed', batchIds: [...tried, batchId] };
+      uploadedAgain = true;
+      current = null;
+      continue;
+    }
+    return { kind: 'answered', status: answer.status, text: answer.text, batchId, keys };
+  }
+}
+
+/** Upload the photos under a new batch, UPLOAD_ATTEMPTS times at most; a batch that failed is deleted. */
+async function uploadBatch(photos: readonly Blob[], deps: PageBatchDeps, tried: string[]): Promise<PostedBatch | null> {
   for (let attempt = 0; attempt < UPLOAD_ATTEMPTS; attempt++) {
     const batchId = deps.newBatchId();
     tried.push(batchId);
     const keys = batchKeys(deps.userId, batchId, photos.length);
-    let uploaded = false;
     try {
       for (let i = 0; i < photos.length; i++) {
         deps.onProgress?.({ stage: 'uploading', done: i, total: photos.length });
         await deps.upload(keys[i], photos[i]);
       }
       deps.onProgress?.({ stage: 'uploading', done: photos.length, total: photos.length });
-      uploaded = true;
+      return { batchId, keys };
     } catch {
       await safely(() => deps.remove(keys));
     }
-    if (!uploaded) continue;
-
-    deps.onProgress?.({ stage: 'reading' });
-    let answer: { status: number; text: string };
-    try {
-      answer = await deps.read(keys);
-    } catch {
-      await safely(() => deps.remove(keys));
-      return { kind: 'unconfirmed', batchId, keys };
-    }
-    if (answer.status < 200 || answer.status >= 300) await safely(() => deps.remove(keys));
-    return { kind: 'answered', status: answer.status, text: answer.text, batchId, keys };
   }
-  return { kind: 'upload-failed', batchIds: tried };
+  return null;
 }
 
 async function safely(fn: () => Promise<void>): Promise<void> {
@@ -281,4 +371,34 @@ export function unreadPages(photos: unknown): { n: number; problem: PhotoProblem
 export function materialName(base: string, now: Date): string {
   const p = (n: number) => String(n).padStart(2, '0');
   return `${base} ${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+}
+
+/** One send's timeline, measured on the phone (`pageReadUrl`). */
+export interface PageReadTimeline {
+  /** The phone's clock (epoch ms) at the moment fetch() is called. */
+  sentAt: number;
+  /** Ms from the "read the pages" tap until the permission answered (the sheet's time when it opened). */
+  consentMs: number;
+  /** Ms from the tap until the session was read. */
+  sessionMs: number;
+  /** Ms from the tap until the last photo was uploaded. */
+  uploadedMs: number;
+  /** Which POST of the send this is, from 0 (a second ask with the same keys is 1). */
+  ask?: number;
+}
+
+/**
+ * THE READ'S ADDRESS, carrying the send's timeline (item 4j, the first send
+ * after the photos permission: the "reading" screen held 13 minutes and no
+ * request reached Vercel until the app was left).
+ *
+ * The timeline rides in the query string; the route writes it, with its own
+ * arrival time, in one `kf-page-read-arrival` log line (arrivalLine in
+ * src/lib/page-reader.ts), so arrival minus `kf_t` is how long the request
+ * took from the page's fetch() call to the server. `kf_r` numbers the asks of
+ * one send. Only whole milliseconds, nothing about the student or the pages.
+ */
+export function pageReadUrl(t: PageReadTimeline): string {
+  const ms = (n: number) => String(Math.max(0, Math.round(Number.isFinite(n) ? n : 0)));
+  return `/api/page-read?kf_t=${ms(t.sentAt)}&kf_c=${ms(t.consentMs)}&kf_s=${ms(t.sessionMs)}&kf_u=${ms(t.uploadedMs)}&kf_r=${ms(t.ask ?? 0)}`;
 }

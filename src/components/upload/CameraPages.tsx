@@ -20,9 +20,11 @@ import {
   MAX_PAGE_PHOTOS,
   materialName,
   newBatchId,
+  pageReadUrl,
   sendPageBatch,
   unreadPages,
   type PhotoProblem,
+  type PostedBatch,
 } from '@/lib/page-photos';
 
 export type CameraLabels = ReturnType<typeof useTranslation>['dashboard']['upload']['camera'];
@@ -58,6 +60,8 @@ export interface CameraPreview {
   message?: 'noneRead';
   /** #338: the route's refusal, drawn as the send path draws it (the sentence, and the offer when Pro lifts it). */
   refusal?: { status: number; code: string; error: string };
+  /** Item 4j: the screen while the pages are being read (Close works then). */
+  phase?: 'reading';
 }
 
 /**
@@ -72,11 +76,16 @@ export interface CameraPreview {
  * and shown as the next page, numbered; any page can be removed; up to 10.
  *
  * "Read the pages" asks the AI permission that names photos (version 2) the
- * first time, then uploads the batch with the student's session and posts it
- * ONCE (sendPageBatch). The photos stay here until the route answers 200;
- * "Try again" uploads them again under a new batch. The sheet cannot be
- * closed while the pages are being sent or read. On a 200 the new material is
- * handed to the drop zone, which shows it as any finished upload.
+ * first time, then uploads the batch with the student's session and asks for
+ * it under a time limit, once more with the same keys if no answer comes
+ * (sendPageBatch; the route reads a batch at most once). The photos stay here
+ * until the route answers 200. After `unconfirmed`, "Try again" asks for the
+ * SAME batch (`pending`): it uploads the photos again only when the route
+ * says nobody has that batch (410), and a change to the pages starts a new
+ * one. The sheet cannot be closed while the pages are uploading; while they
+ * are being READ it can (the read goes on, on the server and here, and its
+ * answer still reaches the drop zone). On a 200 the new material is handed to
+ * the drop zone, which shows it as any finished upload.
  */
 export const CameraPages = forwardRef<CameraPagesHandle, {
   open: boolean;
@@ -90,7 +99,7 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
   preview?: CameraPreview;
 }>(function CameraPages({ open, onClose, kbId, locale, labels, declined, onDone, preview }, ref) {
   const [pages, setPages] = useState<Page[]>(() => (preview ? previewPages(preview) : []));
-  const [phase, setPhase] = useState<Phase>('idle');
+  const [phase, setPhase] = useState<Phase>(preview?.phase ?? 'idle');
   const [message, setMessage] = useState<string | null>(preview?.refusal ? preview.refusal.error : preview?.message === 'noneRead' ? labels.noneRead : null);
   const [offer, setOffer] = useState(preview?.refusal ? preview.refusal.status === 429 && offersPro(preview.refusal.code) : false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -98,8 +107,19 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
   const { ensure } = useAiConsent();
   const busy = phase === 'uploading' || phase === 'reading' || phase === 'consent';
   const full = pages.length >= MAX_PAGE_PHOTOS;
+  // The phase for callbacks made outside a render: the camera tile can open
+  // the sheet again while a read goes on, and must not open the camera then.
+  const phaseRef = useRef<Phase>('idle');
+  phaseRef.current = phase;
+  // The batch posted without an answer, and the pages it holds: "Try again"
+  // asks for it again rather than uploading the same photos as a new batch.
+  const pending = useRef<{ batch: PostedBatch; pageIds: string } | null>(null);
 
-  useImperativeHandle(ref, () => ({ capture: () => inputRef.current?.click() }), []);
+  useImperativeHandle(ref, () => ({
+    capture: () => {
+      if (phaseRef.current === 'idle') inputRef.current?.click();
+    },
+  }), []);
 
   // The object URLs of the thumbnails are freed when a page goes and when the
   // screen goes.
@@ -108,7 +128,7 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
 
   const addPhotos = useCallback(async (files: File[]) => {
     const room = MAX_PAGE_PHOTOS - pages.length;
-    if (room <= 0) return;
+    if (room <= 0 || phaseRef.current !== 'idle') return;
     setMessage(null);
     setOffer(false);
     setPhase('preparing');
@@ -149,20 +169,27 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
   const send = async () => {
     if (preview || pages.length === 0 || busy) return;
     const photos = pages.map((p) => p.blob).filter((b): b is Blob => b !== null);
+    const pageIds = pages.map((p) => p.id).join(',');
+    const again = pending.current && pending.current.pageIds === pageIds ? pending.current.batch : undefined;
     setMessage(null);
     setOffer(false);
     setPages((prev) => prev.map((p) => ({ ...p, problem: undefined })));
 
     // Apple 5.1.2(i): the permission that names photos, before a byte leaves.
+    // The send's timeline (pageReadUrl) is measured from this tap.
+    const tap = performance.now();
+    const since = () => performance.now() - tap;
     setPhase('consent');
     if (!(await ensure(null, { photos: true }))) {
       setPhase('idle');
       setMessage(declined);
       return;
     }
+    const consentMs = since();
 
     const supabase = createClient();
     const { data } = await supabase.auth.getSession();
+    const sessionMs = since();
     const userId = data.session?.user.id;
     if (!userId) {
       setPhase('idle');
@@ -171,8 +198,12 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
       return;
     }
     const name = materialName(labels.defaultName, new Date());
-    setPhase('uploading');
-    setProgress({ done: 0, total: photos.length });
+    let uploadedMs = 0;
+    // Asked again: no upload, and onProgress('reading') comes in the same turn as the fetch.
+    if (!again) {
+      setPhase('uploading');
+      setProgress({ done: 0, total: photos.length });
+    }
     const result = await sendPageBatch(photos, {
       userId,
       newBatchId,
@@ -183,21 +214,30 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
       remove: async (keys) => {
         await supabase.storage.from('documents').remove(keys);
       },
-      read: async (keys) => {
-        const res = await fetch('/api/page-read', {
+      read: async (keys, signal, ask) => {
+        // fetch() is called in the same turn as onProgress('reading'): when
+        // the reading line shows, the request has been handed to WebKit. The
+        // signal is the time limit (READ_TIME_LIMIT_MS); it also stops the body.
+        const res = await fetch(pageReadUrl({ sentAt: Date.now(), consentMs, sessionMs, uploadedMs, ask }), {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ kb_id: kbId, keys, name, locale }),
+          signal,
         });
         return { status: res.status, text: await res.text() };
       },
       onProgress: (p) => {
-        if (p.stage === 'uploading') setProgress({ done: p.done, total: p.total });
-        else setPhase('reading');
+        if (p.stage === 'uploading') {
+          if (p.done === p.total) uploadedMs = since();
+          setPhase('uploading');
+          setProgress({ done: p.done, total: p.total });
+        } else setPhase('reading');
       },
-    });
+    }, again);
     setProgress(null);
     setPhase('idle');
+    // Kept only while its answer is unknown; any answer, or no batch at all, lets it go.
+    pending.current = result.kind === 'unconfirmed' ? { batch: { batchId: result.batchId, keys: result.keys }, pageIds } : null;
 
     if (result.kind === 'upload-failed') {
       noteSetback();
@@ -269,7 +309,7 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
       />
       <Sheet
         open={open && phase !== 'consent'}
-        onClose={() => !busy && phase !== 'preparing' && onClose()}
+        onClose={() => (phase === 'reading' || (!busy && phase !== 'preparing')) && onClose()}
         side="bottom"
         label={labels.title}
         initialFocus="panel"
@@ -381,7 +421,7 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
               <Button data-kf-camera="read" onClick={send} disabled={pages.length === 0 || busy || phase === 'preparing'}>
                 {message && pages.length > 0 && !busy ? labels.retry : labels.read}
               </Button>
-              <Button variant="secondary" data-kf-camera="close" onClick={onClose} disabled={busy || phase === 'preparing'}>
+              <Button variant="secondary" data-kf-camera="close" onClick={onClose} disabled={(busy && phase !== 'reading') || phase === 'preparing'}>
                 {labels.close}
               </Button>
             </div>

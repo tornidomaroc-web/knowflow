@@ -48,6 +48,7 @@ import { photoForModel, type ModelPhoto } from '@/lib/page-photo-image';
 import {
   headerRefusal,
   MAX_PHOTO_BYTES,
+  PAGE_BATCH_CLAIM_NAME,
   PAGE_READ_CONCURRENCY,
   PAGE_READ_DEADLINE_MS,
   PAGE_READ_DOWNLOAD_TIMEOUT_MS,
@@ -101,6 +102,97 @@ export async function removePagePhotos(keys: readonly string[]): Promise<boolean
     return remaining === 0 ? true : left('still listed after the removal', remaining);
   } catch (e) {
     return left(String(e));
+  }
+}
+
+/** The two Storage calls a claim makes, plus the removal that lets it go (storage-js 2.103 shapes). */
+export interface ClaimBucket {
+  upload(
+    path: string,
+    body: string,
+    options: { upsert: false; contentType: string }
+  ): Promise<{ data: unknown; error: { message: string; status?: number; statusCode?: string | number } | null }>;
+  list(path: string, options: { limit: number }): Promise<{ data: { name: string; id: string | null }[] | null; error: { message: string } | null }>;
+  remove(paths: string[]): Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+}
+
+export type BatchClaim =
+  /** This request holds the batch; at least one of its photos is there. */
+  | { kind: 'claimed' }
+  /** Another request holds it (or held it and may have made a material): 409, nothing touched. */
+  | { kind: 'taken' }
+  /** Nobody holds it and none of its photos is there: 410, the app uploads again. */
+  | { kind: 'gone' }
+  /** Storage did not answer the claim: 503, nothing touched (fail closed). */
+  | { kind: 'failed'; reason: string };
+
+function claimBucket(): ClaimBucket | null {
+  const admin = serviceClient();
+  return admin ? (admin.storage.from(DOCUMENTS_BUCKET) as unknown as ClaimBucket) : null;
+}
+
+/** Storage's "The resource already exists": HTTP 409, or 400 with statusCode "409" from older Storage APIs. */
+export function isAlreadyExists(error: { message?: string; status?: number; statusCode?: string | number } | null | undefined): boolean {
+  if (!error) return false;
+  return error.status === 409 || String(error.statusCode ?? '') === '409' || /already exists|duplicate/i.test(error.message ?? '');
+}
+
+/**
+ * CLAIM the batch in `folder` for this request (PAGE_BATCH_CLAIM_NAME in
+ * src/lib/page-reader.ts says why it is exactly once). Only ever called with
+ * a folder checkPhotoKeys built from the caller's own id, so the service role
+ * reaches nothing else. `arrivedAt` is written into the claim (whole ms, for
+ * a person reading storage; nothing reads it back). Never throws.
+ */
+export async function claimPageBatch(
+  folder: string,
+  names: readonly string[],
+  arrivedAt: number,
+  options: { bucket?: ClaimBucket } = {}
+): Promise<BatchClaim> {
+  try {
+    const bucket = options.bucket ?? claimBucket();
+    if (!bucket) return { kind: 'failed', reason: 'service role not configured' };
+    const { error } = await bucket.upload(`${folder}/${PAGE_BATCH_CLAIM_NAME}`, String(Math.round(arrivedAt)), {
+      upsert: false,
+      contentType: 'text/plain',
+    });
+    if (error) return isAlreadyExists(error) ? { kind: 'taken' } : { kind: 'failed', reason: error.message };
+    // Held. Are the photos there? Not one of them: let go at once, and say so,
+    // before any gate counts this request. A listing that fails is not proof
+    // they are gone: the request goes on as it did before the claim existed
+    // (the reader marks a missing photo itself).
+    const { data, error: listError } = await bucket.list(folder, { limit: 100 });
+    if (listError) {
+      console.error(JSON.stringify({ tag: 'kf-page-batch-claim', note: 'photos not listed', error: listError.message }));
+      return { kind: 'claimed' };
+    }
+    const present = new Set((data ?? []).filter((e) => e?.id).map((e) => e.name));
+    if (!names.some((n) => present.has(n))) {
+      await releasePageBatch(folder, { bucket });
+      return { kind: 'gone' };
+    }
+    return { kind: 'claimed' };
+  } catch (e) {
+    return { kind: 'failed', reason: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Let the claim go: only when the request ends with nothing saved, and only
+ * after its photos were removed. Never throws; a claim left behind is logged
+ * (`kf-page-batch-claim`) and the sweep removes it with its folder.
+ */
+export async function releasePageBatch(folder: string, options: { bucket?: ClaimBucket } = {}): Promise<boolean> {
+  try {
+    const bucket = options.bucket ?? claimBucket();
+    if (!bucket) throw new Error('service role not configured');
+    const { error } = await bucket.remove([`${folder}/${PAGE_BATCH_CLAIM_NAME}`]);
+    if (error) throw new Error(error.message);
+    return true;
+  } catch (e) {
+    console.error(JSON.stringify({ tag: 'kf-page-batch-claim', note: 'claim not let go', error: e instanceof Error ? e.message : String(e) }));
+    return false;
   }
 }
 

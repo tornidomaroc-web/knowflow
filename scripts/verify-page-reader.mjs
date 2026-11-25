@@ -171,7 +171,11 @@ export async function createClient() {
   };
 }`;
 
-// The service-role client: the ledger (as the SQL function sums it) and the photo removal.
+// The service-role client: the ledger (as the SQL function sums it), the photo removal,
+// and (item 4j) the batch claim. The claim is kept in its own store and counters
+// (claims, calls.claim / claimList / release), so every count below still means
+// what it meant before the claim existed; scripts/verify-page-batch-once.mjs
+// proves the claim itself.
 const SERVICE_STUB = `
 const S = () => globalThis.__pr;
 export function createClient() {
@@ -194,7 +198,22 @@ export function createClient() {
       from: (bucket) => ({
         // As storage does: only paths that exist are removed and answered;
         // a path it did not delete is simply absent from the answer.
+        // As storage does with upsert false: a second object at the same name is refused.
+        upload: async (path, body, opts) => {
+          S().calls.claim.push({ bucket, path, opts });
+          if (S().claimDown) return { data: null, error: { message: 'storage unreachable', status: 503 } };
+          if (!opts || opts.upsert !== false) return { data: null, error: { message: 'a claim must never upsert' } };
+          if (S().claims.has(path)) return { data: null, error: { message: 'The resource already exists', status: 409, statusCode: '409' } };
+          S().claims.add(path);
+          S().claimListNext = path.slice(0, path.lastIndexOf('/'));
+          return { data: { path }, error: null };
+        },
         remove: async (keys) => {
+          if (keys.length > 0 && keys.every((k) => k.endsWith('/kf-claim'))) {
+            S().calls.release.push([...keys]);
+            for (const k of keys) S().claims.delete(k);
+            return { data: keys.map((name) => ({ name })), error: null };
+          }
           S().calls.remove.push({ bucket, keys: [...keys] });
           S().events.push('remove');
           if (S().removeNoop) return { data: [], error: null };
@@ -203,7 +222,8 @@ export function createClient() {
           return { data: gone.map((name) => ({ name })), error: null };
         },
         list: async (folder) => {
-          S().calls.adminList.push(folder);
+          if (S().claimListNext === folder) { S().claimListNext = null; S().calls.claimList.push(folder); }
+          else S().calls.adminList.push(folder);
           const entries = [...S().objects.keys()].filter((k) => k.startsWith(folder + '/')).map((k) => ({ name: k.slice(folder.length + 1), id: 'obj-' + k, metadata: { size: 1 } }));
           return { data: entries, error: null };
         },
@@ -376,7 +396,10 @@ function reset({ tier = 'free', consent = true, consentVersion = 2, user = true,
     usage: new Map(),
     objects: new Map(),
     ledger: spent > 0 ? [{ user_id: USER, kind: 'answer', usd: spent, estimated: false, at: new Date(Date.now() - 86400000).toISOString() }] : [],
-    calls: { docLimit: 0, studyEvent: 0, list: [], adminList: [], download: [], upload: [], remove: [], ingest: [], insert: [] },
+    calls: { docLimit: 0, studyEvent: 0, list: [], adminList: [], download: [], upload: [], remove: [], ingest: [], insert: [], claim: [], claimList: [], release: [] },
+    claims: new Set(),
+    claimDown: false,
+    claimListNext: null,
     events: [],
     inflight: 0,
     maxInflight: 0,

@@ -89,7 +89,21 @@ const BUCKET_SRC = `
 const S = () => globalThis.__sw;
 export function bucket() {
   return {
+    // Item 4j: page-read CLAIMS its own batch (upload with upsert false, a
+    // listing without a signal, a removal of the claim). Those calls are the
+    // route's, not the sweep's: they get their own store and never meet the
+    // sweep's storage mode (scripts/verify-page-batch-once.mjs proves them).
+    async upload(path, body, opts) {
+      (S().claims ??= new Set());
+      if (!opts || opts.upsert !== false) return { data: null, error: { message: 'a claim must never upsert' } };
+      if (S().claims.has(path)) return { data: null, error: { message: 'The resource already exists', status: 409, statusCode: '409' } };
+      S().claims.add(path);
+      return { data: { path }, error: null };
+    },
     async list(prefix, opts, params) {
+      if (!params?.signal && S().claims?.has(prefix + '/kf-claim')) {
+        return { data: [...S().objects.keys()].filter((k) => k.startsWith(prefix + '/') && !k.slice(prefix.length + 1).includes('/')).map((k) => ({ name: k.slice(prefix.length + 1), id: 'obj:' + k })), error: null };
+      }
       S().lists.push({ prefix, opts, signal: params?.signal });
       if (S().mode === 'throw') throw new Error('socket hang up');
       if (S().mode === 'list-error') return { data: null, error: { message: 'storage unreachable' } };
@@ -111,6 +125,10 @@ export function bucket() {
       return { data: all.slice(off, off + (opts?.limit ?? 100)), error: null };
     },
     async remove(keys) {
+      if (keys.length > 0 && keys.every((k) => k.endsWith('/kf-claim'))) {
+        for (const k of keys) S().claims?.delete(k);
+        return { data: keys.map((name) => ({ name })), error: null };
+      }
       S().removes.push([...keys]);
       if (S().mode === 'remove-error') return { data: null, error: { message: 'remove refused' } };
       const gone = keys.filter((k) => S().objects.has(k));

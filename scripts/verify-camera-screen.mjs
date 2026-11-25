@@ -156,7 +156,7 @@ if (photos && reader && nameRe) {
 }
 
 // ---- 3. one POST per batch ------------------------------------------------------------------------
-section('3. One POST per batch; a retry is a new batch; giving up deletes it');
+section('3. One batch, read at most once; an upload retry is a new batch; only a batch never posted is deleted');
 if (photos?.sendPageBatch) {
   const blobs = Array.from({ length: 3 }, (_, i) => new Blob([`page ${i + 1}`], { type: 'image/jpeg' }));
   let seq = 0;
@@ -174,7 +174,7 @@ if (photos?.sendPageBatch) {
           if (fails > 0 && key.endsWith('/p2.jpg')) { fails -= 1; throw new Error('network'); }
           log.uploads.push({ key, blob });
         },
-        read: async (keys) => { log.reads.push(keys); if (readThrows) throw new Error('network'); return { status, text: JSON.stringify({ success: status === 200 }) }; },
+        read: async (keys, signal, ask) => { log.reads.push(keys); log.asks = [...(log.asks ?? []), ask]; if (readThrows) throw new Error('network'); return { status, text: JSON.stringify({ success: status === 200 }) }; },
         remove: async (keys) => { log.removes.push(keys); },
       },
     };
@@ -203,13 +203,14 @@ if (photos?.sendPageBatch) {
 
   f = fake({ readThrows: true });
   r = await photos.sendPageBatch(blobs, f.deps);
-  check(r.kind === 'unconfirmed' && f.log.reads.length === 1, 'the POST leaves and no answer comes: unconfirmed, and NOT posted again');
-  check(f.log.removes.length === 1 && JSON.stringify(f.log.removes[0]) === JSON.stringify(f.log.reads[0]), '...and that batch is deleted');
+  // Item 4j: the route reads a batch at most once, so the SAME keys are asked once more.
+  check(r.kind === 'unconfirmed' && f.log.reads.length === 2 && JSON.stringify(f.log.reads[0]) === JSON.stringify(f.log.reads[1]) && f.log.uploads.length === 3, 'the POST leaves and no answer comes: asked ONCE more with the same keys, no new upload, then unconfirmed');
+  check(f.log.removes.length === 0 && r.kind === 'unconfirmed' && JSON.stringify(r.keys) === JSON.stringify(f.log.reads[0]), '...and that batch is KEPT for "Try again" (never deleted once posted)');
 
   for (const status of [401, 403, 422, 429, 500, 503]) {
     f = fake({ status });
     r = await photos.sendPageBatch(blobs, f.deps);
-    check(r.kind === 'answered' && r.status === status && f.log.reads.length === 1 && f.log.removes.length === 1, `${status}: answered once, the batch deleted (the route may have refused before it owned the keys)`);
+    check(r.kind === 'answered' && r.status === status && f.log.reads.length === 1 && f.log.removes.length === 0, `${status}: answered once; the client deletes nothing once posted (a first request may still hold the batch; the route removes what it holds)`);
   }
 
   // A student's retry after a failure: the same photos, sent again.

@@ -341,6 +341,57 @@ export const PAGE_PHOTO_FOREIGN = 'page-photo-foreign';
 export const PAGES_UNREAD = 'pages-unread';
 
 /**
+ * EXACTLY ONCE PER BATCH (item 4j: a send that reached the server late, or
+ * twice, must never be read or billed twice).
+ *
+ * The route CLAIMS a batch before anything else touches it: the service role
+ * creates `{batch folder}/PAGE_BATCH_CLAIM_NAME` with `upsert: false`, and
+ * Storage refuses a second object at the same name (the unique index on
+ * storage.objects (bucket_id, name)), so of two requests for one batch, at
+ * the same moment or minutes apart, exactly one holds it. The other is
+ * answered 409 PAGE_BATCH_TAKEN at once: it reads nothing, deletes nothing,
+ * counts nothing and spends nothing.
+ *
+ * The claim stays once a material may have been made (the ingestion service
+ * was called), so a late second request is still refused; it is let go when
+ * the request ends with nothing saved (a refusal, no page read), AFTER the
+ * photos are removed, so asking again is answered 410 PAGE_BATCH_GONE: no
+ * request holds or made anything from this batch and its photos are not
+ * there, so the app uploads them again under a new batch. A claim whose
+ * photos are all missing is let go and answered 410 the same way, before any
+ * gate counts it. The sweep (src/lib/page-photo-sweep.ts) removes a claim
+ * with its folder an hour after the folder's newest object.
+ *
+ * The name is one checkPhotoKeys accepts (so the sweep sees an app folder),
+ * but the route refuses it as a photo key (no app names a page that way).
+ */
+export const PAGE_BATCH_CLAIM_NAME = 'kf-claim';
+export const PAGE_BATCH_TAKEN = 'page-batch-taken';
+export const PAGE_BATCH_GONE = 'page-batch-gone';
+
+/** The app's timeline in the read's query (src/lib/page-photos.ts pageReadUrl). */
+const TIMELINE_KEYS = ['kf_t', 'kf_c', 'kf_s', 'kf_u', 'kf_r'] as const;
+
+/** The arrival line: the app's timeline values that are whole numbers (at most 15 digits), nothing else. */
+export function arrivalLine(url: string, arrivedAt: number): Record<string, string | number | null> {
+  let params: URLSearchParams;
+  try {
+    params = new URL(url, 'https://tryknowflow.com').searchParams;
+  } catch {
+    params = new URLSearchParams();
+  }
+  const line: Record<string, string | number | null> = { tag: 'kf-page-read-arrival', at: new Date(arrivedAt).toISOString(), at_ms: arrivedAt };
+  for (const k of TIMELINE_KEYS) {
+    const v = params.get(k);
+    line[k] = v !== null && /^\d{1,15}$/.test(v) ? Number(v) : null;
+  }
+  // Arrival minus the phone's clock at fetch(): the time to arrive, give or
+  // take the two clocks' difference.
+  line.gap_ms = typeof line.kf_t === 'number' ? arrivedAt - line.kf_t : null;
+  return line;
+}
+
+/**
  * The refusal a photo gets from its header alone, or null when it may be
  * decoded (MAX_PHOTO_PIXELS says why each bound is there). libvips' own view
  * of the header is held to the same bounds again before it decodes
