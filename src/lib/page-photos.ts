@@ -282,3 +282,31 @@ export function materialName(base: string, now: Date): string {
   const p = (n: number) => String(n).padStart(2, '0');
   return `${base} ${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
 }
+
+/** One send's timeline, measured on the phone (`pageReadUrl`). */
+export interface PageReadTimeline {
+  /** The phone's clock (epoch ms) at the moment fetch() is called. */
+  sentAt: number;
+  /** Ms from the "read the pages" tap until the permission answered (the sheet's time when it opened). */
+  consentMs: number;
+  /** Ms from the tap until the session was read. */
+  sessionMs: number;
+  /** Ms from the tap until the last photo was uploaded. */
+  uploadedMs: number;
+}
+
+/**
+ * THE READ'S ADDRESS, carrying the send's timeline (item 4j, the first send
+ * after the photos permission: the "reading" screen held 13 minutes and no
+ * request reached Vercel until the app was left).
+ *
+ * The timeline rides in the query string, which the route never reads and
+ * Vercel's request log shows: the log's own arrival time minus `kf_t` is how
+ * long the request took from the page's fetch() call to the server, so the
+ * next device run says where the time went without any server change. Only
+ * whole milliseconds, nothing about the student or the pages.
+ */
+export function pageReadUrl(t: PageReadTimeline): string {
+  const ms = (n: number) => String(Math.max(0, Math.round(Number.isFinite(n) ? n : 0)));
+  return `/api/page-read?kf_t=${ms(t.sentAt)}&kf_c=${ms(t.consentMs)}&kf_s=${ms(t.sessionMs)}&kf_u=${ms(t.uploadedMs)}`;
+}

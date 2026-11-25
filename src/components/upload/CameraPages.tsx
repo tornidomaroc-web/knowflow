@@ -20,6 +20,7 @@ import {
   MAX_PAGE_PHOTOS,
   materialName,
   newBatchId,
+  pageReadUrl,
   sendPageBatch,
   unreadPages,
   type PhotoProblem,
@@ -154,15 +155,20 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
     setPages((prev) => prev.map((p) => ({ ...p, problem: undefined })));
 
     // Apple 5.1.2(i): the permission that names photos, before a byte leaves.
+    // The send's timeline (pageReadUrl) is measured from this tap.
+    const tap = performance.now();
+    const since = () => performance.now() - tap;
     setPhase('consent');
     if (!(await ensure(null, { photos: true }))) {
       setPhase('idle');
       setMessage(declined);
       return;
     }
+    const consentMs = since();
 
     const supabase = createClient();
     const { data } = await supabase.auth.getSession();
+    const sessionMs = since();
     const userId = data.session?.user.id;
     if (!userId) {
       setPhase('idle');
@@ -184,7 +190,9 @@ export const CameraPages = forwardRef<CameraPagesHandle, {
         await supabase.storage.from('documents').remove(keys);
       },
       read: async (keys) => {
-        const res = await fetch('/api/page-read', {
+        // fetch() is called in the same turn as onProgress('reading'): when
+        // the reading line shows, the request has been handed to WebKit.
+        const res = await fetch(pageReadUrl({ sentAt: Date.now(), consentMs, sessionMs, uploadedMs: since() }), {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ kb_id: kbId, keys, name, locale }),

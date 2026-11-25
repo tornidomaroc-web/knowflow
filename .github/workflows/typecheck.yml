@@ -537,6 +537,15 @@ jobs:
       - name: Verify the camera screen is gated to shell 2, uploads only policy keys and posts each batch once
         run: node --experimental-strip-types scripts/verify-camera-screen.mjs
 
+      # Item 4j (build 9, the first camera send after the photos permission
+      # held "reading" 13 minutes with no request at Vercel): the reading line
+      # shows only after fetch() was called in the same turn, the permission
+      # sheet releases its caller as soon as the save answers, and the read
+      # carries the phone's timeline in its query (kf_t, kf_c, kf_s, kf_u;
+      # digits only), which Vercel's request log shows and the route ignores.
+      - name: Verify the camera's read is issued with the reading line and carries its timeline
+        run: node --experimental-strip-types scripts/verify-camera-read-timeline.mjs
+
       # The camera screen's encoder in a real browser (Chromium, as design-c):
       # photos tagged EXIF 1, 3, 6 and 8 come out upright (read from their own
       # pixels), 2300 px on the long side, baseline JPEG, no EXIF; and the
