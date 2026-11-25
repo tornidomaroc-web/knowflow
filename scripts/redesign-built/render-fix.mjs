@@ -16,8 +16,10 @@
  *   ask          the Ask conversation scrolled as the capture scrolls ar/04
  *                (item 3: ASK_TOP from scripts/store-seed/capture_steps.py,
  *                the same string) with its source pills (item 1)
- *   summary      the summary scrolled to the top as the capture's 03 shot
- *                (SUMMARY, the same string), so the page runs under the status
+ *   summary      the summary scrolled as the 1.1 capture's 04-summary shot
+ *                (SUMMARY from capture_steps.py, the same string: since #348
+ *                the data-kf-summary well's top sits 16 CSS px below any
+ *                fixed bar, so the heading reads 106), so the page runs under the status
  *                bar (item 2: the scrim is opaque; the pixel rows under the
  *                inset are checked by the workflow from audit.json)
  * and, Arabic only, `ask-capture`: the ask screen holding the real question
