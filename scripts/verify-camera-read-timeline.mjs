@@ -85,10 +85,12 @@ if (photos?.sendPageBatch) {
 } else {
   check(false, 'sendPageBatch is exported');
 }
-const readCb = camera.match(/read: async \(keys\) => \{([\s\S]*?)\n      \},/);
+const readCb = camera.match(/read: async \(keys, signal, ask\) => \{([\s\S]*?)\n      \},/);
 const body = readCb ? readCb[1].replace(/^\s*\/\/.*$/gm, '').trim() : '';
 check(/^const res = await fetch\(/.test(body), "the screen's read callback calls fetch() first, before any await of its own");
-check(/onProgress: \(p\) => \{\s*if \(p\.stage === 'uploading'\) setProgress\(\{[^}]*\}\);\s*else setPhase\('reading'\);\s*\}/.test(camera), "the reading line is set by onProgress('reading') and by nothing else");
+// Item 4j: the uploading branch also re-shows the upload (a 410 uploads the photos again).
+const onProgressCb = camera.match(/onProgress: \(p\) => \{\s*if \(p\.stage === 'uploading'\) \{([\s\S]*?)\} else setPhase\('reading'\);\s*\}/);
+check(Boolean(onProgressCb) && !/reading/.test(onProgressCb[1]), "the reading line is set by onProgress('reading') and by nothing else");
 check((camera.match(/setPhase\('reading'\)/g) || []).length === 1, "setPhase('reading') appears once in the screen");
 
 // ---- 2. the sheet releases its caller -------------------------------------------------------
@@ -111,23 +113,28 @@ check(
 section('3. The read carries the timeline in its query, digits only');
 if (typeof photos?.pageReadUrl === 'function') {
   const u = photos.pageReadUrl({ sentAt: 1795622031009.4, consentMs: 8123.6, sessionMs: 8190.2, uploadedMs: 14000 });
-  check(u === '/api/page-read?kf_t=1795622031009&kf_c=8124&kf_s=8190&kf_u=14000', `the address: ${u}`);
-  const z = photos.pageReadUrl({ sentAt: NaN, consentMs: -5, sessionMs: Infinity, uploadedMs: 0 });
-  check(z === '/api/page-read?kf_t=0&kf_c=0&kf_s=0&kf_u=0', `negative and non-finite values are 0: ${z}`);
+  check(u === '/api/page-read?kf_t=1795622031009&kf_c=8124&kf_s=8190&kf_u=14000&kf_r=0', `the address: ${u}`);
+  const z = photos.pageReadUrl({ sentAt: NaN, consentMs: -5, sessionMs: Infinity, uploadedMs: 0, ask: -1 });
+  check(z === '/api/page-read?kf_t=0&kf_c=0&kf_s=0&kf_u=0&kf_r=0', `negative and non-finite values are 0: ${z}`);
+  const r1 = photos.pageReadUrl({ sentAt: 1, consentMs: 2, sessionMs: 3, uploadedMs: 4, ask: 1 });
+  check(r1.endsWith('&kf_r=1'), `the second ask of a send is kf_r=1 (item 4j): ${r1}`);
   const q = new URL(u, 'https://tryknowflow.com');
   check(q.pathname === '/api/page-read', 'the path is the route, unchanged');
-  check([...q.searchParams.keys()].join(',') === 'kf_t,kf_c,kf_s,kf_u' && [...q.searchParams.values()].every((v) => /^\d+$/.test(v)), 'four keys, each whole milliseconds and nothing else');
+  check([...q.searchParams.keys()].join(',') === 'kf_t,kf_c,kf_s,kf_u,kf_r' && [...q.searchParams.values()].every((v) => /^\d+$/.test(v)), 'five keys (item 4j added kf_r), each a whole number and nothing else');
 } else {
   check(false, 'page-photos.ts exports pageReadUrl');
 }
-check(/fetch\(pageReadUrl\(\{ sentAt: Date\.now\(\), consentMs, sessionMs, uploadedMs: since\(\) \}\)/.test(camera), 'the screen posts through pageReadUrl, the clock read at the fetch() call');
+check(/fetch\(pageReadUrl\(\{ sentAt: Date\.now\(\), consentMs, sessionMs, uploadedMs, ask \}\)/.test(camera), 'the screen posts through pageReadUrl, the clock read at the fetch() call');
+check(/if \(p\.done === p\.total\) uploadedMs = since\(\);/.test(camera), 'tap-to-uploaded is read when the last photo arrived (not at a second ask)');
 check(!/fetch\('\/api\/page-read'/.test(camera), 'the screen no longer posts to the bare path');
 const tapAt = send.indexOf('const tap = performance.now()');
 check(tapAt >= 0 && tapAt < send.indexOf("setPhase('consent')"), 'the tap is stamped before the permission is asked');
 check(/const consentMs = since\(\);/.test(send) && send.indexOf('const consentMs') > send.indexOf('await ensure('), 'tap-to-permission is read after the permission answers');
 check(/const sessionMs = since\(\);/.test(send) && send.indexOf('const sessionMs') > send.indexOf('await supabase.auth.getSession()'), 'tap-to-session is read after the session');
 const route = read('src/app/api/page-read/route.ts');
-check(route.length > 0 && !/searchParams|request\.url|nextUrl/.test(route), 'the route never reads its query: the request it serves is the same');
+// Item 4j: the route now LOGS its query (one kf-page-read-arrival line), and that is
+// the only use: nothing it answers depends on it.
+check(route.length > 0 && (route.match(/request\.url/g) || []).length === 1 && /console\.log\(JSON\.stringify\(arrivalLine\(request\.url, startedAt\)\)\);/.test(route) && !/searchParams|nextUrl/.test(route), 'the route reads its query only to log it (arrivalLine): the request it serves is the same');
 const mw = read('src/middleware.ts');
 check(/\(\?!api\|/.test(mw), 'the middleware matcher excludes /api: nothing rewrites the address');
 

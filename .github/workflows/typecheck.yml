@@ -531,7 +531,9 @@ jobs:
       # NSCameraUsageDescription) and never for the web or build 8, whose
       # markup stays byte for byte; every key uploaded matches the INSERT and
       # DELETE policies production has (read from the applied migration);
-      # ONE POST per batch, a retry is a new batch, giving up deletes it; only
+      # a batch read at most once (item 4j: an unanswered POST is asked once
+      # more with the same keys and kept, never deleted once posted; an upload
+      # retry is a new batch, a failed upload is deleted); only
       # /api/page-read needs the photos permission (version 2); EXIF read and
       # every orientation's transform; the new strings' rules.
       - name: Verify the camera screen is gated to shell 2, uploads only policy keys and posts each batch once
@@ -541,10 +543,22 @@ jobs:
       # held "reading" 13 minutes with no request at Vercel): the reading line
       # shows only after fetch() was called in the same turn, the permission
       # sheet releases its caller as soon as the save answers, and the read
-      # carries the phone's timeline in its query (kf_t, kf_c, kf_s, kf_u;
-      # digits only), which Vercel's request log shows and the route ignores.
+      # carries the phone's timeline in its query (kf_t, kf_c, kf_s, kf_u,
+      # kf_r; digits only), which the route writes in one kf-page-read-arrival
+      # log line with its own arrival time and otherwise ignores.
       - name: Verify the camera's read is issued with the reading line and carries its timeline
         run: node --experimental-strip-types scripts/verify-camera-read-timeline.mjs
+
+      # Item 4j, the fix: /api/page-read CLAIMS a batch (a service-role
+      # kf-claim object, upsert false) before any model call, so of 2 or 5
+      # requests for one batch at once exactly one is read and billed and the
+      # rest are 409 page-batch-taken having touched nothing; a refusal lets
+      # the claim go (410 page-batch-gone on asking again). The app's read has
+      # a 75 s limit and asks ONCE more with the same keys; "Try again" after
+      # unconfirmed asks again and never uploads unless 410; Close works while
+      # reading. --self-test plants a claim that never refuses and must read twice.
+      - name: Verify a camera batch is read at most once and an unanswered send is asked again, not re-uploaded
+        run: node --experimental-strip-types scripts/verify-page-batch-once.mjs && node --experimental-strip-types scripts/verify-page-batch-once.mjs --self-test
 
       # The camera screen's encoder in a real browser (Chromium, as design-c):
       # photos tagged EXIF 1, 3, 6 and 8 come out upright (read from their own

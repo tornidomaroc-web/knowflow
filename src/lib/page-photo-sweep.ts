@@ -32,11 +32,12 @@
  *     PAGE_PHOTO_STALE_MS old: a batch still being uploaded on another
  *     device, or waiting for its POST, is younger than that.
  *
- * THE CONTRACT THIS RESTS ON (the camera screen must keep it): a batch is
- * uploaded and POSTed at once. A client that POSTs a batch more than about
- * 55 minutes after its last upload (PAGE_PHOTO_STALE_MS less the route's
- * 300 s) can meet another request's sweep removing it mid-read; it must
- * re-upload under a new batch id instead of retrying the old one.
+ * THE CONTRACT THIS RESTS ON: a batch is uploaded and POSTed at once. The
+ * app may ask again for a batch whose answer it never got (item 4j), at any
+ * age: the route's claim (PAGE_BATCH_CLAIM_NAME) is a new object in the
+ * folder, so a batch being read is never older than PAGE_PHOTO_STALE_MS by
+ * its newest entry; and a batch this sweep already removed is answered 410
+ * page-batch-gone, after which the app uploads it again under a new id.
  *
  * BOUNDED: at most PAGE_PHOTO_SWEEP_MAX_BATCHES folders and
  * PAGE_PHOTO_SWEEP_MAX_OBJECTS photos per request (whole batches only), so at
@@ -51,7 +52,7 @@
  * so it cannot change it or delay it.
  */
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { checkPhotoKeys, MAX_PAGE_PHOTOS, PAGE_PHOTOS_FOLDER } from '@/lib/page-reader';
+import { checkPhotoKeys, MAX_PAGE_PHOTOS, PAGE_BATCH_CLAIM_NAME, PAGE_PHOTOS_FOLDER } from '@/lib/page-reader';
 import { DOCUMENTS_BUCKET } from '@/lib/storage-key';
 
 /** A batch whose newest photo is this old was abandoned: the route answers within 300 s. */
@@ -147,7 +148,11 @@ export async function sweepStalePagePhotos(
       const listed = await bucket.list(batchFolder, { limit: LIST_LIMIT }, { signal });
       if (listed.error) return stop(`list: ${listed.error.message}`);
       const entries = listed.data ?? [];
-      if (entries.length === 0 || entries.length > MAX_PAGE_PHOTOS) continue;
+      // A batch is at most MAX_PAGE_PHOTOS photos plus the route's claim
+      // (PAGE_BATCH_CLAIM_NAME), which goes with its folder; a folder holding
+      // only the claim (its photos read and removed) goes too.
+      const photoCount = entries.filter((e) => e?.name !== PAGE_BATCH_CLAIM_NAME).length;
+      if (entries.length === 0 || photoCount > MAX_PAGE_PHOTOS) continue;
       const keys = entries.map((e) => `${batchFolder}/${e.name}`);
       // Every entry a file, every key one the route itself accepts for this user and batch.
       if (entries.some((e) => e.id === null)) continue;
@@ -156,7 +161,7 @@ export async function sweepStalePagePhotos(
       if (times.some((t) => t === null)) continue;
       if (now - Math.max(...(times as number[])) < PAGE_PHOTO_STALE_MS) continue;
       // Whole batches only: one that does not fit waits for a later request
-      // (5 batches of at most 10 cannot pass 50; held anyway, and never a stop).
+      // (five full batches with their claims are 55: the fifth waits; never a stop).
       if (doomed.length + keys.length > PAGE_PHOTO_SWEEP_MAX_OBJECTS) continue;
       doomed.push(...keys);
       result.batches += 1;
