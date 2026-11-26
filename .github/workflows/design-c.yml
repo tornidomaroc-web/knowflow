@@ -53,7 +53,7 @@ jobs:
     name: Before and after, same fonts, audited (no secrets)
     runs-on: ubuntu-24.04
     # 55 until #338's review added ~160 jobs (refusal offers, price shapes); a full run was ~38 min before them.
-    timeout-minutes: 90 # 75 until #340's review: voice runs near the limit on a slow runner; margin, not a fix.
+    timeout-minutes: 100 # 75 until #340's review, 90 until item 4j's tap feedback (60 skeleton jobs, a real-screen reload each); margin, not a fix.
     env:
       NEXT_TELEMETRY_DISABLED: '1'
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321

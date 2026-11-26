@@ -292,6 +292,13 @@ jobs:
       - name: Verify the signed-in screens carry progress, a study kit and suggested questions (register #85)
         run: node --experimental-strip-types scripts/verify-signed-in-features.mjs
 
+      # Item 4j, tap feedback: the five loading.tsx skeletons (and no other one under
+      # the dashboard), no text and no spinner in them, singleFlight run with its
+      # forced cases, every listed button wrapped (each unwrapped copy flagged), the
+      # pending tab, the subject page's wait. design-c checks 32 and 33 are the renders.
+      - name: Verify a tap changes the screen at once and a button cannot fire twice (item 4j)
+        run: node --experimental-strip-types scripts/verify-tap-feedback.mjs
+
       # Register #121: six defects seen on production 2026-09-25 (the Apple gate, the
       # RTL canvas, the Continue card bidi, content-based suggestions, one date
       # format, the material action grid), each held here.

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, Card, Input } from '@/components/ui';
+import { useSingleFlight } from '@/lib/use-single-flight';
 import { ClayBin } from '@/components/clay/ClayIcons';
 import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
 import { useIap } from '@/components/iap/IapProvider';
@@ -118,7 +119,11 @@ export function DeleteAccountCard({ labels, homeHref, showBillingNote, appleNote
     setBusy(false);
   }
 
-  async function onConfirm() {
+  // Item 4j: one press, one request (src/lib/single-flight.ts); `busy` is
+  // React state and cannot stop a second press that lands before it commits.
+  const once = useSingleFlight();
+  const onConfirm = once(confirmUnguarded);
+  async function confirmUnguarded() {
     setBusy(true);
     setError(null);
 

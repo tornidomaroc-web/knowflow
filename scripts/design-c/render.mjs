@@ -208,6 +208,18 @@
  * confirm row: the card of an account without Apple opened by a click on both
  * sides, held to main's picture by check 22.
  *
+ * TAP FEEDBACK (tap.mjs, item 4j) adds the five loading screens
+ * (/preview/skeleton: the home, the subjects list, a subject, Ask, Settings)
+ * in the app at 390, on the web at 360 (Android) and at 1280, and CHECK 32 on
+ * each: no text, no spinner, aria-busy, the tab bar or sidebar where the real
+ * screen draws it, the first card within 24 px of the real screen's (the
+ * real preview loaded in the same tab), with two forced cases (a planted
+ * word, the first card pushed 40 px). CHECK 33 presses Summarize, Quiz me,
+ * Delete, Rename and Ask's send twice in one task on the existing study and
+ * Ask screens after their shot, holds the routes in the page and counts what
+ * left it: one each on AFTER, main reported; a planted unguarded button must
+ * count two. Every screen that existed before stays held by check 22.
+ *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
  *      http://127.0.0.1:3000), CHROME, PUPPETEER_DIR, FONT_DIR (the
@@ -235,6 +247,7 @@ import { cameraScreens, cameraCheck, cameraPlant, sameCheck } from './camera.mjs
 import { voiceScreens, voiceExpect, voiceStubSrc, voiceMock, voiceAct, voiceCheck, voicePlant, voiceStackCheck, voiceStackPlant, keepVoiceList, voicePhraseCheck, voicePhrasePlant } from './voice.mjs';
 import { appleScreens, appleExpect, appleStubSrc, appleCheck, applePlant, keepAppleList, appleEndList, appleOpenAct } from './apple.mjs';
 import { rateScreens, rateExpect, rateStubSrc, rateCheck, ratePlant, rateHref, rateDesc, rateLineRules, rateBreakAt, RATE_LINE_KINDS, RATE_KINDS } from './review.mjs';
+import { tapScreens, realUrl, skelRead, realRead, skelVerdict, skelPlant, skelPlantCaught, tapHold, tapAct, tapVerdict } from './tap.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args[args.indexOf('--out') + 1] || 'design-c-renders');
@@ -344,6 +357,9 @@ voiceScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
 appleScreens(add, { APP, SAFARI });
 // In-app rating (review.mjs): the Settings row at shell 2 with the KnowFlowReview stub, the gate on Settings and the quiz result; check 31.
 rateScreens(add, { APP, SAFARI });
+// Item 4j, tap feedback (tap.mjs): the five loading screens (check 32), after check 22's marking, so they are new
+// screens; check 33's double presses ride on the existing study and Ask screens after their shot.
+tapScreens(add, { APP, DESK, DESKTOP }, byKeyEarly);
 // Check 31: the one write-review URL, read from src/lib/review/bridge.ts.
 const HREF31 = rateHref(resolve('.'));
 // Check 31's line rules (fix 2 of #345): the approved description, read from en.ts and ar.ts.
@@ -1101,6 +1117,10 @@ const phraseForced = {};
 const appleForced = {};
 // Check 31's forced cases (review.mjs): per kind (RATE_KINDS), the AFTER renders it ran on and those flagged.
 const rateForced = {};
+// Check 32's forced cases (tap.mjs): AFTER skeleton renders that ran them, and those where both were flagged.
+const skelForced = { ran: 0, caught: 0 };
+// Check 33 (tap.mjs): AFTER renders pressed, those whose planted double counted two, those where every control sent once.
+const tapSeen = { ran: 0, planted: 0, single: 0 };
 
 async function shoot(side, job) {
   const ctx = await browser.createBrowserContext();
@@ -1110,8 +1130,11 @@ async function shoot(side, job) {
   await tab.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await tab.setRequestInterception(true);
   const held = [];
+  // Check 33 (tap.mjs): while on, the routes the guarded buttons call are held and counted.
+  const tapState = { on: false, seen: [] };
   tab.on('request', (r) => {
     const u = r.url();
+    if (tapHold(r, tapState, held)) return;
     // #338 review: a refusal Pro lifts, the route's 429 answered in the page (iap.mjs).
     if (job.s.refusal && refusalMock(job, r)) return;
     // Voice input: the 413 of the toolong view, answered in the page (voice.mjs).
@@ -1272,6 +1295,9 @@ async function shoot(side, job) {
   // Check 31 (review.mjs): the rating row only at shell 2 with the plugin, last in Help and legal, Apple's link, one line, 56 px, no 3.1.3(f) word, isolates, contrast; no request call; the quiz reading. AFTER only.
   if (job.s.rate && side === 'after') await tab.evaluate(`window.rateCheck = ${rateCheck.toString()}; window.rateLineRules = ${rateLineRules.toString()}; window.rateBreakAt = ${rateBreakAt.toString()}; window.RATE_LINE_KINDS = ${JSON.stringify(RATE_LINE_KINDS)};`);
   const rate31 = job.s.rate && side === 'after' ? await tab.evaluate(rateCheck, rateExpect(job, HREF31, DESC31)) : null;
+  // Check 32 (tap.mjs): the skeleton read at the screen's own size, before the page is made one tall viewport.
+  if (job.s.skel) await tab.evaluate(`window.skelRead = ${skelRead.toString()}`);
+  const skelSk = job.s.skel ? await tab.evaluate(skelRead, job.s.skel) : null;
   // The whole page as ONE tall viewport, not a stitched fullPage capture: a
   // stitched capture paints the fixed tab bar where the first viewport ended,
   // over the content (the first run of this step). With the viewport as tall
@@ -1321,9 +1347,23 @@ async function shoot(side, job) {
   const markers = job.s.pr4 === 'ask' ? await tab.evaluate(markerPlant) : null;
   // Check 12's forced cases, after the shot (pr4.mjs, orphanPlant).
   const orphans = job.s.pr4 === 'ask' ? await tab.evaluate(orphanPlant) : null;
+  // Check 32's forced cases (AFTER), then check 33's presses: last, since they change the page.
+  const skel32Plant = job.s.skel && side === 'after' ? await tab.evaluate(skelPlant, job.s.skel) : null;
+  const tap33 = job.s.tap ? await tapAct(tab, job, tapState).catch((e) => ({ error: String(e).slice(0, 200) })) : null;
+  // Check 32 (c): the real screen in the same tab at the same size, the same static fonts.
+  // BEFORE (main) has no skeleton page: nothing to compare, the 404 is reported.
+  let skel32 = job.s.skel && !skelSk.region ? { ...skelVerdict(skelSk, { chrome: null, cards: [] }), skeleton: skelSk, real: null } : null;
+  if (job.s.skel && skelSk.region) {
+    await tab.setViewport(job.s.view);
+    await tab.goto(realUrl(SIDES[side], job), { waitUntil: 'networkidle0', timeout: 90000 });
+    await tab.addStyleTag({ content: PIN });
+    await tab.evaluate(async () => { await document.fonts.ready; await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); });
+    const real = await tab.evaluate(realRead);
+    skel32 = { ...skelVerdict(skelSk, real), skeleton: skelSk, real, ...(skel32Plant ? { forced: skelPlantCaught(skel32Plant, real), moved: skel32Plant.moved } : {}) };
+  }
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant, price25, price25Plant, split24Plant, adjacent24Plant, paywall26, keep26Plant, voice27, voice27Plant, voice28, voice28Plant, voice29, voice29Plant, apple30, apple30Plant, rate31, rate31Plant };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant, price25, price25Plant, split24Plant, adjacent24Plant, paywall26, keep26Plant, voice27, voice27Plant, voice28, voice28Plant, voice29, voice29Plant, apple30, apple30Plant, rate31, rate31Plant, skel32, tap33 };
 }
 
 for (const job of JOBS) {
@@ -1422,6 +1462,12 @@ for (const job of JOBS) {
       // Check 31 (review.mjs), and its forced cases on AFTER.
       ...(r.rate31?.finding ? [`rate: ${r.rate31.finding}`] : []),
       ...(r.rate31Plant || []).filter((x) => !x.caught).map((x) => `rate: check 31 is blind: the forced case "${x.kind}" was not flagged`),
+      // Check 32 (tap.mjs): the loading screen, and its forced cases on AFTER.
+      ...(r.skel32 ? r.skel32.findings.map((f) => `skeleton: ${f}`) : []),
+      ...(r.skel32?.forced && !r.skel32.forced.word ? ['skeleton: check 32 is blind: a word planted in the skeleton was not flagged'] : []),
+      ...(r.skel32?.forced && !r.skel32.forced.push ? [`skeleton: check 32 is blind: the first card pushed 40 px (moved ${r.skel32.moved}) was not flagged`] : []),
+      // Check 33 (tap.mjs): one press, one request; its planted double must count two.
+      ...(r.tap33 ? (r.tap33.error ? [`check 33: the presses failed: ${r.tap33.error}`] : tapVerdict(job, r.tap33)) : []),
     ];
     fontSets.add(JSON.stringify(r.fonts.weightsLoaded));
     const known = bad.filter((b) => KNOWN.some((k) => k.screen.test(job.name) && k.finding.test(b)));
@@ -1445,6 +1491,8 @@ for (const job of JOBS) {
     if (side === 'after' && r.voice28Plant?.forced) { stackForced.ran++; if (r.voice28Plant.caught) stackForced.caught++; }
     if (side === 'after') for (const x of r.apple30Plant || []) { const c = (appleForced[x.kind] ||= { ran: 0, caught: 0 }); c.ran++; if (x.caught) c.caught++; }
     if (side === 'after') for (const x of r.rate31Plant || []) { const c = (rateForced[x.kind] ||= { ran: 0, caught: 0 }); c.ran++; if (x.caught) c.caught++; }
+    if (side === 'after' && r.skel32?.forced) { skelForced.ran++; if (r.skel32.forced.word && r.skel32.forced.push) skelForced.caught++; }
+    if (side === 'after' && r.tap33 && !r.tap33.error) { tapSeen.ran++; if (r.tap33.plant === 2) tapSeen.planted++; if (!tapVerdict(job, r.tap33).length) tapSeen.single++; }
     if (side === 'after') for (const x of r.voice29Plant || []) { const c = (phraseForced[x.phrase] ||= { ran: 0, caught: 0, after: {} }); c.ran++; c.after[x.after] = (c.after[x.after] || 0) + 1; if (x.caught) c.caught++; }
     if (side === 'after' && r.whole18Revert?.flagged) console.log(`       check 18 on d9647f5's layout (${job.name}): ${r.whole18Revert.finding}`);
     const tmin = Math.min(...r.a.text.map((t) => t.got));
@@ -1485,6 +1533,8 @@ for (const job of JOBS) {
       ...(r.apple30 ? { apple: { expect: job.s.apple, ...r.apple30.measured, finding: r.apple30.finding, ...(r.apple30Plant ? { forced: r.apple30Plant.map((x) => ({ kind: x.kind, caught: x.caught })) } : {}) } } : {}),
       ...(r.rate31 ? { rate: { expect: job.s.rate, ...r.rate31.measured, finding: r.rate31.finding, ...(r.rate31Plant ? { forced: r.rate31Plant.map((x) => ({ kind: x.kind, caught: x.caught })) } : {}) } } : {}),
       ...(job.s.native ? { app: { appleButtons: r.gate.apple.length, googleButtons: r.gate.google.length, purchaseWords: words } } : {}),
+      ...(r.skel32 ? { skeleton: { route: job.s.skel, findings: r.skel32.findings, deltas: r.skel32.deltas, skeleton: r.skel32.skeleton, real: r.skel32.real, ...(r.skel32.forced ? { forced: r.skel32.forced } : {}) } } : {}),
+      ...(r.tap33 ? { tap: r.tap33 } : {}),
     };
     console.log(`${side === 'after' && bad.length ? 'FAIL' : 'ok  '} ${side.padEnd(6)} ${job.name}: theme ${r.theme}, ${r.fonts.loaded.length} static faces, text worst ${tmin.toFixed(2)}:1, ${bad.length} finding(s)`);
     for (const b of bad) console.log(`       ${side}: ${b}`);
@@ -1565,6 +1615,14 @@ for (const k of RATE_KINDS) {
   else if (c.caught !== c.ran) never(`check 31 is blind for "${k}": caught on ${c.caught} of ${c.ran} AFTER render(s)`);
   else console.log(`check 31 (the rating row and trigger), forced case "${k}": caught on ${c.caught} of ${c.ran} AFTER render(s)`);
 }
+// Check 32 (tap.mjs): every AFTER skeleton render ran both forced cases, and each was flagged.
+if (!skelForced.ran) never('check 32 was never forced: no AFTER skeleton render ran its forced cases');
+else if (skelForced.caught !== skelForced.ran) never(`check 32 is blind: its forced cases were flagged on ${skelForced.caught} of ${skelForced.ran} AFTER skeleton render(s)`);
+else console.log(`check 32 (the loading screens: no text, no spinner, the chrome unmoved, the first card where the real one is): forced cases flagged on ${skelForced.caught} of ${skelForced.ran} AFTER render(s)`);
+// Check 33 (tap.mjs): the planted double counted two on every AFTER render pressed.
+if (!tapSeen.ran) never('check 33 never ran: no AFTER render pressed the study or Ask controls');
+else if (tapSeen.planted !== tapSeen.ran) never(`check 33 is blind: the planted double counted two on ${tapSeen.planted} of ${tapSeen.ran} AFTER render(s)`);
+else console.log(`check 33 (one press, one request): every control sent once on ${tapSeen.single} of ${tapSeen.ran} AFTER render(s); the planted double counted two on all`);
 if (!sameSeen.compared) never('check 22 compared no screen');
 else console.log(`check 22 (shell 1, the web, and shell 2 without the plugin unchanged): ${sameSeen.same} of ${sameSeen.compared} screen(s) the same picture before and after`);
 writeFileSync(join(out, 'report.json'), JSON.stringify({ fonts: { family: FAMILY, package: '@fontsource/rubik@5.2.5', weights: WEIGHTS, files: fontHashes }, results }, null, 2) + '\n');

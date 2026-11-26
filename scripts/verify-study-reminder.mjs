@@ -92,7 +92,8 @@ for (const [dict, l] of [[en, 'en'], [ar, 'ar']]) {
 // 4. One place asks.
 const card = read('src/components/reminder/StudyReminderCard.tsx');
 check((card.match(/'requestPermissions'/g) || []).length === 1, 'requestPermissions must appear exactly once');
-const turnOn = card.slice(card.indexOf('const turnOn = async'), card.indexOf('const turnOff = async'));
+// Item 4j: the handlers may be wrapped by the one-press guard (`once(async ...)`, src/lib/single-flight.ts).
+const turnOn = card.slice(card.search(/const turnOn = (?:once\()?async/), card.search(/const turnOff = (?:once\()?async/));
 check(turnOn.includes("ln('requestPermissions')"), 'and that one is in the switch\'s turn-on handler');
 const effect = card.slice(card.indexOf('useEffect('), card.indexOf('const save = useCallback'));
 check(!/requestPermissions|checkPermissions/.test(effect), 'loading the card asks nothing (it only reads, and re-saves an existing reminder in the new language)');

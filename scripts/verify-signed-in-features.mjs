@@ -206,7 +206,7 @@ if (has('src/lib/ask-suggestions.ts')) {
   check(/searchParams\.get\('kb'\)/.test(sel), 'KBSelector does not honour ?kb=');
   const agentPage = read('src/app/[locale]/dashboard/agent/page.tsx');
   check(/from\('documents'\)/.test(agentPage) && /materials=/.test(agentPage), 'the agent page does not load material names');
-  const subjectsPage = read('src/app/[locale]/dashboard/knowledge/page.tsx');
+  const subjectsPage = read('src/app/[locale]/dashboard/knowledge/(list)/page.tsx');
   check(/subjectStats\(/.test(subjectsPage) && /from\('quizzes'\)/.test(subjectsPage) && /from\('conversations'\)/.test(subjectsPage), 'the subjects page does not compute the stats');
   const home = read('src/components/dashboard/StudentHome.tsx');
   check(/continueCard/.test(home), 'the home has no Continue card');
@@ -233,7 +233,7 @@ if (has('src/lib/ask-suggestions.ts')) {
   check(typeof hp.buildHomeProgress === 'function', '#129 (a): home-props has no buildHomeProgress');
   const hpOut = typeof hp.buildHomeProgress === 'function' ? hp.buildHomeProgress(rows, [{ id: 'm', name: 'Mixed' }, { id: 'z', name: 'Nothing usable' }]) : null;
   check(hpOut?.answerable === 4, `#129 (a): the home counts ${hpOut?.answerable} files, expected 4 (ready with text only)`);
-  const homePage = read('src/app/[locale]/dashboard/page.tsx');
+  const homePage = read('src/app/[locale]/dashboard/(home)/page.tsx');
   check(/value: answerable, desc: t\.dashboard\.home\.documentsDesc/.test(homePage) && /buildHomeProgress\(/.test(homePage), '#129 (a): the home stat is not the answerable count');
   check(/materials: docsCount \?\? 0/.test(homePage), 'onboarding\'s upload step must still count every file (a file was uploaded)');
 
@@ -292,7 +292,7 @@ if (has('src/lib/ask-suggestions.ts')) {
   check(/!selectedKb && \(\s*<AskNoAnswerableSubject/.test(sel), '#129 (c): with no answerable subject Ask renders nothing (a blank page)');
   const agentPage = read('src/app/[locale]/dashboard/agent/page.tsx');
   check(/answerableIds=\{\[\.\.\.answerableSubjectIds\(materials \?\? \[\]\)\]\}/.test(agentPage), '#129 (c): the Ask page does not pass the answerable subjects');
-  check(/select\('id, kb_id, status, chunk_count, embedding_status, summary_generated_at, created_at'\)/.test(read('src/app/[locale]/dashboard/knowledge/page.tsx')), '#129: the subjects page does not read what hasNoText needs');
+  check(/select\('id, kb_id, status, chunk_count, embedding_status, summary_generated_at, created_at'\)/.test(read('src/app/[locale]/dashboard/knowledge/(list)/page.tsx')), '#129: the subjects page does not read what hasNoText needs');
 
   // Q3: the caps keep counting what they count. The per-subject file cap
   // counts every file that did not fail, and no cap reads the #128/#129 rule.

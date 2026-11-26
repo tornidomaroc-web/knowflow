@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ClayBell } from '@/components/clay/ClayIcons';
 import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
 import { Card } from '@/components/ui';
+import { useSingleFlight } from '@/lib/use-single-flight';
 import type { useTranslation } from '@/lib/i18n';
 import {
   DEFAULT_REMINDER_TIME,
@@ -104,7 +105,10 @@ export function StudyReminderCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale, labels]);
 
-  const turnOn = async () => {
+  // Item 4j: one press, one request (src/lib/single-flight.ts); on and off
+  // share the flag, so a second press of the switch waits for the first.
+  const once = useSingleFlight();
+  const turnOn = once(async () => {
     setBusy(true);
     setMessage(null);
     try {
@@ -120,9 +124,9 @@ export function StudyReminderCard({
       setMessage(labels.failed);
     }
     setBusy(false);
-  };
+  });
 
-  const turnOff = async () => {
+  const turnOff = once(async () => {
     setBusy(true);
     setMessage(null);
     try {
@@ -134,7 +138,7 @@ export function StudyReminderCard({
       setMessage(labels.failed);
     }
     setBusy(false);
-  };
+  });
 
   const changeTime = async (value: string) => {
     if (!parseReminderTime(value)) return;

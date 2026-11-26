@@ -5,6 +5,7 @@ import { ClaySpark } from '@/components/clay/ClayIcons';
 import { ClaySectionTitle } from '@/components/clay/ClaySectionTitle';
 import { Button, Card } from '@/components/ui';
 import { useAiConsent } from './AiConsentProvider';
+import { useSingleFlight } from '@/lib/use-single-flight';
 
 /**
  * Settings: the permission of Apple 5.1.2(i), shown as it stands on the
@@ -16,15 +17,18 @@ export function AiConsentCard() {
   const { consented, ensure, withdraw, labels } = useAiConsent();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Item 4j: one press, one request (src/lib/single-flight.ts); `busy` is
+  // React state and cannot stop a second press that lands before it commits.
+  const once = useSingleFlight();
   if (!labels) return null;
 
-  const onWithdraw = async () => {
+  const onWithdraw = once(async () => {
     setBusy(true);
     setFailed(false);
     const ok = await withdraw();
     setFailed(!ok);
     setBusy(false);
-  };
+  });
 
   return (
     <Card className="p-5" data-kf-consent-state={consented ? 'on' : 'off'}>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui';
+import { useSingleFlight } from '@/lib/use-single-flight';
 
 export interface DeleteMaterialLabels {
   openButton: string;
@@ -39,7 +40,11 @@ export function DeleteMaterialControl({ documentId, labels, onDeleted }: DeleteM
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function onConfirm() {
+  // Item 4j: one press, one request (src/lib/single-flight.ts); `busy` is
+  // React state and cannot stop a second press that lands before it commits.
+  const once = useSingleFlight();
+  const onConfirm = once(confirmUnguarded);
+  async function confirmUnguarded() {
     setBusy(true);
     setError(null);
 

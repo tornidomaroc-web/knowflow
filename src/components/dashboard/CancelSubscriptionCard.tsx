@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button, Card } from '@/components/ui';
+import { useSingleFlight } from '@/lib/use-single-flight';
 import { usePlatform } from '@/components/platform/PlatformProvider';
 
 export interface CancelSubscriptionLabels {
@@ -76,7 +77,11 @@ export function CancelSubscriptionCard({
   const [error, setError] = useState<string | null>(null);
   const [reference, setReference] = useState<string | null>(null);
 
-  async function onConfirm() {
+  // Item 4j: one press, one request (src/lib/single-flight.ts); `busy` is
+  // React state and cannot stop a second press that lands before it commits.
+  const once = useSingleFlight();
+  const onConfirm = once(confirmUnguarded);
+  async function confirmUnguarded() {
     setBusy(true);
     setError(null);
 

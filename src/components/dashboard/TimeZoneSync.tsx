@@ -11,7 +11,7 @@ import { TIME_ZONE_COOKIE } from '@/lib/streak';
  * WHY A COOKIE, AND WHY THIS IS SMALLER THAN THE ALTERNATIVES
  * ============================================================================
  * The streak must be bucketed in the student's zone, and only the browser knows it.
- * `dashboard/page.tsx` is a SERVER component that already reads cookies (every
+ * `dashboard/(home)/page.tsx` is a SERVER component that already reads cookies (every
  * `createClient()` call does, via `next/headers`). So the cheapest channel from
  * browser to server component is a cookie: this component writes one, the page reads
  * it with the machinery it already has, and `page.tsx` stays a server component.

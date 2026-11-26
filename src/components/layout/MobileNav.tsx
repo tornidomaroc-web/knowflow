@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui';
 import { ENDONYM, otherLocale, switchLocaleHref, type Locale } from '@/lib/i18n';
@@ -10,6 +9,7 @@ import { getNavItems, isNavActive, type NavLabels } from './nav-items';
 import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
 import { TAB_ICONS } from './tab-icons';
+import { usePendingNav } from './use-pending-nav';
 
 /**
  * Mobile navigation (below md). The bottom tab bar floats above the home
@@ -39,7 +39,9 @@ export function MobileNav({
   /** The design previews name the active tab (their paths are not under /dashboard). */
   activeNav?: string;
 }) {
-  const pathname = usePathname();
+  // Item 4j: `current` is the tapped tab's href from the tap until the screen
+  // commits, then the pathname (use-pending-nav.ts).
+  const { pathname, current, start } = usePendingNav();
   const items = getNavItems(locale, labels);
   const native = platform === 'native';
 
@@ -97,12 +99,13 @@ export function MobileNav({
         style={{ bottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
       >
         {items.map((item) => {
-          const active = activeNav ? item.key === activeNav : isNavActive(pathname, item);
+          const active = activeNav ? item.key === activeNav : isNavActive(current, item);
           const Icon = TAB_ICONS[item.key as keyof typeof TAB_ICONS];
           return (
             <Link
               key={item.key}
               href={item.href}
+              onNavigate={() => start(item.href)}
               aria-current={active ? 'page' : undefined}
               className={cn(
                 'flex min-h-[3.375rem] min-w-0 flex-col items-center justify-center gap-0.5 rounded-[1.25rem] px-1 text-xs transition-colors',

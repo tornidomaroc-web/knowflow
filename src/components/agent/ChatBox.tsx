@@ -18,6 +18,7 @@ import { AskNoAnswerableSubject } from './SubjectChips';
 import { ProOfferButton, offersPro } from '@/components/iap/ProOffer';
 import { VoiceButton } from './VoiceButton';
 import { appendTranscript } from '@/lib/speech/merge';
+import { useSingleFlight } from '@/lib/use-single-flight';
 
 interface Message {
   id: string;
@@ -185,7 +186,12 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
   }, [messages, isLoading]);
 
   // `preset` is a pressed suggestion (#85); it goes exactly where typed text goes.
-  const handleSend = async (preset?: string) => {
+  // Item 4j: one question per press (src/lib/single-flight.ts). The send
+  // button, Ctrl/Cmd+Enter and the suggested questions share this one flag,
+  // so none of them can start a second question while one is being answered;
+  // `isLoading` below is set only after the consent await.
+  const once = useSingleFlight();
+  const handleSend = once(async (preset?: string) => {
     const text = (preset ?? input).trim();
     if (!text || isLoading) return;
     // Apple 5.1.2(i): the question goes to Voyage AI and Anthropic only with
@@ -286,7 +292,7 @@ export function ChatBox({ kbId, kbName, materials = [], initialConversationId, i
       noteSetback();
     }
     setIsLoading(false);
-  };
+  });
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') handleSend();

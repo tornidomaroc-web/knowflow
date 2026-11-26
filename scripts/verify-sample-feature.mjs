@@ -334,7 +334,7 @@ check(db.rpc === 0 && fetches === 0, `across every case: ${db.rpc} rpc call(s), 
   for (const r of ['src/app/api/ingest/route.ts', 'src/app/api/page-read/route.ts']) {
     check(/enforceUploadLimit\(user\.id, safeLocale, platformFromRequest\(request\), \(\) => todaysKeptUploads\(supabase\)\)/.test(read(r)), `${r}: the day's uploads must be read by todaysKeptUploads, which leaves the sample out`);
   }
-  const dash = read('src/app/[locale]/dashboard/page.tsx');
+  const dash = read('src/app/[locale]/dashboard/(home)/page.tsx');
   check(/keptUploadsToday\(markSampleRows\(/.test(dash), 'the home: the uploads ring must leave the sample out');
   const mig = read('supabase/migrations/20261112_documents_is_sample.sql').replace(/^--.*$/gm, '');
   check(/alter table public\.documents\s+add column if not exists is_sample boolean not null default false;/.test(mig), 'the migration must add is_sample boolean not null default false, re-runnable');

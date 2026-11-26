@@ -299,7 +299,7 @@ if (has('src/lib/upload-allowance.ts')) {
   globalThis.fetch = realFetch;
   const src = read('src/app/api/ingest/route.ts');
   check(!/enforceLimit\(user\.id, 'upload'/.test(src) && /enforceUploadLimit\(/.test(src), "ingest route: the upload gate must be enforceUploadLimit, not enforceLimit(..., 'upload')");
-  const dash = read('src/app/[locale]/dashboard/page.tsx');
+  const dash = read('src/app/[locale]/dashboard/(home)/page.tsx');
   check(/upload: keptUploadsToday\((markSampleRows\()?materialRows\.data/.test(dash) && /summary_generated_at, created_at'/.test(dash), 'the home must show the uploads the gate counts (keptUploadsToday), not the attempt counter');
 }
 
