@@ -256,11 +256,12 @@ jobs:
       - name: Verify Sign in with Apple, native half (plugin, entitlement, CI proofs)
         run: node --experimental-strip-types scripts/verify-apple-native.mjs
 
-      # Universal links, item 4g PR 1 (web/server, no ios/): the AASA's appID, its
-      # two includes (token_hash + signup/recovery on /api/auth/callback) after the
-      # ?code= and ?error= excludes and before the catch-all exclude, webcredentials,
-      # a URL table under Apple's first-match rule (module matcher and an
-      # independent one), the force-static route's 200/JSON/no-Location answer,
+      # Universal links, item 4g PR 1 (web/server, no ios/): the AASA's appID, ONE
+      # component, the catch-all exclude (item 4j: the build 9 reset mail did
+      # nothing in Gmail, so no link opens the app), webcredentials, a URL table
+      # under Apple's first-match rule (module matcher and an independent one;
+      # every mail-link shape incl. an empty locale= goes to the browser), forced
+      # cases (the #343-#355 file must fail it), the force-static route's 200/JSON/no-Location answer,
       # the middleware matcher skipping the path, the Smart App Banner in
       # (site)/layout.tsx only with the app-id from APPLE_APP_APPLE_ID, and the
       # monitor probe. 51 failures on main a28a444.
