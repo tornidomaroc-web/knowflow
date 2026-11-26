@@ -130,7 +130,10 @@ for (const locale of ['en', 'ar']) {
   const { AiConsentProvider } = await load('src/components/ai-consent/AiConsentProvider.tsx');
   const settingsSrc = readFileSync(resolvePath(ROOT, 'src/app/[locale]/dashboard/settings/page.tsx'), 'utf8');
   check(/subtitle: purchaseLinksAllowed\(platform\) \? s\.subtitle : s\.subtitleApp/.test(settingsSrc), 'the Settings page no longer gives the app subtitleApp');
-  check(/showBillingNote=\{await deletionWouldCancelBilling\(supabase, user\.id\)\}/.test(settingsSrc), 'the Settings page no longer gates the billing line on a cancellable subscription');
+  // Item 4j (region): the read may sit just above the JSX so the page's timing line counts it.
+  check(/showBillingNote=\{await deletionWouldCancelBilling\(supabase, user\.id\)\}/.test(settingsSrc) ||
+    (/const showBillingNote = await deletionWouldCancelBilling\(supabase, user\.id\)/.test(settingsSrc) && /showBillingNote=\{showBillingNote\}/.test(settingsSrc)),
+    'the Settings page no longer gates the billing line on a cancellable subscription');
   const labels = {
     title: s.title, subtitle: s.subtitleApp, account: s.account, email: s.email, plan: s.plan, free: s.free, pro: s.pro,
     freePlanDesc: s.freePlanDesc, proPlanDesc: s.proPlanDesc, renews: s.renews, cancels: s.cancels, upgrade: s.upgrade,

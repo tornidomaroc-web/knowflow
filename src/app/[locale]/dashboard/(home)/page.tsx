@@ -16,6 +16,7 @@ import { accountInitial, buildHomeLabels, buildHomeProgress, buildHrefs, buildOn
 import { currentPlatform } from '@/lib/platform-server'
 import { sampleDocuments } from '@/lib/sample-file-server'
 import { markSampleRows } from '@/lib/sample-file'
+import { logPageTiming, startPageTiming } from '@/lib/server-timing'
 
 // Thin server wrapper: auth + data only. Presentation lives in <StudentHome/>
 // (dumb, prop-driven) so it can be reused/storybooked in Phase 8.
@@ -28,6 +29,7 @@ export default async function DashboardPage({
 }: {
   params: Promise<{ locale: Locale }>
 }) {
+  const timing = startPageTiming()
   const { locale } = await params
   const safeLocale: Locale = resolveLocale(locale)
   const t = useTranslation(safeLocale)
@@ -99,6 +101,7 @@ export default async function DashboardPage({
     .select('id, created_at, platform, knowledge_bases(name)')
     .order('created_at', { ascending: false })
     .limit(20)
+  logPageTiming('home', timing)
 
   const isPro = entitlement.tier === 'pro'
   const structural = isPro ? PRO_LIMITS : FREE_LIMITS

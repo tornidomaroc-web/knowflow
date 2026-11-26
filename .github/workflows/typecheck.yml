@@ -299,6 +299,12 @@ jobs:
       - name: Verify a tap changes the screen at once and a button cannot fire twice (item 4j)
         run: node --experimental-strip-types scripts/verify-tap-feedback.mjs
 
+      # Item 4j, region: functions in dub1 next to Supabase eu-west-1 and nothing else
+      # in vercel.json moved; Server-Timing (db + total, whole ms) on the five routes,
+      # overlapping calls counted once; one kf-timing log line per dashboard render.
+      - name: Verify the functions run next to the database and measure their wait (item 4j)
+        run: node --experimental-strip-types scripts/verify-server-timing.mjs && node --experimental-strip-types scripts/verify-server-timing.mjs --self-test
+
       # Register #121: six defects seen on production 2026-09-25 (the Apple gate, the
       # RTL canvas, the Continue card bidi, content-based suggestions, one date
       # format, the material action grid), each held here.

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { recordStudyEvent } from '@/lib/study-events';
+import { withServerTiming } from '@/lib/server-timing';
 
 // Well-formed-UUID gate. Applied to `quiz_id` BEFORE any DB query on purpose:
 // `quizzes.id` is a `uuid` column, so a malformed value reaches Postgres as
@@ -81,7 +82,7 @@ function isAttempted(selected: number | null, optionCount: number): boolean {
   return selected !== null && selected < optionCount;
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   try {
     // 1. Body. Parsed and fully validated BEFORE any DB work or auth-dependent
     //    branch, so a malformed request is cheap and honestly reported.
@@ -274,3 +275,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+// Server-Timing: db and total ms on every answer (src/lib/server-timing.ts).
+export const POST = withServerTiming(handlePOST);

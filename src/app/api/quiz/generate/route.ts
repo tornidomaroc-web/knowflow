@@ -9,6 +9,7 @@ import { usageTokens, usageUsd } from '@/lib/usage-cost';
 import { anthropicUsd } from '@/lib/ai-allowance';
 import { checkAiAllowance, recordAiSpend } from '@/lib/ai-allowance-server';
 import type { ClientQuizItem, Quiz } from '@/types';
+import { withServerTiming } from '@/lib/server-timing';
 
 // Same cheap tier as /api/summarize and /api/agent — a quiz is a single, bounded
 // Haiku call. Identical model string to summarize's SUMMARY_MODEL on purpose.
@@ -174,7 +175,7 @@ async function fetchClientQuiz(
   return { error: false, quiz: quiz as Quiz, items: (items ?? []) as ClientQuizItem[] };
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   try {
     // 1. Body.
     const { document_id, locale } = await request.json();
@@ -440,3 +441,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+// Server-Timing: db and total ms on every answer (src/lib/server-timing.ts).
+export const POST = withServerTiming(handlePOST);
