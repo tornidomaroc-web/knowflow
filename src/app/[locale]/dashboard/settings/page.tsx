@@ -20,6 +20,7 @@ import { ProOfferCard } from '@/components/iap/ProOffer'
 import { AppStoreDeleteNote, AppStoreManageCard } from '@/components/iap/AppStoreManage'
 import { formatDate } from '@/lib/format-date'
 import { appleConfirmConfigured } from '@/lib/auth/apple-revoke'
+import { logPageTiming, startPageTiming } from '@/lib/server-timing'
 
 // Thin server wrapper: auth + entitlement only. Presentation lives in the dumb
 // <SettingsPanel/> (Phase 8 reuse).
@@ -28,6 +29,7 @@ export default async function SettingsPage({
 }: {
   params: Promise<{ locale: Locale }>
 }) {
+  const timing = startPageTiming()
   const { locale } = await params
   const safeLocale: Locale = resolveLocale(locale)
   const t = useTranslation(safeLocale)
@@ -80,6 +82,10 @@ export default async function SettingsPage({
   // server holds the Apple key; the card decides after mount whether the
   // plugin answers. Read from the session, never from the request.
   const appleAccount = (user.identities ?? []).some((i) => i.provider === 'apple')
+  // Read here rather than inside the JSX below, where it was awaited in the same
+  // order, so the timing line counts it.
+  const showBillingNote = await deletionWouldCancelBilling(supabase, user.id)
+  logPageTiming('settings', timing)
   return (
     <SettingsPanel
       email={user.email || ''}
@@ -166,7 +172,7 @@ export default async function SettingsPage({
         <DeleteAccountCard
           homeHref={`/${safeLocale}`}
           labels={withSupportEmail(s.deleteAccount)}
-          showBillingNote={await deletionWouldCancelBilling(supabase, user.id)}
+          showBillingNote={showBillingNote}
           // R2 (Apple 5.1.1(v)): while Apple may still bill this account,
           // deleting it does not stop that billing, and the card says so.
           appleNote={sources.appleBilling ? <AppStoreDeleteNote labels={t.dashboard.iap} /> : undefined}

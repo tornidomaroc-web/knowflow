@@ -8,6 +8,7 @@ import { summaryLead } from '@/lib/ask-suggestions';
 import { hasNoText, answerableSubjectIds } from '@/lib/material-text';
 import { currentPlatform } from '@/lib/platform-server';
 import { sampleDocuments } from '@/lib/sample-file-server';
+import { logPageTiming, startPageTiming } from '@/lib/server-timing';
 
 // Thin server wrapper: data only. The chat UI (KBSelector) is a client island;
 // the no-subjects case renders the dumb <AgentEmptyState/> (Phase 8 reuse).
@@ -16,6 +17,7 @@ export default async function AgentPage({
 }: {
   params: Promise<{ locale: Locale }>;
 }) {
+  const timing = startPageTiming();
   const { locale } = await params;
   const safeLocale: Locale = resolveLocale(locale);
   const t = useTranslation(safeLocale);
@@ -36,6 +38,7 @@ export default async function AgentPage({
     // The sample file (audit cause 9): where the ready question is offered.
     sampleDocuments(supabase),
   ]);
+  logPageTiming('ask', timing);
   // #128: a file with no text is never suggested; Ask has nothing from it.
   const materialLeads = (materials ?? []).filter((m) => !hasNoText(m)).map((m) => ({ id: m.id, kb_id: m.kb_id, filename: m.filename, lead: summaryLead(m.summary) }));
 

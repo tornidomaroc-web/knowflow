@@ -3,6 +3,7 @@ import { SubjectsList } from '@/components/dashboard/SubjectsList';
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n';
 import { emptyStats, subjectStats } from '@/lib/subject-stats';
 import { buildSubjectsLabels } from '@/lib/subjects-props';
+import { logPageTiming, startPageTiming } from '@/lib/server-timing';
 
 // Thin server wrapper: data only. Presentation lives in <SubjectsList/> (dumb,
 // prop-driven) so it can be reused/storybooked in Phase 8.
@@ -11,6 +12,7 @@ export default async function KnowledgeBasesPage({
 }: {
   params: Promise<{ locale: Locale }>;
 }) {
+  const timing = startPageTiming();
   const { locale } = await params;
   const safeLocale: Locale = resolveLocale(locale);
   const t = useTranslation(safeLocale);
@@ -32,6 +34,7 @@ export default async function KnowledgeBasesPage({
     ? await supabase.from('quizzes').select('document_id').in('document_id', docIds)
     : { data: [] as { document_id: string }[] };
 
+  logPageTiming('subjects', timing);
   const stats = subjectStats(docs ?? [], quizzes ?? [], convos ?? []);
 
   const subjects = (kbs ?? []).map((kb) => ({

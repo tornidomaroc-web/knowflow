@@ -13,6 +13,7 @@ import { AiConsentProvider } from '@/components/ai-consent/AiConsentProvider';
 import { hasAiConsent, PAGE_READ_CONSENT_VERSION } from '@/lib/ai-consent';
 import { iapAllowed } from '@/lib/platform';
 import { IapProvider } from '@/components/iap/IapProvider';
+import { logPageTiming, startPageTiming } from '@/lib/server-timing';
 
 export default async function DashboardLayout({
   children,
@@ -21,6 +22,7 @@ export default async function DashboardLayout({
   children: ReactNode;
   params: Promise<{ locale: Locale }>;
 }) {
+  const timing = startPageTiming();
   const { locale } = await params;
   const safeLocale: Locale = resolveLocale(locale);
   const t = useTranslation(safeLocale);
@@ -56,6 +58,8 @@ export default async function DashboardLayout({
   // The shell's version decides one thing: whether the camera tile may be
   // offered (KnowFlowApp/2 onward declares the camera's permission text).
   const shell = await currentShellVersion();
+
+  logPageTiming('layout', timing);
 
   const labels = {
     dashboard: t.dashboard.nav.dashboard,

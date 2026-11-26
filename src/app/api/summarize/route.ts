@@ -9,6 +9,7 @@ import { recordStudyEvent } from '@/lib/study-events';
 import { usageTokens, usageUsd } from '@/lib/usage-cost';
 import { anthropicUsd } from '@/lib/ai-allowance';
 import { checkAiAllowance, recordAiSpend } from '@/lib/ai-allowance-server';
+import { withServerTiming } from '@/lib/server-timing';
 
 // Same cheap tier as /api/agent — a summary is a single, bounded Haiku call.
 const SUMMARY_MODEL = 'claude-haiku-4-5-20251001';
@@ -85,7 +86,7 @@ Rules:
 - If the document is too thin or has no real content to summarize, say that plainly in one sentence instead of inventing material.
 - Output the summary text only — no preamble such as "Here is a summary".`;
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   try {
     const { document_id, locale } = await request.json();
     if (!document_id || typeof document_id !== 'string') {
@@ -337,3 +338,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+// Server-Timing: db and total ms on every answer (src/lib/server-timing.ts).
+export const POST = withServerTiming(handlePOST);

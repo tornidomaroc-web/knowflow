@@ -21,6 +21,7 @@ import {
   USD_PER_CACHE_READ_TOKEN,
   USD_PER_CACHE_WRITE_TOKEN,
 } from '@/lib/usage-cost';
+import { withServerTiming } from '@/lib/server-timing';
 
 interface MatchedChunk {
   id: string;
@@ -131,7 +132,7 @@ function estimateTokens(text: string): number {
   return Math.ceil(arabic / 2 + (text.length - arabic) / 4);
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   try {
     const { message, kb_id, conversation_id, locale } = await request.json();
     // Whitelisted server-side, exactly as /api/summarize does (register #27):
@@ -527,3 +528,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+// Server-Timing: db and total ms on every answer (src/lib/server-timing.ts).
+export const POST = withServerTiming(handlePOST);

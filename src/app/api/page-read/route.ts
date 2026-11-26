@@ -27,6 +27,7 @@ import {
 } from '@/lib/page-reader';
 import { claimPageBatch, readPagePhotos, releasePageBatch, removePagePhotos } from '@/lib/page-reader-server';
 import { sweepStalePagePhotos } from '@/lib/page-photo-sweep';
+import { withServerTiming } from '@/lib/server-timing';
 
 /**
  * POST /api/page-read: "photograph your pages" (صوّر صفحاتك), the server half.
@@ -75,7 +76,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const startedAt = Date.now();
   console.log(JSON.stringify(arrivalLine(request.url, startedAt)));
   // As in /api/ingest: which 500 sentence is true depends on whether the .md
@@ -275,3 +276,6 @@ export async function POST(request: Request) {
     if (claimedFolder && !trace.forwarded) await releasePageBatch(claimedFolder);
   }
 }
+
+// Server-Timing: db and total ms on every answer (src/lib/server-timing.ts).
+export const POST = withServerTiming(handlePOST);
