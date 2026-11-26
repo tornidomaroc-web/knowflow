@@ -675,6 +675,24 @@ body { background-color: var(--background); color: var(--foreground); }
    iOS does. Paint only, under the bar's layer. */
 .kf-clay .kf-tabfade { background: linear-gradient(180deg, transparent, var(--background) 62%); }
 
+/* Item 4j: the loading screens' placeholders (src/components/skeleton/
+   DashboardSkeletons.tsx). A "bone" is a pressed-in pebble in the ink colour
+   at 9 %, so it reads on the ground and on a card, in light and in dark, with
+   one inset layer; the well colour is the fallback where color-mix() is not
+   understood. On the dark ask card, a light pebble. No text, no spinner. */
+.kf-clay .kf-bone {
+  background-color: var(--clay-well);
+  background-color: color-mix(in srgb, var(--foreground) 9%, transparent);
+  box-shadow: inset 0 1px 2px var(--clay-well-shade);
+}
+.kf-clay .kf-bone-ask { background-color: rgba(255, 255, 255, 0.14); }
+/* A slow breath, only where motion is welcome; the renders run with reduced
+   motion and show the resting picture. Opacity only: composited, no layout. */
+@media (prefers-reduced-motion: no-preference) {
+  .kf-clay [data-kf-skeleton] :is(.kf-bone, .kf-bone-ask) { animation: kf-breath 1.6s ease-in-out infinite; }
+  @keyframes kf-breath { 50% { opacity: 0.55; } }
+}
+
 /* Step Redesign-3. The web's phone top bar, in the same clay as the tab bar:
    a slab with a lit lower edge and one drop, its bottom corners rounded. The
    marketing and sign-in pages have their own header (SiteHeader) outside

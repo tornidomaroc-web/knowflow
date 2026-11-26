@@ -10,6 +10,7 @@ import { DeleteMaterialControl } from '@/components/materials/DeleteMaterialCont
 import { RenameMaterialControl } from '@/components/materials/RenameMaterialControl'
 import { SubjectHeader } from '@/components/materials/SubjectHeader'
 import { MaterialCard } from '@/components/materials/MaterialCard'
+import { SubjectSkeleton } from '@/components/skeleton/DashboardSkeletons'
 import type { Document } from '@/types'
 import { Locale, useTranslation, resolveLocale } from '@/lib/i18n'
 import { withSupportEmail } from '@/lib/site'
@@ -33,9 +34,16 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
   // quiz, in any language, for the study-kit checklist. One read of the
   // subject's quizzes by document id; RLS scopes it to the caller.
   const [quizzedIds, setQuizzedIds] = useState<Set<string>>(new Set())
+  // Item 4j: this page reads its rows in the browser after it opens. Until the
+  // first read settles it showed a "..." title and "no materials yet" for a
+  // subject that has materials; it now keeps the loading screen
+  // (loading.tsx's own SubjectSkeleton) until then. A read that fails
+  // still ends the wait and shows what it shows today.
+  const [loaded, setLoaded] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
+    setLoaded(false)
     async function load() {
       const { data: kbData } = await supabase
         .from('knowledge_bases')
@@ -65,8 +73,10 @@ export default function KBDetailPage({ params }: { params: Promise<{ id: string;
         setQuizzedIds(new Set((quizRows ?? []).map((q) => q.document_id)))
       }
     }
-    load()
+    load().finally(() => setLoaded(true))
   }, [id])
+
+  if (!loaded) return <SubjectSkeleton />
 
   const stats = kb
     ? subjectStats(

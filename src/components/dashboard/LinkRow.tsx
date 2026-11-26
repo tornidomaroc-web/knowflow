@@ -44,7 +44,9 @@ export function LinkRow({
     </>
   );
   const className =
-    'kf-tile flex min-h-[3.5rem] items-center gap-3 rounded-[1.125rem] px-3 py-2 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+    // Item 4j: `active:opacity-70`, the press shows while the finger is down
+    // (the rest state is unchanged; `pressable` would lower min-height here).
+    'kf-tile flex min-h-[3.5rem] items-center gap-3 rounded-[1.125rem] px-3 py-2 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:opacity-70';
   return (
     <li {...(mark ? { 'data-kf-link': mark } : {})}>
       {external ? (

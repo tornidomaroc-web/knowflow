@@ -284,7 +284,7 @@ for (const [file, src] of files) {
 // (e) The signed-in pages, rendered per request already, read the marker
 // themselves; the prerendered pages must NOT (a request read would turn them
 // dynamic and take the web off the CDN), and neither may their twins.
-for (const file of ['src/app/[locale]/dashboard/layout.tsx', 'src/app/[locale]/dashboard/page.tsx', 'src/app/[locale]/dashboard/settings/page.tsx']) {
+for (const file of ['src/app/[locale]/dashboard/layout.tsx', 'src/app/[locale]/dashboard/(home)/page.tsx', 'src/app/[locale]/dashboard/settings/page.tsx']) {
   const src = readFileSync(resolvePath(ROOT, file), 'utf8');
   check(/await currentPlatform\(\)/.test(src), `${file} no longer reads the platform from the request`);
 }

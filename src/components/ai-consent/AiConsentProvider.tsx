@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/client';
 import { noteFirstUse } from '@/lib/review/store';
 import { AI_CONSENT_VERSION, AI_CONSENT_WITHDRAWN, aiConsentGrant, PAGE_READ_CONSENT_VERSION } from '@/lib/ai-consent';
 import type { useTranslation } from '@/lib/i18n';
+import { useSingleFlight } from '@/lib/use-single-flight';
 
 export type AiConsentLabels = ReturnType<typeof useTranslation>['dashboard']['aiConsent'];
 
@@ -144,7 +145,10 @@ export function AiConsentProvider({
     });
   }, []);
 
-  const accept = async () => {
+  // Item 4j: one press, one request (src/lib/single-flight.ts); `busy` is
+  // React state and cannot stop a second press that lands before it commits.
+  const once = useSingleFlight();
+  const accept = once(async () => {
     setBusy(true);
     setFailed(false);
     // The version of the sheet the student read; never lower than one they
@@ -160,7 +164,7 @@ export function AiConsentProvider({
     if (version >= PAGE_READ_CONSENT_VERSION) photosRef.current = true;
     setConsented(true);
     settle(true);
-  };
+  });
 
   const withdraw = useCallback(async () => {
     const ok = await persist({ ...AI_CONSENT_WITHDRAWN });

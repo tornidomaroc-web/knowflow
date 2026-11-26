@@ -10,6 +10,7 @@ import { ProOfferButton, offersPro } from '@/components/iap/ProOffer';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 import { noteSetback } from '@/lib/review/store';
 import { ClaySummary } from '@/components/clay/ClayIcons';
+import { useSingleFlight } from '@/lib/use-single-flight';
 
 // Only the fields this section needs from a document. The subject page already
 // fetches these via `select('*')`, so a cached summary renders with NO API call
@@ -37,7 +38,11 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
   const [error, setError] = useState<string | null>(null);
   const [offer, setOffer] = useState(false);
 
-  const generate = async () => {
+  // Item 4j: one press, one paid request (src/lib/single-flight.ts). The state
+  // below sets the loading text only after the consent await, so it cannot
+  // stop a second press that lands first.
+  const once = useSingleFlight();
+  const generate = once(async () => {
     if (isLoading) return;
     // Apple 5.1.2(i): the material's text goes to Anthropic only with the
     // student's permission; declined, nothing is sent.
@@ -90,7 +95,7 @@ export function SummarySection({ doc }: { doc: SummaryDoc }) {
       noteSetback();
     }
     setIsLoading(false);
-  };
+  });
 
   // A generated/cached summary is shown as-is. There is deliberately NO
   // regenerate/refresh action (register #26) — an existing summary is final.

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button, Input } from '@/components/ui';
+import { useSingleFlight } from '@/lib/use-single-flight';
 import { MAX_MATERIAL_FILENAME_LENGTH, splitFilename } from '@/lib/material-name';
 import { fileNameDirection } from '@/lib/file-name-display';
 
@@ -123,7 +124,11 @@ export function RenameMaterialControl({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function onSave() {
+  // Item 4j: one press, one request (src/lib/single-flight.ts); `busy` is
+  // React state and cannot stop a second press that lands before it commits.
+  const once = useSingleFlight();
+  const onSave = once(saveUnguarded);
+  async function saveUnguarded() {
     setBusy(true);
     setError(null);
 
@@ -178,7 +183,7 @@ export function RenameMaterialControl({
   const inputId = `rename-${documentId}`;
 
   return (
-    <div className={open ? 'w-full' : undefined}>
+    <div data-kf-action="rename" className={open ? 'w-full' : undefined}>
       {!open ? (
         <Button
           variant="secondary"

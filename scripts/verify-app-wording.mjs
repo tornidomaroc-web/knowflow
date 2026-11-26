@@ -157,7 +157,7 @@ for (const locale of ['en', 'ar']) {
     check(settingsText.includes(needle), `Settings ${locale}: the rendered page lost the ${what} ("${needle}"), so the scan would not cover it`);
   scan(`settings ${locale}`, PLANT ? settings + `<p>${PLANTED}</p>` : settings);
 
-  // The home, as src/app/[locale]/dashboard/page.tsx builds it inside the app.
+  // The home, as src/app/[locale]/dashboard/(home)/page.tsx builds it inside the app.
   const { StudentHome } = await load('src/components/dashboard/StudentHome.tsx');
   const hp = await load('src/lib/home-props.ts');
   const home = native(React.createElement(StudentHome, {

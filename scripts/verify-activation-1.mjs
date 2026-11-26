@@ -79,7 +79,7 @@ if (has('src/lib/subject-create.ts')) {
 
 // 4. The dashboard passes the newest subject from the rows it already loads.
 {
-  const src = read('src/app/[locale]/dashboard/page.tsx');
+  const src = read('src/app/[locale]/dashboard/(home)/page.tsx');
   check(/newestSubjectId:\s*subjectRows\.data\?\.\[0\]\?\.id/.test(src), 'dashboard/page.tsx: buildOnboarding must get newestSubjectId from subjectRows (ordered newest first)');
   check(/from\('knowledge_bases'\)\.select\('id, name'\)\.order\('created_at', \{ ascending: false \}\)/.test(src), 'dashboard/page.tsx: subjectRows must stay ordered newest first');
 }

@@ -95,7 +95,8 @@ check((camera.match(/setPhase\('reading'\)/g) || []).length === 1, "setPhase('re
 
 // ---- 2. the sheet releases its caller -------------------------------------------------------
 section('2. The permission sheet releases its caller as soon as the save answers');
-const accept = provider.match(/const accept = async \(\) => \{([\s\S]*?)\n  \};/);
+// Item 4j: accept() may be wrapped by the one-press guard (`once(async () => {...})`, src/lib/single-flight.ts).
+const accept = provider.match(/const accept = (?:once\()?async \(\) => \{([\s\S]*?)\n  \}\)?;/);
 const acc = accept ? accept[1] : '';
 check((acc.match(/\bawait\b/g) || []).length === 1 && /const ok = await persist\(/.test(acc), 'accept() awaits one thing, the save to the account');
 check(/settle\(true\);\s*$/.test(acc.trim()), 'and then settles the waiting ensure() (settle(true) is its last step)');

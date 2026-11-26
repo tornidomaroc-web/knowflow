@@ -10,6 +10,7 @@ import { ProOfferButton, offersPro } from '@/components/iap/ProOffer';
 import { useAiConsent } from '@/components/ai-consent/AiConsentProvider';
 import { useReviewTrigger } from '@/components/review/ReviewTrigger';
 import { noteSetback } from '@/lib/review/store';
+import { useSingleFlight } from '@/lib/use-single-flight';
 import { ClayChoiceEmpty, ClayChoicePicked, ClayChoiceRight, ClayChoiceWrong, ClayDoc, ClayQuiz } from '@/components/clay/ClayIcons';
 
 // Only the fields this section needs from a document, mirroring SummarySection's
@@ -132,7 +133,11 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
 
   // Generation is user-initiated only; never on page open. A cached quiz costs
   // nothing, but the FIRST call is a paid Haiku generation against the daily cap.
-  const start = async () => {
+  // Item 4j: one press, one request, for starting AND for checking the
+  // answers (src/lib/single-flight.ts): the phase below is React state, read
+  // from the last render, so two presses before a commit both passed it.
+  const once = useSingleFlight();
+  const start = once(async () => {
     if (phase === 'loading') return;
     // Apple 5.1.2(i): a first quiz sends the material's text to Anthropic, so
     // the permission is asked before the request. (A stored quiz would send
@@ -194,14 +199,14 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
       noteSetback();
       setPhase('idle');
     }
-  };
+  });
 
   const choose = (itemId: string, optionIndex: number) => {
     if (phase !== 'taking') return;
     setSelections((prev) => ({ ...prev, [itemId]: optionIndex }));
   };
 
-  const submit = async () => {
+  const submit = once(async () => {
     if (phase !== 'taking' || !quizId) return;
     setPhase('submitting');
     setError(null);
@@ -238,7 +243,7 @@ export function QuizSection({ doc, previewEmpty = false }: { doc: QuizDoc; previ
       noteSetback();
       setPhase('taking');
     }
-  };
+  });
 
   // Retake. Multiple attempts are allowed by design, and this costs nothing: we
   // already hold the items, so no route is called. Clearing `results` is what

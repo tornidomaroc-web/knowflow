@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui';
 import { ENDONYM, otherLocale, switchLocaleHref, type Locale } from '@/lib/i18n';
 import { getNavItems, isNavActive, type NavLabels } from './nav-items';
 import { SignOutButton } from './SignOutButton';
 import { TAB_ICONS } from './tab-icons';
+import { usePendingNav } from './use-pending-nav';
 import { ClayGlobe } from '@/components/clay/ClayIcons';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -40,7 +40,9 @@ export function Sidebar({
   labels: NavLabels & { signOut: string };
   activeNav?: string;
 }) {
-  const pathname = usePathname();
+  // Item 4j: `current` is the tapped tab's href from the tap until the screen
+  // commits, then the pathname (use-pending-nav.ts).
+  const { pathname, current, start } = usePendingNav();
   const items = getNavItems(locale, labels);
 
   return (
@@ -53,12 +55,13 @@ export function Sidebar({
 
       <nav className="flex-1 space-y-1 px-3 py-4">
         {items.map((item) => {
-          const active = activeNav ? item.key === activeNav : isNavActive(pathname, item);
+          const active = activeNav ? item.key === activeNav : isNavActive(current, item);
           const Icon = TAB_ICONS[item.key as keyof typeof TAB_ICONS];
           return (
             <Link
               key={item.key}
               href={item.href}
+              onNavigate={() => start(item.href)}
               aria-current={active ? 'page' : undefined}
               className={cn(
                 'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
