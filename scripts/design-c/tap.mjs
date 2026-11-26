@@ -132,10 +132,10 @@ export function skelPlant(route) {
   word.remove();
   const first = region.querySelector('.kf-card, .kf-ask, .kf-streak');
   const before = first.getBoundingClientRect().top;
-  first.style.marginTop = '40px';
+  first.style.translate = '0 40px';
   const moved = Math.round(first.getBoundingClientRect().top - before);
   const pushed = window.skelRead(route);
-  first.style.marginTop = '';
+  first.style.translate = '';
   return { ran: true, withWord, moved, pushed };
 }
 

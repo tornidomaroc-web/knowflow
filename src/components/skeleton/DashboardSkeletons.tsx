@@ -78,7 +78,7 @@ export function HomeSkeleton() {
       <header className="flex items-center justify-between gap-3 px-1">
         <div className="min-w-0 flex-1">
           <Line box="h-5" bone="h-3 w-11/12 max-w-md" />
-          <Line box="h-5 md:hidden" bone="h-3 w-3/5" />
+          <Line box="h-5 md:hidden rtl:hidden" bone="h-3 w-3/5" />
           <Line box="mt-1 h-10" bone="h-7 w-56 max-w-full" />
           {web && <Bone className="mt-2 h-6 w-16" />}
         </div>
@@ -88,7 +88,7 @@ export function HomeSkeleton() {
         <div className="min-w-0 flex-1">
           <Line ask box="h-[1.8rem]" bone="h-5 w-3/5" />
           <Line ask box="mt-1.5 h-[1.4rem]" bone="h-3 w-4/5" />
-          <Line ask box="h-[1.4rem] md:hidden" bone="h-3 w-1/2" />
+          <Line ask box="h-[1.4rem] md:hidden rtl:hidden" bone="h-3 w-1/2" />
           <Bone ask className="mt-4 h-[2.875rem] w-44" />
         </div>
         <Bone ask className="h-[4.75rem] w-[4.75rem] shrink-0" />
@@ -179,7 +179,7 @@ export function SubjectsSkeleton() {
         <div className="w-full md:w-auto">
           <Title bone="h-8 w-40" />
           <Line box="mt-1 h-5" bone="h-3 w-4/5 md:w-80" />
-          <Line box="h-5 md:hidden" bone="h-3 w-1/2" />
+          <Line box="h-5 md:hidden rtl:hidden" bone="h-3 w-1/2" />
         </div>
         <Bone className="h-11 w-36" />
       </header>
