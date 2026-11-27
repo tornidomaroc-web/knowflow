@@ -10,3 +10,7 @@ supabase==2.29.0
 # 2026-01-07 resolves (newest on PyPI; ingestion-image run 41668024468 installed
 # it). pdfplumber 0.11.10, which markitdown[all] pulls in, pins the same.
 pdfminer.six==20260107
+# Pinned 2026-11-27: lxml 6.2.0 broke every .docx (BeautifulSoup "xml" drops
+# the w: prefixes in markitdown's docx pre-process). 6.1.3 is what production
+# has run since September. Every other package is pinned in constraints.txt.
+lxml==6.1.3
