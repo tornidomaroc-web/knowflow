@@ -5,22 +5,23 @@
  *
  *  1. THE FILE (src/lib/universal-links.ts, served by
  *     src/app/.well-known/apple-app-site-association/route.ts). One details
- *     entry for appID NQ23SMHXJV.com.knowflow.app with exactly five
- *     components, in this order: /api/auth/callback?code=  EXCLUDED (the OAuth
- *     return: its PKCE verifier is in the browser that started it),
- *     /api/auth/callback?error=  EXCLUDED (a refused link is answered where it
- *     was opened), then the two includes (token_hash + type=signup, token_hash
- *     + type=recovery), then a final catch-all EXCLUDE. webcredentials names
- *     the same appID. Nothing else (no appclips, no activitycontinuation).
- *     The module imports nothing, so production-monitor can load it alone
- *     from the commit that is live.
+ *     entry for appID NQ23SMHXJV.com.knowflow.app with exactly ONE component,
+ *     the catch-all EXCLUDE: no link opens the app (item 4j, build 9 finding:
+ *     the reset mail's link tapped in Gmail for iOS did nothing; #343-#355
+ *     included the confirm and reset mails). webcredentials names the same
+ *     appID. Nothing else (no appclips, no activitycontinuation). The module
+ *     imports nothing, so production-monitor can load it alone from the
+ *     commit that is live.
  *  2. THE URL TABLE under Apple's first-match rule ("The first match wins",
  *     applinks.Details.Components), run through BOTH the module's own
  *     aasaMatches() and an independent matcher written here, so a wrong
- *     matcher that agrees with a wrong file cannot pass: the confirm and reset
- *     mail links open the app; ?code=, ?error=...&error_code=otp_expired,
- *     /en/pricing, /ar, /en, /api/paddle/webhook, /en/dashboard?checkout=...,
- *     /api/auth/callback with no query, and the www host stay in Safari.
+ *     matcher that agrees with a wrong file cannot pass: every URL stays in
+ *     the browser, the confirm and reset mail links first among them, in the
+ *     exact shape the live templates send (`&locale=` EMPTY when the account
+ *     carries no locale, as on the owner's phone 2026-11-26).
+ *  2b. FORCED CASES: the same table run against the five-component file that
+ *     was live from #343 to #355 (and against each of its two includes alone)
+ *     must FAIL, so a table that cannot see an include coming back is caught.
  *  3. THE ROUTE. force-static; its GET answers 200, application/json, no
  *     Location, and a body equal to the module's object.
  *  4. THE MIDDLEWARE. Its matcher (read from src/middleware.ts) does not
@@ -86,25 +87,12 @@ check(isDeepStrictEqual(Object.keys(AASA ?? {}).sort(), ['applinks', 'webcredent
 check(details.length === 1, 'exactly one applinks details entry', `got ${details.length}`);
 check(isDeepStrictEqual(details[0]?.appIDs, [APP_ID]), `appIDs is exactly ["${APP_ID}"]`, JSON.stringify(details[0]?.appIDs));
 check(details[0] && !('appID' in details[0]) && !('paths' in details[0]), 'no legacy appID / paths keys');
-check(comps.length === 5, 'exactly five components', `got ${comps.length}`);
+check(comps.length === 1, 'exactly one component', `got ${comps.length}`);
 
 const strip = (c) => { const { comment, ...rest } = c ?? {}; return rest; };
-const want = [
-  { '/': CALLBACK, '?': { code: '?*' }, exclude: true },
-  { '/': CALLBACK, '?': { error: '?*' }, exclude: true },
-  { '/': CALLBACK, '?': { token_hash: '?*', type: 'signup' } },
-  { '/': CALLBACK, '?': { token_hash: '?*', type: 'recovery' } },
-  { '/': '*', exclude: true },
-];
-const label = ['the ?code= exclude', 'the ?error= exclude', 'the signup include', 'the recovery include', 'the final catch-all exclude'];
-want.forEach((w, i) => check(isDeepStrictEqual(strip(comps[i]), w), `component ${i + 1} is ${label[i]}`, JSON.stringify(strip(comps[i]))));
-const idx = (pred) => comps.findIndex(pred);
-const iCode = idx((c) => c?.exclude === true && c?.['?']?.code);
-const iErr = idx((c) => c?.exclude === true && c?.['?']?.error);
-const iInc = comps.map((c, i) => (c?.exclude ? -1 : i)).filter((i) => i >= 0);
-check(iCode >= 0 && iErr >= 0 && iInc.length === 2 && Math.max(iCode, iErr) < Math.min(...iInc), 'the code and error excludes come BEFORE both includes');
-check(comps.length > 0 && isDeepStrictEqual(strip(comps[comps.length - 1]), { '/': '*', exclude: true }), 'the LAST component is the catch-all exclude');
-check(comps.length === 5 && comps.every((c) => typeof c?.comment === 'string' && c.comment.length > 0), 'every component carries a comment (Apple ignores it)');
+check(isDeepStrictEqual(strip(comps[0]), { '/': '*', exclude: true }), 'the one component is the catch-all exclude', JSON.stringify(strip(comps[0])));
+check(comps.every((c) => c?.exclude === true), 'no component is an include (no link opens the app)', JSON.stringify(comps.filter((c) => c?.exclude !== true).map(strip)));
+check(comps.length === 1 && typeof comps[0]?.comment === 'string' && comps[0].comment.length > 0, 'the component carries a comment (Apple ignores it)');
 check(isDeepStrictEqual(AASA?.webcredentials, { apps: [APP_ID] }), `webcredentials.apps is exactly ["${APP_ID}"]`, JSON.stringify(AASA?.webcredentials));
 
 // ---------------------------------------------------------------- 2. the URL table
@@ -126,10 +114,19 @@ function independent(urlString, file) {
   return false;
 }
 const H = 'https://tryknowflow.com';
+// The mail links first, in every shape the live templates send
+// (`&locale={{ .Data.locale }}`, empty for an account with no stored locale).
+const MAIL = [
+  [`${H}/api/auth/callback?token_hash=pkce_abc123&type=recovery&locale=`, false, 'reset password mail, empty locale= (the build 9 tap)'],
+  [`${H}/api/auth/callback?token_hash=pkce_abc123&type=recovery&locale=en`, false, 'reset password mail (en)'],
+  [`${H}/api/auth/callback?token_hash=pkce_abc123&type=recovery&locale=ar`, false, 'reset password mail (ar)'],
+  [`${H}/api/auth/callback?token_hash=pkce_abc123&type=recovery`, false, 'reset password mail, no locale'],
+  [`${H}/api/auth/callback?token_hash=pkce_abc123&type=signup&locale=`, false, 'confirm sign-up mail, empty locale='],
+  [`${H}/api/auth/callback?token_hash=pkce_abc123&type=signup&locale=en`, false, 'confirm sign-up mail (en)'],
+  [`${H}/api/auth/callback?token_hash=pkce_abc123&type=signup&locale=ar`, false, 'confirm sign-up mail (ar)'],
+];
 const TABLE = [
-  [`${H}/api/auth/callback?token_hash=pkce_abc123&type=signup&locale=en`, true, 'confirm sign-up mail (en)'],
-  [`${H}/api/auth/callback?token_hash=pkce_abc123&type=signup&locale=ar`, true, 'confirm sign-up mail (ar)'],
-  [`${H}/api/auth/callback?token_hash=pkce_abc123&type=recovery&locale=en`, true, 'reset password mail'],
+  ...MAIL,
   [`${H}/api/auth/callback?code=4f1c2d3e-aaaa-bbbb-cccc-1234567890ab`, false, 'OAuth ?code= return'],
   [`${H}/api/auth/callback?code=abc&token_hash=pkce_x&type=signup`, false, '?code= wins over a token_hash on the same link'],
   [`${H}/api/auth/callback?error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid`, false, 'refused link ?error=...&error_code=otp_expired'],
@@ -153,6 +150,24 @@ for (const [url, toApp, name] of TABLE) {
   let mod = null;
   try { mod = lib?.aasaMatches ? lib.aasaMatches(url) : null; } catch { mod = 'threw'; }
   check(ind === toApp && mod === toApp, `${name} -> ${toApp ? 'app' : 'Safari'}`, `independent=${ind} module=${mod}`);
+}
+check(TABLE.every(([, toApp]) => toApp === false), 'every row of the table expects the browser (no row expects the app)');
+
+// ---------------------------------------------------------------- 2b. forced cases
+console.log('2b. forced cases: the file live from #343 to #355 must fail this table');
+const exc = (q, comment) => ({ '/': CALLBACK, '?': q, exclude: true, comment });
+const inc = (type) => ({ '/': CALLBACK, '?': { token_hash: '?*', type }, comment: `${type} mail` });
+const all = { '/': '*', exclude: true, comment: 'catch-all' };
+const forced = (components) => ({ applinks: { details: [{ appIDs: [APP_ID], components }] }, webcredentials: { apps: [APP_ID] } });
+const FORCED = [
+  ['the five-component file of #343-#355', forced([exc({ code: '?*' }, 'code'), exc({ error: '?*' }, 'error'), inc('signup'), inc('recovery'), all]), ['reset password mail, empty locale= (the build 9 tap)', 'confirm sign-up mail (en)']],
+  ['the recovery include alone', forced([inc('recovery'), all]), ['reset password mail, empty locale= (the build 9 tap)']],
+  ['the signup include alone', forced([inc('signup'), all]), ['confirm sign-up mail, empty locale=']],
+  ['a bare catch-all include', forced([{ '/': '*', comment: 'everything' }]), ['reset password mail, empty locale= (the build 9 tap)', 'confirm sign-up mail (en)']],
+];
+for (const [name, file, mustCatch] of FORCED) {
+  const caught = MAIL.filter(([url, toApp]) => independent(url, file) !== toApp).map(([, , n]) => n);
+  check(mustCatch.every((n) => caught.includes(n)), `${name}: the table sends ${mustCatch.join(' and ')} to the app, so it fails`, `caught=${JSON.stringify(caught)}`);
 }
 
 // ---------------------------------------------------------------- 3. the route
