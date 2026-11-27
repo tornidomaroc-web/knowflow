@@ -4,6 +4,7 @@ import { DashboardShell } from '@/components/layout/DashboardShell'
 import { PlatformProvider } from '@/components/platform/PlatformProvider'
 import { IapProvider } from '@/components/iap/IapProvider'
 import { Paywall } from '@/components/iap/Paywall'
+import { appStoreTermsHref } from '@/lib/iap/terms'
 import { PAYWALL_STATES, type PaywallState } from '@/lib/iap/flow'
 import { iapAllowed } from '@/lib/platform'
 import { currentShellVersion } from '@/lib/platform-server'
@@ -73,7 +74,7 @@ export default async function ProPreviewPage({
             figures={proFigures()}
             userId="00000000-0000-4000-8000-000000000000"
             pro={state === 'pro-apple' ? 'apple' : state === 'pro-web' ? 'web' : null}
-            termsHref={`/${safeLocale}/terms`}
+            termsHref={appStoreTermsHref(safeLocale)}
             privacyHref={`/${safeLocale}/privacy`}
             preview={{ state, price }}
           />

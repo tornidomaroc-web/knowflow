@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getEntitlementDetail } from '@/lib/entitlement'
 import { Paywall } from '@/components/iap/Paywall'
+import { appStoreTermsHref } from '@/lib/iap/terms'
 import { proFigures } from '@/lib/iap/figures'
 import { iapAllowed } from '@/lib/platform'
 import { currentShellVersion } from '@/lib/platform-server'
@@ -38,7 +39,7 @@ export default async function ProPage({ params }: { params: Promise<{ locale: Lo
       figures={proFigures()}
       userId={user.id}
       pro={pro}
-      termsHref={`/${safeLocale}/terms`}
+      termsHref={appStoreTermsHref(safeLocale)}
       privacyHref={`/${safeLocale}/privacy`}
     />
   )
