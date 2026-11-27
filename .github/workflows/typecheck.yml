@@ -235,6 +235,21 @@ jobs:
       - name: Verify the App Store subscription terms and the paywall's Terms link (store step 1)
         run: node --experimental-strip-types scripts/verify-terms-iap.mjs
 
+      # Item 4j, store step 2: /privacy and /refund say nothing false from
+      # build 9 ("nothing is paid/sold in the app", deletion cancels any
+      # subscription, Paddle for every purchase); the App Store copy shows on
+      # the web, never in build 8 or Android, in build 9 only inside
+      # data-kf-iap. The planted run (the pieces unmarked in the twins) comes
+      # first and MUST fail.
+      - name: Verify the legal pages proof fails on App Store copy leaked into the app twins (store step 2)
+        run: |
+          if KF_LEGAL_PLANT=1 node --experimental-strip-types scripts/verify-legal-iap.mjs; then
+            echo "the leaked App Store copy was NOT caught: the legal proof is blind"; exit 1
+          fi
+          echo "leaked App Store copy caught, as it must be"
+      - name: Verify /privacy and /refund from build 9 (store step 2)
+        run: node --experimental-strip-types scripts/verify-legal-iap.mjs
+
       # Voice input in Ask (iOS 1.1, item 4e): the bridge null on the web, in
       # Android, without the plugin and behind a forged user agent; the take
       # appended, never sent (fetch spied); every outcome's line in both

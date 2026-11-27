@@ -28,8 +28,9 @@ export interface SiteFooterLabels {
  * dictionaries and the type, unused).
  */
 export function SiteFooter({ locale, labels, showRefund = true }: { locale: Locale; labels: SiteFooterLabels; showRefund?: boolean }) {
-  // Step Wording-1: the app sells nothing, so its chrome carries no Refund
-  // link; the web keeps it (its twin page is neutral if reached anyway).
+  // Step Wording-1: the app's chrome carries no Refund link (build 8 may show
+  // no purchase surface, 3.1.3(f); build 9's App Store refunds are Apple's,
+  // and its twin of /refund says so only inside data-kf-iap); the web keeps it.
   const links = [
     { href: `/${locale}/privacy`, label: labels.privacy },
     { href: `/${locale}/terms`, label: labels.terms },

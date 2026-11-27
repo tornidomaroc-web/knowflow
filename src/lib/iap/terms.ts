@@ -13,6 +13,13 @@ export const APP_STORE_TERMS_ID = 'app-store-subscriptions';
 /** Apple's standard Licensed Application End User License Agreement. */
 export const APPLE_STANDARD_EULA = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 
+/**
+ * Apple's own place to ask for a refund of an App Store purchase (Apple's
+ * support article 118223, "Request a refund for apps or content that you
+ * bought from Apple", sends there). /refund links it (item 4j, store step 2).
+ */
+export const APPLE_REFUND_URL = 'https://reportaproblem.apple.com/';
+
 export function appStoreTermsHref(locale: string): string {
   return `/${locale}/terms#${APP_STORE_TERMS_ID}`;
 }
