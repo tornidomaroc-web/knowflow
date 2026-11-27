@@ -10,7 +10,7 @@ export default async function RefundPage({ params }: { params: Promise<{ locale:
 
   return (
     <div className="py-24" dir={isRtl ? 'rtl' : 'ltr'}>
-      <div className="max-w-3xl mx-auto px-6 text-muted-foreground text-start [text-wrap:pretty]">
+      <div className="max-w-3xl mx-auto px-6 text-muted-foreground text-start [text-wrap:pretty] [&_h1]:text-balance [&_h2]:text-balance">
         <h1 className="text-[2rem] leading-[1.2] sm:text-5xl font-bold mb-4 text-foreground">Refund Policy</h1>
         <p className="text-sm uppercase tracking-wide font-medium text-primary mb-12">Last updated: November 2026</p>
 
@@ -34,7 +34,8 @@ export default async function RefundPage({ params }: { params: Promise<{ locale:
           <p className="mb-6">You can cancel a subscription bought on this website at any time from Settings in your dashboard. Cancelling stops any future charge, and you keep Pro until the end of the period you have already paid for. An App Store subscription is cancelled in your Apple Account settings instead (Section 3).</p>
 
           <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Section 5: Contact</h2>
-          <p className="mb-6">For any billing questions, contact: {SUPPORT_EMAIL}</p>
+          {/* Balanced: at 390 and 360 the address would otherwise stand alone on its line. */}
+          <p className="mb-6 text-balance">For any billing questions, contact: {SUPPORT_EMAIL}</p>
           </>}
           app={<>
             <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Refunds</h2>
@@ -53,13 +54,14 @@ export default async function RefundPage({ params }: { params: Promise<{ locale:
  * The App Store refund and cancelling section: the same bytes on the web
  * (Section 3) and in build 9 (marked), never in build 8 or Android. It names
  * no other way to pay (3.1.1), types no price, and its one link is in running
- * text (the 44 pt control rule exempts it).
+ * text (the 44 pt control rule exempts it), and its text does not name Apple
+ * (the app's gate reads a link named "Apple" as a Sign in with Apple button).
  */
 function AppStoreRefund({ heading }: { heading: string }) {
   return (
     <AppStoreOnly mark="refund">
       <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">{heading}</h2>
-      <p className="mb-6">If you subscribed to KnowFlow Pro in the KnowFlow app for iPhone or iPad, Apple took the payment through the App Store. Refunds for App Store purchases are requested from Apple and decided by Apple, under Apple&apos;s rules: you can ask for one at <a className="underline" href={APPLE_REFUND_URL}>reportaproblem.apple.com</a>. We cannot refund an App Store purchase ourselves.</p>
+      <p className="mb-6">If you subscribed to KnowFlow Pro in the KnowFlow app for iPhone or iPad, Apple took the payment through the App Store. Refunds for App Store purchases are requested from Apple and decided by Apple, under Apple&apos;s rules: you can ask for one on Apple&apos;s <a className="underline" href={APPLE_REFUND_URL}>Report a Problem</a> page. We cannot refund an App Store purchase ourselves.</p>
       <p className="mb-6">To stop the next renewal, cancel the subscription in your Apple Account settings at least 24 hours before the end of the current period. You keep KnowFlow Pro until the end of the period you have paid for. Deleting your KnowFlow account does not cancel an App Store subscription.</p>
     </AppStoreOnly>
   );

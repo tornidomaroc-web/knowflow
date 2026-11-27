@@ -112,6 +112,7 @@ const PIECE_CLAUSES = {
   refund: [
     ['refunds by Apple', /Refunds for App Store purchases are requested from Apple and decided by Apple, under Apple's rules/],
     ['we cannot refund it', /We cannot refund an App Store purchase ourselves/],
+    ["Apple's Report a Problem page", /you can ask for one on Apple's Report a Problem page/],
     ['cancel in the Apple Account settings, 24 hours', /cancel the subscription in your Apple Account settings at least 24 hours before the end of the current period/],
     ['kept to the end of the period', /You keep KnowFlow Pro until the end of the period you have paid for/],
     ['deletion does not cancel', /Deleting your KnowFlow account does not cancel an App Store subscription/],
@@ -156,6 +157,7 @@ for (const page of Object.keys(PAGES)) {
       check(!/—/.test(t), `${p.mark} ${locale}: no em dash`);
       const hrefs = [...p.html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
       check(hrefs.every((x) => x.startsWith('https://reportaproblem.apple.com/')), `${p.mark} ${locale}: its only link is Apple's (${JSON.stringify(hrefs)})`);
+      check(![...p.html.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/g)].some((m) => /\bapple\b/i.test(text(m[1]))), `${p.mark} ${locale}: no link text names Apple (the app's gate reads it as a Sign in with Apple button)`);
     }
   }
 }

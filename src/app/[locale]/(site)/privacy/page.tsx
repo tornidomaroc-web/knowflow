@@ -9,7 +9,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
 
   return (
     <div className="py-24" dir={isRtl ? 'rtl' : 'ltr'}>
-      <div className="max-w-3xl mx-auto px-6 text-muted-foreground text-start [text-wrap:pretty]">
+      <div className="max-w-3xl mx-auto px-6 text-muted-foreground text-start [text-wrap:pretty] [&_h1]:text-balance [&_h2]:text-balance">
         <h1 className="text-[2rem] leading-[1.2] sm:text-5xl font-bold mb-4 text-foreground">Privacy Policy</h1>
         <p className="text-sm uppercase tracking-wide font-medium text-primary mb-12">Last updated: November 2026</p>
 
