@@ -222,6 +222,19 @@ jobs:
       - name: Verify in-app Pro (paywall, StoreKit flow, R1, R2, shell 2 only)
         run: node --experimental-strip-types scripts/verify-iap-app.mjs
 
+      # Item 4j, store step 1 (Apple 3.1.2): /terms carries the App Store
+      # subscription terms; the paywall's Terms link lands on them; the web
+      # shows them, build 8 never, build 9 only inside data-kf-iap. The planted
+      # run (the section unmarked in the app twin) comes first and MUST fail.
+      - name: Verify the App Store terms proof fails on the section leaked into the app twin (store step 1)
+        run: |
+          if KF_TERMS_PLANT=1 node --experimental-strip-types scripts/verify-terms-iap.mjs; then
+            echo "the leaked section was NOT caught: the terms proof is blind"; exit 1
+          fi
+          echo "leaked section caught, as it must be"
+      - name: Verify the App Store subscription terms and the paywall's Terms link (store step 1)
+        run: node --experimental-strip-types scripts/verify-terms-iap.mjs
+
       # Voice input in Ask (iOS 1.1, item 4e): the bridge null on the web, in
       # Android, without the plugin and behind a forged user agent; the take
       # appended, never sent (fetch spied); every outcome's line in both
