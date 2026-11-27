@@ -79,8 +79,9 @@ export function AppStoreTermsSection() {
         <li><strong>Managing and cancelling.</strong> You can manage the subscription and turn off automatic renewal at any time in your Apple Account settings. When you cancel, you keep KnowFlow Pro until the end of the period you have paid for.</li>
         <li><strong>Refunds.</strong> Refunds for App Store purchases are handled by Apple, under Apple&apos;s rules.</li>
         <li><strong>Deleting your account.</strong> Deleting your KnowFlow account does not cancel an App Store subscription. Cancel it in your Apple Account settings as well.</li>
-        <li><strong>Apple&apos;s licence.</strong> Apple&apos;s standard <a className="underline" href={APPLE_STANDARD_EULA}>Licensed Application End User License Agreement</a> also applies to your use of the app.</li>
       </ul>
+      {/* A paragraph, not a list item: a link in running text is exempt from the 44 pt control rule (design-c audit). */}
+      <p className="mb-6"><strong>Apple&apos;s licence.</strong> Apple&apos;s standard <a className="underline" href={APPLE_STANDARD_EULA}>Licensed Application End User License Agreement</a> also applies to your use of the app.</p>
     </section>
   );
 }

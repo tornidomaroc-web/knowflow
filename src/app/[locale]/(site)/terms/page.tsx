@@ -10,7 +10,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
   return (
     <div className="py-24" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="max-w-3xl mx-auto px-6 text-muted-foreground text-start [text-wrap:pretty]">
-        <h1 className="text-5xl font-bold mb-4 text-foreground">Terms of Service</h1>
+        <h1 className="text-[2rem] leading-[1.2] sm:text-5xl font-bold mb-4 text-foreground">Terms of Service</h1>
         <p className="text-sm uppercase tracking-wide font-medium text-primary mb-12">Last updated: November 2026</p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">Acceptance of Terms</h2>
