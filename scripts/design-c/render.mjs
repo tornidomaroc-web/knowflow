@@ -229,6 +229,17 @@
  * Apple's EULA linked, no price figure; four forced cases. /terms is the
  * screen this change is about; every other screen stays held by check 22.
  *
+ * /privacy AND /refund FROM BUILD 9 (legal.mjs, item 4j, store step 2) add
+ * both pages: the web at 390, 360 and 1280 (the App Store pieces, plain),
+ * shell 2 with the KnowFlowStore stub at 390 and 360 (each piece marked
+ * data-kf-iap with its own name), shell 2 without it at 390 and shell 1 at
+ * 390 and 360 (no piece). CHECK 35 on each: the pieces where expected and
+ * nowhere else, their marks, no purchase word where build 8 and Android read
+ * the page (the forced build-8 rule) and none outside the marks in build 9,
+ * no other way to pay and no figure in a piece, Apple's refund address on
+ * /refund; five forced cases. The two pages are the screens this change is
+ * about; every other screen stays held by check 22.
+ *
  * Usage: node scripts/design-c/render.mjs --out DIR
  * Env: BEFORE (default http://127.0.0.1:3001), AFTER (default
  *      http://127.0.0.1:3000), CHROME, PUPPETEER_DIR, FONT_DIR (the
@@ -256,6 +267,7 @@ import { cameraScreens, cameraCheck, cameraPlant, sameCheck } from './camera.mjs
 import { voiceScreens, voiceExpect, voiceStubSrc, voiceMock, voiceAct, voiceCheck, voicePlant, voiceStackCheck, voiceStackPlant, keepVoiceList, voicePhraseCheck, voicePhrasePlant } from './voice.mjs';
 import { appleScreens, appleExpect, appleStubSrc, appleCheck, applePlant, keepAppleList, appleEndList, appleOpenAct } from './apple.mjs';
 import { termsScreens, termsStubSrc, termsExpect, termsCheck, termsPlant, TERMS_KINDS } from './terms.mjs';
+import { legalScreens, legalExpect, legalCheck, legalPlant, LEGAL_KINDS } from './legal.mjs';
 import { rateScreens, rateExpect, rateStubSrc, rateCheck, ratePlant, rateHref, rateDesc, rateLineRules, rateBreakAt, RATE_LINE_KINDS, RATE_KINDS } from './review.mjs';
 import { tapScreens, realUrl, skelRead, realRead, skelVerdict, skelPlant, skelPlantCaught, tapHold, tapAct, tapVerdict } from './tap.mjs';
 
@@ -373,6 +385,8 @@ tapScreens(add, { APP, DESK, DESKTOP }, byKeyEarly);
 // Item 4j, store step 1 (terms.mjs): /terms with the App Store section, opened at the paywall's fragment; check 34.
 // Registered after every module that marks check 22, so /terms (the screen this change is about) is not held to main.
 termsScreens(add, { APP, SAFARI, DESK, DESKTOP });
+// Item 4j, store step 2 (legal.mjs): /privacy and /refund with their App Store pieces; check 35. Also after check 22's marking.
+legalScreens(add, { APP, SAFARI, DESK, DESKTOP });
 // Check 31: the one write-review URL, read from src/lib/review/bridge.ts.
 const HREF31 = rateHref(resolve('.'));
 // Check 31's line rules (fix 2 of #345): the approved description, read from en.ts and ar.ts.
@@ -1132,6 +1146,8 @@ const appleForced = {};
 const rateForced = {};
 // Check 34's forced cases (terms.mjs): per kind (TERMS_KINDS), the AFTER renders it ran on and those flagged.
 const termsForced = {};
+// Check 35's forced cases (legal.mjs): per kind (LEGAL_KINDS), the AFTER renders it ran on and those flagged.
+const legalForced = {};
 // Check 32's forced cases (tap.mjs): AFTER skeleton renders that ran them, and those where both were flagged.
 const skelForced = { ran: 0, caught: 0 };
 // Check 33 (tap.mjs): AFTER renders pressed, those whose planted double counted two, those where every control sent once.
@@ -1178,6 +1194,8 @@ async function shoot(side, job) {
   if (job.s.rate?.stub) await tab.evaluateOnNewDocument(rateStubSrc());
   // App Store terms: the KnowFlowStore plugin stubbed before the page loads (terms.mjs), on both sides.
   if (job.s.terms?.stub) await tab.evaluateOnNewDocument(termsStubSrc());
+  // /privacy and /refund: the same KnowFlowStore stub (legal.mjs), on both sides.
+  if (job.s.legal?.stub) await tab.evaluateOnNewDocument(termsStubSrc());
   const q = new URLSearchParams({ ...(side === 'before' && job.s.beforeQ ? job.s.beforeQ : job.s.q), ...(job.theme && !job.s.lands ? { theme: job.theme } : {}) }).toString();
   const url = `${SIDES[side]}/${job.locale}${job.s.path ? '/' + job.s.path : ''}${q ? '?' + q : ''}${job.s.hash ? '#' + job.s.hash : ''}`;
   const res = await tab.goto(url, { waitUntil: 'networkidle0', timeout: 90000 });
@@ -1316,6 +1334,10 @@ async function shoot(side, job) {
   if (job.s.terms && side === 'after') await tab.evaluate(`window.termsCheck = ${termsCheck.toString()};`);
   const terms34 = job.s.terms && side === 'after' ? await tab.evaluate(termsCheck, termsExpect(job)) : null;
   const terms34Plant = job.s.terms && side === 'after' ? await tab.evaluate(termsPlant, termsExpect(job)) : null;
+  // Check 35 (legal.mjs): the App Store pieces of /privacy and /refund where expected and marked, no purchase word for build 8 and Android; and its forced cases. AFTER only.
+  if (job.s.legal && side === 'after') await tab.evaluate(`window.legalCheck = ${legalCheck.toString()};`);
+  const legal35 = job.s.legal && side === 'after' ? await tab.evaluate(legalCheck, legalExpect(job)) : null;
+  const legal35Plant = job.s.legal && side === 'after' ? await tab.evaluate(legalPlant, legalExpect(job)) : null;
   // Check 32 (tap.mjs): the skeleton read at the screen's own size, before the page is made one tall viewport.
   if (job.s.skel) await tab.evaluate(`window.skelRead = ${skelRead.toString()}`);
   const skelSk = job.s.skel ? await tab.evaluate(skelRead, job.s.skel) : null;
@@ -1384,7 +1406,7 @@ async function shoot(side, job) {
   }
   for (const h of held) h.abort().catch(() => {});
   await ctx.close();
-  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant, price25, price25Plant, split24Plant, adjacent24Plant, paywall26, keep26Plant, voice27, voice27Plant, voice28, voice28Plant, voice29, voice29Plant, apple30, apple30Plant, rate31, rate31Plant, terms34, terms34Plant, skel32, tap33 };
+  return { url, landed, status: res.status(), fonts, anim, theme, a, home, lines, gate, tiles, pr3, picker, review, plant, acted, pr4, hidden, shotCard: job.s.shot ? !!card : undefined, phrases, ring, labelPlant, latin, markers, orphans, firstView, firstPlant, stepsView, stepsPlant, crossLink, askPath, askPlant, dzError, dzPlant, runs15, runs15Plant, auth16, auth16Plant, sample17, sample17Plant, whole18, whole18Plant, whole18Revert, stats19, stats19Plant, note20, note20Plant, term20Plant, chipCut, camera21, camera21Plant, iap24, iap24Plant, price25, price25Plant, split24Plant, adjacent24Plant, paywall26, keep26Plant, voice27, voice27Plant, voice28, voice28Plant, voice29, voice29Plant, apple30, apple30Plant, rate31, rate31Plant, terms34, terms34Plant, legal35, legal35Plant, skel32, tap33 };
 }
 
 for (const job of JOBS) {
@@ -1486,6 +1508,9 @@ for (const job of JOBS) {
       // Check 34 (terms.mjs), and its forced cases on AFTER.
       ...(r.terms34?.finding ? [`terms: ${r.terms34.finding}`] : []),
       ...(r.terms34Plant || []).filter((x) => !x.caught).map((x) => `terms: check 34 is blind: the forced case "${x.kind}" was not flagged`),
+      // Check 35 (legal.mjs), and its forced cases on AFTER.
+      ...(r.legal35?.finding ? [`legal: ${r.legal35.finding}`] : []),
+      ...(r.legal35Plant || []).filter((x) => !x.caught).map((x) => `legal: check 35 is blind: the forced case "${x.kind}" was not flagged`),
       // Check 32 (tap.mjs): the loading screen, and its forced cases on AFTER.
       ...(r.skel32 ? r.skel32.findings.map((f) => `skeleton: ${f}`) : []),
       ...(r.skel32?.forced && !r.skel32.forced.word ? ['skeleton: check 32 is blind: a word planted in the skeleton was not flagged'] : []),
@@ -1515,6 +1540,7 @@ for (const job of JOBS) {
     if (side === 'after' && r.voice28Plant?.forced) { stackForced.ran++; if (r.voice28Plant.caught) stackForced.caught++; }
     if (side === 'after') for (const x of r.apple30Plant || []) { const c = (appleForced[x.kind] ||= { ran: 0, caught: 0 }); c.ran++; if (x.caught) c.caught++; }
     if (side === 'after') for (const x of r.terms34Plant || []) { const c = (termsForced[x.kind] ||= { ran: 0, caught: 0 }); c.ran++; if (x.caught) c.caught++; }
+    if (side === 'after') for (const x of r.legal35Plant || []) { const c = (legalForced[x.kind] ||= { ran: 0, caught: 0 }); c.ran++; if (x.caught) c.caught++; }
     if (side === 'after') for (const x of r.rate31Plant || []) { const c = (rateForced[x.kind] ||= { ran: 0, caught: 0 }); c.ran++; if (x.caught) c.caught++; }
     if (side === 'after' && r.skel32?.forced) { skelForced.ran++; if (r.skel32.forced.word && r.skel32.forced.push) skelForced.caught++; }
     if (side === 'after' && r.tap33 && !r.tap33.error) { tapSeen.ran++; if (r.tap33.plant === 2) tapSeen.planted++; if (!tapVerdict(job, r.tap33).length) tapSeen.single++; }
@@ -1558,6 +1584,7 @@ for (const job of JOBS) {
       ...(r.apple30 ? { apple: { expect: job.s.apple, ...r.apple30.measured, finding: r.apple30.finding, ...(r.apple30Plant ? { forced: r.apple30Plant.map((x) => ({ kind: x.kind, caught: x.caught })) } : {}) } } : {}),
       ...(r.rate31 ? { rate: { expect: job.s.rate, ...r.rate31.measured, finding: r.rate31.finding, ...(r.rate31Plant ? { forced: r.rate31Plant.map((x) => ({ kind: x.kind, caught: x.caught })) } : {}) } } : {}),
       ...(r.terms34 ? { terms: { expect: job.s.terms, ...r.terms34.measured, finding: r.terms34.finding, ...(r.terms34Plant ? { forced: r.terms34Plant.map((x) => ({ kind: x.kind, caught: x.caught })) } : {}) } } : {}),
+      ...(r.legal35 ? { legal: { expect: job.s.legal, ...r.legal35.measured, finding: r.legal35.finding, ...(r.legal35Plant ? { forced: r.legal35Plant.map((x) => ({ kind: x.kind, caught: x.caught })) } : {}) } } : {}),
       ...(job.s.native ? { app: { appleButtons: r.gate.apple.length, googleButtons: r.gate.google.length, purchaseWords: words } } : {}),
       ...(r.skel32 ? { skeleton: { route: job.s.skel, findings: r.skel32.findings, deltas: r.skel32.deltas, skeleton: r.skel32.skeleton, real: r.skel32.real, ...(r.skel32.forced ? { forced: r.skel32.forced } : {}) } } : {}),
       ...(r.tap33 ? { tap: r.tap33 } : {}),
@@ -1647,6 +1674,13 @@ for (const k of TERMS_KINDS) {
   if (!c || !c.ran) never(`check 34 was never forced for "${k}": no AFTER terms render ran it`);
   else if (c.caught !== c.ran) never(`check 34 is blind for "${k}": caught on ${c.caught} of ${c.ran} AFTER render(s)`);
   else console.log(`check 34 (the App Store terms), forced case "${k}": caught on ${c.caught} of ${c.ran} AFTER render(s)`);
+}
+// Check 35 (legal.mjs): every forced kind ran and was caught on every AFTER render it ran on.
+for (const k of LEGAL_KINDS) {
+  const c = legalForced[k];
+  if (!c || !c.ran) never(`check 35 was never forced for "${k}": no AFTER legal render ran it`);
+  else if (c.caught !== c.ran) never(`check 35 is blind for "${k}": caught on ${c.caught} of ${c.ran} AFTER render(s)`);
+  else console.log(`check 35 (/privacy and /refund from build 9), forced case "${k}": caught on ${c.caught} of ${c.ran} AFTER render(s)`);
 }
 // Check 32 (tap.mjs): every AFTER skeleton render ran both forced cases, and each was flagged.
 if (!skelForced.ran) never('check 32 was never forced: no AFTER skeleton render ran its forced cases');
