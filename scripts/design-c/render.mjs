@@ -118,12 +118,13 @@
  * stepsViewPlant() pushes the card 900 px down and must be flagged. The
  * full-data home is also shot on the web at 1280 (home-full-desk).
  *
- * ACTIVATION FIX 3 opens the app on sign-up on a fresh device. landing-app
- * (the app's first request, no cookie) must land on sign-up, and the new
- * landing-app-seen (cookie kf-seen=1) on login; BEFORE (main) lands both on
- * login, so it reports the first. crossLinkRead() reports where each page's
- * link to the other sits in the first view. Login and sign-up are also shot
- * on the web at 1280 (login-desk, signup-desk).
+ * LOGIN FIRST (after activation fix 3): the app's first request, on a fresh
+ * device, must land on login (landing-app); BEFORE (main, the sign-up-first
+ * rule) lands it on sign-up and reports that. The kf-seen mark is gone, so
+ * the old landing-app-seen screen is too. crossLinkRead() reports where each
+ * page's link to the other sits in the first view: on login, the full-width
+ * "Create account" button. Login and sign-up are also shot on the web at
+ * 1280 (login-desk, signup-desk).
  *
  * ACTIVATION FIX 5 adds the screens the audit never rendered (Ask in a
  * subject with no file, the upload's processing, failed, consent-holding and
@@ -310,12 +311,10 @@ const SCREENS = [];
 const add = (key, path, q, ua, opts = {}) => SCREENS.push({ key, path, q, ua, view: PHONE, targets: true, native: ua === APP, ...opts });
 add('landing', '', {}, SAFARI);
 add('landing-desk', '', {}, DESK, { view: DESKTOP, targets: false });
-// Activation fix 3: the app's first screen on a FRESH device is sign-up (main
-// sends it to login, so BEFORE reports that), and on a device that has held
-// a session (`kf-seen=1`) it is login, as before. `crossLink` reads where the
-// page's link to the other page sits in the first 390 x 844 view.
-add('landing-app', '', {}, APP, { lands: 'signup', crossLink: '/login' });
-add('landing-app-seen', '', {}, APP, { lands: 'login', cookies: [{ name: 'kf-seen', value: '1' }], crossLink: '/signup' });
+// Login first: the app's first screen on a FRESH device is login (main sends
+// it to sign-up, so BEFORE reports that). `crossLink` reads where the page's
+// link to the other page sits in the first 390 x 844 view.
+add('landing-app', '', {}, APP, { lands: 'login', crossLink: '/signup' });
 add('login-web', 'login', {}, SAFARI);
 add('login-app', 'login', {}, APP);
 add('signup-web', 'signup', {}, SAFARI);

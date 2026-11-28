@@ -396,13 +396,14 @@ jobs:
       - name: Verify the three steps lead the home until the first material, then today's order (activation fix 2)
         run: node --experimental-strip-types scripts/verify-activation-2.mjs
 
-      # Activation fix 3 (2026-11-09 audit, cause #2): in the app, a signed-out
-      # visitor on a device that never held a session opens on sign-up, one that
-      # did (kf-seen=1) on login; the web is unchanged. Real middleware, fetch stubbed.
+      # Login first (it replaces activation fix 3's sign-up-first rule): every
+      # signed-out entry, app and web, lands on login; no kf-seen mark is read or
+      # written; login has a full-width Create account link, sign-up its link
+      # back. Real middleware, fetch stubbed; the real pages' trees.
       # Part 4 (activation fix 4): the app's sign-up says what the app does
       # (about.subtitle in the slot the web gives cta.note), the web unchanged.
-      - name: Verify the app opens on sign-up on a fresh device and on login after a session, its sign-up says what the app does, the web unchanged (activation fixes 3 and 4)
-        run: node --experimental-strip-types scripts/verify-activation-3.mjs
+      - name: Verify every signed-out entry lands on login with a Create account link, no kf-seen mark, and the app's sign-up says what the app does (login first, activation fix 4)
+        run: node --experimental-strip-types scripts/verify-login-first.mjs
 
       # Activation fix 5 (audit causes #6, #10, #7), against the REAL /api/agent
       # and /api/ingest handlers with an in-memory database: asking in a subject

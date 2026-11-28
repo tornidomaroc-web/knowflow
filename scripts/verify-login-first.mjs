@@ -1,34 +1,37 @@
 /**
- * Executable proof for activation fix 3 (the 2026-11-09 audit, cause #2):
- * in the app, a signed-out visitor on a device that has never held a session
- * opens on SIGN-UP; a device that has (cookie `kf-seen=1`) opens on LOGIN; the
- * web is unchanged.
+ * Executable proof for LOGIN FIRST (it replaces activation fix 3's
+ * sign-up-first rule): every signed-out entry, in the app and on the web,
+ * lands on LOGIN; login carries a full-width "Create account" link to sign-up
+ * and sign-up keeps its link back to login. The `kf-seen` mark is gone: no
+ * response and no page writes it, and a device that still carries one is
+ * treated like any other.
  *
  * The REAL things under test:
- *   - `signedOutPage` / `markSeen` (`src/lib/first-screen.ts`), the decision;
  *   - `middleware` (`src/middleware.ts`) with the real `updateSession`
  *     (`src/lib/supabase/middleware.ts`) and the real `@supabase/ssr` client,
- *     driven with `NextRequest`s: where the app's and the web's signed-out
- *     request for the dashboard is sent, and which signed-in responses write
- *     the mark, with which flags. The only stand-in is `fetch`: GoTrue's
+ *     driven with `NextRequest`s. The only stand-in is `fetch`: GoTrue's
  *     `GET /auth/v1/user` answers a made-up user for the signed-in cases, and
- *     any other request fails the run.
+ *     any other request fails the run;
+ *   - the sign-up page's own onSubmit (no cookie written, app or web);
+ *   - part 4, activation fix 4, unchanged: what the app's sign-up says;
+ *   - part 5: the login and sign-up page functions, their element trees read
+ *     for the cross links, in both locales and both shells.
  *
  * Tier 0: no network, no credential, no database, no app.
  *
- * Usage: node --experimental-strip-types scripts/verify-activation-3.mjs
+ * Usage: node --experimental-strip-types scripts/verify-login-first.mjs
  */
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { dirname, resolve as resolvePath } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { registerHooks } from 'node:module';
 import { installTsxHooks } from './lib/tsx-hooks.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 installTsxHooks(ROOT, {
   'next/server': `export * from 'next/server.js';`,
-  // Part 3 only: the sign-up page's browser client and platform.
-  '@/lib/supabase/client': `export function createClient() { return { auth: { async signUp() { globalThis.__kfSignUp.calls++; return globalThis.__kfSignUp.answer; } }, from() { return { async upsert() { return { error: null }; } }; } }; }`,
+  // Parts 3 to 5: the pages' browser client and platform.
+  '@/lib/supabase/client': `export function createClient() { return { auth: { async signUp() { globalThis.__kfSignUp.calls++; return globalThis.__kfSignUp.answer; }, async signInWithPassword() { return { error: null }; } }, from() { return { async upsert() { return { error: null }; } }; } }; }`,
   '@/components/platform/PlatformProvider': `export function usePlatform() { return globalThis.__kfPlatform; }`,
 });
 const failures = [];
@@ -36,33 +39,19 @@ let passed = 0;
 const check = (ok, msg) => { if (ok) passed++; else failures.push(msg); };
 const load = async (p) => import(pathToFileURL(resolvePath(ROOT, p)).href);
 
-// ── 1. The decision ─────────────────────────────────────────────────────────
-// On a tree without the helper (main before this change) part 1 fails as one
-// line and part 2 still runs, so the real middleware's answers are printed.
-const HAS_HELPER = existsSync(resolvePath(ROOT, 'src/lib/first-screen.ts'));
-check(HAS_HELPER, 'src/lib/first-screen.ts exists (the first-screen decision)');
-const fs = HAS_HELPER ? await load('src/lib/first-screen.ts') : { signedOutPage: () => 'absent', markSeen: () => 'absent' };
-const DECISIONS = [
-  ['native', undefined, 'signup', 'the app on a fresh device opens on sign-up'],
-  ['native', '1', 'login', 'the app on a device that held a session opens on login'],
-  ['native', '0', 'signup', 'the app with any other cookie value opens on sign-up'],
-  ['web', undefined, 'login', 'the web without the cookie opens on login (unchanged)'],
-  ['web', '1', 'login', 'the web with the cookie opens on login (unchanged)'],
-];
-for (const [platform, seen, want, why] of DECISIONS) {
-  const got = fs.signedOutPage(platform, seen);
-  check(got === want, `${why}: signedOutPage(${platform}, ${seen}) = ${got}, want ${want}`);
+// ── 1. Nothing reads or writes the mark any more ────────────────────────────
+check(!existsSync(resolvePath(ROOT, 'src/lib/first-screen.ts')), 'src/lib/first-screen.ts (the sign-up-first decision and the kf-seen mark) is gone');
+for (const f of ['src/middleware.ts', 'src/lib/supabase/middleware.ts', 'src/app/[locale]/signup/page.tsx', 'src/app/[locale]/login/page.tsx']) {
+  const code = readFileSync(resolvePath(ROOT, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  check(!/kf-seen|first-screen|SEEN_COOKIE|markSeen|signedOutPage/.test(code), `${f}: no code names the kf-seen mark or the old decision`);
 }
-check(fs.markSeen('native', undefined) === true, 'the app writes the mark when it is missing');
-check(fs.markSeen('native', '1') === false, 'the app does not write the mark twice');
-check(fs.markSeen('web', undefined) === false, 'the web never writes the mark');
 
 // ── 2. The real middleware ──────────────────────────────────────────────────
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321';
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'placeholder-not-a-key';
 const USER = { id: '3f2b8c1e-9a4d-4e6b-8c7a-1d2e3f4a5b6c', aud: 'authenticated', role: 'authenticated', email: 'student@example.invalid', app_metadata: {}, user_metadata: {}, created_at: '2026-11-10T00:00:00Z' };
 const stray = [];
-globalThis.fetch = async (input, init) => {
+globalThis.fetch = async (input) => {
   const url = typeof input === 'string' ? input : input.url;
   if (/\/auth\/v1\/user$/.test(url)) {
     return new Response(JSON.stringify(USER), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -78,6 +67,7 @@ const SESSION = `sb-127-auth-token=base64-${Buffer.from(JSON.stringify({ access_
 const { NextRequest } = await import('next/server.js');
 const { middleware } = await load('src/middleware.ts');
 const APP = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 KnowFlowApp/1';
+const APP2 = APP.replace('KnowFlowApp/1', 'KnowFlowApp/2');
 const WEB = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1';
 async function ask(path, ua, cookies = []) {
   const headers = { 'user-agent': ua, accept: 'text/html', 'sec-fetch-dest': 'document' };
@@ -92,62 +82,66 @@ async function ask(path, ua, cookies = []) {
   };
 }
 
+// The app's first request is its root, which goes to the dashboard, which a
+// signed-out request leaves for login. Each hop is read, then the chain.
 const REDIRECTS = [
-  ['/en/dashboard', APP, [], '/en/signup', 'the app, signed out, fresh device: dashboard -> sign-up'],
-  ['/ar/dashboard', APP, [], '/ar/signup', '...in Arabic too'],
-  ['/en/dashboard', APP, ['kf-seen=1'], '/en/login', 'the app, signed out, device that held a session: dashboard -> login'],
-  ['/ar/dashboard/settings', APP, ['kf-seen=1'], '/ar/login', '...any dashboard page, in Arabic'],
+  ['/en', APP, [], '/en/dashboard', "the app's root goes to the dashboard first (unchanged)"],
+  ['/ar', APP2, [], '/ar/dashboard', '...at shell 2 too, in Arabic'],
+  ['/en/dashboard', APP, [], '/en/login', 'the app, signed out, fresh device: dashboard -> login'],
+  ['/ar/dashboard', APP, [], '/ar/login', '...in Arabic too'],
+  ['/ar/dashboard', APP2, [], '/ar/login', '...at shell 2 (Sign in with Apple) too'],
+  ['/en/dashboard', APP, ['kf-seen=1'], '/en/login', 'the app, signed out, a device still carrying the old kf-seen mark: login, the same'],
+  ['/ar/dashboard/settings', APP, [], '/ar/login', 'any dashboard page, in Arabic'],
   ['/en/dashboard', WEB, [], '/en/login', 'the web, signed out: dashboard -> login (unchanged)'],
-  ['/en/dashboard', WEB, ['kf-seen=1'], '/en/login', 'the web with the cookie: dashboard -> login (unchanged)'],
-  ['/en', APP, [], '/en/dashboard', 'the app\'s root still goes to the dashboard first (unchanged)'],
+  ['/ar/dashboard', WEB, [], '/ar/login', '...in Arabic (unchanged)'],
 ];
 for (const [path, ua, cookies, want, why] of REDIRECTS) {
   const r = await ask(path, ua, cookies);
   check(r.to === want, `${why}: ${path} -> ${r.to} (status ${r.status}), want ${want}`);
-  check(r.seen === null, `${why}: a signed-out response writes no kf-seen (${r.seen})`);
+  check(r.seen === null, `${why}: writes no kf-seen (${r.seen})`);
+}
+for (const [locale, ua, shell] of [['en', APP, 1], ['ar', APP, 1], ['ar', APP2, 2]]) {
+  const hop1 = await ask(`/${locale}`, ua);
+  const hop2 = hop1.to ? await ask(hop1.to, ua) : { to: null };
+  const hop3 = hop2.to ? await ask(hop2.to, ua) : { to: null, rewrite: null };
+  check(hop2.to === `/${locale}/login` && hop3.to === null && hop3.rewrite === `/${locale}/native/login`, `the app's first launch, ${locale}, shell ${shell}: /${locale} -> ${hop1.to} -> ${hop2.to}, served as ${hop3.rewrite}; want the login twin`);
 }
 // An explicit visit to either page is served, in the app as its twin.
-for (const [path, cookies, want] of [['/en/login', [], '/en/native/login'], ['/en/signup', [], '/en/native/signup'], ['/ar/login', ['kf-seen=1'], '/ar/native/login']]) {
-  const r = await ask(path, APP, cookies);
-  check(r.to === null && r.rewrite === want, `the app asking ${path} (${cookies.join(',') || 'no cookie'}) gets that page's twin: to=${r.to} rewrite=${r.rewrite}`);
+for (const [path, want] of [['/en/login', '/en/native/login'], ['/en/signup', '/en/native/signup'], ['/ar/login', '/ar/native/login'], ['/ar/signup', '/ar/native/signup']]) {
+  const r = await ask(path, APP);
+  check(r.to === null && r.rewrite === want, `the app asking ${path} gets that page's twin: to=${r.to} rewrite=${r.rewrite}`);
+}
+for (const path of ['/en/login', '/en/signup', '/ar/login', '/ar/signup']) {
+  const r = await ask(path, WEB);
+  check(r.to === null && r.rewrite === null, `the web asking ${path} is served that page: to=${r.to} rewrite=${r.rewrite}`);
 }
 
-// Signed in: the app writes the mark once; the web never does.
-const signedApp = await ask('/en/dashboard', APP, [SESSION]);
-check(signedApp.to === null, `the app, signed in, stays on the dashboard: to=${signedApp.to}`);
-const flags = (signedApp.seen ?? '').split(';').map((s) => s.trim().toLowerCase());
-check(signedApp.seen !== null && flags[0] === 'kf-seen=1', `the app, signed in, writes kf-seen=1: ${signedApp.seen}`);
-for (const f of ['path=/', 'max-age=34560000', 'httponly', 'secure', 'samesite=lax']) {
-  check(flags.includes(f), `...with ${f}: ${signedApp.seen}`);
+// Signed in: no redirect, and no mark is written anywhere.
+for (const [path, ua, why] of [['/en/dashboard', APP, 'the app on the dashboard'], ['/en/login', APP, 'the app on the login twin'], ['/en/dashboard', WEB, 'the web on the dashboard']]) {
+  const r = await ask(path, ua, [SESSION]);
+  check(r.to === null && r.seen === null, `signed in, ${why}: no redirect and no kf-seen (to=${r.to} seen=${r.seen})`);
 }
-const signedAppLogin = await ask('/en/login', APP, [SESSION]);
-check(signedAppLogin.seen !== null && signedAppLogin.rewrite === '/en/native/login', `...on a twin page too, the rewrite keeping the cookie: rewrite=${signedAppLogin.rewrite} seen=${signedAppLogin.seen}`);
-const signedAppAgain = await ask('/en/dashboard', APP, [SESSION, 'kf-seen=1']);
-check(signedAppAgain.seen === null, `the app, signed in, already marked: no second write (${signedAppAgain.seen})`);
-const signedWeb = await ask('/en/dashboard', WEB, [SESSION]);
-check(signedWeb.to === null && signedWeb.seen === null, `the web, signed in: no redirect and no kf-seen (to=${signedWeb.to} seen=${signedWeb.seen})`);
 check(stray.length === 0, `no request left the process except GoTrue's /user: ${stray.join(', ')}`);
 
-// ── 3. The real sign-up handler (the mail is confirmed in Safari) ───────────
-// Confirm-email is on and the app has no universal links, so the mail link
-// opens in Safari and the app never holds that session. The sign-up page
-// therefore writes the mark itself on a successful signUp in the app. The
-// REAL page function runs with React's hooks it calls answered in place
-// (useState -> its initial value, use -> the params, useEffect -> nothing), the Supabase browser
-// client and usePlatform stubbed, `document.cookie` recorded; the form's own
-// onSubmit is called. Nothing renders and nothing leaves the process.
+// ── 3. The real sign-up handler writes no cookie ────────────────────────────
+// The REAL page function runs with React's hooks it calls answered in place
+// (useState -> its initial value, use -> the params, useEffect -> nothing), the
+// Supabase browser client and usePlatform stubbed, `document.cookie` recorded;
+// the form's own onSubmit is called. Nothing renders and nothing leaves the process.
 const PAGE = pathToFileURL(resolvePath(ROOT, 'src/app/[locale]/signup/page.tsx')).href;
+const LOGIN = pathToFileURL(resolvePath(ROOT, 'src/app/[locale]/login/page.tsx')).href;
 registerHooks({
   resolve(spec, ctx, next) {
-    // AppleButton.tsx too: the page calls its useAppleSignIn() (item 4f), which
+    // AppleButton.tsx too: the pages call its useAppleSignIn() (item 4f), which
     // answers null here as on the server (the effect never runs).
-    if (spec === 'react' && (ctx.parentURL === PAGE || ctx.parentURL?.endsWith('/src/components/auth/AppleButton.tsx'))) {
+    if (spec === 'react' && (ctx.parentURL === PAGE || ctx.parentURL === LOGIN || ctx.parentURL?.endsWith('/src/components/auth/AppleButton.tsx'))) {
       return { url: 'data:text/javascript,' + encodeURIComponent("export * from 'react'; export function useState(v) { return [v, () => {}]; } export function use(p) { return p; } export function useEffect() {}"), shortCircuit: true };
     }
     return next(spec, ctx);
   },
 });
 const { default: SignupPage } = await import(PAGE);
+const { default: LoginPage } = await import(LOGIN);
 function findForm(node) {
   if (!node || typeof node !== 'object') return null;
   if (Array.isArray(node)) { for (const n of node) { const f = findForm(n); if (f) return f; } return null; }
@@ -173,17 +167,15 @@ async function submit(platform, answer) {
 const OK_NO_SESSION = { data: { user: { id: USER.id }, session: null }, error: null };
 const OK_SESSION = { data: { user: { id: USER.id }, session: { access_token: 'x' } }, error: null };
 const REFUSED = { data: { user: null, session: null }, error: { message: 'refused' } };
-const MARK = 'kf-seen=1; Path=/; Max-Age=34560000; SameSite=Lax; Secure';
-for (const [why, platform, answer, want] of [
-  ['the app, sign-up accepted, mail to confirm (no session): writes the mark', 'native', OK_NO_SESSION, [MARK]],
-  ['the app, sign-up accepted with a session: writes the mark', 'native', OK_SESSION, [MARK]],
-  ['the app, sign-up refused: writes nothing', 'native', REFUSED, []],
-  ['the web, sign-up accepted: writes nothing (unchanged)', 'web', OK_NO_SESSION, []],
+for (const [why, platform, answer] of [
+  ['the app, sign-up accepted, mail to confirm (no session)', 'native', OK_NO_SESSION],
+  ['the app, sign-up accepted with a session', 'native', OK_SESSION],
+  ['the app, sign-up refused', 'native', REFUSED],
+  ['the web, sign-up accepted', 'web', OK_NO_SESSION],
 ]) {
   const r = await submit(platform, answer);
-  check(!r.error && r.calls === 1 && JSON.stringify(r.writes) === JSON.stringify(want), `${why}: signUp calls ${r.calls}, cookie writes ${JSON.stringify(r.writes ?? r.error)}`);
+  check(!r.error && r.calls === 1 && r.writes.length === 0, `${why}: signUp calls ${r.calls}, no cookie written: ${JSON.stringify(r.writes ?? r.error)}`);
 }
-check(!/httponly/i.test(MARK), 'the script-written mark is not HttpOnly (a script cannot set that flag)');
 
 // ── 4. What the app's sign-up says (activation fix 4, owner-approved 2026-11-10) ─
 // docs/copy-drafts/activation_3_signup.md, shipped: under the subtitle, in the
@@ -223,6 +215,34 @@ for (const [loc, dict] of [['en', en], ['ar', ar]]) {
   }
 }
 check(/\*\*Status: SHIPPED/.test((await import('node:fs')).readFileSync(resolvePath(ROOT, 'docs/copy-drafts/activation_3_signup.md'), 'utf8')), 'the copy draft is marked shipped');
+
+// ── 5. The cross links, read from the real pages ────────────────────────────
+// Login (everyone's first screen) holds ONE link to /<locale>/signup, worded
+// `nav.createAccount` and drawn as the full-width button (data-kf-create-
+// account); sign-up keeps its link to /<locale>/login. Both locales, both
+// shells; the page's dir follows the locale (RTL for Arabic).
+function links(node, out = []) {
+  if (node == null || typeof node !== 'object') return out;
+  if (Array.isArray(node)) { for (const n of node) links(n, out); return out; }
+  if (typeof node.props?.href === 'string') out.push({ href: node.props.href, text: texts(node.props.children).join(' ').trim(), props: node.props });
+  links(node.props?.children, out);
+  return out;
+}
+for (const [loc, dict] of [['en', en], ['ar', ar]]) {
+  for (const platform of ['native', 'web']) {
+    globalThis.__kfPlatform = platform;
+    const login = LoginPage({ params: { locale: loc } });
+    const toSignup = links(login).filter((l) => l.href === `/${loc}/signup`);
+    check(toSignup.length === 1, `${loc} ${platform}: login has exactly one link to /${loc}/signup: ${toSignup.length}`);
+    const c = toSignup[0];
+    check(c && c.text === plain(dict.nav.createAccount), `${loc} ${platform}: ...worded nav.createAccount (${JSON.stringify(dict.nav.createAccount)}): ${JSON.stringify(c?.text)}`);
+    check(c && 'data-kf-create-account' in c.props && /\bw-full\b/.test(c.props.className) && /min-h-\[3\.375rem\]/.test(c.props.className), `${loc} ${platform}: ...drawn as the full-width button: ${c?.props.className}`);
+    check(c && kfWording(c.text).length === 0, `${loc} ${platform}: ...with no plan, price or free word: ${JSON.stringify(c && kfWording(c.text))}`);
+    check(login.props.dir === (loc === 'ar' ? 'rtl' : 'ltr'), `${loc} ${platform}: login's dir is ${login.props.dir}`);
+    const signup = SignupPage({ params: { locale: loc } });
+    check(links(signup).some((l) => l.href === `/${loc}/login`), `${loc} ${platform}: sign-up keeps its link to /${loc}/login`);
+  }
+}
 
 for (const f of failures) console.log(`FAIL ${f}`);
 console.log(`${passed} passed, ${failures.length} failed`);
