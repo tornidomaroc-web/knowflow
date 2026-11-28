@@ -10,7 +10,6 @@ import { BrandIcon } from '@/components/brand/BrandIcon';
 import { ClayDefs } from '@/components/clay/ClayIcons';
 import { googleSignInAllowed, purchaseLinksAllowed } from '@/lib/platform';
 import { usePlatform } from '@/components/platform/PlatformProvider';
-import { markSeenAfterSignUp } from '@/lib/first-screen';
 import { AuthField, PasswordField } from '@/components/auth/AuthField';
 import { useTranslation, Locale } from '@/lib/i18n';
 import { keepDotWithBefore } from '@/lib/separator';
@@ -81,10 +80,6 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
       return;
     }
 
-    // Activation fix 3: in the app, this device now opens on login, not
-    // sign-up, even when the mail is confirmed in Safari (src/lib/first-screen.ts).
-    markSeenAfterSignUp(platform, document);
-
     // Confirm email is ON for this project, so GoTrue withholds the session
     // until the address is proven. The session field was always on this object.
     // Nothing read it, so signup pushed at a dashboard the middleware then
@@ -151,8 +146,8 @@ export default function SignupPage({ params }: { params: Promise<{ locale: Local
                 sentence ended on one word alone. Style only. */}
             <p className="mt-1 text-muted-foreground [text-wrap:balance]">{notice}</p>
             {/* Audit cause #3, the app only: the mail link opens in Safari, so the
-                student has to come back. True: markSeenAfterSignUp (above) set
-                kf-seen, so the app opens on sign-in (src/lib/first-screen.ts). */}
+                student has to come back. True: the app opens on sign-in for everyone
+                (login first, src/lib/supabase/middleware.ts). */}
             {platform === 'native' && <p className="mt-1 text-muted-foreground [text-wrap:balance]">{t.auth.checkInboxApp}</p>}
           </div>
         )}

@@ -151,10 +151,22 @@ export default function LoginPage({ params }: { params: Promise<{ locale: Locale
           </button>
         </div>
 
-        <GoogleAccountHint text={t.auth.googleAccountHint} forgotLabel={t.auth.forgotLink} forgotHref={`/${locale}/forgot-password`} />
-        <Link href={`/${locale}/signup`} className="inline-flex min-h-[2.75rem] items-center self-center text-[0.9375rem] font-semibold text-foreground transition-colors hover:text-accent">
-          {t.auth.noAccount}
+        {/* LOGIN FIRST: this page is everyone's first screen, in the app and on
+            the web, so the way to sign up is a full-width button right under
+            the card, not a small line at the bottom (the 2026-11-09 audit,
+            cause #2: three of five downloaders never signed up when sign-up
+            was that line). The landing's secondary-button style (kf-pill);
+            the approved `nav.createAccount` words, which carry no plan or
+            "free" word, so the app and the web say the same thing. */}
+        <Link
+          href={`/${locale}/signup`}
+          data-kf-create-account=""
+          className="pressable kf-pill flex min-h-[3.375rem] w-full items-center justify-center rounded-full px-4 text-[1.0625rem] font-extrabold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {t.nav.createAccount}
         </Link>
+
+        <GoogleAccountHint text={t.auth.googleAccountHint} forgotLabel={t.auth.forgotLink} forgotHref={`/${locale}/forgot-password`} />
       </form>
     </div>
   );
