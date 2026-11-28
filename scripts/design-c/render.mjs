@@ -374,6 +374,9 @@ cameraScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
 iapScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
 // Voice input in Ask (voice.mjs): the stubbed plugin at shell 2, the gate; check 22 widened to every shell-2 screen above.
 voiceScreens(add, { APP, SAFARI, DESK, DESKTOP }, SCREENS);
+// Login first (PR #360): /login is the screen this change is about (the full-width Create account button),
+// so every /login screen, and landing-app that now lands there, leaves check 22; every other screen stays held.
+for (const s of SCREENS) if (s.path === 'login' || s.lands === 'login') s.same = false;
 // Sign in with Apple (apple.mjs): the stubbed plugin at shell 2 on /login, /signup and the delete card; the gate; check 30.
 appleScreens(add, { APP, SAFARI });
 // In-app rating (review.mjs): the Settings row at shell 2 with the KnowFlowReview stub, the gate on Settings and the quiz result; check 31.
